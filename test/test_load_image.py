@@ -8,7 +8,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 
-import visualization as vis
+import vision6D as vis
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'

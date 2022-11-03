@@ -5,7 +5,7 @@ import numpy as np
 import pyvista as pv
 from scipy.spatial.transform import Rotation as R
 
-logger = logging.getLogger("visualization")
+logger = logging.getLogger("vision6D")
 
 class App:
     
