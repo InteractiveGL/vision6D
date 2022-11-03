@@ -109,7 +109,7 @@ def load_obj(name):
         return pickle.load(f)
 
 def meshwrite(output_filename, mesh):
-    
+
     fid = open('test/data/nii_001/5997_right_output_mesh_from_df.mesh', 'rb')
     ossicle_mesh = meshread(fid, linesread=False, meshread2=False)
     # mesh.sz = np.array([1,1,1])
@@ -137,14 +137,14 @@ def meshwrite(output_filename, mesh):
                 f.write(mesh.colormap.numverts.T)
                 f.write(mesh.colormap.cols.T)
                 f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
-                
-                
+
+
 def load_correct_mesh(filename):
     with open(filename, "rb") as fid:
         mesh = meshread(fid)
     orient = mesh.orient / np.array([1,2,3])
     mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
-    
+
     return mesh
 
 
@@ -154,7 +154,7 @@ def load_mesh_color(mesh):
     colors[1] = (mesh.vertices[1] - np.min(mesh.vertices[1])) / (np.max(mesh.vertices[1]) - np.min(mesh.vertices[1])) - 0.5
     colors[2] = (mesh.vertices[2] - np.min(mesh.vertices[2])) / (np.max(mesh.vertices[2]) - np.min(mesh.vertices[2])) - 0.5
     colors = colors.T + np.array([0.5, 0.5, 0.5])
-    
+
     return colors
 
 

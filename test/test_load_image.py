@@ -25,14 +25,12 @@ def test_create_app(app):
 def test_load_image(app):
     app.load_image(TEST_IMAGE_PATH)
     app.plot()
-    
+
 def test_load_ossicles(app):
     app.load_mesh(TEST_MESH_PATH, name="ossicles")
     app.plot()
-    
+
 def test_plot_image_ossicles(app):
     app.load_image(TEST_IMAGE_PATH, scaling=[0.01, 0.01, 1])
     app.load_mesh(TEST_MESH_PATH, name="ossicles")
     app.plot()
-
-    
