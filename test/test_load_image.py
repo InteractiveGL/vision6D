@@ -13,7 +13,6 @@ import vision6D as vis
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'
 TEST_IMAGE_PATH = DATA_DIR / "RL_20210304_0.jpg"
-TEST_MESH_PATH = DATA_DIR / "ossicles_001_colored.ply"
 
 @pytest.fixture
 def app():
@@ -26,11 +25,18 @@ def test_load_image(app):
     app.load_image(TEST_IMAGE_PATH)
     app.plot()
 
-def test_load_ossicles(app):
-    app.load_mesh(TEST_MESH_PATH, name="ossicles")
+def test_load_mesh(app):
+    app.load_mesh(DATA_DIR / "ossicles_001_colored_not_centered.ply", name="ossicles", rgb=True)
+    app.load_mesh(DATA_DIR / "facial_nerve_001_colored_not_centered.ply", name="facial_nerve")
+    app.load_mesh(DATA_DIR / "chorda_001_colored_not_centered.ply", name="chorda")
     app.plot()
 
 def test_plot_image_ossicles(app):
     app.load_image(TEST_IMAGE_PATH, scaling=[0.01, 0.01, 1])
-    app.load_mesh(TEST_MESH_PATH, name="ossicles")
+    app.load_mesh(DATA_DIR / "ossicles_001_colored_not_centered.ply", name="ossicles")
+    app.load_mesh(DATA_DIR / "facial_nerve_001_colored_not_centered.ply", name="facial_nerve")
+    app.load_mesh(DATA_DIR / "chorda_001_colored_not_centered.ply", name="chorda")
     app.plot()
+
+def test_render_ossicles(app):
+    app.render()
