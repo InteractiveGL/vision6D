@@ -110,7 +110,7 @@ class App:
 
         # Register callbacks
         self.pl.add_key_event('c', self.reset_camera_event)
-        self.pl.add_key_event('i', self.reset_image_position)
+        self.pl.add_key_event('d', self.reset_image_position)
         self.pl.add_key_event('t', self.track_registration)
 
         # add the camera orientation to move the camera
