@@ -16,7 +16,7 @@ class App:
         self.actors = {}
         self.actor_attrs = {}
 
-        # "xy" view
+        # "xy" camera view
         self.xyviewcamera = pv.Camera()
         self.xyviewcamera.position = (7.75202772140503, 3.917879838943482, 53.657579687507386)
         self.xyviewcamera.focal_point = (7.75202772140503, 3.917879838943482, 0.4370880126953125)
