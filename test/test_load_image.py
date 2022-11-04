@@ -22,7 +22,7 @@ def test_create_app(app):
     assert isinstance(app, vis.App)
 
 def test_load_image(app):
-    app.load_image(TEST_IMAGE_PATH)
+    app.load_image(TEST_IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
     app.plot()
 
 def test_load_mesh(app):
@@ -32,7 +32,7 @@ def test_load_mesh(app):
     app.plot()
 
 def test_plot_image_ossicles(app):
-    app.load_image(TEST_IMAGE_PATH, scaling=[0.01, 0.01, 1])
+    app.load_image(TEST_IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
     app.load_mesh(DATA_DIR / "ossicles_001_colored_not_centered.ply", name="ossicles")
     app.load_mesh(DATA_DIR / "facial_nerve_001_colored_not_centered.ply", name="facial_nerve")
     app.load_mesh(DATA_DIR / "chorda_001_colored_not_centered.ply", name="chorda")
