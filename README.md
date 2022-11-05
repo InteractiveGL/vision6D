@@ -1,2 +1,2 @@
 # vision6D
-substitute for improvise to visualize 3D data rotation and translation
+create a tool to visualize 3D data rotation and translation

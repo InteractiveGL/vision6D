@@ -33,10 +33,10 @@ def test_load_mesh(app):
 
 def test_plot_image_ossicles(app):
     app.load_image(TEST_IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
-    app.load_mesh(DATA_DIR / "ossicles_001_colored_not_centered.ply", name="ossicles")
-    app.load_mesh(DATA_DIR / "facial_nerve_001_colored_not_centered.ply", name="facial_nerve")
-    app.load_mesh(DATA_DIR / "chorda_001_colored_not_centered.ply", name="chorda")
+    app.load_mesh(DATA_DIR / "ossicles_001_colored_not_centered.ply", name="ossicles", rgb = True)
+    app.load_mesh(DATA_DIR / "facial_nerve_001_colored_not_centered.ply", name="facial_nerve", rgb = True)
+    app.load_mesh(DATA_DIR / "chorda_001_colored_not_centered.ply", name="chorda", rgb = True)
     app.plot()
 
 def test_render_ossicles(app):
-    app.render()
+    app.render(DATA_DIR / "ossicles_001_colored_not_centered.ply", rgb=True)

@@ -6,6 +6,7 @@ import pyvista as pv
 import cv2
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
+from pyvista.plotting.render_passes import RenderPasses
 
 logger = logging.getLogger("vision6D")
 
@@ -15,14 +16,12 @@ class App:
 
         # Show output
         self.pl = pv.Plotter()
-        # self.pr = pv.Renderer()
+        self.pr = pv.Plotter(lighting=None)
         self.actors = {}
         self.actor_attrs = {}
 
         # "xy" camera view
         self.xyviewcamera = pv.Camera()
-        # self.xyviewcamera.position = (7.75202772140503, 3.917879838943482, 53.657579687507386)
-        # self.xyviewcamera.focal_point = (7.75202772140503, 3.917879838943482, 0.4370880126953125)
         self.xyviewcamera.position = (9.6, 5.4, 40)
         self.xyviewcamera.focal_point = (9.6, 5.4, 0)
         self.xyviewcamera.up = (0.0, 1.0, 0.0)
@@ -42,7 +41,7 @@ class App:
         image = image.scale(scale_factor, inplace=False)
 
         # Then add it to the plotter
-        actor = self.pl.add_mesh(image, rgb=True, opacity=0.65)
+        actor = self.pl.add_mesh(image, rgb=True, opacity=0.35)
         actor, actor_attr = self.pl.add_actor(actor, name="image")
 
         # Save actor for later
@@ -71,6 +70,8 @@ class App:
 
         actor = self.pl.add_mesh(mesh, rgb=rgb)
         
+        # actor.orientation = (0, 0, 0)
+        # actor.position = (0, 0, 0)
         actor.orientation = (23.294214240721413, 40.41958189080352, 179.0723301417804)
         actor.position = (4.103567000349267, 33.911323263117126, 12.771560037870557)
 
@@ -80,27 +81,24 @@ class App:
         self.actors[name] = actor
         self.actor_attrs[name] = actor_attr
         
-        # remove scalar bar
-        self.pl.remove_scalar_bar()
-        
         logger.info(f"\nossicles_orientation: {self.actors['ossicles'].orientation}")
         logger.info(f"\nossicles_orientation: {self.actors['ossicles'].position}")
 
-    def reset_camera_event(self, *args):
+    def event_reset_camera(self, *args):
         self.pl.camera = self.xyviewcamera.copy()
         logger.debug("reset_camera_event callback complete")
 
-    def reset_image_position(self, *args):
+    def event_reset_image_position(self, *args):
         self.actors["image"] = self.actors["image-origin"].copy() # have to use deepcopy to prevent change self.actors["image-origin"] content
         self.pl.add_actor(self.actors["image"], name="image")
         logger.debug("reset_image_position callback complete")
 
-    def track_registration(self, *args):
+    def event_track_registration(self, *args):
 
         for actor_name, actor in self.actors.items():
             logger.debug(f"<Actor {actor_name}> R: {actor.orientation}, T: {actor.position}")
             
-    def realign_facial_nerve_chorda(self, *args):
+    def event_realign_facial_nerve_chorda(self, *args):
         
         objs = {'fix' : 'ossicles',
                 'move': ['facial_nerve', 'chorda']}
@@ -115,7 +113,7 @@ class App:
         
         logger.debug("realign_facial_nerve_chorda callback complete")
         
-    def realign_facial_nerve_ossicles(self, *args):
+    def event_realign_facial_nerve_ossicles(self, *args):
         
         objs = {'fix' : 'chorda',
                 'move': ['facial_nerve', 'ossicles']}
@@ -130,7 +128,7 @@ class App:
         
         logger.debug("realign_facial_nerve_ossicles callback complete")
         
-    def realign_chorda_ossicles(self, *args):
+    def event_realign_chorda_ossicles(self, *args):
         
         objs = {'fix' : 'facial_nerve',
                 'move': ['chorda', 'ossicles']}
@@ -144,6 +142,16 @@ class App:
             self.actors[f"{obj}"].position = position
         
         logger.debug("realign_chorda_ossicles callback complete")
+        
+    def event_gt_position(self, *args):
+        
+        for actor_name, actor in self.actors.items():
+            if actor_name == "image":
+                continue
+            actor.orientation = (23.294214240721413, 40.41958189080352, 179.0723301417804)
+            actor.position = (4.103567000349267, 33.911323263117126, 12.771560037870557)
+            
+        logger.debug("event_gt_position callback complete")
 
     def plot(self):
 
@@ -151,14 +159,14 @@ class App:
         self.pl.enable_joystick_actor_style()
 
         # Register callbacks
-        self.pl.add_key_event('c', self.reset_camera_event)
-        self.pl.add_key_event('d', self.reset_image_position)
-        self.pl.add_key_event('t', self.track_registration)
-        self.pl.add_key_event('g', self.realign_facial_nerve_chorda)
-        self.pl.add_key_event('h', self.realign_facial_nerve_ossicles)
-        self.pl.add_key_event('j', self.realign_chorda_ossicles)
+        self.pl.add_key_event('c', self.event_reset_camera)
+        self.pl.add_key_event('d', self.event_reset_image_position)
+        self.pl.add_key_event('t', self.event_track_registration)
+        self.pl.add_key_event('g', self.event_realign_facial_nerve_chorda)
+        self.pl.add_key_event('h', self.event_realign_facial_nerve_ossicles)
+        self.pl.add_key_event('j', self.event_realign_chorda_ossicles)
+        self.pl.add_key_event('k', self.event_gt_position)
         
-
         # add the camera orientation to move the camera
         _ = self.pl.add_camera_orientation_widget()
         
@@ -166,37 +174,23 @@ class App:
         self.pl.camera = self.xyviewcamera.copy()
         
         # Actual presenting
-        cpos = self.pl.show(return_cpos=True)
+        cpos = self.pl.show(title="vision6D", return_cpos=True)
         logger.debug(f"\ncpos: {cpos}")
+        # self.pl.renderer
 
-    def render(self):
-        ...
+    def render(self, mesh_path, rgb):
+    
+        self.pr.enable_joystick_actor_style()
+        self.pr.set_background('black')
+        # self.pr.add_axes()
         
-        # Create image mesh and add it to the plotter
-        # mesh = pv.read(mesh_path)
-
-        # # actor = self.pl.add_mesh(mesh, rgb=True)
-
-        # # actor.orientation = (13.93752422036519, 49.441080905025686, 170.56188741343297)
-        # # actor.position = (4.4715937628911275, 7.283363364481435, -0.7639411050175622)
-
-        # actor, actor_attr = self.pr.add_actor(mesh, name=name)
+        mesh = pv.read(mesh_path)
+        mesh = self.pr.add_mesh(mesh, rgb=rgb)
+        mesh.orientation = (23.294214240721413, 40.41958189080352, 179.0723301417804)
+        mesh.position = (4.103567000349267, 33.911323263117126, 12.771560037870557)
+    
+        self.pr.camera = self.xyviewcamera.copy()
         
-        # self.pr.view_xy()
-
-        # self.pl.add_axes()
-        # self.pl.enable_joystick_actor_style()
-
-        # # Register callbacks
-        # self.pl.add_key_event('c', self.reset_camera_event)
-        # self.pl.add_key_event('d', self.reset_image_position)
-        # self.pl.add_key_event('t', self.track_registration)
-
-        # # add the camera orientation to move the camera
-        # _ = self.pl.add_camera_orientation_widget()
-
-        # # Actual presenting
-        # cpos = self.pl.show(cpos="xy", return_cpos=True)
-        # logger.debug(f"\ncpos: {cpos}")
-        # logger.debug(f"\nossicles_orientation: {self.actors['ossicles'].orientation}")
-        # logger.debug(f"\nossicles_orientation: {self.actors['ossicles'].position}")
+        self.pr.disable()
+        self.pr.show()
+        print("hhh")
