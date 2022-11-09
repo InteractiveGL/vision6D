@@ -163,3 +163,8 @@ def center_mesh(mesh):
     centroid = np.mean(mesh.vertices, axis=1)
     centered_mesh.vertices = mesh.vertices - np.expand_dims(centroid, axis=1)
     return centered_mesh
+
+
+def create_black_bg():
+    image = Image.new('RGB', (1920, 1080), color=0)
+    image.save("test/data/black_background.jpg")

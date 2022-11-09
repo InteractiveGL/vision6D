@@ -1,6 +1,7 @@
 import pathlib
 import logging
 import numpy as np
+from PIL import Image
 
 import pyvista as pv
 import cv2
@@ -12,21 +13,37 @@ logger = logging.getLogger("vision6D")
 
 class App:
 
-    def __init__(self):
-
-        # Show output
-        self.pl = pv.Plotter()
-        self.pr = pv.Plotter(lighting=None)
+    def __init__(self, register):
+        
+        self.register = register
         self.actors = {}
         self.actor_attrs = {}
 
         # "xy" camera view
         self.xyviewcamera = pv.Camera()
-        self.xyviewcamera.position = (9.6, 5.4, 40)
         self.xyviewcamera.focal_point = (9.6, 5.4, 0)
         self.xyviewcamera.up = (0.0, 1.0, 0.0)
-        self.xyviewcamera.zoom = 1.0
-
+        
+        self.gt_orientation = (35.57143478233399, 86.14563590414456, 163.22833630484539)
+        self.gt_position = (-4.892817134622411, 36.41065351570653, -5.650059814317807)
+        
+        if self.register:
+            self.pl = pv.Plotter(window_size=[1920, 1080])
+            self.xyviewcamera.position = (9.6, 5.4, 40)
+        else:
+            self.pl = pv.Plotter(window_size=[1920, 1080], off_screen=True)
+            self.pl.store_image = True
+            self.xyviewcamera.position = (9.6, 5.4, 20)
+        
+        # render ossicles
+        self.pr = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
+        self.pr.store_image = True
+        
+        # render RGB image
+        self.pi = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
+        self.pi.store_image = True
+        
+        
     def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
 
         # Check if the file exists
@@ -41,22 +58,22 @@ class App:
         image = image.scale(scale_factor, inplace=False)
 
         # Then add it to the plotter
-        actor = self.pl.add_mesh(image, rgb=True, opacity=0.35)
-        actor, actor_attr = self.pl.add_actor(actor, name="image")
+        image = self.pl.add_mesh(image, rgb=True, opacity=0.35)
+        actor, actor_attr = self.pl.add_actor(image, name="image")
 
         # Save actor for later
         self.actors["image"] = actor
         self.actors["image-origin"] = actor.copy()
         self.actor_attrs['image'] = actor_attr
+        
+    # def degree2matrix(self, r: list, t: list):
+    #     rot = R.from_euler("xyz", r, degrees=True)
+    #     rot = rot.as_matrix()
 
-    def degree2matrix(self, r: list, t: list):
-        rot = R.from_euler("xyz", r, degrees=True)
-        rot = rot.as_matrix()
+    #     trans = np.array(t).reshape((-1, 1))
+    #     matrix = np.vstack((np.hstack((rot, trans)), np.array([0, 0, 0, 1])))
 
-        trans = np.array(t).reshape((-1, 1))
-        matrix = np.vstack((np.hstack((rot, trans)), np.array([0, 0, 0, 1])))
-
-        return matrix
+    #     return matrix
 
     def load_mesh(self, mesh_path:pathlib.Path, name:str, rgb: bool = False):
 
@@ -68,21 +85,21 @@ class App:
         # Create image mesh and add it to the plotter
         mesh = pv.read(mesh_path)
 
-        actor = self.pl.add_mesh(mesh, rgb=rgb)
+        mesh = self.pl.add_mesh(mesh, rgb=rgb)
         
         # actor.orientation = (0, 0, 0)
         # actor.position = (0, 0, 0)
-        actor.orientation = (23.294214240721413, 40.41958189080352, 179.0723301417804)
-        actor.position = (4.103567000349267, 33.911323263117126, 12.771560037870557)
+        mesh.orientation = self.gt_orientation
+        mesh.position = self.gt_position
 
-        actor, actor_attr = self.pl.add_actor(actor, name=name)
+        actor, actor_attr = self.pl.add_actor(mesh, name=name)
 
         # Save actor for later
         self.actors[name] = actor
         self.actor_attrs[name] = actor_attr
         
-        logger.info(f"\nossicles_orientation: {self.actors['ossicles'].orientation}")
-        logger.info(f"\nossicles_orientation: {self.actors['ossicles'].position}")
+        logger.debug(f"\n{name} orientation: {self.actors[name].orientation}")
+        logger.debug(f"\n{name} position: {self.actors[name].position}")
 
     def event_reset_camera(self, *args):
         self.pl.camera = self.xyviewcamera.copy()
@@ -148,14 +165,26 @@ class App:
         for actor_name, actor in self.actors.items():
             if actor_name == "image":
                 continue
-            actor.orientation = (23.294214240721413, 40.41958189080352, 179.0723301417804)
-            actor.position = (4.103567000349267, 33.911323263117126, 12.771560037870557)
+            actor.orientation = self.gt_orientation
+            actor.position = self.gt_position
             
         logger.debug("event_gt_position callback complete")
-
+        
+    def event_change_gt_position(self, *args):
+        
+        self.gt_orientation = self.actors["ossicles"].orientation
+        self.gt_position = self.actors["ossicles"].position
+        
+        for actor_name, actor in self.actors.items():
+            if actor_name == "image":
+                continue
+            actor.orientation = self.gt_orientation
+            actor.position = self.gt_position
+            
+        logger.debug("event_change_gt_position callback complete")
+        
     def plot(self):
 
-        self.pl.add_axes()
         self.pl.enable_joystick_actor_style()
 
         # Register callbacks
@@ -166,31 +195,62 @@ class App:
         self.pl.add_key_event('h', self.event_realign_facial_nerve_ossicles)
         self.pl.add_key_event('j', self.event_realign_chorda_ossicles)
         self.pl.add_key_event('k', self.event_gt_position)
-        
-        # add the camera orientation to move the camera
-        _ = self.pl.add_camera_orientation_widget()
+        self.pl.add_key_event('l', self.event_change_gt_position)
         
         # Set the camera initial parameters
         self.pl.camera = self.xyviewcamera.copy()
         
-        # Actual presenting
-        cpos = self.pl.show(title="vision6D", return_cpos=True)
+        if self.register:
+            self.pl.add_axes()
+            # add the camera orientation to move the camera
+            _ = self.pl.add_camera_orientation_widget()
+            # Actual presenting
+            cpos = self.pl.show(title="vision6D", return_cpos=True)
+        else:
+            self.pl.disable()
+            cpos = self.pl.show(title="vision6D", return_cpos=True)
+            result = self.pl.last_image
+            res_plot = Image.fromarray(result)
+            res_plot.save("res_plot.png")
+        
         logger.debug(f"\ncpos: {cpos}")
-        # self.pl.renderer
+        
+    def render_image(self, image_path, scale_factor):
+        self.pi.enable_joystick_actor_style()
+        image = pv.read(image_path)
+        image = image.scale(scale_factor, inplace=False)
+        image = self.pi.add_mesh(image, rgb=True, opacity=1)
+        self.pi.camera = self.xyviewcamera.copy()
+        self.pi.disable()
+        self.pi.show()
+        result = self.pi.last_image
+        res_render = Image.fromarray(result)
+        res_render.save("image.png")
+        print("hhh")
 
-    def render(self, mesh_path, rgb):
+    def render_ossicles(self, scale_factor, mesh_path, rgb):
     
         self.pr.enable_joystick_actor_style()
-        self.pr.set_background('black')
-        # self.pr.add_axes()
+        self.pr.set_background('white')
         
+        image = pv.read("black_background.jpg")
+        image = image.scale(scale_factor, inplace=False)
+        image = self.pr.add_mesh(image, rgb=rgb, opacity=0, show_scalar_bar=False)
         mesh = pv.read(mesh_path)
         mesh = self.pr.add_mesh(mesh, rgb=rgb)
-        mesh.orientation = (23.294214240721413, 40.41958189080352, 179.0723301417804)
-        mesh.position = (4.103567000349267, 33.911323263117126, 12.771560037870557)
+        
+        mesh.orientation = self.gt_orientation
+        mesh.position = self.gt_position
     
         self.pr.camera = self.xyviewcamera.copy()
         
         self.pr.disable()
         self.pr.show()
+        result = self.pr.last_image
+        res_render = Image.fromarray(result)
+        res_render.save("res_render.png")
         print("hhh")
+        
+    def plot_render(self, scale_factor, render_path):
+        self.plot()
+        self.render_ossicles(scale_factor, render_path, rgb=True)
