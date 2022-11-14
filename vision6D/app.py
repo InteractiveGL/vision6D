@@ -24,16 +24,19 @@ class App:
         self.xyviewcamera.focal_point = (9.6, 5.4, 0)
         self.xyviewcamera.up = (0.0, 1.0, 0.0)
         
-        self.gt_orientation = (35.57143478233399, 86.14563590414456, 163.22833630484539)
-        self.gt_position = (-4.892817134622411, 36.41065351570653, -5.650059814317807)
+        # self.gt_orientation = (35.57143478233399, 86.14563590414456, 163.22833630484539)
+        # self.gt_position = (-4.892817134622411, 36.41065351570653, -5.650059814317807)
+        
+        self.gt_orientation = (6.835578651406617, 47.91692755829381, 172.76787223914218)
+        self.gt_position = (2.5987030981091648, 31.039133701224685, 14.477777915423951)
         
         if self.register:
             self.pl = pv.Plotter(window_size=[1920, 1080])
-            self.xyviewcamera.position = (9.6, 5.4, 40)
         else:
             self.pl = pv.Plotter(window_size=[1920, 1080], off_screen=True)
             self.pl.store_image = True
-            self.xyviewcamera.position = (9.6, 5.4, 20)
+            
+        self.xyviewcamera.position = (9.6, 5.4, 20)
         
         # render ossicles
         self.pr = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
@@ -100,6 +103,10 @@ class App:
         
         logger.debug(f"\n{name} orientation: {self.actors[name].orientation}")
         logger.debug(f"\n{name} position: {self.actors[name].position}")
+        
+    def event_zoom_out(self, *args):
+        self.pl.camera.zoom(0.5)
+        logger.debug("event_zoom_out callback complete")
 
     def event_reset_camera(self, *args):
         self.pl.camera = self.xyviewcamera.copy()
@@ -189,6 +196,7 @@ class App:
 
         # Register callbacks
         self.pl.add_key_event('c', self.event_reset_camera)
+        self.pl.add_key_event('z', self.event_zoom_out)
         self.pl.add_key_event('d', self.event_reset_image_position)
         self.pl.add_key_event('t', self.event_track_registration)
         self.pl.add_key_event('g', self.event_realign_facial_nerve_chorda)
