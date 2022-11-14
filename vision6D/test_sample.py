@@ -18,9 +18,6 @@ if __name__ == "__main__":
     
     # image_grey_np = np.array(image_grey)
     
-    # # pixels = [i for i in image_grey.getdata()]
-    # # assert not (255, 255, 255) in pixels, "(255, 255, 255) in pixels"
-    
     # sought = [0,0,0]
     # black  = np.count_nonzero(np.all(image_grey_np==sought,axis=2))
     # print(f"black: {black}")
@@ -29,13 +26,21 @@ if __name__ == "__main__":
     # white  = np.count_nonzero(np.all(image_grey_np==sought,axis=2))
     # print(f"white: {white}")
     
-    image_white_bg = Image.open("res_render.png")
+    image_white = Image.open("res_render.png")
     
-    image_white_bg = np.array(image_white_bg)
+    pixels = [i for i in image_white.getdata()]
+    assert not (0, 0, 0) in pixels, "(0, 0, 0) in pixels"
+    
+    image_white_bg = np.array(image_white)
     
     image_black_bg = copy.deepcopy(image_white_bg)
     
     image_black_bg[np.where((image_black_bg[...,0] == 255) & (image_black_bg[...,1] == 255) & (image_black_bg[...,2] == 255))] = [0,0,0]
+    
+    image_black = Image.fromarray(image_black_bg)
+    
+    pixels = [i for i in image_black.getdata()]
+    assert not (255, 255, 255) in pixels, "(255, 255, 255) in pixels"
      
     frame = Image.open("image.png")
     

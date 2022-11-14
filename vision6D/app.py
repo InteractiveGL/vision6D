@@ -13,7 +13,7 @@ logger = logging.getLogger("vision6D")
 
 class App:
 
-    def __init__(self, register):
+    def __init__(self, register, image_path, scale_factor=[1,1,1]):
         
         self.register = register
         self.actors = {}
@@ -24,12 +24,12 @@ class App:
         self.xyviewcamera.focal_point = (9.6, 5.4, 0)
         self.xyviewcamera.up = (0.0, 1.0, 0.0)
         
-        # self.gt_orientation = (35.57143478233399, 86.14563590414456, 163.22833630484539)
-        # self.gt_position = (-4.892817134622411, 36.41065351570653, -5.650059814317807)
-        
-        self.gt_orientation = (6.835578651406617, 47.91692755829381, 172.76787223914218)
-        self.gt_position = (2.5987030981091648, 31.039133701224685, 14.477777915423951)
-        
+        self.transformation_matrix = np.array(
+            [[-0.66487539, -0.21262585, -0.71605235,  3.25029551],
+            [ 0.08437209, -0.97387229,  0.21084143, 30.99098483],
+            [-0.74217388,  0.07976845,  0.66544341, 14.47777792],
+            [ 0.        ,  0.        ,  0.        ,  1.        ]])
+                
         if self.register:
             self.pl = pv.Plotter(window_size=[1920, 1080])
         else:
@@ -46,6 +46,8 @@ class App:
         self.pi = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
         self.pi.store_image = True
         
+        self.load_image(image_path, scale_factor)
+        # self.plot()
         
     def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
 
@@ -68,15 +70,6 @@ class App:
         self.actors["image"] = actor
         self.actors["image-origin"] = actor.copy()
         self.actor_attrs['image'] = actor_attr
-        
-    # def degree2matrix(self, r: list, t: list):
-    #     rot = R.from_euler("xyz", r, degrees=True)
-    #     rot = rot.as_matrix()
-
-    #     trans = np.array(t).reshape((-1, 1))
-    #     matrix = np.vstack((np.hstack((rot, trans)), np.array([0, 0, 0, 1])))
-
-    #     return matrix
 
     def load_mesh(self, mesh_path:pathlib.Path, name:str, rgb: bool = False):
 
@@ -87,14 +80,23 @@ class App:
 
         # Create image mesh and add it to the plotter
         mesh = pv.read(mesh_path)
+        
+        # mesh = mesh.rotate_x(6.835578651406617, inplace=False)
+        # mesh = mesh.rotate_y(47.91692755829381, inplace=False)
+        # mesh = mesh.rotate_z(172.76787223914218, inplace=False)
+        # mesh = mesh.translate((2.5987030981091648, 31.039133701224685, 14.477777915423951), inplace=False)
+        
+        # # Apply transformation to the mesh vertices
+        # vertices = mesh.points
+        # ones = np.ones((vertices.shape[0], 1))
+        # homogeneous_vertices = np.append(vertices, ones, axis=1)
+        # transformed_vertices = (self.transformation_matrix @ homogeneous_vertices.T)[:3].T
+        # mesh.points = transformed_vertices
 
         mesh = self.pl.add_mesh(mesh, rgb=rgb)
         
-        # actor.orientation = (0, 0, 0)
-        # actor.position = (0, 0, 0)
-        mesh.orientation = self.gt_orientation
-        mesh.position = self.gt_position
-
+        mesh.user_matrix = self.transformation_matrix
+        
         actor, actor_attr = self.pl.add_actor(mesh, name=name)
 
         # Save actor for later
@@ -120,20 +122,23 @@ class App:
     def event_track_registration(self, *args):
 
         for actor_name, actor in self.actors.items():
-            logger.debug(f"<Actor {actor_name}> R: {actor.orientation}, T: {actor.position}")
+            logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
             
     def event_realign_facial_nerve_chorda(self, *args):
         
         objs = {'fix' : 'ossicles',
                 'move': ['facial_nerve', 'chorda']}
         
-        # obtain the original ossicles orientation and position
-        orientation = self.actors[f"{objs['fix']}"].orientation
-        position = self.actors[f"{objs['fix']}"].position
+        rt = self.actors[f"{objs['fix']}"].user_matrix
+        
+        # # obtain the original ossicles orientation and position
+        # orientation = self.actors[f"{objs['fix']}"].orientation
+        # position = self.actors[f"{objs['fix']}"].position
         
         for obj in objs['move']:
-            self.actors[f"{obj}"].orientation = orientation
-            self.actors[f"{obj}"].position = position
+            # self.actors[f"{obj}"].orientation = orientation
+            # self.actors[f"{obj}"].position = position
+            self.actors[f"{obj}"].user_matrix = rt
         
         logger.debug("realign_facial_nerve_chorda callback complete")
         
@@ -142,13 +147,10 @@ class App:
         objs = {'fix' : 'chorda',
                 'move': ['facial_nerve', 'ossicles']}
         
-        # obtain the original ossicles orientation and position
-        orientation = self.actors[f"{objs['fix']}"].orientation
-        position = self.actors[f"{objs['fix']}"].position
+        rt = self.actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            self.actors[f"{obj}"].orientation = orientation
-            self.actors[f"{obj}"].position = position
+            self.actors[f"{obj}"].user_matrix = rt
         
         logger.debug("realign_facial_nerve_ossicles callback complete")
         
@@ -157,13 +159,10 @@ class App:
         objs = {'fix' : 'facial_nerve',
                 'move': ['chorda', 'ossicles']}
         
-        # obtain the original ossicles orientation and position
-        orientation = self.actors[f"{objs['fix']}"].orientation
-        position = self.actors[f"{objs['fix']}"].position
+        rt = self.actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            self.actors[f"{obj}"].orientation = orientation
-            self.actors[f"{obj}"].position = position
+            self.actors[f"{obj}"].user_matrix = rt
         
         logger.debug("realign_chorda_ossicles callback complete")
         
@@ -172,21 +171,25 @@ class App:
         for actor_name, actor in self.actors.items():
             if actor_name == "image":
                 continue
-            actor.orientation = self.gt_orientation
-            actor.position = self.gt_position
+            # actor.orientation = self.gt_orientation
+            # actor.position = self.gt_position
+            actor.user_matrix = self.transformation_matrix
             
         logger.debug("event_gt_position callback complete")
         
     def event_change_gt_position(self, *args):
         
-        self.gt_orientation = self.actors["ossicles"].orientation
-        self.gt_position = self.actors["ossicles"].position
+        # self.gt_orientation = self.actors["ossicles"].orientation
+        # self.gt_position = self.actors["ossicles"].position
+        
+        self.transformation_matrix = self.actors["ossicles"].user_matrix
         
         for actor_name, actor in self.actors.items():
             if actor_name == "image":
                 continue
-            actor.orientation = self.gt_orientation
-            actor.position = self.gt_position
+            # actor.orientation = self.gt_orientation
+            # actor.position = self.gt_position
+            actor.user_matrix = self.transformation_matrix
             
         logger.debug("event_change_gt_position callback complete")
         
@@ -221,6 +224,7 @@ class App:
             res_plot = Image.fromarray(result)
             res_plot.save("res_plot.png")
         
+        logger.debug(f"\nrt: \n{self.actors['ossicles'].user_matrix}")
         logger.debug(f"\ncpos: {cpos}")
         
     def render_image(self, image_path, scale_factor):
@@ -247,8 +251,7 @@ class App:
         mesh = pv.read(mesh_path)
         mesh = self.pr.add_mesh(mesh, rgb=rgb)
         
-        mesh.orientation = self.gt_orientation
-        mesh.position = self.gt_position
+        mesh.user_matrix = self.transformation_matrix
     
         self.pr.camera = self.xyviewcamera.copy()
         
