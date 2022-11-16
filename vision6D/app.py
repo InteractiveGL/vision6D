@@ -4,7 +4,6 @@ import logging
 import numpy as np
 from PIL import Image
 import copy
-import types
 import functools
 
 import pyvista as pv
@@ -12,19 +11,8 @@ import trimesh
 import cv2
 from easydict import EasyDict
 import matplotlib.pyplot as plt
-from scipy.spatial.transform import Rotation as R
-from pyvista.plotting.render_passes import RenderPasses
 
 logger = logging.getLogger("vision6D")
-
-def copy_func(f):
-    """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
-    g = types.FunctionType(f.__code__, f.__globals__, name=f.__name__,
-                           argdefs=f.__defaults__,
-                           closure=f.__closure__)
-    g = functools.update_wrapper(g, f)
-    g.__kwdefaults__ = f.__kwdefaults__
-    return g
 
 def fread(fid, _len, _type):
     if _len == 0:
@@ -148,20 +136,20 @@ class App:
         #                                     [0, 0, 0, 1]])
                 
         if self.register:
-            self.pl = pv.Plotter(window_size=[1920, 1080])
+            self.pv_plotter = pv.Plotter(window_size=[1920, 1080])
         else:
-            self.pl = pv.Plotter(window_size=[1920, 1080], off_screen=True)
-            self.pl.store_image = True
+            self.pv_plotter = pv.Plotter(window_size=[1920, 1080], off_screen=True)
+            self.pv_plotter.store_image = True
             
         self.xyviewcamera.position = (9.6, 5.4, 20)
         
         # render ossicles
-        self.pr = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
-        self.pr.store_image = True
+        self.pv_render = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
+        self.pv_render.store_image = True
         
         # render RGB image
-        self.pi = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
-        self.pi.store_image = True
+        self.pv_render_image = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
+        self.pv_render_image.store_image = True
         
         self.load_image(image_path, scale_factor)
         
@@ -174,8 +162,8 @@ class App:
     def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
 
         # Then add it to the plotter
-        image = self.pl.add_mesh(self.image_polydata['image'], rgb=True, opacity=0.35, name='image')
-        actor, _ = self.pl.add_actor(image, name="image")
+        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=0.35, name='image')
+        actor, _ = self.pv_plotter.add_actor(image, name="image")
 
         # Save actor for later
         self.image_actors["image"] = actor
@@ -183,6 +171,7 @@ class App:
         
     def transform_vertices(self, transformation_matrix, vertices):
         
+        # fix the color
         transformation_matrix = np.array([[1, 0, 0, 0],
                                         [0, 1, 0, 0],
                                         [0, 0, 1, 0],
@@ -203,15 +192,29 @@ class App:
         colors = colors.T + np.array([0.5, 0.5, 0.5])
         
         return colors
+    
+    def load_trimesh(self, meshpath):
+        with open(meshpath, "rb") as fid:
+            mesh = meshread(fid)
+        orient = mesh.orient / np.array([1,2,3])
+        mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
+        mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
+        return mesh
 
-    def load_meshes(self, paths: Dict[str, pathlib.Path]):
+    def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
         
-        for mesh_name, mesh_path in paths.items():
+        for mesh_name, mesh_source in paths.items():
             
-            # Load the mesh
-            mesh_data = pv.read(mesh_path)
+            if isinstance(mesh_source, pathlib.WindowsPath):
+                # Load the mesh
+                if '.ply' in str(mesh_source):
+                    mesh_data = pv.read(mesh_source)
+                elif '.mesh' in str(mesh_source):
+                    mesh_data = pv.wrap(self.load_trimesh(mesh_source))
+            elif isinstance(mesh_source, pv.PolyData):
+                mesh_data = mesh_source
+                
             self.mesh_polydata[mesh_name] = mesh_data
-            
             # Apply transformation to the mesh vertices
             transformed_points = self.transform_vertices(self.transformation_matrix, mesh_data.points)
             colors = self.color_mesh(transformed_points.T)
@@ -219,11 +222,11 @@ class App:
             # Color the vertex
             mesh_data.point_data.set_scalars(colors)
 
-            mesh = self.pl.add_mesh(mesh_data, rgb=True, show_scalar_bar=False, name=mesh_name)
+            mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, name=mesh_name)
             
             mesh.user_matrix = self.transformation_matrix
             
-            actor, _ = self.pl.add_actor(mesh, name=mesh_name)
+            actor, _ = self.pv_plotter.add_actor(mesh, name=mesh_name)
             
             # Save actor for later
             self.mesh_actors[mesh_name] = actor
@@ -232,21 +235,20 @@ class App:
             logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
             
     def event_zoom_out(self, *args):
-        self.pl.camera.zoom(0.5)
+        self.pv_plotter.camera.zoom(0.5)
         logger.debug("event_zoom_out callback complete")
 
     def event_reset_camera(self, *args):
-        self.pl.camera = self.xyviewcamera.copy()
+        self.pv_plotter.camera = self.xyviewcamera.copy()
         logger.debug("reset_camera_event callback complete")
 
     def event_reset_image_position(self, *args):
         self.image_actors["image"] = self.image_actors["image-origin"].copy() # have to use deepcopy to prevent change self.image_actors["image-origin"] content
-        self.pl.add_actor(self.image_actors["image"], name="image")
+        self.pv_plotter.add_actor(self.image_actors["image"], name="image")
         logger.debug("reset_image_position callback complete")
 
     def event_track_registration(self, *args):
-
-        self.event_realign_meshes(main_mesh="ossicles", other_meshes=['facial_nerve', 'chorda'])
+        
         self.event_change_color()
         for actor_name, actor in self.mesh_actors.items():
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
@@ -299,10 +301,10 @@ class App:
                 colors = self.color_mesh(transformed_points.T)
                 self.mesh_polydata[f'{actor_name}'].point_data.set_scalars(colors)
                 
-                mesh = self.pr.add_mesh(self.mesh_polydata[f'{actor_name}'], rgb=True, show_scalar_bar=False)
+                mesh = self.pv_plotter.add_mesh(self.mesh_polydata[f'{actor_name}'], rgb=True, name=actor_name)
                 mesh.user_matrix = transformation_matrix
                 
-                actor, _ = self.pl.add_actor(mesh, name=actor_name)
+                actor, _ = self.pv_plotter.add_actor(mesh, name=actor_name)
                 
                 # Save the new actor to a container
                 container[actor_name] = actor
@@ -315,41 +317,35 @@ class App:
     
     def plot(self):
 
-        self.pl.enable_joystick_actor_style()
+        self.pv_plotter.enable_joystick_actor_style()
 
         # Register callbacks
-        self.pl.add_key_event('c', self.event_reset_camera)
-        self.pl.add_key_event('z', self.event_zoom_out)
-        self.pl.add_key_event('d', self.event_reset_image_position)
-        self.pl.add_key_event('t', self.event_track_registration)
-        
-        # self.pl.add_key_event('g', self.event_realign_facial_nerve_chorda)
-        # self.pl.add_key_event('h', self.event_realign_facial_nerve_ossicles)
-        # self.pl.add_key_event('j', self.event_realign_chorda_ossicles)
+        self.pv_plotter.add_key_event('c', self.event_reset_camera)
+        self.pv_plotter.add_key_event('z', self.event_zoom_out)
+        self.pv_plotter.add_key_event('d', self.event_reset_image_position)
+        self.pv_plotter.add_key_event('t', self.event_track_registration)
 
-        
-        logger.debug(self.binded_meshes)
         for main_mesh, mesh_data in self.binded_meshes.items():
             event_func = functools.partial(self.event_realign_meshes, main_mesh=main_mesh, other_meshes=mesh_data['meshes'])
-            self.pl.add_key_event(mesh_data['key'], event_func)
+            self.pv_plotter.add_key_event(mesh_data['key'], event_func)
         
-        self.pl.add_key_event('k', self.event_gt_position)
-        self.pl.add_key_event('l', self.event_change_gt_position)
-        self.pl.add_key_event('v', self.event_change_color)
+        self.pv_plotter.add_key_event('k', self.event_gt_position)
+        self.pv_plotter.add_key_event('l', self.event_change_gt_position)
+        self.pv_plotter.add_key_event('v', self.event_change_color)
         
         # Set the camera initial parameters
-        self.pl.camera = self.xyviewcamera.copy()
+        self.pv_plotter.camera = self.xyviewcamera.copy()
         
         if self.register:
-            self.pl.add_axes()
+            self.pv_plotter.add_axes()
             # add the camera orientation to move the camera
-            _ = self.pl.add_camera_orientation_widget()
+            _ = self.pv_plotter.add_camera_orientation_widget()
             # Actual presenting
-            cpos = self.pl.show(title="vision6D", return_cpos=True)
+            cpos = self.pv_plotter.show(title="vision6D", return_cpos=True)
         else:
-            self.pl.disable()
-            cpos = self.pl.show(title="vision6D", return_cpos=True)
-            result = self.pl.last_image
+            self.pv_plotter.disable()
+            cpos = self.pv_plotter.show(title="vision6D", return_cpos=True)
+            result = self.pv_plotter.last_image
             res_plot = Image.fromarray(result)
             res_plot.save("res_plot.png")
         
@@ -357,43 +353,44 @@ class App:
         logger.debug(f"\ncpos: {cpos}")
         
     def render_image(self, image_path, scale_factor):
-        self.pi.enable_joystick_actor_style()
+        self.pv_render_image.enable_joystick_actor_style()
         image = pv.read(image_path)
         image = image.scale(scale_factor, inplace=False)
-        image = self.pi.add_mesh(image, rgb=True, opacity=1)
-        self.pi.camera = self.xyviewcamera.copy()
-        self.pi.disable()
-        self.pi.show()
-        result = self.pi.last_image
+        image = self.pv_render_image.add_mesh(image, rgb=True, opacity=1)
+        self.pv_render_image.camera = self.xyviewcamera.copy()
+        self.pv_render_image.disable()
+        self.pv_render_image.show()
+        result = self.pv_render_image.last_image
         res_render = Image.fromarray(result)
         res_render.save("image.png")
         print("hhh")
 
     def render_ossicles(self, scale_factor, mesh_path):
     
-        self.pr.enable_joystick_actor_style()
-        self.pr.set_background('white')
+        self.pv_render.enable_joystick_actor_style()
+        self.pv_render.set_background('white')
         
-        image = pv.read("black_background.jpg")
-        image = image.scale(scale_factor, inplace=False)
+        background = pv.read("black_background.jpg")
+        background = background.scale(scale_factor, inplace=False)
         # generate white image
-        image = self.pr.add_mesh(image, rgb=True, opacity=0, show_scalar_bar=False)
-        # # generate grey image
-        # image = self.pr.add_mesh(image, rgb=True, opacity=0.5, show_scalar_bar=False)
+        image = self.pv_render.add_mesh(background, rgb=True, opacity=0, name="image")
+        # generate grey image
+        # image = self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
+        
         mesh = pv.read(mesh_path)
         transformed_points = self.transform_vertices(self.transformation_matrix, mesh.points)
         colors = self.color_mesh(transformed_points.T)
         # Color the vertex
         mesh.point_data.set_scalars(colors)
-        mesh = self.pr.add_mesh(mesh, rgb=True, show_scalar_bar=False)
+        mesh = self.pv_render.add_mesh(mesh, rgb=True)
         
         mesh.user_matrix = self.transformation_matrix
     
-        self.pr.camera = self.xyviewcamera.copy()
+        self.pv_render.camera = self.xyviewcamera.copy()
         
-        self.pr.disable()
-        self.pr.show()
-        result = self.pr.last_image
+        self.pv_render.disable()
+        self.pv_render.show()
+        result = self.pv_render.last_image
         res_render = Image.fromarray(result)
         
         if image.prop.opacity == 0:

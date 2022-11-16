@@ -54,10 +54,3 @@ def degree2matrix(self, r: list, t: list):
 # actor.orientation = self.gt_orientation
 # actor.position = self.gt_position
 
-def load_trimesh(self, filepath):
-    with open(filepath, "rb") as fid:
-        mesh = meshread(fid)
-    orient = mesh.orient / np.array([1,2,3])
-    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
-    mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
-    return mesh
