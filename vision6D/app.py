@@ -2,22 +2,124 @@ import pathlib
 import logging
 import numpy as np
 from PIL import Image
+import copy
 
 import pyvista as pv
+import trimesh
 import cv2
+from easydict import EasyDict
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
 from pyvista.plotting.render_passes import RenderPasses
 
 logger = logging.getLogger("vision6D")
 
+def fread(fid, _len, _type):
+    if _len == 0:
+        return np.empty(0)
+    if _type == "int16":
+        _type = np.int16
+    elif _type == "int32":
+        _type = np.int32
+    elif _type == "float":
+        _type = np.float32
+    elif _type == "double":
+        _type = np.double
+    elif _type == "char":
+        _type = np.byte
+    elif _type == "uint8":
+        _type = np.uint8
+    else:
+        raise NotImplementedError(f"Invalid _type: {_type}")
+
+    return np.fromfile(fid, _type, _len)
+
+def meshread(fid, linesread=False, meshread2=False):
+    """Reads mesh from fid data stream
+
+    Parameters
+    ----------
+    fid (io.BufferedStream)
+        Input IO stream
+    _type (str, optional):
+        Specifying the data _type for the last fread
+    linesread (bool, optional)
+        Distinguishing different use cases,
+            False => meshread (default)
+            True  => linesread
+
+    """
+
+    # Creating mesh instance
+    mesh = EasyDict()
+
+    # Reading parameters for mesh
+    mesh.id = fread(fid, 1, "int32")
+    mesh.numverts = fread(fid, 1, "int32")[0]
+    mesh.numtris = fread(fid, 1, "int32")[0]
+
+    # Loading mesh data
+    n = fread(fid, 1, "int32")
+    if n == -1:
+        mesh.orient = fread(fid, 3, "int32")
+        mesh.dim = fread(fid, 3, "int32")
+        mesh.sz = fread(fid, 3, "float")
+        mesh.color = fread(fid, 3, "int32")
+    else:
+        mesh.color = np.zeros(3)
+        mesh.color[0] = n
+        mesh.color[1:3] = fread(fid, 2, "int32")
+
+    # Given input parameter `linesread`
+    if linesread:
+        mesh.vertices = fread(fid, 3 * mesh.numverts, "float").reshape(
+            [3, mesh.numverts], order="F"
+        )
+        mesh.triangles = fread(fid, 2 * mesh.numtris, "int32").reshape(
+            [2, mesh.numtris], order="F"
+        )
+    # Given input parameter `meshread2`
+    elif meshread2:
+        mesh.vertices = fread(fid, 3 * mesh.numverts, "double").reshape(
+            [3, mesh.numverts], order="F"
+        )
+        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape(
+            [3, mesh.numtris], order="F"
+        )
+    # Given input parameter `meshread`
+    else:
+        # Loading mesh vertices and triangles
+        mesh.vertices = fread(fid, 3 * mesh.numverts, "float").reshape(
+            [3, mesh.numverts], order="F"
+        )
+        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape(
+            [3, mesh.numtris], order="F"
+        )
+
+    # Return data
+    return mesh
+
 class App:
 
-    def __init__(self, register, image_path, scale_factor=[1,1,1]):
+    def __init__(self, register, image_path, ossicles_path, facial_nerve_path, chorda_path, scale_factor=[1,1,1]):
         
         self.register = register
-        self.actors = {}
-        self.actor_attrs = {}
+        self.image_actors = {}
+        self.mesh_actors = {}
+        
+        self.image_polydata = {
+            'image': pv.read(image_path),
+            'image-origin': None
+        }
+        
+        self.mesh_polydata = {
+            'ossicles': pv.read(ossicles_path),
+            'facial_nerve': pv.read(facial_nerve_path),
+            'chorda': pv.read(chorda_path)
+        }
+        
+        self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
+        self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
 
         # "xy" camera view
         self.xyviewcamera = pv.Camera()
@@ -29,6 +131,11 @@ class App:
             [ 0.08437209, -0.97387229,  0.21084143, 30.99098483],
             [-0.74217388,  0.07976845,  0.66544341, 14.47777792],
             [ 0.        ,  0.        ,  0.        ,  1.        ]])
+        
+        # self.transformation_matrix = np.array([[1, 0, 0, 0],
+        #                                     [0, 1, 0, 0],
+        #                                     [0, 0, 1, 0],
+        #                                     [0, 0, 0, 1]])
                 
         if self.register:
             self.pl = pv.Plotter(window_size=[1920, 1080])
@@ -47,64 +154,56 @@ class App:
         self.pi.store_image = True
         
         self.load_image(image_path, scale_factor)
-        # self.plot()
         
     def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
 
-        # Check if the file exists
-        if not image_path.exists():
-            logger.error(f"{image_path} does not exists")
-            return None
-
-        # Create image mesh and add it to the plotter
-        image = pv.read(image_path)
-
-        # Scale down image
-        image = image.scale(scale_factor, inplace=False)
-
         # Then add it to the plotter
-        image = self.pl.add_mesh(image, rgb=True, opacity=0.35)
-        actor, actor_attr = self.pl.add_actor(image, name="image")
+        image = self.pl.add_mesh(self.image_polydata['image'], rgb=True, opacity=0.35, name='image')
+        actor, _ = self.pl.add_actor(image, name="image")
 
         # Save actor for later
-        self.actors["image"] = actor
-        self.actors["image-origin"] = actor.copy()
-        self.actor_attrs['image'] = actor_attr
-
-    def load_mesh(self, mesh_path:pathlib.Path, name:str, rgb: bool = False):
-
-        # Check if the file exists
-        if not mesh_path.exists():
-            logger.error(f"{mesh_path} does not exists")
-            return None
-
-        # Create image mesh and add it to the plotter
-        mesh = pv.read(mesh_path)
+        self.image_actors["image"] = actor
+        self.image_actors["image-origin"] = actor.copy()
         
-        # mesh = mesh.rotate_x(6.835578651406617, inplace=False)
-        # mesh = mesh.rotate_y(47.91692755829381, inplace=False)
-        # mesh = mesh.rotate_z(172.76787223914218, inplace=False)
-        # mesh = mesh.translate((2.5987030981091648, 31.039133701224685, 14.477777915423951), inplace=False)
+    def transform_vertices(self, transformation_matrix, vertices):
         
-        # # Apply transformation to the mesh vertices
-        # vertices = mesh.points
-        # ones = np.ones((vertices.shape[0], 1))
-        # homogeneous_vertices = np.append(vertices, ones, axis=1)
-        # transformed_vertices = (self.transformation_matrix @ homogeneous_vertices.T)[:3].T
-        # mesh.points = transformed_vertices
+        ones = np.ones((vertices.shape[0], 1))
+        homogeneous_vertices = np.append(vertices, ones, axis=1)
+        transformed_vertices = (transformation_matrix @ homogeneous_vertices.T)[:3].T
+        
+        return transformed_vertices
 
-        mesh = self.pl.add_mesh(mesh, rgb=rgb)
+    def color_mesh(self, vertices):
+        colors = copy.deepcopy(vertices)
+        # normalize vertices and center it to 0
+        colors[0] = (vertices[0] - np.min(vertices[0])) / (np.max(vertices[0]) - np.min(vertices[0])) - 0.5
+        colors[1] = (vertices[1] - np.min(vertices[1])) / (np.max(vertices[1]) - np.min(vertices[1])) - 0.5
+        colors[2] = (vertices[2] - np.min(vertices[2])) / (np.max(vertices[2]) - np.min(vertices[2])) - 0.5
+        colors = colors.T + np.array([0.5, 0.5, 0.5])
         
-        mesh.user_matrix = self.transformation_matrix
-        
-        actor, actor_attr = self.pl.add_actor(mesh, name=name)
+        return colors
 
-        # Save actor for later
-        self.actors[name] = actor
-        self.actor_attrs[name] = actor_attr
+    def load_mesh(self):
         
-        logger.debug(f"\n{name} orientation: {self.actors[name].orientation}")
-        logger.debug(f"\n{name} position: {self.actors[name].position}")
+        for mesh_name, mesh_data in self.mesh_polydata.items():
+            # Apply transformation to the mesh vertices
+            transformed_points = self.transform_vertices(self.transformation_matrix, mesh_data.points)
+            colors = self.color_mesh(transformed_points.T)
+            
+            # Color the vertex
+            mesh_data.point_data.set_scalars(colors)
+
+            mesh = self.pl.add_mesh(mesh_data, rgb=True, show_scalar_bar=False, name=mesh_name)
+            
+            mesh.user_matrix = self.transformation_matrix
+            
+            actor, _ = self.pl.add_actor(mesh, name=mesh_name)
+            
+            # Save actor for later
+            self.mesh_actors[mesh_name] = actor
+            
+            logger.debug(f"\n{mesh_name} orientation: {self.mesh_actors[mesh_name].orientation}")
+            logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
         
     def event_zoom_out(self, *args):
         self.pl.camera.zoom(0.5)
@@ -115,13 +214,15 @@ class App:
         logger.debug("reset_camera_event callback complete")
 
     def event_reset_image_position(self, *args):
-        self.actors["image"] = self.actors["image-origin"].copy() # have to use deepcopy to prevent change self.actors["image-origin"] content
-        self.pl.add_actor(self.actors["image"], name="image")
+        self.image_actors["image"] = self.image_actors["image-origin"].copy() # have to use deepcopy to prevent change self.image_actors["image-origin"] content
+        self.pl.add_actor(self.image_actors["image"], name="image")
         logger.debug("reset_image_position callback complete")
 
     def event_track_registration(self, *args):
 
-        for actor_name, actor in self.actors.items():
+        self.event_realign_facial_nerve_chorda()
+        self.event_change_color()
+        for actor_name, actor in self.mesh_actors.items():
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
             
     def event_realign_facial_nerve_chorda(self, *args):
@@ -129,16 +230,10 @@ class App:
         objs = {'fix' : 'ossicles',
                 'move': ['facial_nerve', 'chorda']}
         
-        rt = self.actors[f"{objs['fix']}"].user_matrix
-        
-        # # obtain the original ossicles orientation and position
-        # orientation = self.actors[f"{objs['fix']}"].orientation
-        # position = self.actors[f"{objs['fix']}"].position
+        rt = self.mesh_actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            # self.actors[f"{obj}"].orientation = orientation
-            # self.actors[f"{obj}"].position = position
-            self.actors[f"{obj}"].user_matrix = rt
+            self.mesh_actors[f"{obj}"].user_matrix = rt
         
         logger.debug("realign_facial_nerve_chorda callback complete")
         
@@ -147,10 +242,10 @@ class App:
         objs = {'fix' : 'chorda',
                 'move': ['facial_nerve', 'ossicles']}
         
-        rt = self.actors[f"{objs['fix']}"].user_matrix
+        rt = self.mesh_actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            self.actors[f"{obj}"].user_matrix = rt
+            self.mesh_actors[f"{obj}"].user_matrix = rt
         
         logger.debug("realign_facial_nerve_ossicles callback complete")
         
@@ -159,39 +254,52 @@ class App:
         objs = {'fix' : 'facial_nerve',
                 'move': ['chorda', 'ossicles']}
         
-        rt = self.actors[f"{objs['fix']}"].user_matrix
+        rt = self.mesh_actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            self.actors[f"{obj}"].user_matrix = rt
+            self.mesh_actors[f"{obj}"].user_matrix = rt
         
         logger.debug("realign_chorda_ossicles callback complete")
         
     def event_gt_position(self, *args):
         
-        for actor_name, actor in self.actors.items():
-            if actor_name == "image":
-                continue
-            # actor.orientation = self.gt_orientation
-            # actor.position = self.gt_position
+        for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = self.transformation_matrix
-            
+
         logger.debug("event_gt_position callback complete")
         
     def event_change_gt_position(self, *args):
-        
-        # self.gt_orientation = self.actors["ossicles"].orientation
-        # self.gt_position = self.actors["ossicles"].position
-        
-        self.transformation_matrix = self.actors["ossicles"].user_matrix
-        
-        for actor_name, actor in self.actors.items():
-            if actor_name == "image":
-                continue
-            # actor.orientation = self.gt_orientation
-            # actor.position = self.gt_position
+        self.transformation_matrix = self.mesh_actors["ossicles"].user_matrix
+        for _, actor in self.mesh_actors.items():
             actor.user_matrix = self.transformation_matrix
             
+        self.event_change_color()
+        
+        logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_change_gt_position callback complete")
+        
+    def event_change_color(self, *args):
+        transformation_matrix = self.mesh_actors["ossicles"].user_matrix
+        container = self.mesh_actors.copy()
+        
+        for actor_name, actor in self.mesh_actors.items():
+            
+            # Color the vertex
+            transformed_points = self.transform_vertices(transformation_matrix, self.mesh_polydata[f'{actor_name}'].points)
+            colors = self.color_mesh(transformed_points.T)
+            self.mesh_polydata[f'{actor_name}'].point_data.set_scalars(colors)
+            
+            mesh = self.pr.add_mesh(self.mesh_polydata[f'{actor_name}'], rgb=True, show_scalar_bar=False)
+            mesh.user_matrix = transformation_matrix
+            
+            actor, _ = self.pl.add_actor(mesh, name=actor_name)
+            
+            # Save the new actor to a container
+            container[actor_name] = actor
+
+        self.mesh_actors = container
+        
+        logger.debug("event_change_color callback complete")
         
     def plot(self):
 
@@ -207,6 +315,7 @@ class App:
         self.pl.add_key_event('j', self.event_realign_chorda_ossicles)
         self.pl.add_key_event('k', self.event_gt_position)
         self.pl.add_key_event('l', self.event_change_gt_position)
+        self.pl.add_key_event('v', self.event_change_color)
         
         # Set the camera initial parameters
         self.pl.camera = self.xyviewcamera.copy()
@@ -224,7 +333,7 @@ class App:
             res_plot = Image.fromarray(result)
             res_plot.save("res_plot.png")
         
-        logger.debug(f"\nrt: \n{self.actors['ossicles'].user_matrix}")
+        # logger.debug(f"\nrt: \n{self.mesh_actors['ossicles'].user_matrix}")
         logger.debug(f"\ncpos: {cpos}")
         
     def render_image(self, image_path, scale_factor):
@@ -240,16 +349,23 @@ class App:
         res_render.save("image.png")
         print("hhh")
 
-    def render_ossicles(self, scale_factor, mesh_path, rgb):
+    def render_ossicles(self, scale_factor, mesh_path):
     
         self.pr.enable_joystick_actor_style()
         self.pr.set_background('white')
         
         image = pv.read("black_background.jpg")
         image = image.scale(scale_factor, inplace=False)
-        image = self.pr.add_mesh(image, rgb=rgb, opacity=0, show_scalar_bar=False)
+        # generate white image
+        image = self.pr.add_mesh(image, rgb=True, opacity=0, show_scalar_bar=False)
+        # # generate grey image
+        # image = self.pr.add_mesh(image, rgb=True, opacity=0.5, show_scalar_bar=False)
         mesh = pv.read(mesh_path)
-        mesh = self.pr.add_mesh(mesh, rgb=rgb)
+        transformed_points = self.transform_vertices(self.transformation_matrix, mesh.points)
+        colors = self.color_mesh(transformed_points.T)
+        # Color the vertex
+        mesh.point_data.set_scalars(colors)
+        mesh = self.pr.add_mesh(mesh, rgb=True, show_scalar_bar=False)
         
         mesh.user_matrix = self.transformation_matrix
     
@@ -259,7 +375,11 @@ class App:
         self.pr.show()
         result = self.pr.last_image
         res_render = Image.fromarray(result)
-        res_render.save("res_render.png")
+        
+        if image.prop.opacity == 0:
+            res_render.save("res_render.png")
+        elif image.prop.opacity == 0.5:
+            res_render.save("res_render_grey.png")
         print("hhh")
         
     def plot_render(self, scale_factor, render_path):

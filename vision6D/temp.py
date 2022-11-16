@@ -30,3 +30,34 @@ def degree2matrix(self, r: list, t: list):
     matrix = np.vstack((np.hstack((rot, trans)), np.array([0, 0, 0, 1])))
 
     return matrix
+
+  
+# mesh = mesh.rotate_x(6.835578651406617, inplace=False)
+# mesh = mesh.rotate_y(47.91692755829381, inplace=False)
+# mesh = mesh.rotate_z(172.76787223914218, inplace=False)
+# mesh = mesh.translate((2.5987030981091648, 31.039133701224685, 14.477777915423951), inplace=False)
+
+ # # Load trimesh
+# mesh_trimesh = self.load_trimesh(mesh_path)
+# transformed_vertices = self.transform_vertices(self.transformation_matrix, mesh_trimesh.vertices)
+# colors = self.color_mesh(transformed_vertices.T)
+# mesh_trimesh.visual.vertex_colors = colors
+# ply_file = trimesh.exchange.ply.export_ply(mesh_trimesh)
+# with open("test/data/test.ply", "wb") as f:
+#     f.write(ply_file)
+# mesh = pv.read("test/data/test.ply")
+# colors = self.color_mesh(mesh.points.T)
+
+# self.gt_orientation = self.actors["ossicles"].orientation
+# self.gt_position = self.actors["ossicles"].position
+        
+# actor.orientation = self.gt_orientation
+# actor.position = self.gt_position
+
+def load_trimesh(self, filepath):
+    with open(filepath, "rb") as fid:
+        mesh = meshread(fid)
+    orient = mesh.orient / np.array([1,2,3])
+    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
+    mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
+    return mesh

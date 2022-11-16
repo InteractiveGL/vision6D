@@ -14,17 +14,17 @@ def compare_two_images():
 if __name__ == "__main__":
     
     plot = np.array(Image.open("res_plot.png"))
-    # image_grey = Image.open("res_render_grey.png")
+    image_grey = Image.open("res_render_grey.png")
     
-    # image_grey_np = np.array(image_grey)
+    image_grey_np = np.array(image_grey)
     
-    # sought = [0,0,0]
-    # black  = np.count_nonzero(np.all(image_grey_np==sought,axis=2))
-    # print(f"black: {black}")
+    sought = [0,0,0]
+    black  = np.count_nonzero(np.all(image_grey_np==sought,axis=2))
+    print(f"black: {black}")
     
-    # sought = [255,255,255]
-    # white  = np.count_nonzero(np.all(image_grey_np==sought,axis=2))
-    # print(f"white: {white}")
+    sought = [255,255,255]
+    white  = np.count_nonzero(np.all(image_grey_np==sought,axis=2))
+    print(f"white: {white}")
     
     image_white = Image.open("res_render.png")
     
