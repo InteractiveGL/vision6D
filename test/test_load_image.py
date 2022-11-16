@@ -20,8 +20,17 @@ CHORDA_PATH = DATA_DIR / "chorda_001_colored_not_centered.ply"
 
 @pytest.fixture
 def app():
-    return vis.App(True, IMAGE_PATH, OSSICLES_PATH, FACIAL_NERVE_PATH, CHORDA_PATH, [0.01, 0.01, 1])
+    return vis.App(True, IMAGE_PATH, [0.01, 0.01, 1])
     # return vis.App(False, IMAGE_PATH, OSSICLES_PATH, FACIAL_NERVE_PATH, CHORDA_PATH, [0.01, 0.01, 1])
+    
+@pytest.fixture
+def configured_app(app):
+    app.load_meshes({'ossicles': OSSICLES_PATH, 'facial_nerve': FACIAL_NERVE_PATH, 'chorda': CHORDA_PATH})
+    app.set_reference("ossicles")
+    app.bind_meshes("ossicles", "g", ['facial_nerve', 'chorda'])
+    app.bind_meshes("chorda", "h", ['ossicles', 'facial_nerve'])
+    app.bind_meshes("facial_nerve", "j", ['ossicles', 'chorda'])
+    return app
 
 def test_create_app(app):
     assert isinstance(app, vis.App)
@@ -30,15 +39,14 @@ def test_load_image(app):
     app.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
     app.plot()
 
-def test_load_mesh(app):
-    app.load_mesh()
-    app.plot()
+def test_load_mesh(configured_app):
+    configured_app.plot()
 
 def test_render_ossicles(app):
     app.render_ossicles([0.01, 0.01, 1], DATA_DIR / "ossicles_001_colored_not_centered.ply")
     
 def test_plot_render(app):
-    app.load_mesh()
+    app.load_mesh(OSSICLES_PATH, FACIAL_NERVE_PATH, CHORDA_PATH)
     app.plot_render([0.01, 0.01, 1], DATA_DIR / "ossicles_001_colored_not_centered.ply")
 
 def test_render_image(app):

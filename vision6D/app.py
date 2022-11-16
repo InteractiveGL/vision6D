@@ -1,8 +1,11 @@
+from typing import List, Dict
 import pathlib
 import logging
 import numpy as np
 from PIL import Image
 import copy
+import types
+import functools
 
 import pyvista as pv
 import trimesh
@@ -13,6 +16,15 @@ from scipy.spatial.transform import Rotation as R
 from pyvista.plotting.render_passes import RenderPasses
 
 logger = logging.getLogger("vision6D")
+
+def copy_func(f):
+    """Based on http://stackoverflow.com/a/6528148/190597 (Glenn Maynard)"""
+    g = types.FunctionType(f.__code__, f.__globals__, name=f.__name__,
+                           argdefs=f.__defaults__,
+                           closure=f.__closure__)
+    g = functools.update_wrapper(g, f)
+    g.__kwdefaults__ = f.__kwdefaults__
+    return g
 
 def fread(fid, _len, _type):
     if _len == 0:
@@ -101,9 +113,10 @@ def meshread(fid, linesread=False, meshread2=False):
 
 class App:
 
-    def __init__(self, register, image_path, ossicles_path, facial_nerve_path, chorda_path, scale_factor=[1,1,1]):
+    def __init__(self, register, image_path, scale_factor=[1,1,1]):
         
         self.register = register
+        self.reference = None
         self.image_actors = {}
         self.mesh_actors = {}
         
@@ -112,11 +125,8 @@ class App:
             'image-origin': None
         }
         
-        self.mesh_polydata = {
-            'ossicles': pv.read(ossicles_path),
-            'facial_nerve': pv.read(facial_nerve_path),
-            'chorda': pv.read(chorda_path)
-        }
+        self.mesh_polydata = {}
+        self.binded_meshes = {}
         
         self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
         self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
@@ -155,6 +165,12 @@ class App:
         
         self.load_image(image_path, scale_factor)
         
+    def set_reference(self, name:str):
+        self.reference = name
+        
+    def bind_meshes(self, main_mesh: str, key: str, other_meshes: List[str]):
+        self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
+        
     def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
 
         # Then add it to the plotter
@@ -166,6 +182,11 @@ class App:
         self.image_actors["image-origin"] = actor.copy()
         
     def transform_vertices(self, transformation_matrix, vertices):
+        
+        transformation_matrix = np.array([[1, 0, 0, 0],
+                                        [0, 1, 0, 0],
+                                        [0, 0, 1, 0],
+                                        [0, 0, 0, 1]])
         
         ones = np.ones((vertices.shape[0], 1))
         homogeneous_vertices = np.append(vertices, ones, axis=1)
@@ -183,9 +204,14 @@ class App:
         
         return colors
 
-    def load_mesh(self):
+    def load_meshes(self, paths: Dict[str, pathlib.Path]):
         
-        for mesh_name, mesh_data in self.mesh_polydata.items():
+        for mesh_name, mesh_path in paths.items():
+            
+            # Load the mesh
+            mesh_data = pv.read(mesh_path)
+            self.mesh_polydata[mesh_name] = mesh_data
+            
             # Apply transformation to the mesh vertices
             transformed_points = self.transform_vertices(self.transformation_matrix, mesh_data.points)
             colors = self.color_mesh(transformed_points.T)
@@ -204,7 +230,7 @@ class App:
             
             logger.debug(f"\n{mesh_name} orientation: {self.mesh_actors[mesh_name].orientation}")
             logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
-        
+            
     def event_zoom_out(self, *args):
         self.pl.camera.zoom(0.5)
         logger.debug("event_zoom_out callback complete")
@@ -220,87 +246,73 @@ class App:
 
     def event_track_registration(self, *args):
 
-        self.event_realign_facial_nerve_chorda()
+        self.event_realign_meshes(main_mesh="ossicles", other_meshes=['facial_nerve', 'chorda'])
         self.event_change_color()
         for actor_name, actor in self.mesh_actors.items():
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
-            
-    def event_realign_facial_nerve_chorda(self, *args):
+    
+    def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
         
-        objs = {'fix' : 'ossicles',
-                'move': ['facial_nerve', 'chorda']}
+        objs = {'fix' : main_mesh,
+                'move': other_meshes}
         
-        rt = self.mesh_actors[f"{objs['fix']}"].user_matrix
-        
-        for obj in objs['move']:
-            self.mesh_actors[f"{obj}"].user_matrix = rt
-        
-        logger.debug("realign_facial_nerve_chorda callback complete")
-        
-    def event_realign_facial_nerve_ossicles(self, *args):
-        
-        objs = {'fix' : 'chorda',
-                'move': ['facial_nerve', 'ossicles']}
-        
-        rt = self.mesh_actors[f"{objs['fix']}"].user_matrix
+        transformation_matrix = self.mesh_actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            self.mesh_actors[f"{obj}"].user_matrix = rt
+            self.mesh_actors[f"{obj}"].user_matrix = transformation_matrix
         
-        logger.debug("realign_facial_nerve_ossicles callback complete")
-        
-    def event_realign_chorda_ossicles(self, *args):
-        
-        objs = {'fix' : 'facial_nerve',
-                'move': ['chorda', 'ossicles']}
-        
-        rt = self.mesh_actors[f"{objs['fix']}"].user_matrix
-        
-        for obj in objs['move']:
-            self.mesh_actors[f"{obj}"].user_matrix = rt
-        
-        logger.debug("realign_chorda_ossicles callback complete")
+        logger.debug(f"realign: main => {main_mesh}, others => {other_meshes} complete")
         
     def event_gt_position(self, *args):
         
-        for actor_name, actor in self.mesh_actors.items():
+        for _, actor in self.mesh_actors.items():
             actor.user_matrix = self.transformation_matrix
+        
+        self.event_change_color()
 
+        logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_gt_position callback complete")
         
     def event_change_gt_position(self, *args):
-        self.transformation_matrix = self.mesh_actors["ossicles"].user_matrix
-        for _, actor in self.mesh_actors.items():
-            actor.user_matrix = self.transformation_matrix
+        if self.reference:
+            self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            for _, actor in self.mesh_actors.items():
+                actor.user_matrix = self.transformation_matrix
+                
+            self.event_change_color()
             
-        self.event_change_color()
-        
-        logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
-        logger.debug("event_change_gt_position callback complete")
+            logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
+            logger.debug("event_change_gt_position callback complete")
+        else:
+            logger.error("reference not set")
         
     def event_change_color(self, *args):
-        transformation_matrix = self.mesh_actors["ossicles"].user_matrix
-        container = self.mesh_actors.copy()
         
-        for actor_name, actor in self.mesh_actors.items():
+        if self.reference:
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            container = self.mesh_actors.copy()
             
-            # Color the vertex
-            transformed_points = self.transform_vertices(transformation_matrix, self.mesh_polydata[f'{actor_name}'].points)
-            colors = self.color_mesh(transformed_points.T)
-            self.mesh_polydata[f'{actor_name}'].point_data.set_scalars(colors)
-            
-            mesh = self.pr.add_mesh(self.mesh_polydata[f'{actor_name}'], rgb=True, show_scalar_bar=False)
-            mesh.user_matrix = transformation_matrix
-            
-            actor, _ = self.pl.add_actor(mesh, name=actor_name)
-            
-            # Save the new actor to a container
-            container[actor_name] = actor
+            for actor_name, actor in self.mesh_actors.items():
+                
+                # Color the vertex
+                transformed_points = self.transform_vertices(transformation_matrix, self.mesh_polydata[f'{actor_name}'].points)
+                colors = self.color_mesh(transformed_points.T)
+                self.mesh_polydata[f'{actor_name}'].point_data.set_scalars(colors)
+                
+                mesh = self.pr.add_mesh(self.mesh_polydata[f'{actor_name}'], rgb=True, show_scalar_bar=False)
+                mesh.user_matrix = transformation_matrix
+                
+                actor, _ = self.pl.add_actor(mesh, name=actor_name)
+                
+                # Save the new actor to a container
+                container[actor_name] = actor
 
-        self.mesh_actors = container
-        
-        logger.debug("event_change_color callback complete")
-        
+            self.mesh_actors = container
+            
+            logger.debug("event_change_color callback complete")
+        else:
+            logger.error("reference not set")
+    
     def plot(self):
 
         self.pl.enable_joystick_actor_style()
@@ -310,9 +322,17 @@ class App:
         self.pl.add_key_event('z', self.event_zoom_out)
         self.pl.add_key_event('d', self.event_reset_image_position)
         self.pl.add_key_event('t', self.event_track_registration)
-        self.pl.add_key_event('g', self.event_realign_facial_nerve_chorda)
-        self.pl.add_key_event('h', self.event_realign_facial_nerve_ossicles)
-        self.pl.add_key_event('j', self.event_realign_chorda_ossicles)
+        
+        # self.pl.add_key_event('g', self.event_realign_facial_nerve_chorda)
+        # self.pl.add_key_event('h', self.event_realign_facial_nerve_ossicles)
+        # self.pl.add_key_event('j', self.event_realign_chorda_ossicles)
+
+        
+        logger.debug(self.binded_meshes)
+        for main_mesh, mesh_data in self.binded_meshes.items():
+            event_func = functools.partial(self.event_realign_meshes, main_mesh=main_mesh, other_meshes=mesh_data['meshes'])
+            self.pl.add_key_event(mesh_data['key'], event_func)
+        
         self.pl.add_key_event('k', self.event_gt_position)
         self.pl.add_key_event('l', self.event_change_gt_position)
         self.pl.add_key_event('v', self.event_change_color)
