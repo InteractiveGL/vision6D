@@ -30,3 +30,4 @@ LOGGING_CONFIG = {
 logging.config.dictConfig(LOGGING_CONFIG)
 
 from .app import App
+from . import utils

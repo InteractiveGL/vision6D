@@ -1,6 +1,7 @@
 import __future__
 import pickle
 import copy
+from typing import Tuple
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -138,16 +139,6 @@ def meshwrite(output_filename, mesh):
                 f.write(mesh.colormap.cols.T)
                 f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
 
-
-def load_correct_mesh(filename):
-    with open(filename, "rb") as fid:
-        mesh = meshread(fid)
-    orient = mesh.orient / np.array([1,2,3])
-    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
-
-    return mesh
-
-
 def load_mesh_color(mesh):
     colors = copy.deepcopy(mesh.vertices)
     colors[0] = (mesh.vertices[0] - np.min(mesh.vertices[0])) / (np.max(mesh.vertices[0]) - np.min(mesh.vertices[0])) - 0.5
@@ -157,14 +148,100 @@ def load_mesh_color(mesh):
 
     return colors
 
-
 def center_mesh(mesh):
     centered_mesh = copy.deepcopy(mesh)
     centroid = np.mean(mesh.vertices, axis=1)
     centered_mesh.vertices = mesh.vertices - np.expand_dims(centroid, axis=1)
     return centered_mesh
 
-
 def create_black_bg():
     image = Image.new('RGB', (1920, 1080), color=0)
     image.save("test/data/black_background.jpg")
+    
+def load_trimesh(meshpath):
+    with open(meshpath, "rb") as fid:
+        mesh = meshread(fid)
+    orient = mesh.orient / np.array([1,2,3])
+    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
+    mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
+    return mesh
+
+def compare_two_images():
+    # They are different
+    image1 = np.array(Image.open("image.png"))
+    image2 = np.array(Image.open("test/data/RL_20210304_0.jpg"))
+    print("hhh")
+    
+def color2binary_mask(color_mask):
+    
+    binary_mask = copy.deepcopy(color_mask)
+    
+    black_pixels_mask = np.all(binary_mask == [0, 0, 0], axis=-1)
+
+    non_black_pixels_mask = np.any(binary_mask != [0, 0, 0], axis=-1)  
+    # or non_black_pixels_mask = ~black_pixels_mask
+
+    binary_mask[black_pixels_mask] = [0,0,0]
+    binary_mask[non_black_pixels_mask] = [255, 255, 255]
+
+    # plt.imshow(binary_mask)
+    # plt.show()
+    
+    return binary_mask
+
+def show_plot(frame, plot, image_white_bg, image_black_bg):
+    extent = 0, plot.shape[1], plot.shape[0], 0
+    plt.subplot(221)
+    plt.imshow(frame, alpha=1, extent=extent, origin="upper")
+
+    plt.subplot(222)
+    im1 = plt.imshow(plot, extent=extent, origin="upper")
+    im2 = plt.imshow(image_white_bg, alpha=0.5, extent=extent, origin="upper")
+    
+    plt.subplot(223)
+    plt.imshow(image_white_bg, alpha=1, extent=extent, origin="upper")
+    
+    plt.subplot(224)
+    plt.imshow(image_black_bg, alpha=1, extent=extent, origin="upper")
+    plt.show()
+    
+    plt.close()
+    
+    print('hhh')
+    
+def count_white_black_pixels(image_grey):
+    sought = [0,0,0]
+    black  = np.count_nonzero(np.all(image_grey==sought,axis=2))
+    print(f"black: {black}")
+    
+    sought = [255,255,255]
+    white  = np.count_nonzero(np.all(image_grey==sought,axis=2))
+    print(f"white: {white}")
+
+def change_mask_bg(image, original_values, new_values):
+    
+    new_image_bg = copy.deepcopy(image)
+    
+    new_image_bg[np.where((new_image_bg[...,0] == original_values[0]) & (new_image_bg[...,1] == original_values[1]) & (new_image_bg[...,2] == original_values[2]))] = new_values
+
+    return new_image_bg
+
+def check_pixel_in_image(image, pixel_value):
+    if isinstance(image, np.ndarray):
+        image = Image.fromarray(image)
+    pixels = [i for i in image.getdata()]
+    assert not pixel_value in pixels, f"{pixel_value} in pixels"
+
+def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], npts:int=10):
+    
+    # Randomly select points in the mask
+    idx = np.where(mask == 1)
+    pts = np.array([(x,y) for x,y in zip(idx[0], idx[1])])
+    rand_pts_idx = np.random.choice(pts.shape[0], npts)
+    rand_pts = pts[rand_pts_idx,:]
+    
+    # Obtain the 3D verticies
+    rgb = render[rand_pts[:,0], rand_pts[:,1]] / 255
+    vtx = rgb * scale
+    
+    return rand_pts, vtx

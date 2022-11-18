@@ -1,9 +1,10 @@
-from typing import List, Dict
+from typing import List, Dict, Tuple
 import pathlib
 import logging
 import numpy as np
 from PIL import Image
 import copy
+import math
 import functools
 
 import pyvista as pv
@@ -12,146 +13,111 @@ import cv2
 from easydict import EasyDict
 import matplotlib.pyplot as plt
 
+from . import utils
+
 logger = logging.getLogger("vision6D")
-
-def fread(fid, _len, _type):
-    if _len == 0:
-        return np.empty(0)
-    if _type == "int16":
-        _type = np.int16
-    elif _type == "int32":
-        _type = np.int32
-    elif _type == "float":
-        _type = np.float32
-    elif _type == "double":
-        _type = np.double
-    elif _type == "char":
-        _type = np.byte
-    elif _type == "uint8":
-        _type = np.uint8
-    else:
-        raise NotImplementedError(f"Invalid _type: {_type}")
-
-    return np.fromfile(fid, _type, _len)
-
-def meshread(fid, linesread=False, meshread2=False):
-    """Reads mesh from fid data stream
-
-    Parameters
-    ----------
-    fid (io.BufferedStream)
-        Input IO stream
-    _type (str, optional):
-        Specifying the data _type for the last fread
-    linesread (bool, optional)
-        Distinguishing different use cases,
-            False => meshread (default)
-            True  => linesread
-
-    """
-
-    # Creating mesh instance
-    mesh = EasyDict()
-
-    # Reading parameters for mesh
-    mesh.id = fread(fid, 1, "int32")
-    mesh.numverts = fread(fid, 1, "int32")[0]
-    mesh.numtris = fread(fid, 1, "int32")[0]
-
-    # Loading mesh data
-    n = fread(fid, 1, "int32")
-    if n == -1:
-        mesh.orient = fread(fid, 3, "int32")
-        mesh.dim = fread(fid, 3, "int32")
-        mesh.sz = fread(fid, 3, "float")
-        mesh.color = fread(fid, 3, "int32")
-    else:
-        mesh.color = np.zeros(3)
-        mesh.color[0] = n
-        mesh.color[1:3] = fread(fid, 2, "int32")
-
-    # Given input parameter `linesread`
-    if linesread:
-        mesh.vertices = fread(fid, 3 * mesh.numverts, "float").reshape(
-            [3, mesh.numverts], order="F"
-        )
-        mesh.triangles = fread(fid, 2 * mesh.numtris, "int32").reshape(
-            [2, mesh.numtris], order="F"
-        )
-    # Given input parameter `meshread2`
-    elif meshread2:
-        mesh.vertices = fread(fid, 3 * mesh.numverts, "double").reshape(
-            [3, mesh.numverts], order="F"
-        )
-        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape(
-            [3, mesh.numtris], order="F"
-        )
-    # Given input parameter `meshread`
-    else:
-        # Loading mesh vertices and triangles
-        mesh.vertices = fread(fid, 3 * mesh.numverts, "float").reshape(
-            [3, mesh.numverts], order="F"
-        )
-        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape(
-            [3, mesh.numtris], order="F"
-        )
-
-    # Return data
-    return mesh
 
 class App:
 
-    def __init__(self, register, image_path, scale_factor=[1,1,1]):
+    def __init__(
+            self, 
+            register, 
+            focal_length:int=20, 
+            height:int=1920, 
+            width:int=1080, 
+            scale:float=1/100
+        ):
         
         self.register = register
         self.reference = None
+        
         self.image_actors = {}
         self.mesh_actors = {}
         
-        self.image_polydata = {
-            'image': pv.read(image_path),
-            'image-origin': None
-        }
-        
+        self.image_polydata = {}
         self.mesh_polydata = {}
+        
         self.binded_meshes = {}
         
-        self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
-        self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
-
         # "xy" camera view
         self.xyviewcamera = pv.Camera()
-        self.xyviewcamera.focal_point = (9.6, 5.4, 0)
         self.xyviewcamera.up = (0.0, 1.0, 0.0)
+        self.set_camera_intrinsics(focal_length, height, width, scale)       
         
+        # w = 19.20
+        # h = 10.80
+    
+        # cx = intrinsic[0,2]
+        # cy = intrinsic[1,2]
+        # f = intrinsic[0,0]
+        
+        # wcx = -2*(cx - float(w)/2) / w
+        # wcy =  2*(cy - float(h)/2) / h
+        
+        # self.xyviewcamera.SetWindowCenter(wcx, wcy)
+        # view_angle = 180 / math.pi * (2.0 * math.atan2(h/2.0, f))
+        # self.xyviewcamera.SetViewAngle(view_angle)
+
         self.transformation_matrix = np.array(
             [[-0.66487539, -0.21262585, -0.71605235,  3.25029551],
             [ 0.08437209, -0.97387229,  0.21084143, 30.99098483],
             [-0.74217388,  0.07976845,  0.66544341, 14.47777792],
             [ 0.        ,  0.        ,  0.        ,  1.        ]])
         
-        # self.transformation_matrix = np.array([[1, 0, 0, 0],
-        #                                     [0, 1, 0, 0],
-        #                                     [0, 0, 1, 0],
-        #                                     [0, 0, 0, 1]])
+        # self.transformation_matrix = np.eye(4)
+        
+    #     self.transformation_matrix = np.array([[-0.00017772, -0.99999998,  0.00000097,  1.70417365],
+    #    [ 0.99999998, -0.00017772, -0.00000393,  1.64181747],
+    #    [ 0.00000393,  0.00000097,  1.        , -0.98884161],
+    #    [ 0.        ,  0.        ,  0.        ,  1.        ]])
+        
                 
         if self.register:
-            self.pv_plotter = pv.Plotter(window_size=[1920, 1080])
+            self.pv_plotter = pv.Plotter(window_size=[height, width])
         else:
-            self.pv_plotter = pv.Plotter(window_size=[1920, 1080], off_screen=True)
+            self.pv_plotter = pv.Plotter(window_size=[height, width], off_screen=True)
             self.pv_plotter.store_image = True
-            
-        self.xyviewcamera.position = (9.6, 5.4, 20)
         
         # render ossicles
-        self.pv_render = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
+        self.pv_render = pv.Plotter(window_size=[height, width], lighting=None, off_screen=True)
         self.pv_render.store_image = True
         
         # render RGB image
-        self.pv_render_image = pv.Plotter(window_size=[1920, 1080], lighting=None, off_screen=True)
+        self.pv_render_image = pv.Plotter(window_size=[height, width], lighting=None, off_screen=True)
         self.pv_render_image.store_image = True
         
-        self.load_image(image_path, scale_factor)
+    def set_camera_intrinsics(
+            self, 
+            focal_length:int, 
+            height:int,
+            width:int,
+            scale:float,
+            offsets:Tuple[int]=[0,0]
+        ):
+        
+        scaled_height = height*scale
+        scaled_width = width*scale
+        principle_points = (scaled_height/2+offsets[0]*scale, scaled_width/2+offsets[1]*scale)
+        
+        self.xyviewcamera.focal_point = (*principle_points, 0)
+        self.xyviewcamera.position = (*principle_points, focal_length)
+             
+        vmtx = self.xyviewcamera.GetModelViewTransformMatrix()
+        mtx = pv.array_from_vtkmatrix(vmtx)
+        
+        model_transform_matrix = np.linalg.inv([[1, 0, 0, principle_points[0]],
+                                            [0, 1, 0, principle_points[1]],
+                                            [0, 0, 1, focal_length],
+                                            [0, 0, 0, 1]])
+        
+        assert (mtx == model_transform_matrix).all(), "the two matrix should be equal"
+        
+        # Set camera intrinsic attribute
+        self.camera_intrinsics = np.array([
+            [focal_length, 0, principle_points[0]],
+            [0, focal_length, principle_points[1]],
+            [0, 0, 0]
+        ])
         
     def set_reference(self, name:str):
         self.reference = name
@@ -160,6 +126,10 @@ class App:
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
     def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
+        
+        self.image_polydata['image'] = pv.read(image_path)
+        self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
+        self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
 
         # Then add it to the plotter
         image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=0.35, name='image')
@@ -172,10 +142,7 @@ class App:
     def transform_vertices(self, transformation_matrix, vertices):
         
         # fix the color
-        transformation_matrix = np.array([[1, 0, 0, 0],
-                                        [0, 1, 0, 0],
-                                        [0, 0, 1, 0],
-                                        [0, 0, 0, 1]])
+        transformation_matrix = np.eye(4)
         
         ones = np.ones((vertices.shape[0], 1))
         homogeneous_vertices = np.append(vertices, ones, axis=1)
@@ -192,14 +159,6 @@ class App:
         colors = colors.T + np.array([0.5, 0.5, 0.5])
         
         return colors
-    
-    def load_trimesh(self, meshpath):
-        with open(meshpath, "rb") as fid:
-            mesh = meshread(fid)
-        orient = mesh.orient / np.array([1,2,3])
-        mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
-        mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
-        return mesh
 
     def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
         
@@ -210,7 +169,7 @@ class App:
                 if '.ply' in str(mesh_source):
                     mesh_data = pv.read(mesh_source)
                 elif '.mesh' in str(mesh_source):
-                    mesh_data = pv.wrap(self.load_trimesh(mesh_source))
+                    mesh_data = pv.wrap(utils.load_trimesh(mesh_source))
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
                 
@@ -347,58 +306,37 @@ class App:
             cpos = self.pv_plotter.show(title="vision6D", return_cpos=True)
             result = self.pv_plotter.last_image
             res_plot = Image.fromarray(result)
-            res_plot.save("res_plot.png")
+            res_plot.save("test/data/res_plot.png")
         
         # logger.debug(f"\nrt: \n{self.mesh_actors['ossicles'].user_matrix}")
         logger.debug(f"\ncpos: {cpos}")
         
-    def render_image(self, image_path, scale_factor):
-        self.pv_render_image.enable_joystick_actor_style()
-        image = pv.read(image_path)
-        image = image.scale(scale_factor, inplace=False)
-        image = self.pv_render_image.add_mesh(image, rgb=True, opacity=1)
-        self.pv_render_image.camera = self.xyviewcamera.copy()
-        self.pv_render_image.disable()
-        self.pv_render_image.show()
-        result = self.pv_render_image.last_image
-        res_render = Image.fromarray(result)
-        res_render.save("image.png")
-        print("hhh")
-
-    def render_ossicles(self, scale_factor, mesh_path):
-    
+    def render_scene(self, scene_path:pathlib.Path, scale_factor:Tuple[float], render_image:bool, render_one_object:str='', with_mask:bool=True):
+        
         self.pv_render.enable_joystick_actor_style()
-        self.pv_render.set_background('white')
-        
-        background = pv.read("black_background.jpg")
+        background = pv.read(scene_path) #"test/data/black_background.jpg"
         background = background.scale(scale_factor, inplace=False)
-        # generate white image
-        image = self.pv_render.add_mesh(background, rgb=True, opacity=0, name="image")
-        # generate grey image
-        # image = self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
         
-        mesh = pv.read(mesh_path)
-        transformed_points = self.transform_vertices(self.transformation_matrix, mesh.points)
-        colors = self.color_mesh(transformed_points.T)
-        # Color the vertex
-        mesh.point_data.set_scalars(colors)
-        mesh = self.pv_render.add_mesh(mesh, rgb=True)
+        if render_image:
+           self.pv_render.add_mesh(background, rgb=True, opacity=1, name="image")
+        else:
+            self.pv_render.set_background('white')
+            # generate white image
+            self.pv_render.add_mesh(background, rgb=True, opacity=0, name="image")
+            # generate grey image
+            # image = self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
+            
+            # read the mesh file
+            if len(render_one_object) != 0:
+                mesh = self.pv_render.add_mesh(self.mesh_polydata[f"{render_one_object}"], rgb=True)
+                mesh.user_matrix = self.transformation_matrix
+            else:
+                for _, mesh_data in self.mesh_polydata.items():
+                    mesh = self.pv_render.add_mesh(mesh_data, rgb=True)
+                    mesh.user_matrix = self.transformation_matrix
         
-        mesh.user_matrix = self.transformation_matrix
-    
         self.pv_render.camera = self.xyviewcamera.copy()
-        
         self.pv_render.disable()
         self.pv_render.show()
-        result = self.pv_render.last_image
-        res_render = Image.fromarray(result)
         
-        if image.prop.opacity == 0:
-            res_render.save("res_render.png")
-        elif image.prop.opacity == 0.5:
-            res_render.save("res_render_grey.png")
-        print("hhh")
-        
-    def plot_render(self, scale_factor, render_path):
-        self.plot()
-        self.render_ossicles(scale_factor, render_path, rgb=True)
+        return self.pv_render.last_image
