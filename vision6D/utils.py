@@ -245,3 +245,24 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], n
     vtx = rgb * scale
     
     return rand_pts, vtx
+
+def transform_vertices(transformation_matrix, vertices):
+    
+    # fix the color
+    transformation_matrix = np.eye(4)
+    
+    ones = np.ones((vertices.shape[0], 1))
+    homogeneous_vertices = np.append(vertices, ones, axis=1)
+    transformed_vertices = (transformation_matrix @ homogeneous_vertices.T)[:3].T
+    
+    return transformed_vertices
+
+def color_mesh(vertices):
+        colors = copy.deepcopy(vertices)
+        # normalize vertices and center it to 0
+        colors[0] = (vertices[0] - np.min(vertices[0])) / (np.max(vertices[0]) - np.min(vertices[0])) - 0.5
+        colors[1] = (vertices[1] - np.min(vertices[1])) / (np.max(vertices[1]) - np.min(vertices[1])) - 0.5
+        colors[2] = (vertices[2] - np.min(vertices[2])) / (np.max(vertices[2]) - np.min(vertices[2])) - 0.5
+        colors = colors.T + np.array([0.5, 0.5, 0.5])
+        
+        return colors

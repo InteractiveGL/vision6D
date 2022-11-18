@@ -138,27 +138,6 @@ class App:
         # Save actor for later
         self.image_actors["image"] = actor
         self.image_actors["image-origin"] = actor.copy()
-        
-    def transform_vertices(self, transformation_matrix, vertices):
-        
-        # fix the color
-        transformation_matrix = np.eye(4)
-        
-        ones = np.ones((vertices.shape[0], 1))
-        homogeneous_vertices = np.append(vertices, ones, axis=1)
-        transformed_vertices = (transformation_matrix @ homogeneous_vertices.T)[:3].T
-        
-        return transformed_vertices
-
-    def color_mesh(self, vertices):
-        colors = copy.deepcopy(vertices)
-        # normalize vertices and center it to 0
-        colors[0] = (vertices[0] - np.min(vertices[0])) / (np.max(vertices[0]) - np.min(vertices[0])) - 0.5
-        colors[1] = (vertices[1] - np.min(vertices[1])) / (np.max(vertices[1]) - np.min(vertices[1])) - 0.5
-        colors[2] = (vertices[2] - np.min(vertices[2])) / (np.max(vertices[2]) - np.min(vertices[2])) - 0.5
-        colors = colors.T + np.array([0.5, 0.5, 0.5])
-        
-        return colors
 
     def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
         
@@ -175,8 +154,8 @@ class App:
                 
             self.mesh_polydata[mesh_name] = mesh_data
             # Apply transformation to the mesh vertices
-            transformed_points = self.transform_vertices(self.transformation_matrix, mesh_data.points)
-            colors = self.color_mesh(transformed_points.T)
+            transformed_points = utils.transform_vertices(self.transformation_matrix, mesh_data.points)
+            colors = utils.color_mesh(transformed_points.T)
             
             # Color the vertex
             mesh_data.point_data.set_scalars(colors)
@@ -221,6 +200,7 @@ class App:
         
         for obj in objs['move']:
             self.mesh_actors[f"{obj}"].user_matrix = transformation_matrix
+            self.pv_plotter.add_actor(self.mesh_actors[f"{obj}"], name=obj)
         
         logger.debug(f"realign: main => {main_mesh}, others => {other_meshes} complete")
         
@@ -256,8 +236,8 @@ class App:
             for actor_name, actor in self.mesh_actors.items():
                 
                 # Color the vertex
-                transformed_points = self.transform_vertices(transformation_matrix, self.mesh_polydata[f'{actor_name}'].points)
-                colors = self.color_mesh(transformed_points.T)
+                transformed_points = utils.transform_vertices(transformation_matrix, self.mesh_polydata[f'{actor_name}'].points)
+                colors = utils.color_mesh(transformed_points.T)
                 self.mesh_polydata[f'{actor_name}'].point_data.set_scalars(colors)
                 
                 mesh = self.pv_plotter.add_mesh(self.mesh_polydata[f'{actor_name}'], rgb=True, name=actor_name)
