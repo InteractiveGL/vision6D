@@ -232,13 +232,20 @@ def check_pixel_in_image(image, pixel_value):
     pixels = [i for i in image.getdata()]
     assert not pixel_value in pixels, f"{pixel_value} in pixels"
 
-def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], npts:int=10):
+def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], npts:int=-1):
     
     # Randomly select points in the mask
     idx = np.where(mask == 1)
     pts = np.array([(x,y) for x,y in zip(idx[0], idx[1])])
-    rand_pts_idx = np.random.choice(pts.shape[0], npts)
-    rand_pts = pts[rand_pts_idx,:]
+    
+    if npts == -1:
+        rand_pts = pts
+    else:
+        rand_pts_idx = np.random.choice(pts.shape[0], npts)
+        rand_pts = pts[rand_pts_idx,:]
+        
+    # # noise check
+    # rand_pts = np.vstack((rand_pts, [0, 0]))
     
     # Obtain the 3D verticies
     rgb = render[rand_pts[:,0], rand_pts[:,1]] / 255
@@ -260,9 +267,9 @@ def transform_vertices(transformation_matrix, vertices):
 def color_mesh(vertices):
         colors = copy.deepcopy(vertices)
         # normalize vertices and center it to 0
-        colors[0] = (vertices[0] - np.min(vertices[0])) / (np.max(vertices[0]) - np.min(vertices[0])) - 0.5
-        colors[1] = (vertices[1] - np.min(vertices[1])) / (np.max(vertices[1]) - np.min(vertices[1])) - 0.5
-        colors[2] = (vertices[2] - np.min(vertices[2])) / (np.max(vertices[2]) - np.min(vertices[2])) - 0.5
-        colors = colors.T + np.array([0.5, 0.5, 0.5])
+        colors[0] = (vertices[0] - np.min(vertices[0])) / (np.max(vertices[0]) - np.min(vertices[0])) #- 0.5
+        colors[1] = (vertices[1] - np.min(vertices[1])) / (np.max(vertices[1]) - np.min(vertices[1])) #- 0.5
+        colors[2] = (vertices[2] - np.min(vertices[2])) / (np.max(vertices[2]) - np.min(vertices[2])) #- 0.5
+        colors = colors.T #+ np.array([0.5, 0.5, 0.5])
         
         return colors

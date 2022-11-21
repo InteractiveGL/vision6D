@@ -21,11 +21,13 @@ class App:
 
     def __init__(
             self, 
-            register, 
-            focal_length:int=20, 
-            height:int=1920, 
-            width:int=1080, 
-            scale:float=1/100
+            register,
+            width:int=1920,
+            height:int=1080,
+            cam_focal_length:int=2015,
+            cam_postition: Tuple=(9.6, 5.4, 20),
+            cam_focal_point: Tuple=(9.6, 5.4, 0),
+            cam_viewup: Tuple=(0,1,0)
         ):
         
         self.register = register
@@ -39,85 +41,73 @@ class App:
         
         self.binded_meshes = {}
         
-        # "xy" camera view
-        self.xyviewcamera = pv.Camera()
-        self.xyviewcamera.up = (0.0, 1.0, 0.0)
-        self.set_camera_intrinsics(focal_length, height, width, scale)       
+        # self.transformation_matrix = np.array(
+        #     [[-0.84071277,  0.04772072, -0.53937443,  4.14284471],
+        #     [-0.08303411, -0.99568925,  0.0413309,  30.05524976],
+        #     [-0.53507698,  0.0795339,   0.84105112, 15.71920575],
+        #     [ 0.,          0.,          0. ,         1.,        ]])
         
-        # w = 19.20
-        # h = 10.80
-    
-        # cx = intrinsic[0,2]
-        # cy = intrinsic[1,2]
-        # f = intrinsic[0,0]
+        self.transformation_matrix = np.eye(4)
         
-        # wcx = -2*(cx - float(w)/2) / w
-        # wcy =  2*(cy - float(h)/2) / h
-        
-        # self.xyviewcamera.SetWindowCenter(wcx, wcy)
-        # view_angle = 180 / math.pi * (2.0 * math.atan2(h/2.0, f))
-        # self.xyviewcamera.SetViewAngle(view_angle)
+        self.camera = pv.Camera()
+        self.set_camera_intrinsics(cam_focal_length, width, height)
+        self.set_camera_extrinsics(cam_postition, cam_focal_point, cam_viewup)
 
-        self.transformation_matrix = np.array(
-            [[-0.66487539, -0.21262585, -0.71605235,  3.25029551],
-            [ 0.08437209, -0.97387229,  0.21084143, 30.99098483],
-            [-0.74217388,  0.07976845,  0.66544341, 14.47777792],
-            [ 0.        ,  0.        ,  0.        ,  1.        ]])
-        
-        # self.transformation_matrix = np.eye(4)
-        
-    #     self.transformation_matrix = np.array([[-0.00017772, -0.99999998,  0.00000097,  1.70417365],
-    #    [ 0.99999998, -0.00017772, -0.00000393,  1.64181747],
-    #    [ 0.00000393,  0.00000097,  1.        , -0.98884161],
-    #    [ 0.        ,  0.        ,  0.        ,  1.        ]])
-        
                 
         if self.register:
-            self.pv_plotter = pv.Plotter(window_size=[height, width])
+            self.pv_plotter = pv.Plotter(window_size=[width, height])
         else:
-            self.pv_plotter = pv.Plotter(window_size=[height, width], off_screen=True)
+            self.pv_plotter = pv.Plotter(window_size=[width, height], off_screen=True)
             self.pv_plotter.store_image = True
         
         # render ossicles
-        self.pv_render = pv.Plotter(window_size=[height, width], lighting=None, off_screen=True)
+        self.pv_render = pv.Plotter(window_size=[width, height], lighting=None, off_screen=True)
         self.pv_render.store_image = True
         
         # render RGB image
-        self.pv_render_image = pv.Plotter(window_size=[height, width], lighting=None, off_screen=True)
+        self.pv_render_image = pv.Plotter(window_size=[width, height], lighting=None, off_screen=True)
         self.pv_render_image.store_image = True
+    
+    def set_camera_extrinsics(self, position: Tuple, focal_point: Tuple, viewup: Tuple):
         
-    def set_camera_intrinsics(
-            self, 
-            focal_length:int, 
-            height:int,
-            width:int,
-            scale:float,
-            offsets:Tuple[int]=[0,0]
-        ):
+        # apply the transform to scene objects
+        # self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(self.transformation_matrix))
         
-        scaled_height = height*scale
-        scaled_width = width*scale
-        principle_points = (scaled_height/2+offsets[0]*scale, scaled_width/2+offsets[1]*scale)
-        
-        self.xyviewcamera.focal_point = (*principle_points, 0)
-        self.xyviewcamera.position = (*principle_points, focal_length)
-             
-        vmtx = self.xyviewcamera.GetModelViewTransformMatrix()
-        mtx = pv.array_from_vtkmatrix(vmtx)
-        
-        model_transform_matrix = np.linalg.inv([[1, 0, 0, principle_points[0]],
-                                            [0, 1, 0, principle_points[1]],
-                                            [0, 0, 1, focal_length],
-                                            [0, 0, 0, 1]])
-        
-        assert (mtx == model_transform_matrix).all(), "the two matrix should be equal"
+        self.camera.SetPosition(position)
+        self.camera.SetFocalPoint(focal_point)
+        self.camera.SetViewUp(viewup)
+    
+    def set_camera_intrinsics(self, focal_length:int, width:int, height:int):
         
         # Set camera intrinsic attribute
         self.camera_intrinsics = np.array([
-            [focal_length, 0, principle_points[0]],
-            [0, focal_length, principle_points[1]],
-            [0, 0, 0]
+            [focal_length, 0, width/2],
+            [0, focal_length, height/2],
+            [0, 0, 1]
         ])
+             
+        # vmtx = self.camera.GetModelViewTransformMatrix()
+        # mtx = pv.array_from_vtkmatrix(vmtx)
+        
+        # model_transform_matrix = np.linalg.inv([[1, 0, 0, principle_points[0]],
+        #                                     [0, 1, 0, principle_points[1]],
+        #                                     [0, 0, 1, focal_length],
+        #                                     [0, 0, 0, 1]])
+        
+        # assert (mtx == model_transform_matrix).all(), "the two matrix should be equal"
+        
+        cx = self.camera_intrinsics[0,2]
+        cy = self.camera_intrinsics[1,2]
+        f = self.camera_intrinsics[0,0]
+        
+        # convert the principal point to window center (normalized coordinate system) and set it
+        wcx = -2*(cx - float(width)/2) / width
+        wcy =  2*(cy - float(height)/2) / height
+        self.camera.SetWindowCenter(wcx, wcy) # (0,0)
+        
+        # Setting the focal length
+        view_angle = 180 / math.pi * (2.0 * math.atan2(height/2.0, f))
+        self.camera.SetViewAngle(view_angle) # ~30 degree
         
     def set_reference(self, name:str):
         self.reference = name
@@ -141,7 +131,11 @@ class App:
 
     def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
         
+        reference_name = None
+        
         for mesh_name, mesh_source in paths.items():
+            
+            reference_name = mesh_name
             
             if isinstance(mesh_source, pathlib.WindowsPath):
                 # Load the mesh
@@ -172,12 +166,17 @@ class App:
             logger.debug(f"\n{mesh_name} orientation: {self.mesh_actors[mesh_name].orientation}")
             logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
             
+        if len(self.mesh_actors) == 1:
+            self.set_reference(reference_name)
+        elif self.reference is None:
+           raise RuntimeError("reference name is not set")
+            
     def event_zoom_out(self, *args):
         self.pv_plotter.camera.zoom(0.5)
         logger.debug("event_zoom_out callback complete")
 
     def event_reset_camera(self, *args):
-        self.pv_plotter.camera = self.xyviewcamera.copy()
+        self.pv_plotter.camera = self.camera.copy()
         logger.debug("reset_camera_event callback complete")
 
     def event_reset_image_position(self, *args):
@@ -187,9 +186,11 @@ class App:
 
     def event_track_registration(self, *args):
         
-        self.event_change_color()
+        transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
+            actor.user_matrix = transformation_matrix
+            actor, _ = self.pv_plotter.add_actor(actor, name=actor_name)
     
     def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
         
@@ -215,44 +216,35 @@ class App:
         logger.debug("event_gt_position callback complete")
         
     def event_change_gt_position(self, *args):
-        if self.reference:
-            self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            for _, actor in self.mesh_actors.items():
-                actor.user_matrix = self.transformation_matrix
-                
-            self.event_change_color()
+        self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        for _, actor in self.mesh_actors.items():
+            actor.user_matrix = self.transformation_matrix
             
-            logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
-            logger.debug("event_change_gt_position callback complete")
-        else:
-            logger.error("reference not set")
+        self.event_change_color()
+        
+        logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
+        logger.debug("event_change_gt_position callback complete")
         
     def event_change_color(self, *args):
         
-        if self.reference:
-            transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            container = self.mesh_actors.copy()
+        transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        container = self.mesh_actors.copy()
+        
+        for actor_name, actor in container.items():
             
-            for actor_name, actor in self.mesh_actors.items():
-                
-                # Color the vertex
-                transformed_points = utils.transform_vertices(transformation_matrix, self.mesh_polydata[f'{actor_name}'].points)
-                colors = utils.color_mesh(transformed_points.T)
-                self.mesh_polydata[f'{actor_name}'].point_data.set_scalars(colors)
-                
-                mesh = self.pv_plotter.add_mesh(self.mesh_polydata[f'{actor_name}'], rgb=True, name=actor_name)
-                mesh.user_matrix = transformation_matrix
-                
-                actor, _ = self.pv_plotter.add_actor(mesh, name=actor_name)
-                
-                # Save the new actor to a container
-                container[actor_name] = actor
-
-            self.mesh_actors = container
+            # Color the vertex
+            transformed_points = utils.transform_vertices(transformation_matrix, self.mesh_polydata[actor_name].points)
+            colors = utils.color_mesh(transformed_points.T)
+            self.mesh_polydata[actor_name].point_data.set_scalars(colors)
             
-            logger.debug("event_change_color callback complete")
-        else:
-            logger.error("reference not set")
+            mesh = self.pv_plotter.add_mesh(self.mesh_polydata[actor_name], rgb=True, render=False, name=actor_name)
+            mesh.user_matrix = transformation_matrix
+            actor, _ = self.pv_plotter.add_actor(mesh, name=actor_name)
+            
+            # Save the new actor to a container
+            self.mesh_actors[actor_name] = actor
+        
+        logger.debug("event_change_color callback complete")
     
     def plot(self):
 
@@ -273,7 +265,7 @@ class App:
         self.pv_plotter.add_key_event('v', self.event_change_color)
         
         # Set the camera initial parameters
-        self.pv_plotter.camera = self.xyviewcamera.copy()
+        self.pv_plotter.camera = self.camera.copy()
         
         if self.register:
             self.pv_plotter.add_axes()
@@ -315,7 +307,7 @@ class App:
                     mesh = self.pv_render.add_mesh(mesh_data, rgb=True)
                     mesh.user_matrix = self.transformation_matrix
         
-        self.pv_render.camera = self.xyviewcamera.copy()
+        self.pv_render.camera = self.camera.copy()
         self.pv_render.disable()
         self.pv_render.show()
         
