@@ -9,6 +9,7 @@ from easydict import EasyDict
 import trimesh
 from trimesh import Trimesh
 from PIL import Image
+import cv2
 
 
 def fread(fid, _len, _type):
@@ -181,9 +182,9 @@ def color2binary_mask(color_mask):
     non_black_pixels_mask = np.any(binary_mask != [0, 0, 0], axis=-1)  
     # or non_black_pixels_mask = ~black_pixels_mask
 
-    binary_mask[black_pixels_mask] = [0,0,0]
-    binary_mask[non_black_pixels_mask] = [255, 255, 255]
-
+    binary_mask[black_pixels_mask] = [0]
+    binary_mask[non_black_pixels_mask] = [1]
+    
     # plt.imshow(binary_mask)
     # plt.show()
     
@@ -249,7 +250,7 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], n
     
     # Obtain the 3D verticies
     rgb = render[rand_pts[:,0], rand_pts[:,1]] / 255
-    vtx = rgb * scale
+    vtx = (rgb-np.array([0.5])) * scale
     
     return rand_pts, vtx
 
@@ -273,3 +274,47 @@ def color_mesh(vertices):
         colors = colors.T #+ np.array([0.5, 0.5, 0.5])
         
         return colors
+    
+def cartisian2homogeneous(vertices):
+    return np.hstack((vertices, np.ones(vertices.shape[0]).reshape((-1,1))))
+
+def homogeneous2cartisian(homo_vertices):
+    return (homo_vertices[:3] / homo_vertices[3]).T
+
+def solvePnP(cam, image_points, object_points, return_inliers=False, ransac_iter=250):
+    """
+    Solve PnP problem using resulting correspondences
+    Args:
+        cam: Camera matrix
+        image_points: Correspondence points on the image
+        object_points: Correspondence points on the model
+        return_inliers: Bool for inliers return
+        ransac_iter: Number of RANSAC iterations
+    Returns: Resulting object pose (+ number of inliers)
+    """
+    dist_coeffs = np.zeros((4, 1))  # Assuming no lens distortion
+    if image_points.shape[0] < 4:
+        pose = np.eye(4)
+        inliers = []
+    else:
+        image_points[:, [0, 1]] = image_points[:, [1, 0]]
+        object_points = np.expand_dims(object_points, 1)
+        image_points = np.expand_dims(image_points, 1)
+
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(object_points, image_points.astype(float), cam,
+                                                                           dist_coeffs, iterationsCount=ransac_iter,
+                                                                          reprojectionError=1.)[:4]
+
+        # Get a rotation matrix
+        pose = np.eye(4)
+        if success:
+            pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            pose[:3, 3] = np.squeeze(translation_vector)
+
+        if inliers is None:
+            inliers = []
+
+    if return_inliers:
+        return pose, len(inliers)
+    else:
+        return pose

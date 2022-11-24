@@ -32,6 +32,7 @@ class App:
         
         self.register = register
         self.reference = None
+        self.transformation_matrix = None
         
         self.image_actors = {}
         self.mesh_actors = {}
@@ -41,19 +42,11 @@ class App:
         
         self.binded_meshes = {}
         
-        # self.transformation_matrix = np.array(
-        #     [[-0.84071277,  0.04772072, -0.53937443,  4.14284471],
-        #     [-0.08303411, -0.99568925,  0.0413309,  30.05524976],
-        #     [-0.53507698,  0.0795339,   0.84105112, 15.71920575],
-        #     [ 0.,          0.,          0. ,         1.,        ]])
-        
-        self.transformation_matrix = np.eye(4)
-        
         self.camera = pv.Camera()
+        
         self.set_camera_intrinsics(cam_focal_length, width, height)
         self.set_camera_extrinsics(cam_postition, cam_focal_point, cam_viewup)
 
-                
         if self.register:
             self.pv_plotter = pv.Plotter(window_size=[width, height])
         else:
@@ -70,8 +63,8 @@ class App:
     
     def set_camera_extrinsics(self, position: Tuple, focal_point: Tuple, viewup: Tuple):
         
-        # apply the transform to scene objects
-        # self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(self.transformation_matrix))
+        # # apply the transform to scene objects: same as setting the user_matrix
+        # self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(temp))
         
         self.camera.SetPosition(position)
         self.camera.SetFocalPoint(focal_point)
@@ -109,6 +102,10 @@ class App:
         view_angle = 180 / math.pi * (2.0 * math.atan2(height/2.0, f))
         self.camera.SetViewAngle(view_angle) # ~30 degree
         
+    def set_transformation_matrix(self, matrix:np.ndarray):
+        self.transformation_matrix = matrix
+        self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(matrix))
+        
     def set_reference(self, name:str):
         self.reference = name
         
@@ -133,6 +130,9 @@ class App:
         
         reference_name = None
         
+        if self.transformation_matrix is None:
+           raise RuntimeError("Transformation matrix is not set")
+        
         for mesh_name, mesh_source in paths.items():
             
             reference_name = mesh_name
@@ -156,7 +156,7 @@ class App:
 
             mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, name=mesh_name)
             
-            mesh.user_matrix = self.transformation_matrix
+            # mesh.user_matrix = self.transformation_matrix
             
             actor, _ = self.pv_plotter.add_actor(mesh, name=mesh_name)
             
@@ -168,8 +168,6 @@ class App:
             
         if len(self.mesh_actors) == 1:
             self.set_reference(reference_name)
-        elif self.reference is None:
-           raise RuntimeError("reference name is not set")
             
     def event_zoom_out(self, *args):
         self.pv_plotter.camera.zoom(0.5)
@@ -247,6 +245,9 @@ class App:
         logger.debug("event_change_color callback complete")
     
     def plot(self):
+        
+        if self.reference is None:
+           raise RuntimeError("reference name is not set")
 
         self.pv_plotter.enable_joystick_actor_style()
 
@@ -279,8 +280,7 @@ class App:
             result = self.pv_plotter.last_image
             res_plot = Image.fromarray(result)
             res_plot.save("test/data/res_plot.png")
-        
-        # logger.debug(f"\nrt: \n{self.mesh_actors['ossicles'].user_matrix}")
+    
         logger.debug(f"\ncpos: {cpos}")
         
     def render_scene(self, scene_path:pathlib.Path, scale_factor:Tuple[float], render_image:bool, render_one_object:str='', with_mask:bool=True):
@@ -301,11 +301,11 @@ class App:
             # read the mesh file
             if len(render_one_object) != 0:
                 mesh = self.pv_render.add_mesh(self.mesh_polydata[f"{render_one_object}"], rgb=True)
-                mesh.user_matrix = self.transformation_matrix
+                # mesh.user_matrix = self.transformation_matrix
             else:
                 for _, mesh_data in self.mesh_polydata.items():
                     mesh = self.pv_render.add_mesh(mesh_data, rgb=True)
-                    mesh.user_matrix = self.transformation_matrix
+                    # mesh.user_matrix = self.transformation_matrix
         
         self.pv_render.camera = self.camera.copy()
         self.pv_render.disable()
