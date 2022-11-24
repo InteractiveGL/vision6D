@@ -121,3 +121,62 @@ if __name__ == "__main__":
 #                 [-0.00004049, -0.99999976, -0.0006864 ,  0.4783421 ],
 #                 [ 0.0012182 , -0.00068645,  0.99999902, -0.00021649],
 #                 [ 0.        ,  0.        ,  0.        ,  1.        ]])
+
+# tests
+def test_different_origin():
+    
+    cube = pv.Cube()
+    
+    points = cube.points
+    shifted_points = points - np.array([0, 0, 3])
+
+    homogeneous_points = vis.utils.cartisian2homogeneous(points)
+    
+    RT = np.array([[1,0,0,0],
+                   [0,1,0,0],
+                   [0,0,1,-3],
+                   [0,0,0,1]])
+    
+    transformed_points = RT @ homogeneous_points.T
+    
+    transformed_points = vis.utils.homogeneous2cartisian(transformed_points)
+    
+    logger.debug((shifted_points == transformed_points).all())
+    
+def test_draw_axis(app):
+    cube = pv.Cube()
+    
+    # Set camera intrinsics
+    app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
+    
+    # Set camera extrinsics
+    app.set_camera_extrinsics(position=(0, 0, 4),focal_point=(0, 0, 0), viewup=(0, 1, 0))
+    
+    
+    linex = pv.Line(pointa=(0, 0.0, 0.0), pointb=(1, 0.0, 0.0), resolution=1)
+    liney =  pv.Line(pointa=(0.0, 0, 0.0), pointb=(0.0, 1, 0.0), resolution=1)
+    linez =  pv.Line(pointa=(0.0, 0.0, 0), pointb=(0.0, 0.0, 1), resolution=1)
+    
+    # reference: https://www.cse.psu.edu/~rtc12/CSE486/lecture12.pdf: Lecture 12: Camera Projection PPT
+    
+    # app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
+    app.set_transformation_matrix(np.eye(4))
+    app.load_meshes({'cube': cube}) # Pass parameter of desired RT applied to
+    
+    app.mesh_polydata['linex'] = linex
+    app.mesh_polydata['liney'] = liney
+    app.mesh_polydata['linez'] = linez
+    
+    mesh_linex = app.pv_plotter.add_mesh(linex, name='linex', color="red")
+    mesh_liney = app.pv_plotter.add_mesh(liney, name='liney', color="green")
+    mesh_linez = app.pv_plotter.add_mesh(linez, name='linez', color="blue")
+    
+    actor_linex, _ = app.pv_plotter.add_actor(mesh_linex, name='linex')
+    actor_liney, _ = app.pv_plotter.add_actor(mesh_liney, name='liney')
+    actor_linez, _ = app.pv_plotter.add_actor(mesh_linez, name='linez')
+    
+    app.mesh_actors['linex'] = actor_linex
+    app.mesh_actors['liney'] = actor_liney
+    app.mesh_actors['linez'] = actor_linez
+    
+    app.plot()

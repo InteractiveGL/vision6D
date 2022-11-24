@@ -62,10 +62,6 @@ class App:
         self.pv_render_image.store_image = True
     
     def set_camera_extrinsics(self, position: Tuple, focal_point: Tuple, viewup: Tuple):
-        
-        # # apply the transform to scene objects: same as setting the user_matrix
-        # self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(temp))
-        
         self.camera.SetPosition(position)
         self.camera.SetFocalPoint(focal_point)
         self.camera.SetViewUp(viewup)
@@ -78,16 +74,6 @@ class App:
             [0, focal_length, height/2],
             [0, 0, 1]
         ])
-             
-        # vmtx = self.camera.GetModelViewTransformMatrix()
-        # mtx = pv.array_from_vtkmatrix(vmtx)
-        
-        # model_transform_matrix = np.linalg.inv([[1, 0, 0, principle_points[0]],
-        #                                     [0, 1, 0, principle_points[1]],
-        #                                     [0, 0, 1, focal_length],
-        #                                     [0, 0, 0, 1]])
-        
-        # assert (mtx == model_transform_matrix).all(), "the two matrix should be equal"
         
         cx = self.camera_intrinsics[0,2]
         cy = self.camera_intrinsics[1,2]
@@ -104,7 +90,9 @@ class App:
         
     def set_transformation_matrix(self, matrix:np.ndarray):
         self.transformation_matrix = matrix
-        self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(matrix))
+        
+        # # Set up the transformation for the scene object (not preferable, better to use user_matrix)
+        # self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(matrix))
         
     def set_reference(self, name:str):
         self.reference = name
@@ -156,7 +144,7 @@ class App:
 
             mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, name=mesh_name)
             
-            # mesh.user_matrix = self.transformation_matrix
+            mesh.user_matrix = self.transformation_matrix
             
             actor, _ = self.pv_plotter.add_actor(mesh, name=mesh_name)
             
@@ -301,11 +289,11 @@ class App:
             # read the mesh file
             if len(render_one_object) != 0:
                 mesh = self.pv_render.add_mesh(self.mesh_polydata[f"{render_one_object}"], rgb=True)
-                # mesh.user_matrix = self.transformation_matrix
+                mesh.user_matrix = self.transformation_matrix
             else:
                 for _, mesh_data in self.mesh_polydata.items():
                     mesh = self.pv_render.add_mesh(mesh_data, rgb=True)
-                    # mesh.user_matrix = self.transformation_matrix
+                    mesh.user_matrix = self.transformation_matrix
         
         self.pv_render.camera = self.camera.copy()
         self.pv_render.disable()
