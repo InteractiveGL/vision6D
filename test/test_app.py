@@ -45,11 +45,14 @@ OSSICLES_TRANSFORMATION_MATRIX = np.array(
 @pytest.fixture
 def app():
     return vis.App(True)
-    # return vis.App(False)
+
+@pytest.fixture
+def app_no_plot():
+    return vis.App(False)
     
 @pytest.fixture
 def configured_app(app):
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
+    app.load_image(IMAGE_PATH, [0.01, 0.01, 1], opacity=0.35)
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
     app.bind_meshes("ossicles", "g", ['facial_nerve', 'chorda'])
@@ -61,28 +64,32 @@ def configured_app(app):
 def test_create_app(app):
     assert isinstance(app, vis.App)
 
-def test_load_image(app):
-    image = Image.open(IMAGE_PATH)
+def test_load_image(app_no_plot):
+    # image = Image.open(IMAGE_PATH)
+    # image = np.array(image)[::-1, :]
+    # Image.fromarray(image).save(DATA_DIR / "image.jpg")
     
-    image = np.array(image)[::-1, :]
-    
-    Image.fromarray(image).save(DATA_DIR / "image.jpg")
-    
-    app.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
-    app.set_reference("image")
-    app.plot()
+    app_no_plot.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1], opacity=1.0)
+    app_no_plot.set_reference("image")
+    last_image = app_no_plot.plot()
+    image = Image.fromarray(last_image)
+    image.save(DATA_DIR / "load_image_result.png")
 
 def test_load_mesh_from_ply(configured_app):
     configured_app.plot()
     
 def test_load_mesh_from_polydata(app):
+    # Set camera intrinsics
+    app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
+    # Set camera extrinsics
+    app.set_camera_extrinsics(position=(0, 0, -5), focal_point=(0, 0, 1), viewup=(0,-1,0))
     app.set_transformation_matrix(np.eye(4))
     app.load_meshes({'sephere': pv.Sphere(radius=1)})
     app.bind_meshes("sephere", "g", ['sephere'])
     app.plot()
 
 def test_load_mesh_from_meshfile(app):
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
+    app.load_image(IMAGE_PATH, [0.01, 0.01, 1], opacity=0.35)
     app.set_reference("ossicles")
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
@@ -100,7 +107,7 @@ def test_plot_render(configured_app):
 def test_render_image(app):
     image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], True)
     image = Image.fromarray(image_np)
-    image.save(DATA_DIR / "image1.png")
+    image.save(DATA_DIR / "image_rendered.png")
     
 def test_render_ossicles(app):
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
@@ -182,3 +189,64 @@ def test_pnp_with_cube(app):
             logger.debug(len(inliers))
     
     assert np.isclose(predicted_pose, RT, atol=1e-2).all()
+    
+def test_pnp_with_sphere(app):
+    # Reference:
+    # https://learnopencv.com/head-pose-estimation-using-opencv-and-dlib/
+    # https://www.cse.psu.edu/~rtc12/CSE486/lecture12.pdf: Lecture 12: Camera Projection PPT
+    
+    # Set camera intrinsics
+    app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
+    
+    # Set camera extrinsics
+    app.set_camera_extrinsics(position=(0, 0, -5), focal_point=(0, 0, 1), viewup=(0, -1, 0))
+    
+    # Load a cube mesh
+    sphere = pv.Sphere(radius=1)
+
+    # # Create a RT transformation matrix manually
+    # t = np.array([0,0,5])
+    # r = R.from_rotvec((0,0.7,0)).as_matrix()
+    # RT = np.vstack((np.hstack((r, t.reshape((-1,1)))), [0,0,0,1]))
+    
+    RT = np.array([[0.34344301, -0.77880413, -0.52489144,  0.        ],
+                    [-0.18896486, -0.60475937,  0.77366556,  0.        ],
+                    [-0.91996695, -0.16652398, -0.35486699,  5.        ],
+                    [ 0.,          0.,          0.,          1.        ]])
+    
+    app.set_transformation_matrix(RT)
+    
+    app.load_meshes({'sphere': sphere}) # Pass parameter of desired RT applied to
+    
+    app.plot()
+    
+    # Create rendering
+    render = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    mask_render = vis.utils.color2binary_mask(vis.utils.change_mask_bg(render, [255, 255, 255], [0, 0, 0]))
+    plt.imshow(render); plt.show()  
+    
+    # Create 2D-3D correspondences
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, scale=[1,1,1])
+    
+    logger.debug(f"The total points are {pts3d.shape[0]}")
+
+    pts2d = pts2d.astype('float32')
+    pts3d = pts3d.astype('float32')
+    camera_intrinsics = app.camera_intrinsics.astype('float32')
+    
+    if pts2d.shape[0] < 4:
+        predicted_pose = np.eye(4)
+        inliers = []
+    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
+    else:
+        dist_coeffs = np.zeros((4, 1))
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
+        
+        # Get a rotation matrix
+        predicted_pose = np.eye(4)
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector)
+            logger.debug(len(inliers))
+    
+    assert np.isclose(predicted_pose, RT, atol=1e-1).all()

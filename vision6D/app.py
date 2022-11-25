@@ -100,14 +100,14 @@ class App:
     def bind_meshes(self, main_mesh: str, key: str, other_meshes: List[str]):
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
-    def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
+    def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1], opacity:float=0.5):
         
         self.image_polydata['image'] = pv.read(image_path)
         self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
         self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
 
         # Then add it to the plotter
-        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=0.5, name='image')
+        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=opacity, name='image')
         actor, _ = self.pv_plotter.add_actor(image, name="image")
 
         # Save actor for later
@@ -265,9 +265,8 @@ class App:
         else:
             self.pv_plotter.disable()
             cpos = self.pv_plotter.show(title="vision6D", return_cpos=True)
-            result = self.pv_plotter.last_image
-            res_plot = Image.fromarray(result)
-            res_plot.save("test/data/res_plot.png")
+            last_image = self.pv_plotter.last_image
+            return last_image
     
         logger.debug(f"\ncpos: {cpos}")
         
