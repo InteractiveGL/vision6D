@@ -237,7 +237,9 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], n
     
     # Randomly select points in the mask
     idx = np.where(mask == 1)
-    pts = np.array([(x,y) for x,y in zip(idx[0], idx[1])])
+    
+    # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
+    pts = np.array([(x,y) for x,y in zip(idx[1], idx[0])])
     
     if npts == -1:
         rand_pts = pts
@@ -249,7 +251,7 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], n
     # rand_pts = np.vstack((rand_pts, [0, 0]))
     
     # Obtain the 3D verticies
-    rgb = render[rand_pts[:,0], rand_pts[:,1]] / 255
+    rgb = render[rand_pts[:,1], rand_pts[:,0]] / 255
     vtx = (rgb-np.array([0.5])) * scale
     
     return rand_pts, vtx

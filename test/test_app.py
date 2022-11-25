@@ -19,7 +19,7 @@ np.set_printoptions(suppress=True)
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'
-IMAGE_PATH = DATA_DIR / "RL_20210304_0.jpg"
+IMAGE_PATH = DATA_DIR / "image.jpg"
 BACKGROUND_PATH = DATA_DIR / "black_background.jpg"
 
 OSSICLES_PATH = DATA_DIR / "ossicles_001_colored_not_centered.ply"
@@ -35,10 +35,12 @@ FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
 OSSICLES_TRANSFORMATION_MATRIX = np.array(
-            [[-0.84071277,  0.04772072, -0.53937443,  4.14284471],
-            [-0.08303411, -0.99568925,  0.0413309,  30.05524976],
-            [-0.53507698,  0.0795339,   0.84105112, 15.71920575],
-            [ 0.,          0.,          0. ,         1.,        ]])
+            [[ -0.88289199,  -0.18752111,  -0.43050851,  11.56359987],
+            [ -0.02070588,   0.93145737,  -0.36326082, -20.92555882],
+            [  0.46911939,  -0.31180602,  -0.82625904, -10.1608558 ],
+            [  0.,           0.,           0.,           1.        ]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.eye(4)
 
 @pytest.fixture
 def app():
@@ -60,6 +62,12 @@ def test_create_app(app):
     assert isinstance(app, vis.App)
 
 def test_load_image(app):
+    image = Image.open(IMAGE_PATH)
+    
+    image = np.array(image)[::-1, :]
+    
+    Image.fromarray(image).save(DATA_DIR / "image.jpg")
+    
     app.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
     app.plot()
@@ -133,10 +141,10 @@ def test_pnp_with_cube(app):
     # r = R.from_rotvec((0,0.7,0)).as_matrix()
     # RT = np.vstack((np.hstack((r, t.reshape((-1,1)))), [0,0,0,1]))
     
-    RT = np.array([[0.64706274, -0.59506601, -0.47666158,  0],
-                [0.01325321,  0.63386593, -0.77332939,  0],
-                [0.76232156,  0.49407533,  0.41803756,  5],
-                [0.,          0.,          0.,          1]])
+    RT = np.array([[0.34344301, -0.77880413, -0.52489144,  0.        ],
+                    [-0.18896486, -0.60475937,  0.77366556,  0.        ],
+                    [-0.91996695, -0.16652398, -0.35486699,  5.        ],
+                    [ 0.,          0.,          0.,          1.        ]])
     
     app.set_transformation_matrix(RT)
     
@@ -158,7 +166,19 @@ def test_pnp_with_cube(app):
     pts3d = pts3d.astype('float32')
     camera_intrinsics = app.camera_intrinsics.astype('float32')
     
-    predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
-    # predicted_pose = predicted_pose[:3]
+    if pts2d.shape[0] < 4:
+        predicted_pose = np.eye(4)
+        inliers = []
+    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
+    else:
+        dist_coeffs = np.zeros((4, 1))
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
+        
+        # Get a rotation matrix
+        predicted_pose = np.eye(4)
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector)
+            logger.debug(len(inliers))
     
     assert np.isclose(predicted_pose, RT, atol=1e-2).all()

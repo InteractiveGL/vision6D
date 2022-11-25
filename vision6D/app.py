@@ -25,9 +25,9 @@ class App:
             width:int=1920,
             height:int=1080,
             cam_focal_length:int=2015,
-            cam_postition: Tuple=(9.6, 5.4, 20),
+            cam_postition: Tuple=(9.6, 5.4, -20),
             cam_focal_point: Tuple=(9.6, 5.4, 0),
-            cam_viewup: Tuple=(0,1,0)
+            cam_viewup: Tuple=(0,-1,0)
         ):
         
         self.register = register
@@ -107,7 +107,7 @@ class App:
         self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
 
         # Then add it to the plotter
-        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=0.35, name='image')
+        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=0.5, name='image')
         actor, _ = self.pv_plotter.add_actor(image, name="image")
 
         # Save actor for later
