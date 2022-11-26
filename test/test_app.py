@@ -21,6 +21,7 @@ CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'
 IMAGE_PATH = DATA_DIR / "image.jpg"
 BACKGROUND_PATH = DATA_DIR / "black_background.jpg"
+MASK_PATH = DATA_DIR / "mask.png"
 
 OSSICLES_PATH = DATA_DIR / "ossicles_001_colored_not_centered.ply"
 FACIAL_NERVE_PATH = DATA_DIR / "facial_nerve_001_colored_not_centered.ply"
@@ -34,11 +35,10 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array(
-            [[ -0.88289199,  -0.18752111,  -0.43050851,  11.56359987],
-            [ -0.02070588,   0.93145737,  -0.36326082, -20.92555882],
-            [  0.46911939,  -0.31180602,  -0.82625904, -10.1608558 ],
-            [  0.,           0.,           0.,           1.        ]])
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[-0.26697933,  -0.22784411,  -0.93638086,  -5.01623628],
+                                        [0.37972606,   0.86817,     -0.31951361, -25.52918698],
+                                        [0.88573707,  -0.44087175,  -0.14526509,  -2.31237094],
+                                        [0,           0,           0,           1.        ]])
 
 # OSSICLES_TRANSFORMATION_MATRIX = np.eye(4)
 
@@ -98,12 +98,6 @@ def test_load_mesh_from_meshfile(app):
     app.bind_meshes("facial_nerve", "j", ['ossicles', 'chorda'])
     app.plot()
     
-def test_plot_render(configured_app):
-    configured_app.plot()
-    image_np = configured_app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False)
-    image = Image.fromarray(image_np)
-    image.save(DATA_DIR / "res_render_whole_plot_render_function.png")
-    
 def test_render_image(app):
     image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], True)
     image = Image.fromarray(image_np)
@@ -114,14 +108,14 @@ def test_render_ossicles(app):
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
     image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False, 'ossicles')
     image = Image.fromarray(image_np)
-    image.save(DATA_DIR / "res_render1.png")
+    image.save(DATA_DIR / "ossicles_rendered.png")
     
-def test_render_whole(app):
+def test_render_whole_scene(app):
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
     image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False)
     image = Image.fromarray(image_np)
-    image.save(DATA_DIR / "res_render_whole.png")
+    image.save(DATA_DIR / "whole_scene_rendered.png")
 
 # @pytest.mark.parametrize(
 #     "_app, expected_RT", 
@@ -280,6 +274,55 @@ def test_pnp_with_ossicles(app):
     
     # Create 2D-3D correspondences
     pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, app, 'ossicles')
+    
+    logger.debug(f"The total points are {pts3d.shape[0]}")
+
+    pts2d = pts2d.astype('float32')
+    pts3d = pts3d.astype('float32')
+    camera_intrinsics = app.camera_intrinsics.astype('float32')
+    
+    if pts2d.shape[0] < 4:
+        predicted_pose = np.eye(4)
+        inliers = []
+    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
+    else:
+        dist_coeffs = np.zeros((4, 1))
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
+        
+        # Get a rotation matrix
+        predicted_pose = np.eye(4)
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + cam_position
+            logger.debug(len(inliers))
+            
+    assert np.isclose(predicted_pose, RT, atol=1e-1).all()
+    
+def test_pnp_with_ossicles_masked(app):
+    ossicles_mask = np.array(Image.open(MASK_PATH))
+    
+    # Set camera intrinsics
+    app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
+    
+    cam_position = (9.6, 5.4, -20)
+    
+    # Set camera extrinsics
+    app.set_camera_extrinsics(position=cam_position, focal_point=(9.6, 5.4, 0), viewup=(0, -1, 0))
+    
+    RT = OSSICLES_TRANSFORMATION_MATRIX
+    
+    app.set_transformation_matrix(RT)
+    app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR})
+    app.plot()
+    
+    # Create rendering
+    render = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    mask_render = vis.utils.color2binary_mask(vis.utils.change_mask_bg(render, [255, 255, 255], [0, 0, 0]))
+    mask_render_masked = mask_render * ossicles_mask
+    plt.imshow(render); plt.show()
+    
+    # Create 2D-3D correspondences
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render, app, 'ossicles')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 

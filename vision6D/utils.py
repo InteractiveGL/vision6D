@@ -187,7 +187,7 @@ def color2binary_mask(color_mask):
     # plt.imshow(binary_mask)
     # plt.show()
     
-    return binary_mask
+    return binary_mask[..., 0]
 
 def show_plot(frame, plot, image_white_bg, image_black_bg):
     extent = 0, plot.shape[1], plot.shape[0], 0
