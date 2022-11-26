@@ -21,7 +21,7 @@ CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'
 IMAGE_PATH = DATA_DIR / "image.jpg"
 BACKGROUND_PATH = DATA_DIR / "black_background.jpg"
-MASK_PATH = DATA_DIR / "mask.png"
+MASK_PATH = DATA_DIR / "ossicles_mask.png"
 
 OSSICLES_PATH = DATA_DIR / "ossicles_001_colored_not_centered.ply"
 FACIAL_NERVE_PATH = DATA_DIR / "facial_nerve_001_colored_not_centered.ply"
@@ -314,7 +314,8 @@ def test_pnp_with_ossicles(app):
     
 def test_pnp_with_ossicles_masked(app):
     # the obtained mask is a 1 channel image
-    mask = np.array(Image.open(MASK_PATH))
+    # mask = (np.array(Image.open(MASK_PATH)) / 255).astype('uint8') # read image path: DATA_DIR / "mask.png"
+    mask = np.array(Image.open(MASK_PATH)) # read image path: DATA_DIR / "ossicles_mask.png"
     
     # convert 1 channel to 3 channels for calculation
     ossicles_mask = np.stack((mask, mask, mask), axis=-1)
@@ -338,8 +339,7 @@ def test_pnp_with_ossicles_masked(app):
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
-    render_masked_black_bg = render_black_bg * ossicles_mask
-    # render_masked_white_bg = render_white_bg * ossicles_mask
+    render_masked_black_bg = render_black_bg * ossicles_mask  # render_masked_white_bg = render_white_bg * ossicles_mask
     
     plt.subplot(221)
     plt.imshow(render_white_bg)
