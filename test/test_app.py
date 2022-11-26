@@ -156,14 +156,19 @@ def test_pnp_with_cube(app):
     app.plot()
     
     # Create rendering
-    render = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
-    mask_render = vis.utils.color2binary_mask(vis.utils.change_mask_bg(render, [255, 255, 255], [0, 0, 0]))
-    plt.imshow(render); plt.show()  
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
+    mask_render = vis.utils.color2binary_mask(render_black_bg)
     
-    # Create 2D-3D correspondences
-    # pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, scale=[1,1,1])
+    plt.subplot(221)
+    plt.imshow(render_white_bg)
+    plt.subplot(222)
+    plt.imshow(render_black_bg)
+    plt.subplot(223)
+    plt.imshow(mask_render*255)
+    plt.show()
     
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, app, 'cube')
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render_black_bg, app, 'cube')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
@@ -174,7 +179,6 @@ def test_pnp_with_cube(app):
     if pts2d.shape[0] < 4:
         predicted_pose = np.eye(4)
         inliers = []
-    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
     else:
         dist_coeffs = np.zeros((4, 1))
         success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
@@ -203,12 +207,8 @@ def test_pnp_with_sphere(app):
     
     # Load a cube mesh
     sphere = pv.Sphere(radius=1)
-
-    # # Create a RT transformation matrix manually
-    # t = np.array([0,0,5])
-    # r = R.from_rotvec((0,0.7,0)).as_matrix()
-    # RT = np.vstack((np.hstack((r, t.reshape((-1,1)))), [0,0,0,1]))
     
+    # Set a RT transformation matrix
     RT = np.array([[0.34344301, -0.77880413, -0.52489144,  0.        ],
                     [-0.18896486, -0.60475937,  0.77366556,  0.        ],
                     [-0.91996695, -0.16652398, -0.35486699,  5.        ],
@@ -221,12 +221,20 @@ def test_pnp_with_sphere(app):
     app.plot()
     
     # Create rendering
-    render = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
-    mask_render = vis.utils.color2binary_mask(vis.utils.change_mask_bg(render, [255, 255, 255], [0, 0, 0]))
-    plt.imshow(render); plt.show()  
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
+    mask_render = vis.utils.color2binary_mask(render_black_bg)
+    
+    plt.subplot(221)
+    plt.imshow(render_white_bg)
+    plt.subplot(222)
+    plt.imshow(render_black_bg)
+    plt.subplot(223)
+    plt.imshow(mask_render*255)
+    plt.show()
     
     # Create 2D-3D correspondences
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, app, 'sphere')
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render_black_bg, app, 'sphere')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
@@ -237,7 +245,6 @@ def test_pnp_with_sphere(app):
     if pts2d.shape[0] < 4:
         predicted_pose = np.eye(4)
         inliers = []
-    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
     else:
         dist_coeffs = np.zeros((4, 1))
         success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
@@ -268,12 +275,20 @@ def test_pnp_with_ossicles(app):
     app.plot()
     
     # Create rendering
-    render = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
-    mask_render = vis.utils.color2binary_mask(vis.utils.change_mask_bg(render, [255, 255, 255], [0, 0, 0]))
-    plt.imshow(render); plt.show()
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
+    mask_render = vis.utils.color2binary_mask(render_black_bg)
+    
+    plt.subplot(221)
+    plt.imshow(render_white_bg)
+    plt.subplot(222)
+    plt.imshow(render_black_bg)
+    plt.subplot(223)
+    plt.imshow(mask_render*255)
+    plt.show()
     
     # Create 2D-3D correspondences
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, app, 'ossicles')
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render_black_bg, app, 'ossicles')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
@@ -284,7 +299,6 @@ def test_pnp_with_ossicles(app):
     if pts2d.shape[0] < 4:
         predicted_pose = np.eye(4)
         inliers = []
-    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
     else:
         dist_coeffs = np.zeros((4, 1))
         success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
@@ -299,7 +313,11 @@ def test_pnp_with_ossicles(app):
     assert np.isclose(predicted_pose, RT, atol=1e-1).all()
     
 def test_pnp_with_ossicles_masked(app):
-    ossicles_mask = np.array(Image.open(MASK_PATH))
+    # the obtained mask is a 1 channel image
+    mask = np.array(Image.open(MASK_PATH))
+    
+    # convert 1 channel to 3 channels for calculation
+    ossicles_mask = np.stack((mask, mask, mask), axis=-1)
     
     # Set camera intrinsics
     app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
@@ -316,13 +334,25 @@ def test_pnp_with_ossicles_masked(app):
     app.plot()
     
     # Create rendering
-    render = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
-    mask_render = vis.utils.color2binary_mask(vis.utils.change_mask_bg(render, [255, 255, 255], [0, 0, 0]))
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
+    mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
-    plt.imshow(render); plt.show()
+    render_masked_black_bg = render_black_bg * ossicles_mask
+    # render_masked_white_bg = render_white_bg * ossicles_mask
+    
+    plt.subplot(221)
+    plt.imshow(render_white_bg)
+    plt.subplot(222)
+    plt.imshow(render_black_bg)
+    plt.subplot(223)
+    plt.imshow(mask_render_masked*255)
+    plt.subplot(224)
+    plt.imshow(render_masked_black_bg)
+    plt.show()
     
     # Create 2D-3D correspondences
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render, app, 'ossicles')
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_black_bg, app, 'ossicles')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
@@ -333,7 +363,6 @@ def test_pnp_with_ossicles_masked(app):
     if pts2d.shape[0] < 4:
         predicted_pose = np.eye(4)
         inliers = []
-    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
     else:
         dist_coeffs = np.zeros((4, 1))
         success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
