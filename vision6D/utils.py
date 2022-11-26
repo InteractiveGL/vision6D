@@ -1,7 +1,7 @@
 import __future__
 import pickle
 import copy
-from typing import Tuple
+from typing import Tuple, Type
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,7 +10,6 @@ import trimesh
 from trimesh import Trimesh
 from PIL import Image
 import cv2
-
 
 def fread(fid, _len, _type):
     if _len == 0:
@@ -233,7 +232,7 @@ def check_pixel_in_image(image, pixel_value):
     pixels = [i for i in image.getdata()]
     assert not pixel_value in pixels, f"{pixel_value} in pixels"
 
-def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], npts:int=-1):
+def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, obj:Type, object_name:str, npts:int=-1):
     
     # Randomly select points in the mask
     idx = np.where(mask == 1)
@@ -252,7 +251,11 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, scale:Tuple[float], n
     
     # Obtain the 3D verticies
     rgb = render[rand_pts[:,1], rand_pts[:,0]] / 255
-    vtx = (rgb-np.array([0.5])) * scale
+    vertices = getattr(obj, f'{object_name}_vertices')
+    r = rgb[:, 0] * (np.max(vertices[0]) - np.min(vertices[0])) + np.min(vertices[0])
+    g = rgb[:, 1] * (np.max(vertices[1]) - np.min(vertices[1])) + np.min(vertices[1])
+    b = rgb[:, 2] * (np.max(vertices[2]) - np.min(vertices[2])) + np.min(vertices[2])
+    vtx = np.stack([r, g, b], axis=1)
     
     return rand_pts, vtx
 

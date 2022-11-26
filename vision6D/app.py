@@ -97,6 +97,12 @@ class App:
     def set_reference(self, name:str):
         self.reference = name
         
+    def set_vertices(self, name:str, vertices: pv.pyvista_ndarray):
+        if vertices.shape[0] == 3: 
+            setattr(self, f"{name}_vertices", vertices)
+        elif vertices.shape[1] == 3: 
+            setattr(self, f"{name}_vertices", vertices.T)
+        
     def bind_meshes(self, main_mesh: str, key: str, other_meshes: List[str]):
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
@@ -124,7 +130,7 @@ class App:
         for mesh_name, mesh_source in paths.items():
             
             reference_name = mesh_name
-            
+
             if isinstance(mesh_source, pathlib.WindowsPath):
                 # Load the mesh
                 if '.ply' in str(mesh_source):
@@ -135,8 +141,14 @@ class App:
                 mesh_data = mesh_source
                 
             self.mesh_polydata[mesh_name] = mesh_data
+            
+            self.set_vertices(mesh_name, mesh_data.points)
+            
             # Apply transformation to the mesh vertices
             transformed_points = utils.transform_vertices(self.transformation_matrix, mesh_data.points)
+            
+            assert (mesh_data.points == transformed_points).all(), "they should be identical!"
+            
             colors = utils.color_mesh(transformed_points.T)
             
             # Color the vertex

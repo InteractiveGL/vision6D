@@ -137,8 +137,10 @@ def test_pnp_with_cube(app):
     # Set camera intrinsics
     app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
     
+    cam_position = (0, 0, -3)
+    
     # Set camera extrinsics
-    app.set_camera_extrinsics(position=(0, 0, 0), focal_point=(0, 0, 1), viewup=(0,-1,0))
+    app.set_camera_extrinsics(position=cam_position, focal_point=(0, 0, 1), viewup=(0,-1,0))
     
     # Load a cube mesh
     cube = pv.Cube(center=(0,0,0))
@@ -165,7 +167,9 @@ def test_pnp_with_cube(app):
     plt.imshow(render); plt.show()  
     
     # Create 2D-3D correspondences
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, scale=[1,1,1])
+    # pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, scale=[1,1,1])
+    
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, app, 'cube')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
@@ -185,7 +189,7 @@ def test_pnp_with_cube(app):
         predicted_pose = np.eye(4)
         if success:
             predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
-            predicted_pose[:3, 3] = np.squeeze(translation_vector)
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + cam_position
             logger.debug(len(inliers))
     
     assert np.isclose(predicted_pose, RT, atol=1e-2).all()
@@ -198,8 +202,10 @@ def test_pnp_with_sphere(app):
     # Set camera intrinsics
     app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
     
+    cam_position = (0, 0, -3)
+    
     # Set camera extrinsics
-    app.set_camera_extrinsics(position=(0, 0, -5), focal_point=(0, 0, 1), viewup=(0, -1, 0))
+    app.set_camera_extrinsics(position=cam_position, focal_point=(0, 0, 1), viewup=(0, -1, 0))
     
     # Load a cube mesh
     sphere = pv.Sphere(radius=1)
@@ -226,7 +232,7 @@ def test_pnp_with_sphere(app):
     plt.imshow(render); plt.show()  
     
     # Create 2D-3D correspondences
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, scale=[1,1,1])
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, app, 'sphere')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
@@ -246,7 +252,54 @@ def test_pnp_with_sphere(app):
         predicted_pose = np.eye(4)
         if success:
             predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
-            predicted_pose[:3, 3] = np.squeeze(translation_vector)
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + cam_position
             logger.debug(len(inliers))
+            
+    assert np.isclose(predicted_pose, RT, atol=1e-1).all()
     
+def test_pnp_with_ossicles(app):
+    
+    # Set camera intrinsics
+    app.set_camera_intrinsics(focal_length=2015, width=1920, height=1080)
+    
+    cam_position = (9.6, 5.4, -20)
+    
+    # Set camera extrinsics
+    app.set_camera_extrinsics(position=cam_position, focal_point=(9.6, 5.4, 0), viewup=(0, -1, 0))
+    
+    RT = OSSICLES_TRANSFORMATION_MATRIX
+    
+    app.set_transformation_matrix(RT)
+    app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR})
+    app.plot()
+    
+    # Create rendering
+    render = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    mask_render = vis.utils.color2binary_mask(vis.utils.change_mask_bg(render, [255, 255, 255], [0, 0, 0]))
+    plt.imshow(render); plt.show()
+    
+    # Create 2D-3D correspondences
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render, app, 'ossicles')
+    
+    logger.debug(f"The total points are {pts3d.shape[0]}")
+
+    pts2d = pts2d.astype('float32')
+    pts3d = pts3d.astype('float32')
+    camera_intrinsics = app.camera_intrinsics.astype('float32')
+    
+    if pts2d.shape[0] < 4:
+        predicted_pose = np.eye(4)
+        inliers = []
+    # predicted_pose = vis.utils.solvePnP(camera_intrinsics, pts2d, pts3d)
+    else:
+        dist_coeffs = np.zeros((4, 1))
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, iterationsCount=250, reprojectionError=1.)
+        
+        # Get a rotation matrix
+        predicted_pose = np.eye(4)
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + cam_position
+            logger.debug(len(inliers))
+            
     assert np.isclose(predicted_pose, RT, atol=1e-1).all()
