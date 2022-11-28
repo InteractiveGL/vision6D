@@ -177,8 +177,9 @@ class App:
         self.pv_plotter.camera = self.camera.copy()
         logger.debug("reset_camera_event callback complete")
 
-    def event_reset_image_position(self, *args):
+    def event_reset_image_position_opacity(self, *args, opacity=0.35):
         self.image_actors["image"] = self.image_actors["image-origin"].copy() # have to use deepcopy to prevent change self.image_actors["image-origin"] content
+        self.image_actors["image"].GetProperty().opacity = opacity
         self.pv_plotter.add_actor(self.image_actors["image"], name="image")
         logger.debug("reset_image_position callback complete")
 
@@ -254,7 +255,7 @@ class App:
         # Register callbacks
         self.pv_plotter.add_key_event('c', self.event_reset_camera)
         self.pv_plotter.add_key_event('z', self.event_zoom_out)
-        self.pv_plotter.add_key_event('d', self.event_reset_image_position)
+        self.pv_plotter.add_key_event('d', self.event_reset_image_position_opacity)
         self.pv_plotter.add_key_event('t', self.event_track_registration)
 
         for main_mesh, mesh_data in self.binded_meshes.items():
@@ -264,6 +265,11 @@ class App:
         self.pv_plotter.add_key_event('k', self.event_gt_position)
         self.pv_plotter.add_key_event('l', self.event_change_gt_position)
         self.pv_plotter.add_key_event('v', self.event_change_color)
+        
+        event_transparent_image_func = functools.partial(self.event_reset_image_position_opacity, opacity=0)
+        self.pv_plotter.add_key_event('o', event_transparent_image_func)
+        event_full_image_func = functools.partial(self.event_reset_image_position_opacity, opacity=1)
+        self.pv_plotter.add_key_event('u', event_full_image_func)
         
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
@@ -282,7 +288,7 @@ class App:
     
         logger.debug(f"\ncpos: {cpos}")
         
-    def render_scene(self, scene_path:pathlib.Path, scale_factor:Tuple[float], render_image:bool, render_one_object:str='', with_mask:bool=True):
+    def render_scene(self, scene_path:pathlib.Path, scale_factor:Tuple[float], render_image:bool, render_objects:List=[]):
         
         self.pv_render.enable_joystick_actor_style()
         background = pv.read(scene_path) #"test/data/black_background.jpg"
@@ -297,14 +303,10 @@ class App:
             # generate grey image
             # image = self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
             
-            # read the mesh file
-            if len(render_one_object) != 0:
-                mesh = self.pv_render.add_mesh(self.mesh_polydata[f"{render_one_object}"], rgb=True)
+            # Render the targeting objects
+            for object in render_objects:
+                mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True)
                 mesh.user_matrix = self.transformation_matrix
-            else:
-                for _, mesh_data in self.mesh_polydata.items():
-                    mesh = self.pv_render.add_mesh(mesh_data, rgb=True)
-                    mesh.user_matrix = self.transformation_matrix
         
         self.pv_render.camera = self.camera.copy()
         self.pv_render.disable()

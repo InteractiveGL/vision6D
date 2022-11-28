@@ -21,7 +21,10 @@ CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'
 IMAGE_PATH = DATA_DIR / "image.jpg"
 BACKGROUND_PATH = DATA_DIR / "black_background.jpg"
-MASK_PATH = DATA_DIR / "ossicles_mask.png"
+# MASK_PATH = DATA_DIR / "mask.png"
+# MASK_PATH = DATA_DIR / "ossicles_mask.png"
+MASK_PATH = DATA_DIR / "segmented_mask_updated.png"
+MASK_PATH_NUMPY = DATA_DIR / "segmented_mask_numpy.npy"
 
 OSSICLES_PATH = DATA_DIR / "ossicles_001_colored_not_centered.ply"
 FACIAL_NERVE_PATH = DATA_DIR / "facial_nerve_001_colored_not_centered.ply"
@@ -35,10 +38,22 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[-0.26697933,  -0.22784411,  -0.93638086,  -5.01623628],
-                                        [0.37972606,   0.86817,     -0.31951361, -25.52918698],
-                                        [0.88573707,  -0.44087175,  -0.14526509,  -2.31237094],
-                                        [0,           0,           0,           1.        ]])
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[-0.71779818,  -0.08115559,  -0.69150528,   5.89592362],
+#                                             [0.02921941,   0.98879733,  -0.14637644, -18.43942796],
+#                                             [0.69563784,  -0.12527412,  -0.7073856,  -22.87306696],
+#                                             [0.,           0.,           0.,           1.        ]] )
+
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14238535,  -0.19839697,  -0.96972422,  -4.84974046],
+ [0.14277906,   0.96534304,  -0.21846499, -20.72520213],
+ [0.97945932,  -0.16956253,  -0.10912377, -14.96613613],
+ [0.,           0.,           0.,           1.        ]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[-0.56426324,  -0.11638116,  -0.81735086,   1.65956969],
+#  [-0.11414693,   0.99150373,  -0.06237645, -15.39538323],
+#  [0.81766587,   0.05810136,  -0.57275366, -24.83038287],
+#  [0.,           0.,           0.,           1.        ]])
+
+
 
 # OSSICLES_TRANSFORMATION_MATRIX = np.eye(4)
 
@@ -99,21 +114,21 @@ def test_load_mesh_from_meshfile(app):
     app.plot()
     
 def test_render_image(app):
-    image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], True)
+    image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], render_image=True)
     image = Image.fromarray(image_np)
     image.save(DATA_DIR / "image_rendered.png")
     
 def test_render_ossicles(app):
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
-    image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False, 'ossicles')
+    image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False, ['ossicles'])
     image = Image.fromarray(image_np)
     image.save(DATA_DIR / "ossicles_rendered.png")
     
 def test_render_whole_scene(app):
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
-    image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False)
+    image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False, ['ossicles', 'facial_nerve', 'chorda'])
     image = Image.fromarray(image_np)
     image.save(DATA_DIR / "whole_scene_rendered.png")
 
@@ -156,7 +171,7 @@ def test_pnp_with_cube(app):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['cube'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     
@@ -221,7 +236,7 @@ def test_pnp_with_sphere(app):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['sphere'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     
@@ -275,7 +290,7 @@ def test_pnp_with_ossicles(app):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     
@@ -313,9 +328,10 @@ def test_pnp_with_ossicles(app):
     assert np.isclose(predicted_pose, RT, atol=1e-1).all()
     
 def test_pnp_with_ossicles_masked(app):
+    
     # the obtained mask is a 1 channel image
-    # mask = (np.array(Image.open(MASK_PATH)) / 255).astype('uint8') # read image path: DATA_DIR / "mask.png"
-    mask = np.array(Image.open(MASK_PATH)) # read image path: DATA_DIR / "ossicles_mask.png"
+    # mask = (np.array(Image.open(MASK_PATH)) / 255) # mask = (np.array(Image.open(MASK_PATH)) / 255).astype('uint8') # read image path: DATA_DIR / "mask.png"
+    mask = np.load(MASK_PATH_NUMPY) / 255 # read image path: DATA_DIR / "ossicles_mask.png"
     
     # convert 1 channel to 3 channels for calculation
     ossicles_mask = np.stack((mask, mask, mask), axis=-1)
@@ -335,20 +351,20 @@ def test_pnp_with_ossicles_masked(app):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), False)
+    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
     render_masked_black_bg = render_black_bg * ossicles_mask  # render_masked_white_bg = render_white_bg * ossicles_mask
     
     plt.subplot(221)
-    plt.imshow(render_white_bg)
-    plt.subplot(222)
     plt.imshow(render_black_bg)
+    plt.subplot(222)
+    plt.imshow(ossicles_mask)
     plt.subplot(223)
     plt.imshow(mask_render_masked*255)
     plt.subplot(224)
-    plt.imshow(render_masked_black_bg)
+    plt.imshow(render_masked_black_bg.astype('uint8'))
     plt.show()
     
     # Create 2D-3D correspondences
@@ -372,6 +388,6 @@ def test_pnp_with_ossicles_masked(app):
         if success:
             predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
             predicted_pose[:3, 3] = np.squeeze(translation_vector) + cam_position
-            logger.debug(len(inliers))
+            logger.debug(len(inliers)) # 50703
             
-    assert np.isclose(predicted_pose, RT, atol=1e-1).all()
+    assert np.isclose(predicted_pose, RT, atol=0.15).all()
