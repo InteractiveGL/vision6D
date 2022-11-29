@@ -301,7 +301,7 @@ class App:
             # generate white image
             self.pv_render.add_mesh(background, rgb=True, opacity=0, name="image")
             # generate grey image
-            # image = self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
+            # self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
             
             # Render the targeting objects
             for object in render_objects:

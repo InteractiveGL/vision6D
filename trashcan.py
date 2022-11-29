@@ -448,4 +448,3 @@ def test_cube_on_others_code():
 #     for _, mesh_data in self.mesh_polydata.items():
 #         mesh = self.pv_render.add_mesh(mesh_data, rgb=True)
 #         mesh.user_matrix = self.transformation_matrix
-    
