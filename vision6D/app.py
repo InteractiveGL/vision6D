@@ -27,7 +27,7 @@ class App:
             cam_focal_length:int=2015,
             cam_postition: Tuple=(9.6, 5.4, -20),
             cam_focal_point: Tuple=(9.6, 5.4, 0),
-            cam_viewup: Tuple=(0,-1,0)
+            cam_viewup: Tuple=(0,-1,0),
         ):
         
         self.register = register
@@ -41,6 +41,9 @@ class App:
         self.mesh_polydata = {}
         
         self.binded_meshes = {}
+        
+        self.image_opacity = 0.35
+        self.surface_opacity = 0.75
         
         self.camera = pv.Camera()
         
@@ -106,14 +109,14 @@ class App:
     def bind_meshes(self, main_mesh: str, key: str, other_meshes: List[str]):
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
-    def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1], opacity:float=0.5):
+    def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
         
         self.image_polydata['image'] = pv.read(image_path)
         self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
         self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
 
         # Then add it to the plotter
-        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=opacity, name='image')
+        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=self.image_opacity, name='image')
         actor, _ = self.pv_plotter.add_actor(image, name="image")
 
         # Save actor for later
@@ -154,7 +157,7 @@ class App:
             # Color the vertex
             mesh_data.point_data.set_scalars(colors)
 
-            mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, name=mesh_name)
+            mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
             
             mesh.user_matrix = self.transformation_matrix
             
@@ -177,19 +180,51 @@ class App:
         self.pv_plotter.camera = self.camera.copy()
         logger.debug("reset_camera_event callback complete")
 
-    def event_reset_image_position_opacity(self, *args, opacity=0.35):
+    def event_reset_image(self, *args):
         self.image_actors["image"] = self.image_actors["image-origin"].copy() # have to use deepcopy to prevent change self.image_actors["image-origin"] content
-        self.image_actors["image"].GetProperty().opacity = opacity
         self.pv_plotter.add_actor(self.image_actors["image"], name="image")
         logger.debug("reset_image_position callback complete")
+        
+    def event_toggle_image_opacity(self, *args, up):
+        if up:
+            self.image_opacity += 0.2
+            if self.image_opacity >= 1:
+                self.image_opacity = 1
+        else:
+            self.image_opacity -= 0.2
+            if self.image_opacity <= 0:
+                self.image_opacity = 0
+        
+        self.image_actors["image"].GetProperty().opacity = self.image_opacity
+        self.pv_plotter.add_actor(self.image_actors["image"], name="image")
 
+        logger.debug("event_toggle_image_opacity callback complete")
+        
+    def event_toggle_surface_opacity(self, *args, up):    
+        if up:
+            self.surface_opacity += 0.2
+            if self.surface_opacity > 1:
+                self.surface_opacity = 1
+        else:
+            self.surface_opacity -= 0.2
+            if self.surface_opacity < 0:
+                self.surface_opacity = 0
+                
+        transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = transformation_matrix
+            actor.GetProperty().opacity = self.surface_opacity
+            self.pv_plotter.add_actor(actor, name=actor_name)
+
+        logger.debug("event_toggle_surface_opacity callback complete")
+        
     def event_track_registration(self, *args):
         
         transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
             actor.user_matrix = transformation_matrix
-            actor, _ = self.pv_plotter.add_actor(actor, name=actor_name)
+            self.pv_plotter.add_actor(actor, name=actor_name)
     
     def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
         
@@ -223,27 +258,6 @@ class App:
         
         logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_change_gt_position callback complete")
-        
-    def event_change_color(self, *args):
-        
-        transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        container = self.mesh_actors.copy()
-        
-        for actor_name, actor in container.items():
-            
-            # Color the vertex
-            transformed_points = utils.transform_vertices(transformation_matrix, self.mesh_polydata[actor_name].points)
-            colors = utils.color_mesh(transformed_points.T)
-            self.mesh_polydata[actor_name].point_data.set_scalars(colors)
-            
-            mesh = self.pv_plotter.add_mesh(self.mesh_polydata[actor_name], rgb=True, render=False, name=actor_name)
-            mesh.user_matrix = transformation_matrix
-            actor, _ = self.pv_plotter.add_actor(mesh, name=actor_name)
-            
-            # Save the new actor to a container
-            self.mesh_actors[actor_name] = actor
-        
-        logger.debug("event_change_color callback complete")
     
     def plot(self):
         
@@ -255,7 +269,7 @@ class App:
         # Register callbacks
         self.pv_plotter.add_key_event('c', self.event_reset_camera)
         self.pv_plotter.add_key_event('z', self.event_zoom_out)
-        self.pv_plotter.add_key_event('d', self.event_reset_image_position_opacity)
+        self.pv_plotter.add_key_event('d', self.event_reset_image)
         self.pv_plotter.add_key_event('t', self.event_track_registration)
 
         for main_mesh, mesh_data in self.binded_meshes.items():
@@ -264,12 +278,16 @@ class App:
         
         self.pv_plotter.add_key_event('k', self.event_gt_position)
         self.pv_plotter.add_key_event('l', self.event_change_gt_position)
-        self.pv_plotter.add_key_event('v', self.event_change_color)
         
-        event_transparent_image_func = functools.partial(self.event_reset_image_position_opacity, opacity=0)
-        self.pv_plotter.add_key_event('o', event_transparent_image_func)
-        event_full_image_func = functools.partial(self.event_reset_image_position_opacity, opacity=1)
-        self.pv_plotter.add_key_event('u', event_full_image_func)
+        event_toggle_image_opacity_up_func = functools.partial(self.event_toggle_image_opacity, up=True)
+        self.pv_plotter.add_key_event('v', event_toggle_image_opacity_up_func)
+        event_toggle_image_opacity_down_func = functools.partial(self.event_toggle_image_opacity, up=False)
+        self.pv_plotter.add_key_event('b', event_toggle_image_opacity_down_func)
+        
+        event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=True)
+        self.pv_plotter.add_key_event('y', event_toggle_surface_opacity_up_func)
+        event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=False)
+        self.pv_plotter.add_key_event('u', event_toggle_surface_opacity_up_func)
         
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
@@ -305,7 +323,7 @@ class App:
             
             # Render the targeting objects
             for object in render_objects:
-                mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True)
+                mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=1)
                 mesh.user_matrix = self.transformation_matrix
         
         self.pv_render.camera = self.camera.copy()

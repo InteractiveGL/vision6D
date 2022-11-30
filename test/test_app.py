@@ -43,10 +43,10 @@ CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 #                                             [0.69563784,  -0.12527412,  -0.7073856,  -22.87306696],
 #                                             [0.,           0.,           0.,           1.        ]] )
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14238535,  -0.19839697,  -0.96972422,  -4.84974046],
- [0.14277906,   0.96534304,  -0.21846499, -20.72520213],
- [0.97945932,  -0.16956253,  -0.10912377, -14.96613613],
- [0.,           0.,           0.,           1.        ]])
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14238535,  -0.19839697,  -0.96972422,  -4.84974046],
+#  [0.14277906,   0.96534304,  -0.21846499, -20.72520213],
+#  [0.97945932,  -0.16956253,  -0.10912377, -14.96613613],
+#  [0.,           0.,           0.,           1.        ]])
 
 # OSSICLES_TRANSFORMATION_MATRIX = np.array([[-0.56426324,  -0.11638116,  -0.81735086,   1.65956969],
 #  [-0.11414693,   0.99150373,  -0.06237645, -15.39538323],
@@ -54,20 +54,20 @@ OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14238535,  -0.19839697,  -0.9697
 #  [0.,           0.,           0.,           1.        ]])
 
 
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[-0.2898125,   -0.18053846,  -0.93990137,  -2.68705409],
+ [0.13168167,   0.96518633,  -0.22599845, -20.71186596],
+ [0.94798137,  -0.18926495,  -0.25594945, -16.42911933],
+ [0.,           0.,           0.,           1.        ]] )
 
 # OSSICLES_TRANSFORMATION_MATRIX = np.eye(4)
 
 @pytest.fixture
 def app():
     return vis.App(True)
-
-@pytest.fixture
-def app_no_plot():
-    return vis.App(False)
     
 @pytest.fixture
 def configured_app(app):
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1], opacity=0.35)
+    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
     app.bind_meshes("ossicles", "g", ['facial_nerve', 'chorda'])
@@ -79,16 +79,14 @@ def configured_app(app):
 def test_create_app(app):
     assert isinstance(app, vis.App)
 
-def test_load_image(app_no_plot):
+def test_load_image(app):
     # image = Image.open(IMAGE_PATH)
     # image = np.array(image)[::-1, :]
     # Image.fromarray(image).save(DATA_DIR / "image.jpg")
-    
-    app_no_plot.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1], opacity=1.0)
-    app_no_plot.set_reference("image")
-    last_image = app_no_plot.plot()
-    image = Image.fromarray(last_image)
-    image.save(DATA_DIR / "load_image_result.png")
+    app.image_opacity=1.0
+    app.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
+    app.set_reference("image")
+    app.plot()
 
 def test_load_mesh_from_ply(configured_app):
     configured_app.plot()
@@ -104,7 +102,7 @@ def test_load_mesh_from_polydata(app):
     app.plot()
 
 def test_load_mesh_from_meshfile(app):
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1], opacity=0.35)
+    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
     app.set_reference("ossicles")
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
@@ -390,4 +388,4 @@ def test_pnp_with_ossicles_masked(app):
             predicted_pose[:3, 3] = np.squeeze(translation_vector) + cam_position
             logger.debug(len(inliers)) # 50703
             
-    assert np.isclose(predicted_pose, RT, atol=0.15).all()
+    assert np.isclose(predicted_pose, RT, atol=0.2).all()

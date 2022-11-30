@@ -448,3 +448,24 @@ def test_cube_on_others_code():
 #     for _, mesh_data in self.mesh_polydata.items():
 #         mesh = self.pv_render.add_mesh(mesh_data, rgb=True)
 #         mesh.user_matrix = self.transformation_matrix
+
+
+def event_change_color(self, *args):
+    transformation_matrix = self.mesh_actors[self.reference].user_matrix
+    container = self.mesh_actors.copy()
+
+    for actor_name, actor in container.items():
+        
+        # Color the vertex
+        transformed_points = utils.transform_vertices(transformation_matrix, self.mesh_polydata[actor_name].points)
+        colors = utils.color_mesh(transformed_points.T)
+        self.mesh_polydata[actor_name].point_data.set_scalars(colors)
+        
+        mesh = self.pv_plotter.add_mesh(self.mesh_polydata[actor_name], rgb=True, render=False, name=actor_name)
+        mesh.user_matrix = transformation_matrix
+        actor, _ = self.pv_plotter.add_actor(mesh, name=actor_name)
+        
+        # Save the new actor to a container
+        self.mesh_actors[actor_name] = actor
+
+    logger.debug("event_change_color callback complete")
