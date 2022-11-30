@@ -43,7 +43,7 @@ class App:
         self.binded_meshes = {}
         
         self.image_opacity = 0.35
-        self.surface_opacity = 0.75
+        self.surface_opacity = 1
         
         self.camera = pv.Camera()
         
@@ -106,7 +106,15 @@ class App:
         elif vertices.shape[1] == 3: 
             setattr(self, f"{name}_vertices", vertices.T)
         
-    def bind_meshes(self, main_mesh: str, key: str, other_meshes: List[str]):
+    # Suitable for total two and above mesh quantities
+    def bind_meshes(self, main_mesh: str, key: str):
+        
+        other_meshes = []
+    
+        for mesh_name in self.mesh_polydata.keys():
+                if mesh_name != main_mesh:
+                    other_meshes.append(mesh_name)
+            
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
     def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):

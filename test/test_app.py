@@ -70,9 +70,9 @@ def configured_app(app):
     app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
-    app.bind_meshes("ossicles", "g", ['facial_nerve', 'chorda'])
-    app.bind_meshes("chorda", "h", ['ossicles', 'facial_nerve'])
-    app.bind_meshes("facial_nerve", "j", ['ossicles', 'chorda'])
+    app.bind_meshes("ossicles", "g")
+    app.bind_meshes("chorda", "h")
+    app.bind_meshes("facial_nerve", "j")
     app.set_reference("ossicles")
     return app
 
@@ -98,7 +98,6 @@ def test_load_mesh_from_polydata(app):
     app.set_camera_extrinsics(position=(0, 0, -5), focal_point=(0, 0, 1), viewup=(0,-1,0))
     app.set_transformation_matrix(np.eye(4))
     app.load_meshes({'sephere': pv.Sphere(radius=1)})
-    app.bind_meshes("sephere", "g", ['sephere'])
     app.plot()
 
 def test_load_mesh_from_meshfile(app):
@@ -106,9 +105,9 @@ def test_load_mesh_from_meshfile(app):
     app.set_reference("ossicles")
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
-    app.bind_meshes("ossicles", "g", ['facial_nerve', 'chorda'])
-    app.bind_meshes("chorda", "h", ['ossicles', 'facial_nerve'])
-    app.bind_meshes("facial_nerve", "j", ['ossicles', 'chorda'])
+    app.bind_meshes("ossicles", "g")
+    app.bind_meshes("chorda", "h")
+    app.bind_meshes("facial_nerve", "j")
     app.plot()
     
 def test_render_image(app):
