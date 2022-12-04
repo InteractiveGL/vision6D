@@ -24,8 +24,9 @@ class App:
             register,
             width:int=1920,
             height:int=1080,
-            cam_focal_length:int=2015,
-            cam_postition: Tuple=(9.6, 5.4, -20),
+            # telescope for medical device
+            cam_focal_length:int=5e+4,
+            cam_position: Tuple=(9.6, 5.4, -1000), 
             cam_focal_point: Tuple=(9.6, 5.4, 0),
             cam_viewup: Tuple=(0,-1,0),
         ):
@@ -48,7 +49,7 @@ class App:
         self.camera = pv.Camera()
         
         self.set_camera_intrinsics(cam_focal_length, width, height)
-        self.set_camera_extrinsics(cam_postition, cam_focal_point, cam_viewup)
+        self.set_camera_extrinsics(cam_position, cam_focal_point, cam_viewup)
 
         if self.register:
             self.pv_plotter = pv.Plotter(window_size=[width, height])
@@ -230,9 +231,9 @@ class App:
         
         transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
-            logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
             actor.user_matrix = transformation_matrix
             self.pv_plotter.add_actor(actor, name=actor_name)
+            logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
     
     def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
         
