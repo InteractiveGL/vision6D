@@ -24,9 +24,12 @@ class App:
             register,
             width:int=1920,
             height:int=1080,
-            # telescope for medical device
-            cam_focal_length:int=5e+4,
-            cam_position: Tuple=(9.6, 5.4, -1000), 
+            # use standard camera
+            cam_focal_length:int=2015,
+            cam_position: Tuple=(9.6, 5.4, -20), 
+            # use telescope for medical device, might need depth map for accurate z translation recontruction
+            # cam_focal_length:int=5e+4,
+            # cam_position: Tuple=(9.6, 5.4, -500), 
             cam_focal_point: Tuple=(9.6, 5.4, 0),
             cam_viewup: Tuple=(0,-1,0),
         ):

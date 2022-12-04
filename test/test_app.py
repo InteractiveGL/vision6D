@@ -25,6 +25,7 @@ BACKGROUND_PATH = DATA_DIR / "black_background.jpg"
 # MASK_PATH = DATA_DIR / "ossicles_mask.png"
 MASK_PATH = DATA_DIR / "segmented_mask_updated.png"
 MASK_PATH_NUMPY = DATA_DIR / "segmented_mask_numpy.npy"
+# MASK_PATH_NUMPY = DATA_DIR / "mask_960.npy"
 CROPPED_MASK_PATH_NUMPY = DATA_DIR / "cropped_mask_numpy.npy"
 STANDARD_LENS_MASK_PATH_NUMPY = DATA_DIR / "test1.npy"
 
@@ -40,10 +41,10 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.19337066,  -0.12923262,  -0.97257736,  -6.72829707],
-                                        [  0.33208419,   0.92415657,  -0.18882458, -22.79122096],
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.19337066,  -0.12923262,  -0.97257736,  -5.84322964],
+                                        [  0.33208419,   0.92415657,  -0.18882458, -22.41139947],
                                         [  0.92321605,  -0.3594907,   -0.13578866, -12.93687721],
-                                        [  0.,           0.,           0.,           1.,        ]])
+                                        [  0.,           0.,           0.,           1.        ]])
 
 @pytest.fixture
 def app():
@@ -64,14 +65,14 @@ def test_create_app(app):
     assert isinstance(app, vis.App)
 
 def test_load_image(app):
-    image = Image.open(IMAGE_PATH)
-    image = np.array(image)[:, ::-1, :]
-    Image.fromarray(image).save(DATA_DIR / "image_flipped.jpg")
+    # image = Image.open(IMAGE_PATH)
+    # image = np.array(image)[:, ::-1, :]
+    # Image.fromarray(image).save(DATA_DIR / "image_flipped.jpg")
     app.image_opacity=1.0
     app.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
     app.plot()
-
+    
 def test_load_mesh_from_ply(configured_app):
     configured_app.plot()
     
@@ -451,11 +452,16 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
                 [  0.,           0.,           0.,           1.        ]])),
     ]
 )
-def test_pnp_with_ossicles_masked_standard_len(app, RT):
+def test_pnp_with_ossicles_masked_standard_len(RT):
     
     # standard camera
-    app.set_camera_intrinsics(2015, 1920, 1080)
-    app.set_camera_extrinsics((9.6, 5.4, -20), (9.6, 5.4, 0), (0,-1,0))
+    app = vis.App(register=True, 
+                  width=1920, 
+                  height=1080, 
+                  cam_focal_length=2015, 
+                  cam_position=(9.6, 5.4, -20), 
+                  cam_focal_point=(9.6, 5.4, 0), 
+                  cam_viewup=(0,-1,0))
     
     # the obtained mask is a 1 channel image
     # mask = (np.array(Image.open(MASK_PATH)) / 255) # mask = (np.array(Image.open(MASK_PATH)) / 255).astype('uint8') # read image path: DATA_DIR / "mask.png"
@@ -512,8 +518,7 @@ def test_pnp_with_ossicles_masked_standard_len(app, RT):
     
 @pytest.mark.parametrize(
     "RT",
-    [
-        (np.array([[ -0.19337066,  -0.12923262,  -0.97257736,  -5.38403053],
+    [        (np.array([[ -0.19337066,  -0.12923262,  -0.97257736,  -5.38403053],
                 [  0.33208419,   0.92415657,  -0.18882458, -22.44501157],
                 [  0.92321605,  -0.3594907,   -0.13578866, -12.93687721],
                 [  0.,           0.,           0.,           1.        ]])),
