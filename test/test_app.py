@@ -39,10 +39,10 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14574589,  -0.18814922,  -0.97126619,  -5.90455811],
-                                            [  0.30022033,   0.92704254,  -0.22463276, -23.03902215],
-                                            [  0.94266955,  -0.32433316,  -0.07862642, -12.92929744],
-                                            [  0.,           0.,           0.,           1.        ]])
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -2.28768117],
+                                        [  0.61244989,   0.70950026,  -0.34858929, -25.39078897],
+                                        [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                                        [  0.,           0.,           0.,           1.        ]])
 
 @pytest.fixture
 def app():
@@ -405,6 +405,18 @@ def test_pnp_with_ossicles_telescope(RT):
 @pytest.mark.parametrize(
     "RT",
     [
+        (np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -2.28768117],
+                    [  0.61244989,   0.70950026,  -0.34858929, -25.39078897],
+                    [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                    [  0.,           0.,           0.,           1.        ]])),
+        (np.array([[ -0.04368987,  -0.36370424,  -0.93048935,  -4.26740943],
+                [  0.43051434,   0.8336103,   -0.34605094, -25.10016632],
+                [  0.9015257,   -0.41570794,   0.12015956,  -7.1369013 ],
+                [  0.,           0.,           0.,           1.        ]])),
+        (np.array([[ -0.21403014,  -0.24968077,  -0.94437843,  -3.71577383],
+                [  0.12515886,   0.95180355,  -0.28000937, -22.70262825],
+                [  0.9687757,   -0.17812778,  -0.17246489, -17.75878025],
+                [  0.,           0.,           0.,           1.        ]])),
         (np.array([[  0.03292723,  -0.19892261,  -0.97946189 , -9.58437769],
                 [  0.26335909 ,  0.94708607,  -0.18349376, -22.55842936],
                 [  0.96413577,  -0.25190826,   0.083573,   -14.69781384],
@@ -481,9 +493,6 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
     pts3d = pts3d.astype('float32')
     camera_intrinsics = app.camera_intrinsics.astype('float32')
     
-    # view_matrix = pv.array_from_vtkmatrix(app.camera.GetViewTransformMatrix())
-    # view_matrix_r = np.array(view_matrix[:3,:3]) * [-1, 1, -1]
-    
     if pts2d.shape[0] < 4:
         predicted_pose = np.eye(4)
         inliers = []
@@ -498,8 +507,6 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
         if success:
             predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
             predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
-            # predicted_pose[:3, :3] = (cv2.Rodrigues(rotation_vector)[0].T @ view_matrix_r).T
-            # predicted_pose[:3, 3] = -(np.squeeze(translation_vector) - np.array(app.camera.position) + [0,0,10])
             logger.debug(len(inliers)) # 50703
             
     assert np.isclose(predicted_pose, RT, atol=1).all()

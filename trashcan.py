@@ -469,3 +469,10 @@ def event_change_color(self, *args):
         self.mesh_actors[actor_name] = actor
 
     logger.debug("event_change_color callback complete")
+    
+# predicted_pose[:3, :3] = (cv2.Rodrigues(rotation_vector)[0].T @ view_matrix_r).T
+# predicted_pose[:3, 3] = -(np.squeeze(translation_vector) - np.array(app.camera.position) + [0,0,10])
+
+    
+# view_matrix = pv.array_from_vtkmatrix(app.camera.GetViewTransformMatrix())
+# view_matrix_r = np.array(view_matrix[:3,:3]) * [-1, 1, -1]
