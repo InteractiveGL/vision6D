@@ -39,9 +39,9 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.40794128,   0.03516422,  -0.91233074,  -4.9792518 ],
-                                            [  0.2583161,    0.96287463,  -0.0783916,  -20.40617284],
-                                            [  0.87570354,  -0.2676489,   -0.4018798,  -14.71024412],
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14574589,  -0.18814922,  -0.97126619,  -5.90455811],
+                                            [  0.30022033,   0.92704254,  -0.22463276, -23.03902215],
+                                            [  0.94266955,  -0.32433316,  -0.07862642, -12.92929744],
                                             [  0.,           0.,           0.,           1.        ]])
 
 @pytest.fixture
