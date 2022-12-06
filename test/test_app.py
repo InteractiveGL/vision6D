@@ -474,6 +474,10 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
     mask_render_masked = mask_render * ossicles_mask
     render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)  # render_masked_white_bg = render_white_bg * ossicles_mask
     
+    # # Save the rendered mask with black background
+    # save_mask = Image.fromarray(render_masked_black_bg)
+    # save_mask.save(DATA_DIR / "render_mask.png")
+    
     plt.subplot(221)
     plt.imshow(render_black_bg)
     plt.subplot(222)
@@ -485,6 +489,7 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
     plt.show()
     
     # Create 2D-3D correspondences
+    # pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_masked_black_bg, app, 'ossicles', npts=30)
     pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_masked_black_bg, app, 'ossicles')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
