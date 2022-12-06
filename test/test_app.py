@@ -44,6 +44,16 @@ OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.8619
                                         [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
                                         [  0.,           0.,           0.,           1.        ]])
 
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0873051 ,  -0.49934886,  -0.86199103,  -2.28334928],
+#                                 [  0.61224162,   0.70948238,  -0.34899134, -25.39711749],
+#                                 [  0.78583587,  -0.49727806,   0.36766359,   0.10044576],
+#                                 [  0.        ,   0.        ,   0.        ,   1.        ]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.03921582,  -0.61266473,  -0.7893694 ,   1.68665061],
+#                                         [  0.51137057,   0.6663846 ,  -0.54261561, -27.16172691],
+#                                         [  0.85846506,  -0.42493939,   0.28716589,  81.78483878],
+#                                         [  0.        ,   0.        ,   0.        ,   1.        ]])
+
 @pytest.fixture
 def app():
     return vis.App(True)
@@ -401,7 +411,7 @@ def test_pnp_with_ossicles_telescope(RT):
             
     assert np.isclose(predicted_pose, RT, atol=1).all()
 
-# telescope camera with focal length 50000  
+# medical telescope camera with focal length 50000  
 @pytest.mark.parametrize(
     "RT",
     [
@@ -475,8 +485,7 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
     render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)  # render_masked_white_bg = render_white_bg * ossicles_mask
     
     # # Save the rendered mask with black background
-    # save_mask = Image.fromarray(render_masked_black_bg)
-    # save_mask.save(DATA_DIR / "render_mask.png")
+    # vis.utils.save_image(render_masked_black_bg, DATA_DIR, "rendered_mask.png")
     
     plt.subplot(221)
     plt.imshow(render_black_bg)
@@ -516,7 +525,7 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
             
     assert np.isclose(predicted_pose, RT, atol=1).all()
     
-# All pass for standard camera with focal length 2015
+# standard camera with focal length 2015
 @pytest.mark.parametrize(
     "RT",
     [

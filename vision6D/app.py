@@ -30,7 +30,7 @@ class App:
             # # use standard camera with view angle 45 degree
             # cam_focal_length:int=1303,
             # cam_position: Tuple=(9.6, 5.4, -13), 
-            # use telescope for medical device
+            # use telescope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_position: Tuple=(9.6, 5.4, -500), 
             cam_focal_point: Tuple=(9.6, 5.4, 0),

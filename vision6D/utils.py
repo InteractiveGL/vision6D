@@ -282,3 +282,7 @@ def cartisian2homogeneous(vertices):
 
 def homogeneous2cartisian(homo_vertices):
     return (homo_vertices[:3] / homo_vertices[3]).T
+
+def save_image(array, folder, name):
+    img = Image.fromarray(array)
+    img.save(folder / name)
