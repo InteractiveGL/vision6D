@@ -44,6 +44,26 @@ OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.8619
                                         [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
                                         [  0.,           0.,           0.,           1.        ]])
 
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.03017257],
+       [  0.61244989,   0.70950026,  -0.34858929, -25.88228735],
+       [  0.78560891,  -0.49725556,   0.3681787 ,   0.43013393],
+       [  0.        ,   0.        ,   0.        ,   1.        ]])
+
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.03017257],
+                [  0.61244989,   0.70950026,  -0.34858929, -25.88228735],
+                [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                [  0.,           0.,           0.,           1.        ]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.20626356,  -0.53811086,  -0.81724663,  -3.90666137],
+#                                             [  0.68166679,   0.67821075,  -0.27451878, -25.23321459],
+#                                             [  0.70198699,  -0.50046667,   0.50670246, 149.19832153],
+#                                             [  0.        ,   0.        ,   0.        ,   1.        ]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08654067,  -0.59102747,  -0.80199579,  -0.46290758],
+#        [  0.55757269,   0.69586182,  -0.45264669, -26.76752479],
+#        [  0.82560487,  -0.4079986 ,   0.38976112,  80.711312  ],
+#        [  0.        ,   0.        ,   0.        ,   1.        ]])
+
 # OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0873051 ,  -0.49934886,  -0.86199103,  -2.28334928],
 #                                 [  0.61224162,   0.70948238,  -0.34899134, -25.39711749],
 #                                 [  0.78583587,  -0.49727806,   0.36766359,   0.10044576],
@@ -359,7 +379,7 @@ def test_pnp_with_ossicles_standard_len(RT):
                 [  0.,           0.,           0.,           1.        ]] ))
     ]
 )
-def test_pnp_with_ossicles_telescope(RT):
+def test_pnp_with_ossicles_surgical_microscope(RT):
     
     app = vis.App(register=True, 
                   width=1920, 
@@ -411,7 +431,7 @@ def test_pnp_with_ossicles_telescope(RT):
             
     assert np.isclose(predicted_pose, RT, atol=1).all()
 
-# medical telescope camera with focal length 50000  
+# surgical microscope camera with focal length 50000  
 @pytest.mark.parametrize(
     "RT",
     [
@@ -454,12 +474,32 @@ def test_pnp_with_ossicles_telescope(RT):
         (np.array([[ -0.87676637,   0.46705484,   0.11463208,   8.80054401],
                 [  0.41045146,   0.60251436,   0.68447502,  -3.08471196],
                 [  0.25061989,   0.64717557,  -0.71996767, -32.34913297],
+                [  0.,           0.,           0.,           1.        ]])),
+        (np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.03017257],
+                [  0.61244989,   0.70950026,  -0.34858929, -25.88228735],
+                [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                [  0.,           0.,           0.,           1.        ]])),
+        (np.array([[ -0.16891985,  -0.13379315,  -0.97650678,  -6.21891939],
+                    [  0.93714314,   0.28511639,  -0.20117495, -20.00981953],
+                    [  0.30533393,  -0.94910908,   0.0772215,   11.38949457],
+                    [  0.,           0.,           0.,           1.        ]])),
+        (np.array([[  0.29220856,   0.88228889,   0.36902639,  -7.69347165],
+                [  0.75469319,   0.02427374,  -0.65562868, -23.58010659],
+                [ -0.58741155,   0.47008203,  -0.65876442, -15.3083587 ],
+                [  0.,           0.,           0.,           1.        ]])),
+        (np.array([[  0.44872664,  -0.71230224,   0.53969429,  22.12477987],
+                    [  0.89187583,   0.31870331,  -0.32091383, -20.74697582],
+                    [  0.05658527,   0.62534288,   0.77829583,  -3.33870472],
+                    [  0.,           0.,           0.,           1.        ]])),
+        (np.array([[  0.15904642,  -0.55171761,   0.81872579,  27.86719635],
+                [  0.8514174,    0.49646224,   0.16915564, -16.26150026],
+                [ -0.49979259,   0.6701738,    0.54870253,   0.20008692],
                 [  0.,           0.,           0.,           1.        ]]))
     ]
 )
-def test_pnp_with_ossicles_masked_telescope(app, RT):
+def test_pnp_with_ossicles_masked_surgical_microscope(app, RT):
     
-    # telescope
+    # surgical microscope intrinsic matrix
     app.set_camera_intrinsics(5e+4, 1920, 1080)
     app.set_camera_extrinsics((9.6, 5.4, -500), (9.6, 5.4, 0), (0,-1,0))
     
@@ -523,7 +563,7 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
             predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
             logger.debug(len(inliers)) # 50703
             
-    assert np.isclose(predicted_pose, RT, atol=1).all()
+    assert np.isclose(predicted_pose, RT, atol=2).all()
     
 # standard camera with focal length 2015
 @pytest.mark.parametrize(
@@ -552,7 +592,7 @@ def test_pnp_with_ossicles_masked_telescope(app, RT):
         (np.array([[ -0.19337066,  -0.12923262,  -0.97257736,  -5.38403053],
                 [  0.33208419,   0.92415657,  -0.18882458, -22.44501157],
                 [  0.92321605,  -0.3594907,   -0.13578866, -12.93687721],
-                [  0.,           0.,           0.,           1.        ]])),
+                [  0.,           0.,           0.,           1.        ]]))
     ]
 )
 def test_pnp_with_ossicles_masked_standard_len(RT):
