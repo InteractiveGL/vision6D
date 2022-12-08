@@ -476,3 +476,11 @@ def event_change_color(self, *args):
     
 # view_matrix = pv.array_from_vtkmatrix(app.camera.GetViewTransformMatrix())
 # view_matrix_r = np.array(view_matrix[:3,:3]) * [-1, 1, -1]
+
+
+# # use standard camera with view angle 30 degree
+# cam_focal_length:int=2015,
+# cam_position: Tuple=(9.6, 5.4, -20), 
+# # use standard camera with view angle 45 degree
+# cam_focal_length:int=1303,
+# cam_position: Tuple=(9.6, 5.4, -13), 

@@ -24,12 +24,6 @@ class App:
             register,
             width:int=1920,
             height:int=1080,
-            # # use standard camera with view angle 30 degree
-            # cam_focal_length:int=2015,
-            # cam_position: Tuple=(9.6, 5.4, -20), 
-            # # use standard camera with view angle 45 degree
-            # cam_focal_length:int=1303,
-            # cam_position: Tuple=(9.6, 5.4, -13), 
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_position: Tuple=(9.6, 5.4, -500), 
