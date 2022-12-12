@@ -193,7 +193,7 @@ def test_pnp_with_cube(app):
     plt.subplot(222)
     plt.imshow(render_black_bg)
     plt.subplot(223)
-    plt.imshow(mask_render*255)
+    plt.imshow(mask_render)
     plt.show()
     
     pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render, render_black_bg, app, 'cube')
@@ -256,7 +256,7 @@ def test_pnp_with_sphere(app):
     plt.subplot(222)
     plt.imshow(render_black_bg)
     plt.subplot(223)
-    plt.imshow(mask_render*255)
+    plt.imshow(mask_render)
     plt.show()
     
     # Create 2D-3D correspondences
@@ -330,7 +330,7 @@ def test_pnp_with_ossicles_standard_len(RT):
     plt.subplot(222)
     plt.imshow(render_black_bg)
     plt.subplot(223)
-    plt.imshow(mask_render*255)
+    plt.imshow(mask_render)
     plt.show()
     
     # Create 2D-3D correspondences
@@ -419,7 +419,7 @@ def test_pnp_with_ossicles_surgical_microscope(RT):
     plt.subplot(222)
     plt.imshow(render_black_bg)
     plt.subplot(223)
-    plt.imshow(mask_render*255)
+    plt.imshow(mask_render)
     plt.show()
     
     # Create 2D-3D correspondences
@@ -555,12 +555,12 @@ def test_pnp_with_ossicles_masked_surgical_microscope(app, RT):
     # mask = (np.array(Image.open(MASK_PATH)) / 255) # mask = (np.array(Image.open(MASK_PATH)) / 255).astype('uint8') # read image path: DATA_DIR / "mask.png"
     mask = np.load(MASK_PATH_NUMPY) / 255 # read image path: DATA_DIR / "ossicles_mask.png"
    
+    # expand the dimension
+    ossicles_mask = np.expand_dims(mask, axis=-1)
+   
     # Dilate mask
     # mask = cv2.dilate(mask, np.ones((5,5),np.uint8), iterations = 100)
-    
-    # convert 1 channel to 3 channels for calculation
-    ossicles_mask = np.stack((mask, mask, mask), axis=-1)
-    
+        
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR})
     app.plot()
@@ -568,6 +568,7 @@ def test_pnp_with_ossicles_masked_surgical_microscope(app, RT):
     # Create rendering
     render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
+    vis.utils.save_image(render_black_bg, DATA_DIR, "rendered_mask_whole.png")
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
     render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)  # render_masked_white_bg = render_white_bg * ossicles_mask
@@ -580,7 +581,7 @@ def test_pnp_with_ossicles_masked_surgical_microscope(app, RT):
     plt.subplot(222)
     plt.imshow(ossicles_mask)
     plt.subplot(223)
-    plt.imshow(mask_render_masked*255)
+    plt.imshow(mask_render_masked)
     plt.subplot(224)
     plt.imshow(render_masked_black_bg)
     plt.show()
@@ -658,8 +659,7 @@ def test_pnp_with_ossicles_masked_standard_len(RT):
     # mask = (np.array(Image.open(MASK_PATH)) / 255) # mask = (np.array(Image.open(MASK_PATH)) / 255).astype('uint8') # read image path: DATA_DIR / "mask.png"
     mask = np.load(MASK_PATH_NUMPY) / 255 # read image path: DATA_DIR / "ossicles_mask.png"
    
-    # convert 1 channel to 3 channels for calculation
-    ossicles_mask = np.stack((mask, mask, mask), axis=-1)
+    ossicles_mask = np.expand_dims(mask, axis=-1)
     
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR})
@@ -677,7 +677,7 @@ def test_pnp_with_ossicles_masked_standard_len(RT):
     plt.subplot(222)
     plt.imshow(ossicles_mask)
     plt.subplot(223)
-    plt.imshow(mask_render_masked*255)
+    plt.imshow(mask_render_masked)
     plt.subplot(224)
     plt.imshow(render_masked_black_bg)
     plt.show()
@@ -729,8 +729,7 @@ def test_pnp_with_45_view_angle(RT):
     # the obtained mask is a 1 channel image
     mask = np.load(MASK_PATH_NUMPY) / 255 # read image path: DATA_DIR / "ossicles_mask.png"
    
-    # convert 1 channel to 3 channels for calculation
-    ossicles_mask = np.stack((mask, mask, mask), axis=-1)
+    ossicles_mask = np.expand_dims(mask, axis=-1)
     
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR})
@@ -748,7 +747,7 @@ def test_pnp_with_45_view_angle(RT):
     plt.subplot(222)
     plt.imshow(ossicles_mask)
     plt.subplot(223)
-    plt.imshow(mask_render_masked*255)
+    plt.imshow(mask_render_masked)
     plt.subplot(224)
     plt.imshow(render_masked_black_bg)
     plt.show()

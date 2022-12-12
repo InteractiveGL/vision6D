@@ -173,13 +173,12 @@ def compare_two_images():
     print("hhh")
     
 def color2binary_mask(color_mask):
+    # binary_mask = copy.deepcopy(color_mask)
+    binary_mask = np.zeros(color_mask[...,:1].shape)
     
-    binary_mask = copy.deepcopy(color_mask)
-    
-    black_pixels_mask = np.all(binary_mask == [0, 0, 0], axis=-1)
-
-    non_black_pixels_mask = np.any(binary_mask != [0, 0, 0], axis=-1)  
-    # or non_black_pixels_mask = ~black_pixels_mask
+    black_pixels_mask = np.all(color_mask == [0, 0, 0], axis=-1)
+    non_black_pixels_mask = ~black_pixels_mask
+    # non_black_pixels_mask = np.any(color_mask != [0, 0, 0], axis=-1)  
 
     binary_mask[black_pixels_mask] = [0]
     binary_mask[non_black_pixels_mask] = [1]
