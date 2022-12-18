@@ -234,7 +234,9 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, obj:Type, object_name
     idx = np.where(mask == 1)
     
     # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
-    pts = np.array([(x,y) for x,y in zip(idx[1], idx[0])])
+    # pts = np.array([(x,y) for x,y in zip(idx[1], idx[0])])
+    x, y = idx[1], idx[0]
+    pts = np.stack((x, y), axis=1)
     
     if npts == -1:
         rand_pts = pts
