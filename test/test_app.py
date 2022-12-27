@@ -622,7 +622,7 @@ def test_pnp_with_ossicles_masked_surgical_microscope(app, RT):
             predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
             logger.debug(len(inliers)) # 50703
             
-    logger.debug(f"\ndifference from predicted pose and RT pose: {np.abs(np.sum(predicted_pose - RT))}")
+    logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
             
     assert np.isclose(predicted_pose, RT, atol=2).all()
     
