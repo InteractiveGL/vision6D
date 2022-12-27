@@ -250,20 +250,18 @@ class App:
         
     def event_gt_position(self, *args):
         
-        for _, actor in self.mesh_actors.items():
+        for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = self.transformation_matrix
-        
-        self.event_change_color()
+            self.pv_plotter.add_actor(actor, name=actor_name)
 
         logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_gt_position callback complete")
         
     def event_change_gt_position(self, *args):
         self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        for _, actor in self.mesh_actors.items():
+        for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = self.transformation_matrix
-            
-        self.event_change_color()
+            self.pv_plotter.add_actor(actor, name=actor_name)
         
         logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_change_gt_position callback complete")
