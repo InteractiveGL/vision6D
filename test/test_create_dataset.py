@@ -11,6 +11,7 @@ import numpy as np
 import cv2
 from scipy.spatial.transform import Rotation as R
 from pytest_lazyfixture  import lazy_fixture
+import skimage.transform
 
 import vision6D as vis
 
@@ -42,7 +43,63 @@ CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.73198707],
                                             [  0.61244989,   0.70950026,  -0.34858929, -25.0914638 ],
                                             [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-                                            [  0.,           0.,           0.,           1.        ]])
+                                            [  0.,           0.,           0.,           1.        ]]) #  GT pose
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[     0.7565,     -0.5291,      0.3845,     16.1959],
+#          [     0.5796,      0.8147,     -0.0193,    -18.4053],
+#          [    -0.3031,      0.2375,      0.9229,   -438.4466],
+#          [     0.0000,      0.0000,      0.0000,      1.0000]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[     0.0929,     -0.5055,     -0.8578,     -0.9356],
+#                                     [     0.6765,      0.6642,     -0.3181,    -24.1057],
+#                                     [     0.7306,     -0.5507,      0.4037,   -457.9619],
+#                                     [     0.0000,      0.0000,      0.0000,      1.0000]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0900,  -0.4999,  -0.8614,  -1.6455],
+#                                     [  0.6185,   0.7060,  -0.3451, -24.9873],
+#                                     [  0.7806,  -0.5017,   0.3728,  -7.1757],
+#                                     [  0.0000,   0.0000,   0.0000,   1.0000]]) #  predicted from pytorch3d
+
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.37177922,   0.8300953,   -0.41559835, -24.30279375],
+#                                             [  0.51533184,  -0.5569185,   -0.65136388,  -4.5669351],
+#                                             [ -0.7721485,    0.0279925,   -0.63482527,  -3.57181275],
+#                                             [  0.,           0.,           0.,           1.,        ]]) #  GT pose
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[     0.3468,      0.8284,     -0.4399,    -24.6587],
+#                                         [     0.4898,     -0.5599,     -0.6682,     -4.6086],
+#                                         [    -0.7998,      0.0163,     -0.6000,     26.7000],
+#                                         [     0.0000,      0.0000,      0.0000,      1.0000]]) #  predicted from pytorch3d
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -2.28768117],
+#                                         [  0.61244989,   0.70950026,  -0.34858929, -25.39078897],
+#                                         [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+#                                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0869,  -0.5010,  -0.8611,  -2.0267],
+#                                         [  0.6084,   0.7111,  -0.3524, -25.3319],
+#                                         [  0.7888,  -0.4933,   0.3667, -16.5832],
+#                                         [  0.0000,   0.0000,   0.0000,   1.0000]]) # predicted from pytorch3d
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08725841,  -0.49920268,  -0.86208042,  -1.773618  ],
+#                                 [  0.61232186,   0.7094788 ,  -0.34885781, -25.13447245],
+#                                 [  0.78577854,  -0.49742991,   0.3675807 ,   2.70771307],
+#                                 [  0.        ,   0.        ,   0.        ,   1.        ]]) # GT pose
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0926,  -0.5013,  -0.8603,  -1.6665],
+#                             [  0.6176,   0.7067,  -0.3453, -25.0299],
+#                             [  0.7811,  -0.4993,   0.3750,  -5.6169],
+#                             [  0.0000,   0.0000,   0.0000,   1.0000]]) # predicted pose
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08771557,  -0.49943043,  -0.8619021 ,  -1.75110001],
+#                                 [  0.61228039,   0.70952996,  -0.34882654, -25.11469416],
+#                                 [  0.78575995,  -0.49712824,   0.36802828,   1.49357594],
+#                                 [  0.        ,   0.        ,   0.        ,   1.        ]]) # GT pose
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0905,  -0.5002,  -0.8611,  -1.6447],
+#                                     [  0.6181,   0.7062,  -0.3453, -25.0012],
+#                                     [  0.7809,  -0.5010,   0.3731,  -7.7220],
+#                                     [  0.0000,   0.0000,   0.0000,   1.0000]]) # predicted pose
 
 # full size of the (1920, 1080)
 @pytest.fixture
@@ -90,10 +147,19 @@ def test_load_mesh(app):
     app.set_reference("ossicles")
     app.plot()
     
-def test_generate_image_quarter_size(app_quarter):
-    app = app_quarter
+@pytest.mark.parametrize(
+    "app",
+    [lazy_fixture("app_full"), lazy_fixture("app_quarter"), lazy_fixture("app_smallest")]
+)  
+def test_generate_image(app):
+    if app.camera.position == (9.6, 5.4, -500):
+        name = "full"
+    elif app.camera.position == (9.6, 5.4, -2000):
+        name = "quarter"
+    elif app.camera.position == (9.6, 5.4, -4000):
+        name = "smallest"
     image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], True)
-    vis.utils.save_image(image_np, DATA_DIR, "image_quarter.png")
+    vis.utils.save_image(image_np, DATA_DIR, f"image_{name}.png")
     print(image_np)
 
 @pytest.mark.parametrize(
@@ -314,18 +380,50 @@ def test_pnp_with_masked_ossicles_surgical_microscope_smallest_size(app_smallest
                     [  0.61244989,   0.70950026,  -0.34858929, -25.0914638 ],
                     [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
                     [  0.,           0.,           0.,           1.        ]])),
+        # (lazy_fixture("app_full"), np.array([[  0.37177922,   0.8300953,   -0.41559835, -24.30279375],
+        #             [  0.51533184,  -0.5569185,   -0.65136388,  -4.5669351],
+        #             [ -0.7721485,    0.0279925,   -0.63482527,  -3.57181275],
+        #             [  0.,           0.,           0.,           1.,        ]])),
+        # (lazy_fixture("app_full"),  np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -2.28768117],
+        #             [  0.61244989,   0.70950026,  -0.34858929, -25.39078897],
+        #             [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+        #             [  0.,           0.,           0.,           1.        ]])),
+        # (lazy_fixture("app_full"),   np.array([[  0.08725841,  -0.49920268,  -0.86208042,  -1.773618  ],
+        #                         [  0.61232186,   0.7094788 ,  -0.34885781, -25.13447245],
+        #                         [  0.78577854,  -0.49742991,   0.3675807 ,   2.70771307],
+        #                         [  0.        ,   0.        ,   0.        ,   1.        ]]))
+        # (lazy_fixture("app_full"),   np.array([[  0.08771557,  -0.49943043,  -0.8619021 ,  -1.75110001],
+        #                         [  0.61228039,   0.70952996,  -0.34882654, -25.11469416],
+        #                         [  0.78575995,  -0.49712824,   0.36802828,   1.49357594],
+        #                         [  0.        ,   0.        ,   0.        ,   1.        ]]))
     ]
 )
-def test_pnp_with_masked_ossicles_surgical_microscope_quarter_size(app, RT):
+def test_pnp_with_masked_ossicles_surgical_microscope(app, RT):
+    
+    mask_full = np.load(MASK_PATH_NUMPY_FULL)
     
     if app.camera.position == (9.6, 5.4, -500):
-        mask = np.load(MASK_PATH_NUMPY_FULL) / 255
+    #    mask = np.load(MASK_PATH_NUMPY_FULL) / 255
+        name = "full"
+        mask = mask_full / 255
+        mask = np.where(mask != 0, 1, 0)
     elif app.camera.position == (9.6, 5.4, -2000):
-        mask = np.load(MASK_PATH_NUMPY_QUARTER) / 255
+    #     mask = np.load(MASK_PATH_NUMPY_QUARTER) / 255
+        name = "quarter"
+        mask = skimage.transform.rescale(mask_full, 1/4)
+        mask = np.where(mask > 0.1, 1, 0)
     elif app.camera.position == (9.6, 5.4, -4000):
-        mask = np.load(MASK_PATH_NUMPY_SMALLEST) / 255
-   
-    mask = np.where(mask != 0, 1, 0)
+    #     mask = np.load(MASK_PATH_NUMPY_SMALLEST) / 255
+        name = "smallest"
+        mask = skimage.transform.rescale(mask_full, 1/8)
+        # mask = np.where(mask > 0.1, 1, 0)
+        mask = np.where(mask > 0.1, 1, 0)
+        
+    plt.subplot(211)
+    plt.imshow(mask_full)
+    plt.subplot(212)
+    plt.imshow(mask)
+    plt.show()
    
     # expand the dimension
     ossicles_mask = np.expand_dims(mask, axis=-1)
@@ -341,12 +439,13 @@ def test_pnp_with_masked_ossicles_surgical_microscope_quarter_size(app, RT):
     render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     # save the rendered whole image
-    vis.utils.save_image(render_black_bg, DATA_DIR, "rendered_mask_whole_quarter.png")
+    vis.utils.save_image(render_black_bg, DATA_DIR, f"rendered_mask_whole_{name}.png")
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
     render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)  # render_masked_white_bg = render_white_bg * ossicles_mask
     # save the rendered partial image
-    vis.utils.save_image(render_masked_black_bg, DATA_DIR, "rendered_mask_partial_quarter.png")
+    vis.utils.save_image(render_masked_black_bg, DATA_DIR, f"rendered_mask_partial_{name}.png")
+    assert (mask_render_masked == vis.utils.color2binary_mask(render_masked_black_bg)).all()
     
     plt.subplot(221)
     plt.imshow(render_black_bg)
@@ -387,4 +486,4 @@ def test_pnp_with_masked_ossicles_surgical_microscope_quarter_size(app, RT):
             
     logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
             
-    assert np.isclose(predicted_pose, RT, atol=20).all()
+    assert np.isclose(predicted_pose, RT, atol=4).all()
