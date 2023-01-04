@@ -180,8 +180,8 @@ class App:
             # Save actor for later
             self.mesh_actors[mesh_name] = actor
             
-            logger.debug(f"\n{mesh_name} orientation: {self.mesh_actors[mesh_name].orientation}")
-            logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
+            # logger.debug(f"\n{mesh_name} orientation: {self.mesh_actors[mesh_name].orientation}")
+            # logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
             
         if len(self.mesh_actors) == 1:
             self.set_reference(reference_name)
@@ -316,7 +316,7 @@ class App:
             last_image = self.pv_plotter.last_image
             return last_image
     
-        logger.debug(f"\ncpos: {cpos}")
+        # logger.debug(f"\ncpos: {cpos}")
         
     def render_scene(self, scene_path:pathlib.Path, scale_factor:Tuple[float], render_image:bool, render_objects:List=[]):
         
