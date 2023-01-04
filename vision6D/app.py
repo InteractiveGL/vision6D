@@ -22,16 +22,19 @@ class App:
     def __init__(
             self, 
             register,
-            width:int=1920,
-            height:int=1080,
+            scale: int=1,
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
-            cam_position: Tuple=(9.6, 5.4, -500), 
-            cam_focal_point: Tuple=(9.6, 5.4, 0),
             cam_viewup: Tuple=(0,-1,0),
         ):
         
         self.register = register
+        self.scale = scale
+        
+        width = int(self.scale * 1920)
+        height = int(self.scale * 1080)
+    
+        self.window_size = (width, height)
         self.reference = None
         self.transformation_matrix = None
         
@@ -47,9 +50,10 @@ class App:
         self.surface_opacity = 1
         
         self.camera = pv.Camera()
+        self.cam_focal_length = cam_focal_length
         
-        self.set_camera_intrinsics(cam_focal_length, width, height)
-        self.set_camera_extrinsics(cam_position, cam_focal_point, cam_viewup)
+        self.set_camera_intrinsics(width, height)
+        self.set_camera_extrinsics(cam_viewup)
 
         if self.register:
             self.pv_plotter = pv.Plotter(window_size=[width, height])
@@ -65,17 +69,20 @@ class App:
         self.pv_render_image = pv.Plotter(window_size=[width, height], lighting=None, off_screen=True)
         self.pv_render_image.store_image = True
     
-    def set_camera_extrinsics(self, position: Tuple, focal_point: Tuple, viewup: Tuple):
-        self.camera.SetPosition(position)
-        self.camera.SetFocalPoint(focal_point)
+    def set_camera_extrinsics(self, viewup: Tuple):
+        # self.camera.SetPosition((0,0,0))
+        # self.camera.SetFocalPoint((0,0,(self.cam_focal_length/100)/self.scale))
+        
+        self.camera.SetPosition((0,0,-(self.cam_focal_length/100)/self.scale))
+        self.camera.SetFocalPoint((0,0,0))
         self.camera.SetViewUp(viewup)
     
-    def set_camera_intrinsics(self, focal_length:int, width:int, height:int):
+    def set_camera_intrinsics(self, width:int, height:int):
         
         # Set camera intrinsic attribute
         self.camera_intrinsics = np.array([
-            [focal_length, 0, width/2],
-            [0, focal_length, height/2],
+            [self.cam_focal_length, 0, width/2],
+            [0, self.cam_focal_length, height/2],
             [0, 0, 1]
         ])
         
@@ -122,6 +129,8 @@ class App:
         
         self.image_polydata['image'] = pv.read(image_path)
         self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
+        self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=True)
+        
         self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
 
         # Then add it to the plotter

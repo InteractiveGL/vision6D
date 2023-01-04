@@ -17,13 +17,13 @@ LOGGING_CONFIG = {
             "stream": "ext://sys.stdout",  # Default is stderr
         }
     },
-    "loggers": {
-        "": {  # root logger
-            "handlers": ["console"],
-            "level": "DEBUG",
-            "propagate": True,
-        }
-    },
+    # "loggers": {
+    #     "": {  # root logger
+    #         "handlers": ["console"],
+    #         "level": "DEBUG",
+    #         "propagate": True,
+    #     }
+    # },
 }
 
 # Setup the logging configuration

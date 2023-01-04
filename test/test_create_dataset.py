@@ -40,10 +40,51 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.73198707],
-                                            [  0.61244989,   0.70950026,  -0.34858929, -25.0914638 ],
-                                            [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-                                            [  0.,           0.,           0.,           1.        ]]) #  GT pose
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
+#                                             [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
+#                                             [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+#                                             [  0.,           0.,           0.,           1.        ]]) #  GT pose
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0955,  -0.5021,  -0.8595, -11.2299],
+#                                         [  0.6166,   0.7077,  -0.3449, -30.2564],
+#                                         [  0.7815,  -0.4970,   0.3772, -15.5285],
+#                                         [  0.0000,   0.0000,   0.0000,   1.0000]])
+
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[     0.0483,     -0.4848,     -0.8733,     -9.4425],
+         [     0.5884,      0.7203,     -0.3673,    -29.5993],
+         [     0.8071,     -0.4961,      0.3201,   2674.1137],
+         [     0.0000,      0.0000,      0.0000,      1.0000]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  1,  0,  0,  0],
+#                                             [  0,  1,  0, 0],
+#                                             [  0,  0,  1,  500],
+#                                             [  0., 0.,  0., 1. ]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385, -11.49899185],
+#                                         [  0.61244989,   0.70950026,  -0.34858929, -30.56813355],
+#                                         [  0.78560891,  -0.49725556,   0.3681787,  500.        ],
+#                                         [  0.,           0.,           0.,           1.        ]])
+
+# OSSICLES_TRANSFORMATION_MATRIX =np.array([[     0.1799,     -0.5369,     -0.8242,     -8.8171],
+#          [     0.7707,      0.5977,     -0.2211,    -26.8200],
+#          [     0.6113,     -0.5954,      0.5213,   2415.0381],
+#          [     0.0000,      0.0000,      0.0000,      1.0000]])
+
+# OSSICLES_TRANSFORMATION_MATRIX =np.array([[     0.1079,     -0.5122,     -0.8520,    -11.1576],
+#          [     0.6046,      0.7141,     -0.3528,    -30.5566],
+#          [     0.7892,     -0.4771,      0.3867,    486.7139],
+#          [     0.0000,      0.0000,      0.0000,      1.0000]])
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  -0.01697852,   -0.38156652,   -0.92418544,  -13.29829586],
+#                                         [   0.58539971,    0.74553668,   -0.31856276,  -30.33314405],
+#                                         [   0.81056703,   -0.54642662,    0.21071082, 4000.71245848],
+#                                         [   0.,            0.,            0.,            1.        ]])
+
+
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  -0.03696289,   -0.45066371,   -0.89192823,  -10.77123474],
+#                                         [   0.61518516,    0.69310679,   -0.37569962,  -30.43366921],
+#                                         [   0.78751569,   -0.56258795,    0.25162239, 1985.80919978],
+#                                         [   0.,            0.,            0.,            1.        ]])
 
 # OSSICLES_TRANSFORMATION_MATRIX = np.array([[     0.7565,     -0.5291,      0.3845,     16.1959],
 #          [     0.5796,      0.8147,     -0.0193,    -18.4053],
@@ -104,34 +145,19 @@ OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.8619
 # full size of the (1920, 1080)
 @pytest.fixture
 def app_full():
-    return vis.App(register=True, 
-                  width=1920, 
-                  height=1080, 
-                  cam_focal_length=5e+4, 
-                  cam_position=(9.6, 5.4, -500), 
-                  cam_focal_point=(9.6, 5.4, 0),
-                  cam_viewup=(0,-1,0))
+    return vis.App(register=True,
+                   scale=1)
     
 # 1/4 size of the (1920, 1080)
 @pytest.fixture
 def app_quarter():
-    return vis.App(register=True, 
-                  width=480, 
-                  height=270, 
-                  cam_focal_length=5e+4, 
-                  cam_position=(9.6, 5.4, -2000), 
-                  cam_focal_point=(9.6, 5.4, 0),
-                  cam_viewup=(0,-1,0))
+    return vis.App(register=True,
+                   scale=1/4)
     
 @pytest.fixture
 def app_smallest():
-    return vis.App(register=True, 
-                  width=240, 
-                  height=135, 
-                  cam_focal_length=5e+4, 
-                  cam_position=(9.6, 5.4, -4000), 
-                  cam_focal_point=(9.6, 5.4, 0),
-                  cam_viewup=(0,-1,0))
+    return vis.App(register=True,
+                   scale=1/8)
     
 @pytest.mark.parametrize(
     "app",
@@ -152,11 +178,11 @@ def test_load_mesh(app):
     [lazy_fixture("app_full"), lazy_fixture("app_quarter"), lazy_fixture("app_smallest")]
 )  
 def test_generate_image(app):
-    if app.camera.position == (9.6, 5.4, -500):
+    if app.window_size == (1920, 1080):
         name = "full"
-    elif app.camera.position == (9.6, 5.4, -2000):
+    elif app.window_size == (480, 270):
         name = "quarter"
-    elif app.camera.position == (9.6, 5.4, -4000):
+    elif app.window_size == (240, 135):
         name = "smallest"
     image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], True)
     vis.utils.save_image(image_np, DATA_DIR, f"image_{name}.png")
@@ -368,18 +394,18 @@ def test_pnp_with_masked_ossicles_surgical_microscope_smallest_size(app_smallest
 @pytest.mark.parametrize(
     "app, RT",
     [
-        (lazy_fixture("app_full"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.73198707],
-                    [  0.61244989,   0.70950026,  -0.34858929, -25.0914638 ],
-                    [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-                    [  0.,           0.,           0.,           1.        ]])),
-        (lazy_fixture("app_quarter"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.73198707],
-                    [  0.61244989,   0.70950026,  -0.34858929, -25.0914638 ],
-                    [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-                    [  0.,           0.,           0.,           1.        ]])),
-        (lazy_fixture("app_smallest"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.73198707],
-                    [  0.61244989,   0.70950026,  -0.34858929, -25.0914638 ],
-                    [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-                    [  0.,           0.,           0.,           1.        ]])),
+        (lazy_fixture("app_full"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
+                                            [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                                            [  0.,           0.,           0.,           1.        ]])),
+        (lazy_fixture("app_quarter"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
+                                            [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                                            [  0.,           0.,           0.,           1.        ]])),
+        (lazy_fixture("app_smallest"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
+                                            [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                                            [  0.,           0.,           0.,           1.        ]])),
         # (lazy_fixture("app_full"), np.array([[  0.37177922,   0.8300953,   -0.41559835, -24.30279375],
         #             [  0.51533184,  -0.5569185,   -0.65136388,  -4.5669351],
         #             [ -0.7721485,    0.0279925,   -0.63482527,  -3.57181275],
@@ -402,21 +428,19 @@ def test_pnp_with_masked_ossicles_surgical_microscope(app, RT):
     
     mask_full = np.load(MASK_PATH_NUMPY_FULL)
     
-    if app.camera.position == (9.6, 5.4, -500):
-    #    mask = np.load(MASK_PATH_NUMPY_FULL) / 255
+    #  mask = np.load(MASK_PATH_NUMPY_FULL || MASK_PATH_NUMPY_QUARTER || MASK_PATH_NUMPY_SMALLEST) / 255
+    
+    if app.window_size == (1920, 1080):
         name = "full"
         mask = mask_full / 255
         mask = np.where(mask != 0, 1, 0)
-    elif app.camera.position == (9.6, 5.4, -2000):
-    #     mask = np.load(MASK_PATH_NUMPY_QUARTER) / 255
+    elif app.window_size == (480, 270):
         name = "quarter"
         mask = skimage.transform.rescale(mask_full, 1/4)
         mask = np.where(mask > 0.1, 1, 0)
-    elif app.camera.position == (9.6, 5.4, -4000):
-    #     mask = np.load(MASK_PATH_NUMPY_SMALLEST) / 255
+    elif app.window_size == (240, 135):
         name = "smallest"
         mask = skimage.transform.rescale(mask_full, 1/8)
-        # mask = np.where(mask > 0.1, 1, 0)
         mask = np.where(mask > 0.1, 1, 0)
         
     plt.subplot(211)
@@ -424,6 +448,9 @@ def test_pnp_with_masked_ossicles_surgical_microscope(app, RT):
     plt.subplot(212)
     plt.imshow(mask)
     plt.show()
+    
+    # Use whole mask with epnp
+    # mask = np.ones((1080, 1920))
    
     # expand the dimension
     ossicles_mask = np.expand_dims(mask, axis=-1)
@@ -458,7 +485,6 @@ def test_pnp_with_masked_ossicles_surgical_microscope(app, RT):
     plt.show()
     
     # Create 2D-3D correspondences
-    # pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_masked_black_bg, app, 'ossicles', npts=30)
     pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_masked_black_bg, app, 'ossicles')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
