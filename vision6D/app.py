@@ -22,19 +22,18 @@ class App:
     def __init__(
             self, 
             register,
-            scale: int=1,
+            width: int=1920,
+            height: int=1080,
+            scale: float=1,
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_viewup: Tuple=(0,-1,0),
         ):
         
         self.register = register
-        self.scale = scale
         
-        width = int(self.scale * 1920)
-        height = int(self.scale * 1080)
-    
-        self.window_size = (width, height)
+        self.window_size = (int(width*scale), int(height*scale))
+        self.scale = scale
         self.reference = None
         self.transformation_matrix = None
         
@@ -49,35 +48,35 @@ class App:
         self.image_opacity = 0.35
         self.surface_opacity = 1
         
+        # Set up the camera
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
-        
-        self.set_camera_intrinsics(width, height)
-        self.set_camera_extrinsics(cam_viewup)
+        self.cam_viewup = cam_viewup
+        self.set_camera_intrinsics()
+        self.set_camera_extrinsics()
 
+        # plot image and ossicles
         if self.register:
-            self.pv_plotter = pv.Plotter(window_size=[width, height])
+            self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]])
         else:
-            self.pv_plotter = pv.Plotter(window_size=[width, height], off_screen=True)
+            self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=True)
             self.pv_plotter.store_image = True
         
-        # render ossicles
-        self.pv_render = pv.Plotter(window_size=[width, height], lighting=None, off_screen=True)
+        # render image and ossicles
+        self.pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
         self.pv_render.store_image = True
-        
-        # render RGB image
-        self.pv_render_image = pv.Plotter(window_size=[width, height], lighting=None, off_screen=True)
-        self.pv_render_image.store_image = True
     
-    def set_camera_extrinsics(self, viewup: Tuple):
+    def set_camera_extrinsics(self):
         # self.camera.SetPosition((0,0,0))
         # self.camera.SetFocalPoint((0,0,(self.cam_focal_length/100)/self.scale))
-        
         self.camera.SetPosition((0,0,-(self.cam_focal_length/100)/self.scale))
         self.camera.SetFocalPoint((0,0,0))
-        self.camera.SetViewUp(viewup)
+        self.camera.SetViewUp(self.cam_viewup)
     
-    def set_camera_intrinsics(self, width:int, height:int):
+    def set_camera_intrinsics(self):
+
+        width = self.window_size[0]
+        height = self.window_size[1]
         
         # Set camera intrinsic attribute
         self.camera_intrinsics = np.array([
@@ -101,10 +100,7 @@ class App:
         
     def set_transformation_matrix(self, matrix:np.ndarray):
         self.transformation_matrix = matrix
-        
-        # # Set up the transformation for the scene object (not preferable, better to use user_matrix)
-        # self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(matrix))
-        
+    
     def set_reference(self, name:str):
         self.reference = name
         
@@ -129,7 +125,7 @@ class App:
         
         self.image_polydata['image'] = pv.read(image_path)
         self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
-        self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=True)
+        self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
         
         self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
 
@@ -327,6 +323,7 @@ class App:
         self.pv_render.enable_joystick_actor_style()
         background = pv.read(scene_path) #"test/data/black_background.jpg"
         background = background.scale(scale_factor, inplace=False)
+        background = background.translate(-1 * np.array(background.center), inplace=False)
         
         if render_image:
            self.pv_render.add_mesh(background, rgb=True, opacity=1, name="image")

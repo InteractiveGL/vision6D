@@ -40,20 +40,15 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
-#                                             [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
-#                                             [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-#                                             [  0.,           0.,           0.,           1.        ]]) #  GT pose
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.33198707],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.4914638],
+                                            [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                                            [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0955,  -0.5021,  -0.8595, -11.2299],
-#                                         [  0.6166,   0.7077,  -0.3449, -30.2564],
-#                                         [  0.7815,  -0.4970,   0.3772, -15.5285],
-#                                         [  0.0000,   0.0000,   0.0000,   1.0000]])
-
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[     0.0483,     -0.4848,     -0.8733,     -9.4425],
-         [     0.5884,      0.7203,     -0.3673,    -29.5993],
-         [     0.8071,     -0.4961,      0.3201,   2674.1137],
-         [     0.0000,      0.0000,      0.0000,      1.0000]])
+# OSSICLES_TRANSFORMATION_MATRIX = np.array([[     0.0483,     -0.4848,     -0.8733,     -9.4425],
+#          [     0.5884,      0.7203,     -0.3673,    -29.5993],
+#          [     0.8071,     -0.4961,      0.3201,   2674.1137],
+#          [     0.0000,      0.0000,      0.0000,      1.0000]])
 
 # OSSICLES_TRANSFORMATION_MATRIX = np.array([[  1,  0,  0,  0],
 #                                             [  0,  1,  0, 0],
@@ -185,6 +180,7 @@ def test_generate_image(app):
     elif app.window_size == (240, 135):
         name = "smallest"
     image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], True)
+    plt.imshow(image_np); plt.show()
     vis.utils.save_image(image_np, DATA_DIR, f"image_{name}.png")
     print(image_np)
 
@@ -394,16 +390,16 @@ def test_pnp_with_masked_ossicles_surgical_microscope_smallest_size(app_smallest
 @pytest.mark.parametrize(
     "app, RT",
     [
-        (lazy_fixture("app_full"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
-                                            [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
+        (lazy_fixture("app_full"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.33198707],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.4914638],
                                             [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
                                             [  0.,           0.,           0.,           1.        ]])),
-        (lazy_fixture("app_quarter"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
-                                            [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
+        (lazy_fixture("app_quarter"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.33198707],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.4914638],
                                             [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
                                             [  0.,           0.,           0.,           1.        ]])),
-        (lazy_fixture("app_smallest"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.42548981],
-                                            [  0.61244989,   0.70950026,  -0.34858929, -30.40459682],
+        (lazy_fixture("app_smallest"), np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.33198707],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.4914638],
                                             [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
                                             [  0.,           0.,           0.,           1.        ]])),
         # (lazy_fixture("app_full"), np.array([[  0.37177922,   0.8300953,   -0.41559835, -24.30279375],
@@ -508,7 +504,7 @@ def test_pnp_with_masked_ossicles_surgical_microscope(app, RT):
         if success:
             predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
             predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
-            logger.debug(len(inliers)) # 50703
+            logger.debug(len(inliers))
             
     logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
             

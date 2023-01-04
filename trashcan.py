@@ -564,3 +564,7 @@ def event_change_color(self, *args):
                 [  0.,           0.,           0.,           1.        ]]))
     ]
 )
+
+# # Set up the transformation for the scene object (not preferable, better to use user_matrix)
+# self.camera.SetModelTransformMatrix(pv.vtkmatrix_from_array(matrix))
+       
