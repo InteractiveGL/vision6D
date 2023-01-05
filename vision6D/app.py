@@ -30,8 +30,6 @@ class App:
             cam_viewup: Tuple=(0,-1,0),
         ):
         
-        self.register = register
-        
         self.window_size = (int(width*scale), int(height*scale))
         self.scale = scale
         self.reference = None
@@ -54,17 +52,23 @@ class App:
         self.cam_viewup = cam_viewup
         self.set_camera_intrinsics()
         self.set_camera_extrinsics()
-
+        
+        # Set the attribute and its implications
+        self.set_register(register)
+        
+        # render image and ossicles
+        self.pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        self.pv_render.store_image = True
+        
+    def set_register(self, register: bool):
         # plot image and ossicles
+        self.register = register
+        
         if self.register:
             self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]])
         else:
             self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=True)
             self.pv_plotter.store_image = True
-        
-        # render image and ossicles
-        self.pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
-        self.pv_render.store_image = True
     
     def set_camera_extrinsics(self):
         # self.camera.SetPosition((0,0,0))
