@@ -43,8 +43,10 @@ class App:
         
         self.binded_meshes = {}
         
-        self.image_opacity = 0.35
-        self.surface_opacity = 1
+        # default opacity for image and surface
+        self.set_image_opacity(0.35) # self.image_opacity = 0.35
+        self.set_surface_opacity(1) # self.surface_opacity = 1
+
         
         # Set up the camera
         self.camera = pv.Camera()
@@ -70,6 +72,12 @@ class App:
             self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=True)
             self.pv_plotter.store_image = True
     
+    def set_image_opacity(self, image_opacity: float):
+        self.image_opacity = image_opacity
+    
+    def set_surface_opacity(self, surface_opacity: float):
+        self.surface_opacity = surface_opacity
+
     def set_camera_extrinsics(self):
         # self.camera.SetPosition((0,0,0))
         # self.camera.SetFocalPoint((0,0,(self.cam_focal_length/100)/self.scale))

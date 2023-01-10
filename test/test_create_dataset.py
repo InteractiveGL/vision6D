@@ -175,6 +175,7 @@ def app_smallest():
 )  
 def test_load_mesh(app):
     app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
+    # app.set_surface_opacity(0.8)
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
     app.bind_meshes("ossicles", "g")

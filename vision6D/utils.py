@@ -247,8 +247,12 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, obj:Type, object_name
     # # noise check
     # rand_pts = np.vstack((rand_pts, [0, 0]))
     
-    # Obtain the 3D verticies
-    rgb = render[rand_pts[:,1], rand_pts[:,0]] / 255
+    # Obtain the 3D verticies (normaize rgb values)
+    rgb = render[rand_pts[:,1], rand_pts[:,0]]
+
+    if np.max(rgb) > 1:
+        rgb = rgb / 255
+
     vertices = getattr(obj, f'{object_name}_vertices')
     r = rgb[:, 0] * (np.max(vertices[0]) - np.min(vertices[0])) + np.min(vertices[0])
     g = rgb[:, 1] * (np.max(vertices[1]) - np.min(vertices[1])) + np.min(vertices[1])
