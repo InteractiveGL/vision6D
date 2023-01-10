@@ -47,7 +47,6 @@ class App:
         self.set_image_opacity(0.35) # self.image_opacity = 0.35
         self.set_surface_opacity(1) # self.surface_opacity = 1
 
-        
         # Set up the camera
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
