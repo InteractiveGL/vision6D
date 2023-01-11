@@ -330,14 +330,12 @@ class App:
             # add the camera orientation to move the camera
             _ = self.pv_plotter.add_camera_orientation_widget()
             # Actual presenting
-            cpos = self.pv_plotter.show(title="vision6D", return_cpos=True)
+            self.pv_plotter.show(title="vision6D") # cpos: [(0.0, 0.0, -500.0), (0.0, 0.0, 0.0), (0.0, -1.0, 0.0)]
         else:
             self.pv_plotter.disable()
-            cpos = self.pv_plotter.show(title="vision6D", return_cpos=True)
+            self.pv_plotter.show(title="vision6D")
             last_image = self.pv_plotter.last_image
             return last_image
-    
-        # logger.debug(f"\ncpos: {cpos}")
         
     def render_scene(self, scene_source, render_image:bool, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[]):
         
