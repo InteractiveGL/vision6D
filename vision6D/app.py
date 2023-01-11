@@ -44,8 +44,8 @@ class App:
         self.binded_meshes = {}
         
         # default opacity for image and surface
-        self.set_image_opacity(0.35) # self.image_opacity = 0.35
-        self.set_surface_opacity(1) # self.surface_opacity = 1
+        self.set_image_opacity(0.999) # self.image_opacity = 0.35
+        self.set_surface_opacity(0.999) # self.surface_opacity = 1
 
         # Set up the camera
         self.camera = pv.Camera()
@@ -206,6 +206,10 @@ class App:
         self.pv_plotter.camera.zoom(0.5)
         logger.debug("event_zoom_out callback complete")
 
+    def event_zoom_in(self, *args):
+        self.pv_plotter.camera.zoom(2)
+        logger.debug("event_zoom_in callback complete")
+
     def event_reset_camera(self, *args):
         self.pv_plotter.camera = self.camera.copy()
         logger.debug("reset_camera_event callback complete")
@@ -297,6 +301,7 @@ class App:
         # Register callbacks
         self.pv_plotter.add_key_event('c', self.event_reset_camera)
         self.pv_plotter.add_key_event('z', self.event_zoom_out)
+        self.pv_plotter.add_key_event('x', self.event_zoom_in)
         self.pv_plotter.add_key_event('d', self.event_reset_image)
         self.pv_plotter.add_key_event('t', self.event_track_registration)
 

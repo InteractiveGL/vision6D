@@ -94,7 +94,6 @@ def test_load_image(app):
 def test_load_mesh(app):
     image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
     app.load_image(image_numpy)
-    app.set_surface_opacity(0.9)
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
     app.bind_meshes("ossicles", "g")
