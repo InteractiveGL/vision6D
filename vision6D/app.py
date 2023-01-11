@@ -132,14 +132,19 @@ class App:
             
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
-    def load_image(self, image_path:pathlib.Path, scale_factor:list=[1,1,1]):
+    def load_image(self, image_source, scale_factor:list=[0.01,0.01,1]):
         
-        self.image_polydata['image'] = pv.read(image_path)
-        self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
-        self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
-        
-        self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
+        if isinstance(image_source, pathlib.Path):
+            self.image_polydata['image'] = pv.get_reader(image_source).read()
+            self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
+            
+        elif isinstance(image_source, np.ndarray):
+            self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
+            self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
 
+        self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
+        self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
+            
         # Then add it to the plotter
         image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=self.image_opacity, name='image')
         actor, _ = self.pv_plotter.add_actor(image, name="image")
@@ -162,7 +167,7 @@ class App:
             if isinstance(mesh_source, pathlib.WindowsPath):
                 # Load the mesh
                 if '.ply' in str(mesh_source):
-                    mesh_data = pv.read(mesh_source)
+                    mesh_data = pv.get_reader(mesh_source).read()
                 elif '.mesh' in str(mesh_source):
                     mesh_data = pv.wrap(utils.load_trimesh(mesh_source))
             elif isinstance(mesh_source, pv.PolyData):
@@ -329,11 +334,18 @@ class App:
     
         # logger.debug(f"\ncpos: {cpos}")
         
-    def render_scene(self, scene_path:pathlib.Path, scale_factor:Tuple[float], render_image:bool, render_objects:List=[]):
+    def render_scene(self, scene_source, render_image:bool, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[]):
         
         self.pv_render.enable_joystick_actor_style()
-        background = pv.read(scene_path) #"test/data/black_background.jpg"
-        background = background.scale(scale_factor, inplace=False)
+
+        if isinstance(scene_source, pathlib.Path):
+            background = pv.get_reader(scene_source).read()
+            background = background.scale(scale_factor, inplace=False)
+            
+        elif isinstance(scene_source, np.ndarray):
+            background = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
+            background.point_data["values"] = scene_source.reshape((1920*1080, 3)) # order = 'C
+
         background = background.translate(-1 * np.array(background.center), inplace=False)
         
         if render_image:

@@ -21,8 +21,8 @@ np.set_printoptions(suppress=True)
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'
-IMAGE_PATH = DATA_DIR / "image.jpg"
-BACKGROUND_PATH = DATA_DIR / "black_background.jpg"
+IMAGE_JPG_PATH = DATA_DIR / "image.jpg"
+IMAGE_NUMPY_PATH = DATA_DIR / "image.png"
 MASK_PATH_NUMPY_FULL = DATA_DIR / "segmented_mask_numpy.npy"
 MASK_PATH_NUMPY_QUARTER = DATA_DIR / "quarter_image_mask_numpy.npy"
 MASK_PATH_NUMPY_SMALLEST = DATA_DIR / "smallest_image_mask_numpy.npy"
@@ -165,6 +165,21 @@ def app_quarter():
 def app_smallest():
     return vis.App(register=True,
                    scale=1/8)
+
+@pytest.mark.parametrize(
+    "app",
+    [lazy_fixture("app_full"),
+     lazy_fixture("app_half"),
+     lazy_fixture("app_quarter"), 
+     lazy_fixture("app_smallest")]
+)  
+def test_load_image(app):
+    image_source = np.array(Image.open(IMAGE_NUMPY_PATH))
+    # image_source = IMAGE_JPG_PATH
+    app.set_image_opacity(1)
+    app.load_image(image_source, scale_factor=[0.01, 0.01, 1])
+    app.set_reference("image")
+    app.plot()
     
 @pytest.mark.parametrize(
     "app",
@@ -174,8 +189,9 @@ def app_smallest():
      lazy_fixture("app_smallest")]
 )  
 def test_load_mesh(app):
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
-    # app.set_surface_opacity(0.8)
+    image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
+    app.load_image(image_numpy)
+    app.set_surface_opacity(0.9)
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
     app.bind_meshes("ossicles", "g")
@@ -193,7 +209,8 @@ def test_load_mesh(app):
 )  
 def test_save_plot(app, name):
     app.set_register(False)
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
+    image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
+    app.load_image(image_numpy)
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
     app.bind_meshes("ossicles", "g")
@@ -212,7 +229,9 @@ def test_save_plot(app, name):
      (lazy_fixture("app_smallest"), "smallest")]
 )  
 def test_generate_image(app, name):
-    image_np = app.render_scene(IMAGE_PATH, [0.01, 0.01, 1], True)
+    # image_np = app.render_scene(IMAGE_JPG_PATH, True)
+    image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
+    image_np = app.render_scene(image_numpy, True)
     plt.imshow(image_np); plt.show()
     vis.utils.save_image(image_np, DATA_DIR, f"image_{name}.png")
      
@@ -274,9 +293,10 @@ def test_pnp_with_masked_ossicles_surgical_microscope(app, name, RT):
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR})
     app.plot()
-    
+
+    black_background = np.zeros((1080, 1920, 3))
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
+    render_white_bg = app.render_scene(black_background, render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     # save the rendered whole image
     vis.utils.save_image(render_black_bg, DATA_DIR, f"rendered_mask_whole_{name}.png")

@@ -19,7 +19,9 @@ np.set_printoptions(suppress=True)
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 DATA_DIR = CWD / 'data'
-IMAGE_PATH = DATA_DIR / "image.jpg"
+IMAGE_JPG_PATH = DATA_DIR / "image.jpg"
+IMAGE_NUMPY_PATH = DATA_DIR / "image.png"
+
 BACKGROUND_PATH = DATA_DIR / "black_background.jpg"
 # MASK_PATH = DATA_DIR / "mask.png"
 # MASK_PATH = DATA_DIR / "ossicles_mask.png"
@@ -106,7 +108,7 @@ def app():
     
 @pytest.fixture
 def configured_app(app):
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
+    app.load_image(IMAGE_JPG_PATH, [0.01, 0.01, 1])
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
     app.bind_meshes("ossicles", "g")
@@ -119,11 +121,15 @@ def test_create_app(app):
     assert isinstance(app, vis.App)
 
 def test_load_image(app):
-    # image = Image.open(IMAGE_PATH)
+    # image = Image.open(IMAGE_JPG_PATH)
     # image = np.array(image)[:, ::-1, :]
     # Image.fromarray(image).save(DATA_DIR / "image_flipped.jpg")
-    app.image_opacity=1.0
-    app.load_image(IMAGE_PATH, scale_factor=[0.01, 0.01, 1])
+
+    image_source = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
+    # image_source = IMAGE_JPG_PATH
+
+    app.set_image_opacity(1)
+    app.load_image(image_source, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
     app.plot()
     
@@ -138,7 +144,7 @@ def test_load_mesh_from_polydata(app):
     app.plot()
 
 def test_load_mesh_from_meshfile(app):
-    app.load_image(IMAGE_PATH, [0.01, 0.01, 1])
+    app.load_image(IMAGE_JPG_PATH, [0.01, 0.01, 1])
     app.set_reference("ossicles")
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
