@@ -41,66 +41,10 @@ OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 
-OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -2.28768117],
-                                        [  0.61244989,   0.70950026,  -0.34858929, -25.39078897],
-                                        [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-                                        [  0.,           0.,           0.,           1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  -0.19211785,    0.432653  ,    0.88085306,   22.72583494],
-#        [   0.97645239,    0.17403346,    0.12748759,   -5.42031752],
-#        [  -0.09814002,    0.88460372,   -0.45589998, -517.47343282],
-#        [   0.        ,    0.        ,    0.        ,    1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[0.3380,  -0.5647,  -0.7529,  -9.9934],
-#                                         [0.7189,   0.6712,  -0.1807, -22.4102],
-#                                         [  0.6074,  -0.4803,   0.6328,  15.6896],
-#                                         [0,   0, 0, 1]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.03017257],
-#        [  0.61244989,   0.70950026,  -0.34858929, -25.88228735],
-#        [  0.78560891,  -0.49725556,   0.3681787 ,   0.43013393],
-#        [  0.        ,   0.        ,   0.        ,   1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -1.03017257],
-#                 [  0.61244989,   0.70950026,  -0.34858929, -25.88228735],
-#                 [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
-#                 [  0.,           0.,           0.,           1.        ]])
-
-# # sample to see the flipped camera
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.28289925,  -0.95724774,   0.06037193,  22.89958349],
-#                                         [  0.90608815,   0.24607375,  -0.34416852, -19.01705655],
-#                                         [  0.31459859,   0.15206731,   0.93696492,  11.01578722],
-#                                         [  0.        ,   0.        ,   0.        ,   1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.27405315,  -0.95999139,   0.0575449 ,  23.07934883],
-#                                         [  0.90607829,   0.2376796 ,  -0.35004359, -18.89619621],
-#                                         [  0.32236158,   0.14807074,   0.93496421,   4.59932613],
-#                                         [  0.        ,   0.        ,   0.        ,   1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.13475468,   0.82180511,  -0.55360414, -20.35367606],
-#                                     [  0.92092791,   0.10232293,   0.37606089,  -7.7183049 ],
-#                                     [  0.36569516,  -0.56050548,  -0.74303478, -11.09524467],
-#                                     [  0.,           0.,           0.,           1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.20626356,  -0.53811086,  -0.81724663,  -3.90666137],
-#                                             [  0.68166679,   0.67821075,  -0.27451878, -25.23321459],
-#                                             [  0.70198699,  -0.50046667,   0.50670246, 149.19832153],
-#                                             [  0.        ,   0.        ,   0.        ,   1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08654067,  -0.59102747,  -0.80199579,  -0.46290758],
-#        [  0.55757269,   0.69586182,  -0.45264669, -26.76752479],
-#        [  0.82560487,  -0.4079986 ,   0.38976112,  80.711312  ],
-#        [  0.        ,   0.        ,   0.        ,   1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.0873051 ,  -0.49934886,  -0.86199103,  -2.28334928],
-#                                 [  0.61224162,   0.70948238,  -0.34899134, -25.39711749],
-#                                 [  0.78583587,  -0.49727806,   0.36766359,   0.10044576],
-#                                 [  0.        ,   0.        ,   0.        ,   1.        ]])
-
-# OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.03921582,  -0.61266473,  -0.7893694 ,   1.68665061],
-#                                         [  0.51137057,   0.6663846 ,  -0.54261561, -27.16172691],
-#                                         [  0.85846506,  -0.42493939,   0.28716589,  81.78483878],
-#                                         [  0.        ,   0.        ,   0.        ,   1.        ]])
+OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.08788493,  -0.49934587,  -0.86193385,  -11.33198707],
+                                            [  0.61244989,   0.70950026,  -0.34858929, -30.4914638],
+                                            [  0.78560891,  -0.49725556,   0.3681787,    0.43013393],
+                                            [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
 @pytest.fixture
 def app():
@@ -156,7 +100,7 @@ def test_load_mesh_from_meshfile(app):
 def test_render_ossicles(app):
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
-    image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False, ['ossicles'])
+    image_np = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['ossicles'])
     image = Image.fromarray(image_np)
     image.save(DATA_DIR / "ossicles_rendered.png")
     
@@ -164,7 +108,10 @@ def test_render_whole_scene(app):
     app.register = False
     app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
-    image_np = app.render_scene(BACKGROUND_PATH, [0.01, 0.01, 1], False, ['ossicles', 'facial_nerve', 'chorda'])
+    # app.reference = 'ossicles'
+    black_background = np.zeros((1080, 1920, 3))
+    image_np = app.render_scene(black_background, render_image=False, render_objects=['ossicles', 'facial_nerve', 'chorda'])
+    plt.imshow(image_np)
     image = Image.fromarray(image_np)
     image.save(DATA_DIR / "whole_scene_rendered.png")
 
@@ -200,7 +147,7 @@ def test_pnp_with_cube(app):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['cube'])
+    render_white_bg = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['cube'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     
@@ -263,7 +210,7 @@ def test_pnp_with_sphere(app):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['sphere'])
+    render_white_bg = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['sphere'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     
@@ -337,7 +284,7 @@ def test_pnp_with_ossicles_standard_len(RT):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
+    render_white_bg = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     
@@ -426,7 +373,7 @@ def test_pnp_with_ossicles_surgical_microscope(RT):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
+    render_white_bg = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     
@@ -582,7 +529,7 @@ def test_pnp_with_ossicles_masked_surgical_microscope(app, RT):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
+    render_white_bg = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     vis.utils.save_image(render_black_bg, DATA_DIR, "rendered_mask_whole.png")
     mask_render = vis.utils.color2binary_mask(render_black_bg)
@@ -684,7 +631,7 @@ def test_pnp_with_ossicles_masked_standard_len(RT):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
+    render_white_bg = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
@@ -754,7 +701,7 @@ def test_pnp_with_45_view_angle(RT):
     app.plot()
     
     # Create rendering
-    render_white_bg = app.render_scene(BACKGROUND_PATH, (0.01, 0.01, 1), render_image=False, render_objects=['ossicles'])
+    render_white_bg = app.render_scene(BACKGROUND_PATH, render_image=False, render_objects=['ossicles'])
     render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
