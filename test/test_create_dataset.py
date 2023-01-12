@@ -101,6 +101,26 @@ def test_load_mesh(app):
     app.bind_meshes("facial_nerve", "j")
     app.set_reference("ossicles")
     app.plot()
+
+@pytest.mark.parametrize(
+    "app",
+    [lazy_fixture("app_full"),
+     lazy_fixture("app_half"),
+     lazy_fixture("app_quarter"), 
+     lazy_fixture("app_smallest")]
+)  
+def test_render_scene(app):
+    app.register = False
+    app.set_transformation_matrix(OSSICLES_TRANSFORMATION_MATRIX)
+    app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
+    # app.reference = 'ossicles'
+    black_background = np.zeros((1080, 1920, 3))
+    image_np = app.render_scene(black_background, render_image=False, render_objects=['ossicles', 'facial_nerve', 'chorda'])
+    plt.imshow(image_np)
+    image = Image.fromarray(image_np)
+    plt.imshow(image)
+    plt.show()
+    print("hhh")
     
 @pytest.mark.parametrize(
     "app, name",
