@@ -337,7 +337,7 @@ class App:
             last_image = self.pv_plotter.last_image
             return last_image
         
-    def render_scene(self, scene_source, render_image:bool, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[]):
+    def render_scene(self, scene_source, render_image:bool, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], image_opacity:float=1, background_opacity:float=0, surface_opacity:float=1):
         
         self.pv_render.enable_joystick_actor_style()
 
@@ -352,17 +352,17 @@ class App:
         background = background.translate(-1 * np.array(background.center), inplace=False)
         
         if render_image:
-           self.pv_render.add_mesh(background, rgb=True, opacity=1, name="image")
+           self.pv_render.add_mesh(background, rgb=True, opacity=image_opacity, name="image")
         else:
             self.pv_render.set_background('white')
             # generate white image
-            self.pv_render.add_mesh(background, rgb=True, opacity=0, name="image")
+            self.pv_render.add_mesh(background, rgb=True, opacity=background_opacity, name="image")
             # generate grey image
             # self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
             
             # Render the targeting objects
             for object in render_objects:
-                mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=1)
+                mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
                 mesh.user_matrix = self.transformation_matrix
         
         self.pv_render.camera = self.camera.copy()
