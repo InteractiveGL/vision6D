@@ -789,3 +789,12 @@ def test_pnp_with_masked_ossicles_surgical_microscope_smallest_size(app_smallest
 #                         [  0.61228039,   0.70952996,  -0.34882654, -25.11469416],
 #                         [  0.78575995,  -0.49712824,   0.36802828,   1.49357594],
 #                         [  0.        ,   0.        ,   0.        ,   1.        ]]))
+
+# # test the trackball actor style
+# import pyvista as pv
+# plotter = pv.Plotter()
+# _ = plotter.add_mesh(pv.Cube(center=(1, 0, 0)))
+# _ = plotter.add_mesh(pv.Cube(center=(0, 1, 0)))
+# plotter.show_axes()
+# plotter.enable_trackball_actor_style()
+# plotter.show()  
