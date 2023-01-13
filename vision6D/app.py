@@ -297,6 +297,7 @@ class App:
            raise RuntimeError("reference name is not set")
 
         self.pv_plotter.enable_joystick_actor_style()
+        self.pv_plotter.enable_trackball_actor_style()
 
         # Register callbacks
         self.pv_plotter.add_key_event('c', self.event_reset_camera)
