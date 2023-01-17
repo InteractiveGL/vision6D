@@ -31,13 +31,13 @@ MASK_PATH_NUMPY_QUARTER = TEST_DATA_DIR / "quarter_image_mask_numpy.npy"
 MASK_PATH_NUMPY_SMALLEST = TEST_DATA_DIR / "smallest_image_mask_numpy.npy"
 STANDARD_LENS_MASK_PATH_NUMPY = TEST_DATA_DIR / "test1.npy"
 
-OSSICLES_PATH_NO_COLOR = TEST_DATA_DIR / "ossicles_001_not_colored.ply"
-FACIAL_NERVE_PATH_NO_COLOR = TEST_DATA_DIR / "facial_nerve_001_not_colored.ply"
-CHORDA_PATH_NO_COLOR = TEST_DATA_DIR / "chorda_001_not_colored.ply"
+OSSICLES_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_output_mesh_from_df.mesh"
+FACIAL_NERVE_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_facial_nerve.mesh"
+CHORDA_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_chorda.mesh"
 
-OSSICLES_MESH_PATH = TEST_DATA_DIR / "5997_right_output_mesh_from_df.mesh"
-FACIAL_NERVE_MESH_PATH = TEST_DATA_DIR / "5997_right_facial_nerve.mesh"
-CHORDA_MESH_PATH = TEST_DATA_DIR / "5997_right_chorda.mesh"
+# OSSICLES_MESH_PATH = TEST_DATA_DIR / "ossicles_001_not_colored.ply"
+# FACIAL_NERVE_MESH_PATH = TEST_DATA_DIR / "facial_nerve_001_not_colored.ply"
+# CHORDA_MESH_PATH = TEST_DATA_DIR / "chorda_001_not_colored.ply"
 
 RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14038217,  -0.3013128,   -0.94313491, -12.37503967],
                                         [  0.36747861,   0.8686707,   -0.33222081, -29.90434306],
@@ -126,7 +126,7 @@ def test_load_mesh(app):
     image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_transformation_matrix(RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
-    app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
+    app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
     app.bind_meshes("ossicles", "g")
     app.bind_meshes("chorda", "h")
     app.bind_meshes("facial_nerve", "j")
@@ -166,7 +166,7 @@ def test_save_plot(app, name):
     image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_transformation_matrix(RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
-    app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR, 'facial_nerve': FACIAL_NERVE_PATH_NO_COLOR, 'chorda': CHORDA_PATH_NO_COLOR})
+    app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
     app.bind_meshes("ossicles", "g")
     app.bind_meshes("chorda", "h")
     app.bind_meshes("facial_nerve", "j")
@@ -242,7 +242,7 @@ def test_pnp_with_masked_ossicles_surgical_microscope(app, name, RT, hand_draw_m
     # mask = cv2.dilate(mask, np.ones((5,5),np.uint8), iterations = 100)
         
     app.set_transformation_matrix(RT)
-    app.load_meshes({'ossicles': OSSICLES_PATH_NO_COLOR})
+    app.load_meshes({'ossicles': OSSICLES_MESH_PATH})
     app.plot()
 
     # Create rendering
