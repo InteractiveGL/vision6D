@@ -12,8 +12,7 @@ import trimesh
 import cv2
 from easydict import EasyDict
 import matplotlib.pyplot as plt
-
-from . import utils
+import vision6D as vis
 
 logger = logging.getLogger("vision6D")
 
@@ -169,7 +168,7 @@ class App:
                 if '.ply' in str(mesh_source):
                     mesh_data = pv.get_reader(mesh_source).read()
                 elif '.mesh' in str(mesh_source):
-                    mesh_data = pv.wrap(utils.load_trimesh(mesh_source))
+                    mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
                 
@@ -178,11 +177,11 @@ class App:
             self.set_vertices(mesh_name, mesh_data.points)
             
             # Apply transformation to the mesh vertices
-            transformed_points = utils.transform_vertices(self.transformation_matrix, mesh_data.points)
+            transformed_points = vis.utils.transform_vertices(self.transformation_matrix, mesh_data.points)
             
             assert (mesh_data.points == transformed_points).all(), "they should be identical!"
             
-            colors = utils.color_mesh(transformed_points.T)
+            colors = vis.utils.color_mesh(transformed_points.T)
             
             # Color the vertex
             mesh_data.point_data.set_scalars(colors)
@@ -338,28 +337,24 @@ class App:
             last_image = self.pv_plotter.last_image
             return last_image
         
-    def render_scene(self, scene_source, render_image:bool, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], image_opacity:float=1, background_opacity:float=0, surface_opacity:float=1):
+    def render_scene(self, render_image:bool, image_source=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
         
         self.pv_render.enable_joystick_actor_style()
-
-        if isinstance(scene_source, pathlib.Path):
-            background = pv.get_reader(scene_source).read()
-            background = background.scale(scale_factor, inplace=False)
-            
-        elif isinstance(scene_source, np.ndarray):
-            background = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
-            background.point_data["values"] = scene_source.reshape((1920*1080, 3)) # order = 'C
-
-        background = background.translate(-1 * np.array(background.center), inplace=False)
-        
+ 
         if render_image:
-           self.pv_render.add_mesh(background, rgb=True, opacity=image_opacity, name="image")
+            if isinstance(image_source, pathlib.Path):
+                image = pv.get_reader(image_source).read()
+                image = image.scale(scale_factor, inplace=False)
+                
+            elif isinstance(image_source, np.ndarray):
+                image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
+                image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+
+            image = image.translate(-1 * np.array(image.center), inplace=False)
+            self.pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
         else:
-            self.pv_render.set_background('white')
-            # generate white image
-            self.pv_render.add_mesh(background, rgb=True, opacity=background_opacity, name="image")
-            # generate grey image
-            # self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
+            # background set to black
+            self.pv_render.set_background('black')
             
             # Render the targeting objects
             for object in render_objects:

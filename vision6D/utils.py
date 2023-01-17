@@ -214,14 +214,6 @@ def count_white_black_pixels(image_grey):
     white  = np.count_nonzero(np.all(image_grey==sought,axis=2))
     print(f"white: {white}")
 
-def change_mask_bg(image, original_values, new_values):
-    
-    new_image_bg = copy.deepcopy(image)
-    
-    new_image_bg[np.where((new_image_bg[...,0] == original_values[0]) & (new_image_bg[...,1] == original_values[1]) & (new_image_bg[...,2] == original_values[2]))] = new_values
-
-    return new_image_bg
-
 def check_pixel_in_image(image, pixel_value):
     if isinstance(image, np.ndarray):
         image = Image.fromarray(image)

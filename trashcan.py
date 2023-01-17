@@ -798,3 +798,18 @@ def test_pnp_with_masked_ossicles_surgical_microscope_smallest_size(app_smallest
 # plotter.show_axes()
 # plotter.enable_trackball_actor_style()
 # plotter.show()  
+
+
+# generate white image
+# self.pv_render.add_mesh(background, rgb=True, opacity=1, name="image")
+# generate grey image
+# self.pv_render.add_mesh(background, rgb=True, opacity=0.5, name="image")
+
+# def change_mask_bg(image, original_values, new_values):
+    
+#     new_image_bg = copy.deepcopy(image)
+    
+#     new_image_bg[np.where((new_image_bg[...,0] == original_values[0]) & (new_image_bg[...,1] == original_values[1]) & (new_image_bg[...,2] == original_values[2]))] = new_values
+
+#     return new_image_bg
+# render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
