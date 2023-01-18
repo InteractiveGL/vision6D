@@ -67,10 +67,10 @@ RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.06365595,   0.0230
                                                     # [  0.98388463,  -0.22446585,  -0.05469943, -86.54123274],
                                                     # [  0.,           0.,           0.,           1.        ]])
 
-RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[  -0.10759918,    0.69942332,   -0.70656169,  -27.35806021],
-                                                        [   0.49807515,    0.65299233,    0.5705455,   -11.57501183],
-                                                        [   0.86043219,   -0.29053061,   -0.41862683, -100.00700923],
-                                                        [   0.,            0.,            0.,            1.        ]] ) #  GT pose
+RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.28359947,   0.33634119,  -0.89802335, -31.3647034 ],
+                                                        [  0.61564819,   0.65413142,   0.43941937, -16.56351629],
+                                                        [  0.73522013,  -0.67748556,  -0.02155654, -12.46718709],
+                                                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
 RL_20211028_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.09361546,  -0.47387243,   0.87560326,  21.90055849],
                                                         [ -0.92587196,   0.36479044,   0.09843295,  12.69811938],
@@ -149,8 +149,8 @@ def test_load_image(app):
     "image_path, ossicles_path, facial_nerve_path, chorda_path, RT",
     [(DATA_DIR / "RL_20210304" / "RL_20210304_0.png", DATA_DIR / "RL_20210304" / "5997_right_ossicles.mesh", DATA_DIR / "RL_20210304" / "5997_right_facial_nerve.mesh", DATA_DIR / "RL_20210304" / "5997_right_chorda.mesh", RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX),
      (DATA_DIR / "RL_20210422" / "RL_20210422_0.png", DATA_DIR / "RL_20210422" / "6088_right_ossicles.mesh", DATA_DIR / "RL_20210422" / "6088_right_facial_nerve.mesh", DATA_DIR / "RL_20210422" / "6088_right_chorda.mesh", RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX),
-    (DATA_DIR / "RL_20210506" / "RL_20210506_0.png", DATA_DIR / "RL_20210506" / "6108_right_output_mesh_from_df.mesh", DATA_DIR / "RL_20210506" / "6108_right_facial_nerve.mesh", DATA_DIR / "RL_20210506" / "6108_right_chorda.mesh", RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX),
-    (DATA_DIR / "RL_20211028" / "RL_20211028_0.png", DATA_DIR / "RL_20211028" / "6742_left_output_mesh_from_df.mesh", DATA_DIR / "RL_20211028" / "6742_left_facial_nerve.mesh", DATA_DIR / "RL_20211028" / "6742_left_chorda.mesh", RL_20211028_0_OSSICLES_TRANSFORMATION_MATRIX),
+    (DATA_DIR / "RL_20210506" / "RL_20210506_0.png", DATA_DIR / "RL_20210506" / "6108_right_ossicles.mesh", DATA_DIR / "RL_20210506" / "6108_right_facial_nerve.mesh", DATA_DIR / "RL_20210506" / "6108_right_chorda.mesh", RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX),
+    (DATA_DIR / "RL_20211028" / "RL_20211028_0.png", DATA_DIR / "RL_20211028" / "6742_left_ossicles.mesh", DATA_DIR / "RL_20211028" / "6742_left_facial_nerve.mesh", DATA_DIR / "RL_20211028" / "6742_left_chorda.mesh", RL_20211028_0_OSSICLES_TRANSFORMATION_MATRIX),
     ]
 )  
 def test_load_mesh_from_dataset(image_path, ossicles_path, facial_nerve_path, chorda_path, RT):
