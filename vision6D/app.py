@@ -178,7 +178,7 @@ class App:
             
             self.set_vertices(mesh_name, mesh_data.points)
             
-            # set the color to be the meshes' initial location, and never change it
+            # set the color to be the meshes' initial location, and never change the color
             colors = vis.utils.color_mesh(mesh_data.points.T)
             
             # Color the vertex
