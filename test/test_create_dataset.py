@@ -31,24 +31,41 @@ MASK_PATH_NUMPY_QUARTER = TEST_DATA_DIR / "quarter_image_mask_numpy.npy"
 MASK_PATH_NUMPY_SMALLEST = TEST_DATA_DIR / "smallest_image_mask_numpy.npy"
 STANDARD_LENS_MASK_PATH_NUMPY = TEST_DATA_DIR / "test1.npy"
 
+# OSSICLES_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_ossicles.mesh"
 OSSICLES_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_output_mesh_from_df.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_chorda.mesh"
 
+OSSICLES_MESH_PATH_PLY = TEST_DATA_DIR / "ossicles_001_not_colored.ply"
+OLD_OSSICLES_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_output_mesh_from_df.mesh"
 # OSSICLES_MESH_PATH = TEST_DATA_DIR / "ossicles_001_not_colored.ply"
 # FACIAL_NERVE_MESH_PATH = TEST_DATA_DIR / "facial_nerve_001_not_colored.ply"
 # CHORDA_MESH_PATH = TEST_DATA_DIR / "chorda_001_not_colored.ply"
+
+# RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.15936675,  -0.30698457,  -0.93827647, -11.71427054],
+#                                                       [  0.37909983,   0.85852426,  -0.34528161, -29.8785168 ],
+#                                                       [  0.91152923,  -0.41072688,  -0.02044244, -90.48458992],
+#                                                       [  0.,           0.,           0.,           1.        ]])
 
 RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.14038217,  -0.3013128,   -0.94313491, -12.37503967],
                                         [  0.36747861,   0.8686707,   -0.33222081, -29.90434306],
                                         [  0.91937604,  -0.3932198,   -0.01121988, -90.78678434],
                                         [  0.,           0.,           0.,           1.        ]] ) #  GT pose
 
+# RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.13050531,  -0.29699622,  -0.9459184 , -12.60770862],
+#        [  0.3567857 ,   0.87609111,  -0.32429665, -29.3170283 ],
+#        [  0.92502558,  -0.37981261,  -0.00837055, -90.38132077],
+#        [  0.        ,   0.        ,   0.        ,   1.        ]])
                                         
-RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.41506831,  -0.17272545,  -0.89324366, -22.39192516],
-                                                        [  0.28779316,   0.95632337,  -0.05119269, -27.4517472 ],
-                                                        [  0.86307206,  -0.23582096,   0.44664873, -85.09655279],
+RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.06365595,   0.02304574,  -1.0083763,  -21.32475993],
+                                                        [  0.18774733,   0.99299512,   0.01084227, -25.96173491],
+                                                        [  0.99101199,  -0.18664275,  -0.06682539, -87.674837  ],
                                                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
+
+                                                    # np.array([[ -0.04375309,   0.05391976,  -1.00825804, -22.30768088],
+                                                    # [  0.22685371,   0.98392768,   0.04277438, -25.60841066],
+                                                    # [  0.98388463,  -0.22446585,  -0.05469943, -86.54123274],
+                                                    # [  0.,           0.,           0.,           1.        ]])
 
 RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[  -0.10759918,    0.69942332,   -0.70656169,  -27.35806021],
                                                         [   0.49807515,    0.65299233,    0.5705455,   -11.57501183],
@@ -80,6 +97,39 @@ def app_quarter():
 def app_smallest():
     return vis.App(register=True, scale=1/8)
 
+def test_compute_rigid_transformation():
+    ply_data = pv.get_reader(OSSICLES_MESH_PATH_PLY).read()
+    ply_data.points = ply_data.points.astype("double")
+    mesh_data = pv.wrap(vis.utils.load_trimesh(OLD_OSSICLES_MESH_PATH))
+    
+    ply_vertices = ply_data.points
+    mesh_vertices = mesh_data.points
+
+    """
+    ply_transfromed_vertices_pv = ply_data.transform(RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    ply_transfromed_vertices = vis.utils.transform_vertices(ply_vertices, RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    assert np.isclose(ply_transfromed_vertices_pv.points, ply_transfromed_vertices, atol=1e-10).all()
+
+    mesh_transformed_vertices_pv = mesh_data.transform(RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    mesh_transformed_vertices = vis.utils.transform_vertices(mesh_vertices, RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    assert np.isclose(mesh_transformed_vertices_pv.points, mesh_transformed_vertices, atol=1e-10).all()
+
+    rt = vis.utils.rigid_transform_3D(mesh_transformed_vertices, ply_transfromed_vertices)
+    # rt = np.linalg.inv(rt)
+
+    mesh_transformed = vis.utils.transform_vertices(mesh_transformed_vertices, rt)
+    mesh_transformed_pv = mesh_transformed_vertices_pv.transform(rt)
+    assert np.isclose(mesh_transformed_pv.points, mesh_transformed, atol=1e-10).all()
+
+    # rt = vis.utils.rigid_transform_3D(ply_vertices, mesh_vertices) # input data shape need to be 3 by N
+    # rt = np.linalg.inv(rt)
+    gt_pose = RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX @ rt
+    """
+
+    rt = vis.utils.rigid_transform_3D(mesh_vertices, ply_vertices)
+    gt_pose = rt @ RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX
+    print(gt_pose)
+    
 @pytest.mark.parametrize(
     "app",
     [lazy_fixture("app_full"),
@@ -97,8 +147,8 @@ def test_load_image(app):
     
 @pytest.mark.parametrize(
     "image_path, ossicles_path, facial_nerve_path, chorda_path, RT",
-    [(DATA_DIR / "RL_20210304" / "RL_20210304_0.png", DATA_DIR / "RL_20210304" / "5997_right_output_mesh_from_df.mesh", DATA_DIR / "RL_20210304" / "5997_right_facial_nerve.mesh", DATA_DIR / "RL_20210304" / "5997_right_chorda.mesh", RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX),
-     (DATA_DIR / "RL_20210422" / "RL_20210422_0.png", DATA_DIR / "RL_20210422" / "6088_right_output_mesh_from_df.mesh", DATA_DIR / "RL_20210422" / "6088_right_facial_nerve.mesh", DATA_DIR / "RL_20210422" / "6088_right_chorda.mesh", RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX),
+    [(DATA_DIR / "RL_20210304" / "RL_20210304_0.png", DATA_DIR / "RL_20210304" / "5997_right_ossicles.mesh", DATA_DIR / "RL_20210304" / "5997_right_facial_nerve.mesh", DATA_DIR / "RL_20210304" / "5997_right_chorda.mesh", RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX),
+     (DATA_DIR / "RL_20210422" / "RL_20210422_0.png", DATA_DIR / "RL_20210422" / "6088_right_ossicles.mesh", DATA_DIR / "RL_20210422" / "6088_right_facial_nerve.mesh", DATA_DIR / "RL_20210422" / "6088_right_chorda.mesh", RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX),
     (DATA_DIR / "RL_20210506" / "RL_20210506_0.png", DATA_DIR / "RL_20210506" / "6108_right_output_mesh_from_df.mesh", DATA_DIR / "RL_20210506" / "6108_right_facial_nerve.mesh", DATA_DIR / "RL_20210506" / "6108_right_chorda.mesh", RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX),
     (DATA_DIR / "RL_20211028" / "RL_20211028_0.png", DATA_DIR / "RL_20211028" / "6742_left_output_mesh_from_df.mesh", DATA_DIR / "RL_20211028" / "6742_left_facial_nerve.mesh", DATA_DIR / "RL_20211028" / "6742_left_chorda.mesh", RL_20211028_0_OSSICLES_TRANSFORMATION_MATRIX),
     ]

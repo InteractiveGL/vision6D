@@ -167,6 +167,8 @@ class App:
                 # Load the mesh
                 if '.ply' in str(mesh_source):
                     mesh_data = pv.get_reader(mesh_source).read()
+                    # Convert the data type from float32 to float64 to match with load_trimesh
+                    mesh_data.points = mesh_data.points.astype("double")
                 elif '.mesh' in str(mesh_source):
                     mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
             elif isinstance(mesh_source, pv.PolyData):
@@ -176,12 +178,8 @@ class App:
             
             self.set_vertices(mesh_name, mesh_data.points)
             
-            # Apply transformation to the mesh vertices
-            transformed_points = vis.utils.transform_vertices(self.transformation_matrix, mesh_data.points)
-            
-            assert (mesh_data.points == transformed_points).all(), "they should be identical!"
-            
-            colors = vis.utils.color_mesh(transformed_points.T)
+            # set the color to be the meshes' initial location, and never change it
+            colors = vis.utils.color_mesh(mesh_data.points.T)
             
             # Color the vertex
             mesh_data.point_data.set_scalars(colors)

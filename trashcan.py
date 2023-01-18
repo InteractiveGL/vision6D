@@ -813,3 +813,115 @@ def test_pnp_with_masked_ossicles_surgical_microscope_smallest_size(app_smallest
 
 #     return new_image_bg
 # render_black_bg = vis.utils.change_mask_bg(render_white_bg, [255, 255, 255], [0, 0, 0])
+
+def meshwrite(output_filename, mesh):
+
+    fid = open('test/data/nii_001/5997_right_output_mesh_from_df.mesh', 'rb')
+    ossicle_mesh = meshread(fid, linesread=False, meshread2=False)
+    # mesh.sz = np.array([1,1,1])
+
+    # Unify the data dtypes to be the same as the the ones in the original ossicle_mesh file
+    mesh.vertices = mesh.vertices.astype(str(ossicle_mesh.vertices.dtype))
+    mesh.triangles = mesh.triangles.astype(str(ossicle_mesh.triangles.dtype))
+
+    with open(output_filename, "wb") as f:
+        f.write(mesh.id.T)
+        f.write(mesh.numverts.T)
+        f.write(mesh.numtris.T)
+        f.write(np.int32(-1).T)
+        f.write(mesh.orient.T)
+        f.write(mesh.dim.T)
+        f.write(mesh.sz.T)
+        f.write(mesh.color.T)
+        # ndarray need to be C-continuous!
+        f.write(mesh.vertices.T.tobytes(order='C'))
+        f.write(mesh.triangles.T.tobytes(order='C'))
+        if hasattr(mesh, "opacity"):
+            f.write(mesh.opacity.T)
+            if hasattr(mesh, "colormap"):
+                f.write(mesh.colormap.numcols.T)
+                f.write(mesh.colormap.numverts.T)
+                f.write(mesh.colormap.cols.T)
+                f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
+
+def save_obj(obj, name):
+    with open(name, "wb") as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name):
+    with open(name + ".pkl", "rb") as f:
+        return pickle.load(f)
+def convert2ply(obj: trimesh.Trimesh, filename):
+    ply_file = trimesh.exchange.ply.export_ply(obj)
+    with open(filename, "wb") as f:
+        f.write(ply_file)
+
+
+def center_mesh(mesh):
+    centered_mesh = copy.deepcopy(mesh)
+    centroid = np.mean(mesh.vertices, axis=1)
+    centered_mesh.vertices = mesh.vertices - np.expand_dims(centroid, axis=1)
+    return centered_mesh
+
+def create_black_bg():
+    image = Image.new('RGB', (1920, 1080), color=0)
+    image.save("test/data/black_background.jpg")
+
+def compare_two_images():
+    # They are different
+    image1 = np.array(Image.open("image.png"))
+    image2 = np.array(Image.open("test/data/RL_20210304_0.jpg"))
+    print("hhh")
+
+def show_plot(frame, plot, image_white_bg, image_black_bg):
+    extent = 0, plot.shape[1], plot.shape[0], 0
+    plt.subplot(221)
+    plt.imshow(frame, alpha=1, extent=extent, origin="upper")
+
+    plt.subplot(222)
+    im1 = plt.imshow(plot, extent=extent, origin="upper")
+    im2 = plt.imshow(image_white_bg, alpha=0.5, extent=extent, origin="upper")
+    
+    plt.subplot(223)
+    plt.imshow(image_white_bg, alpha=1, extent=extent, origin="upper")
+    
+    plt.subplot(224)
+    plt.imshow(image_black_bg, alpha=1, extent=extent, origin="upper")
+    plt.show()
+    
+    plt.close()
+    
+    print('hhh')
+
+    
+def count_white_black_pixels(image_grey):
+    sought = [0,0,0]
+    black  = np.count_nonzero(np.all(image_grey==sought,axis=2))
+    print(f"black: {black}")
+    
+    sought = [255,255,255]
+    white  = np.count_nonzero(np.all(image_grey==sought,axis=2))
+    print(f"white: {white}")
+
+def check_pixel_in_image(image, pixel_value):
+    if isinstance(image, np.ndarray):
+        image = Image.fromarray(image)
+    pixels = [i for i in image.getdata()]
+    assert not pixel_value in pixels, f"{pixel_value} in pixels"
+
+
+def load_mesh_color(mesh):
+    colors = copy.deepcopy(mesh.vertices)
+    colors[0] = (mesh.vertices[0] - np.min(mesh.vertices[0])) / (np.max(mesh.vertices[0]) - np.min(mesh.vertices[0])) - 0.5
+    colors[1] = (mesh.vertices[1] - np.min(mesh.vertices[1])) / (np.max(mesh.vertices[1]) - np.min(mesh.vertices[1])) - 0.5
+    colors[2] = (mesh.vertices[2] - np.min(mesh.vertices[2])) / (np.max(mesh.vertices[2]) - np.min(mesh.vertices[2])) - 0.5
+    colors = colors.T + np.array([0.5, 0.5, 0.5])
+
+    return colors
+    
+    
+def cartisian2homogeneous(vertices):
+    return np.hstack((vertices, np.ones(vertices.shape[0]).reshape((-1,1))))
+
+def homogeneous2cartisian(homo_vertices):
+    return (homo_vertices[:3] / homo_vertices[3]).T

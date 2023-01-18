@@ -96,68 +96,6 @@ def meshread(fid, linesread=False, meshread2=False):
     # Return data
     return mesh
 
-def convert2ply(obj: trimesh.Trimesh, filename):
-    ply_file = trimesh.exchange.ply.export_ply(obj)
-    with open(filename, "wb") as f:
-        f.write(ply_file)
-
-def save_obj(obj, name):
-    with open(name, "wb") as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
-
-def load_obj(name):
-    with open(name + ".pkl", "rb") as f:
-        return pickle.load(f)
-
-def meshwrite(output_filename, mesh):
-
-    fid = open('test/data/nii_001/5997_right_output_mesh_from_df.mesh', 'rb')
-    ossicle_mesh = meshread(fid, linesread=False, meshread2=False)
-    # mesh.sz = np.array([1,1,1])
-
-    # Unify the data dtypes to be the same as the the ones in the original ossicle_mesh file
-    mesh.vertices = mesh.vertices.astype(str(ossicle_mesh.vertices.dtype))
-    mesh.triangles = mesh.triangles.astype(str(ossicle_mesh.triangles.dtype))
-
-    with open(output_filename, "wb") as f:
-        f.write(mesh.id.T)
-        f.write(mesh.numverts.T)
-        f.write(mesh.numtris.T)
-        f.write(np.int32(-1).T)
-        f.write(mesh.orient.T)
-        f.write(mesh.dim.T)
-        f.write(mesh.sz.T)
-        f.write(mesh.color.T)
-        # ndarray need to be C-continuous!
-        f.write(mesh.vertices.T.tobytes(order='C'))
-        f.write(mesh.triangles.T.tobytes(order='C'))
-        if hasattr(mesh, "opacity"):
-            f.write(mesh.opacity.T)
-            if hasattr(mesh, "colormap"):
-                f.write(mesh.colormap.numcols.T)
-                f.write(mesh.colormap.numverts.T)
-                f.write(mesh.colormap.cols.T)
-                f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
-
-def load_mesh_color(mesh):
-    colors = copy.deepcopy(mesh.vertices)
-    colors[0] = (mesh.vertices[0] - np.min(mesh.vertices[0])) / (np.max(mesh.vertices[0]) - np.min(mesh.vertices[0])) - 0.5
-    colors[1] = (mesh.vertices[1] - np.min(mesh.vertices[1])) / (np.max(mesh.vertices[1]) - np.min(mesh.vertices[1])) - 0.5
-    colors[2] = (mesh.vertices[2] - np.min(mesh.vertices[2])) / (np.max(mesh.vertices[2]) - np.min(mesh.vertices[2])) - 0.5
-    colors = colors.T + np.array([0.5, 0.5, 0.5])
-
-    return colors
-
-def center_mesh(mesh):
-    centered_mesh = copy.deepcopy(mesh)
-    centroid = np.mean(mesh.vertices, axis=1)
-    centered_mesh.vertices = mesh.vertices - np.expand_dims(centroid, axis=1)
-    return centered_mesh
-
-def create_black_bg():
-    image = Image.new('RGB', (1920, 1080), color=0)
-    image.save("test/data/black_background.jpg")
-    
 def load_trimesh(meshpath):
     with open(meshpath, "rb") as fid:
         mesh = meshread(fid)
@@ -165,12 +103,6 @@ def load_trimesh(meshpath):
     mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
     mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
     return mesh
-
-def compare_two_images():
-    # They are different
-    image1 = np.array(Image.open("image.png"))
-    image2 = np.array(Image.open("test/data/RL_20210304_0.jpg"))
-    print("hhh")
     
 def color2binary_mask(color_mask):
     # binary_mask = copy.deepcopy(color_mask)
@@ -184,41 +116,6 @@ def color2binary_mask(color_mask):
     binary_mask[non_black_pixels_mask] = [1]
     
     return binary_mask
-
-def show_plot(frame, plot, image_white_bg, image_black_bg):
-    extent = 0, plot.shape[1], plot.shape[0], 0
-    plt.subplot(221)
-    plt.imshow(frame, alpha=1, extent=extent, origin="upper")
-
-    plt.subplot(222)
-    im1 = plt.imshow(plot, extent=extent, origin="upper")
-    im2 = plt.imshow(image_white_bg, alpha=0.5, extent=extent, origin="upper")
-    
-    plt.subplot(223)
-    plt.imshow(image_white_bg, alpha=1, extent=extent, origin="upper")
-    
-    plt.subplot(224)
-    plt.imshow(image_black_bg, alpha=1, extent=extent, origin="upper")
-    plt.show()
-    
-    plt.close()
-    
-    print('hhh')
-    
-def count_white_black_pixels(image_grey):
-    sought = [0,0,0]
-    black  = np.count_nonzero(np.all(image_grey==sought,axis=2))
-    print(f"black: {black}")
-    
-    sought = [255,255,255]
-    white  = np.count_nonzero(np.all(image_grey==sought,axis=2))
-    print(f"white: {white}")
-
-def check_pixel_in_image(image, pixel_value):
-    if isinstance(image, np.ndarray):
-        image = Image.fromarray(image)
-    pixels = [i for i in image.getdata()]
-    assert not pixel_value in pixels, f"{pixel_value} in pixels"
 
 def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, obj:Type, object_name:str, npts:int=-1):
     
@@ -253,11 +150,8 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, obj:Type, object_name
     
     return rand_pts, vtx
 
-def transform_vertices(transformation_matrix, vertices):
-    
-    # fix the color
-    transformation_matrix = np.eye(4)
-    
+def transform_vertices(vertices, transformation_matrix=np.eye(4)):
+
     ones = np.ones((vertices.shape[0], 1))
     homogeneous_vertices = np.append(vertices, ones, axis=1)
     transformed_vertices = (transformation_matrix @ homogeneous_vertices.T)[:3].T
@@ -273,13 +167,47 @@ def color_mesh(vertices):
         colors = colors.T #+ np.array([0.5, 0.5, 0.5])
         
         return colors
-    
-def cartisian2homogeneous(vertices):
-    return np.hstack((vertices, np.ones(vertices.shape[0]).reshape((-1,1))))
-
-def homogeneous2cartisian(homo_vertices):
-    return (homo_vertices[:3] / homo_vertices[3]).T
 
 def save_image(array, folder, name):
     img = Image.fromarray(array)
     img.save(folder / name)
+
+def rigid_transform_3D(A, B):
+
+    assert A.shape == B.shape
+
+    # find mean
+    centroid_A = np.mean(A, axis=0)
+    centroid_B = np.mean(B, axis=0)
+
+    # # ensure centroids are 3x1
+    # centroid_A = centroid_A.reshape(-1, 1)
+    # centroid_B = centroid_B.reshape(-1, 1)
+
+    # subtract mean
+    Am = A - centroid_A
+    Bm = B - centroid_B
+
+    H = Am.T @ Bm
+
+    # sanity check
+    #if linalg.matrix_rank(H) < 3:
+    #    raise ValueError("rank of H = {}, expecting 3".format(linalg.matrix_rank(H)))
+
+    # find rotation
+    U, S, Vt = np.linalg.svd(H)
+    R = Vt.T @ U.T
+
+    # special reflection case
+    if np.linalg.det(R) < 0:
+        print("det(R) < R, reflection detected!, correcting for it ...")
+        Vt[2,:] *= -1
+        R = Vt.T @ U.T
+
+    t = -R @ centroid_A + centroid_B
+    # convert the shape from (1, 3) to (3, 1)
+    t = t.reshape((-1,1))
+
+    rt = np.vstack((np.hstack((R, t)), np.array([0,0,0,1])))
+
+    return rt
