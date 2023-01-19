@@ -42,6 +42,16 @@ OLD_OSSICLES_MESH_PATH = DATA_DIR / "RL_20210304" / "5997_right_output_mesh_from
 # FACIAL_NERVE_MESH_PATH = TEST_DATA_DIR / "facial_nerve_001_not_colored.ply"
 # CHORDA_MESH_PATH = TEST_DATA_DIR / "chorda_001_not_colored.ply"
 
+OSSICLES_MESH_PATH_5997 = DATA_DIR / "RL_20210304" / "5997_right_ossicles.mesh"
+OSSICLES_MESH_PATH_6088 = DATA_DIR / "RL_20210422" / "6088_right_ossicles.mesh"
+OSSICLES_MESH_PATH_6108 = DATA_DIR / "RL_20210506" / "6108_right_ossicles.mesh"
+OSSICLES_MESH_PATH_6742 = DATA_DIR / "RL_20211028" / "6742_left_ossicles.mesh"
+
+mask_5997_hand_draw_numpy = DATA_DIR / "RL_20210304" / "mask_5997_hand_draw_numpy.npy"
+mask_6088_hand_draw_numpy = DATA_DIR / "RL_20210422" / "mask_6088_hand_draw_numpy.npy"
+mask_6108_hand_draw_numpy = DATA_DIR / "RL_20210506" / "mask_6108_hand_draw_numpy.npy"
+mask_6742_hand_draw_numpy = DATA_DIR / "RL_20211028" / "mask_6742_hand_draw_numpy.npy"
+
 # RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.15936675,  -0.30698457,  -0.93827647, -11.71427054],
 #                                                       [  0.37909983,   0.85852426,  -0.34528161, -29.8785168 ],
 #                                                       [  0.91152923,  -0.41072688,  -0.02044244, -90.48458992],
@@ -62,10 +72,10 @@ RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.06365595,   0.0230
                                                         [  0.99101199,  -0.18664275,  -0.06682539, -87.674837  ],
                                                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
-                                                    # np.array([[ -0.04375309,   0.05391976,  -1.00825804, -22.30768088],
-                                                    # [  0.22685371,   0.98392768,   0.04277438, -25.60841066],
-                                                    # [  0.98388463,  -0.22446585,  -0.05469943, -86.54123274],
-                                                    # [  0.,           0.,           0.,           1.        ]])
+# RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[ -0.06968065,   0.02342444,  -0.99729429, -21.03970757],
+#                                                     [  0.18624669,   0.98245148,   0.01006281, -25.7154126 ],
+#                                                     [  0.98002897,  -0.18504158,  -0.07282058, -90.28191254],
+#                                                     [  0.        ,   0.        ,   0.        ,   1.        ]]) # Predicted pose from the pnp
 
 RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX = np.array([[  0.28359947,   0.33634119,  -0.89802335, -31.3647034 ],
                                                         [  0.61564819,   0.65413142,   0.43941937, -16.56351629],
@@ -183,7 +193,6 @@ def test_load_mesh(app):
     app.set_reference("ossicles")
     app.plot()
 
-
 @pytest.mark.parametrize(
     "app",
     [lazy_fixture("app_full"),
@@ -257,7 +266,7 @@ def test_generate_image(app, name):
                                                     [  0.,           0.,           0.,           1.        ]])), # error: 2.9173443682367446
         ]
 )
-def test_pnp_with_masked_ossicles_surgical_microscope(app, name, RT, hand_draw_mask):
+def test_pnp_with_masked_ossicles_surgical_microscope(app, name, hand_draw_mask, RT):
     
     mask_full = np.load(hand_draw_mask)
     
@@ -293,6 +302,83 @@ def test_pnp_with_masked_ossicles_surgical_microscope(app, name, RT, hand_draw_m
         
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': OSSICLES_MESH_PATH})
+    app.plot()
+
+    # Create rendering
+    render_black_bg = app.render_scene(render_image=False, render_objects=['ossicles'])
+    # save the rendered whole image
+    vis.utils.save_image(render_black_bg, TEST_DATA_DIR, f"rendered_mask_whole_{name}.png")
+
+    mask_render = vis.utils.color2binary_mask(render_black_bg)
+    mask_render_masked = mask_render * ossicles_mask
+
+    render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)  # render_masked_white_bg = render_white_bg * ossicles_mask
+    # save the rendered partial image
+    vis.utils.save_image(render_masked_black_bg, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
+    assert (mask_render_masked == vis.utils.color2binary_mask(render_masked_black_bg)).all()
+    
+    plt.subplot(221)
+    plt.imshow(render_black_bg)
+    plt.subplot(222)
+    plt.imshow(ossicles_mask)
+    plt.subplot(223)
+    plt.imshow(mask_render_masked)
+    plt.subplot(224)
+    plt.imshow(render_masked_black_bg)
+    plt.show()
+    
+    # Create 2D-3D correspondences
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_masked_black_bg, app, 'ossicles')
+    
+    logger.debug(f"The total points are {pts3d.shape[0]}")
+
+    pts2d = pts2d.astype('float32')
+    pts3d = pts3d.astype('float32')
+    camera_intrinsics = app.camera_intrinsics.astype('float32')
+    
+    if pts2d.shape[0] < 4:
+        predicted_pose = np.eye(4)
+        inliers = []
+    else:
+        dist_coeffs = np.zeros((4, 1))
+        
+        # Get a rotation matrix
+        predicted_pose = np.eye(4)
+        
+        # Use EPNP
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
+            
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
+            logger.debug(len(inliers)) # 50703
+            
+    logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
+            
+    assert np.isclose(predicted_pose, RT, atol=4).all()
+
+@pytest.mark.parametrize(
+    "app, name, hand_draw_mask, ossicles_path, RT",
+    [
+        (lazy_fixture("app_full"), "5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX), # error: 0.08919806077190386
+        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, RL_20210422_0_OSSICLES_TRANSFORMATION_MATRIX), # error: 3.1873387451473523
+        (lazy_fixture("app_full"), "6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, RL_20210506_0_OSSICLES_TRANSFORMATION_MATRIX), # error: 3.389128987491239
+        (lazy_fixture("app_full"), "6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, RL_20211028_0_OSSICLES_TRANSFORMATION_MATRIX), # error: 0.827998127071814
+        ]
+)
+def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
+    
+    mask = np.load(hand_draw_mask) / 255
+    mask = np.where(mask != 0, 1, 0)
+    
+    plt.imshow(mask)
+    plt.show()
+
+    # expand the dimension
+    ossicles_mask = np.expand_dims(mask, axis=-1)
+        
+    app.set_transformation_matrix(RT)
+    app.load_meshes({'ossicles': ossicles_path})
     app.plot()
 
     # Create rendering
