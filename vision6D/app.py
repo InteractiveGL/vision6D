@@ -146,7 +146,7 @@ class App:
             
         # Then add it to the plotter
         image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=self.image_opacity, name='image')
-        actor, _ = self.pv_plotter.add_actor(image, name="image")
+        actor, _ = self.pv_plotter.add_actor(image, pickable=False, name="image")
 
         # Save actor for later
         self.image_actors["image"] = actor
@@ -188,7 +188,7 @@ class App:
             
             mesh.user_matrix = self.transformation_matrix
             
-            actor, _ = self.pv_plotter.add_actor(mesh, name=mesh_name)
+            actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
             
             # Save actor for later
             self.mesh_actors[mesh_name] = actor
@@ -210,11 +210,6 @@ class App:
     def event_reset_camera(self, *args):
         self.pv_plotter.camera = self.camera.copy()
         logger.debug("reset_camera_event callback complete")
-
-    def event_reset_image(self, *args):
-        self.image_actors["image"] = self.image_actors["image-origin"].copy() # have to use deepcopy to prevent change self.image_actors["image-origin"] content
-        self.pv_plotter.add_actor(self.image_actors["image"], name="image")
-        logger.debug("reset_image_position callback complete")
         
     def event_toggle_image_opacity(self, *args, up):
         if up:
@@ -227,7 +222,7 @@ class App:
                 self.image_opacity = 0
         
         self.image_actors["image"].GetProperty().opacity = self.image_opacity
-        self.pv_plotter.add_actor(self.image_actors["image"], name="image")
+        self.pv_plotter.add_actor(self.image_actors["image"], pickable=False, name="image")
 
         logger.debug("event_toggle_image_opacity callback complete")
         
@@ -245,7 +240,7 @@ class App:
         for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = transformation_matrix
             actor.GetProperty().opacity = self.surface_opacity
-            self.pv_plotter.add_actor(actor, name=actor_name)
+            self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
 
         logger.debug("event_toggle_surface_opacity callback complete")
         
@@ -254,7 +249,7 @@ class App:
         transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = transformation_matrix
-            self.pv_plotter.add_actor(actor, name=actor_name)
+            self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
     
     def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
@@ -266,7 +261,7 @@ class App:
         
         for obj in objs['move']:
             self.mesh_actors[f"{obj}"].user_matrix = transformation_matrix
-            self.pv_plotter.add_actor(self.mesh_actors[f"{obj}"], name=obj)
+            self.pv_plotter.add_actor(self.mesh_actors[f"{obj}"], pickable=True, name=obj)
         
         logger.debug(f"realign: main => {main_mesh}, others => {other_meshes} complete")
         
@@ -274,7 +269,7 @@ class App:
         
         for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = self.transformation_matrix
-            self.pv_plotter.add_actor(actor, name=actor_name)
+            self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
 
         logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_gt_position callback complete")
@@ -283,7 +278,7 @@ class App:
         self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = self.transformation_matrix
-            self.pv_plotter.add_actor(actor, name=actor_name)
+            self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
         
         logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_change_gt_position callback complete")
@@ -300,7 +295,6 @@ class App:
         self.pv_plotter.add_key_event('c', self.event_reset_camera)
         self.pv_plotter.add_key_event('z', self.event_zoom_out)
         self.pv_plotter.add_key_event('x', self.event_zoom_in)
-        self.pv_plotter.add_key_event('d', self.event_reset_image)
         self.pv_plotter.add_key_event('t', self.event_track_registration)
 
         for main_mesh, mesh_data in self.binded_meshes.items():

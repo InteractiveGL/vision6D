@@ -925,3 +925,12 @@ def cartisian2homogeneous(vertices):
 
 def homogeneous2cartisian(homo_vertices):
     return (homo_vertices[:3] / homo_vertices[3]).T
+
+
+def event_reset_image(self, *args):
+    self.image_actors["image"] = self.image_actors["image-origin"].copy() # have to use deepcopy to prevent change self.image_actors["image-origin"] content
+    self.pv_plotter.add_actor(self.image_actors["image"], name="image")
+    logger.debug("reset_image_position callback complete")
+
+
+self.pv_plotter.add_key_event('d', self.event_reset_image)

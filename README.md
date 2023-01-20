@@ -3,6 +3,9 @@ create a tool to visualize 3D data rotation and translation
 
 
 # Binding keys
+
+**shift + left button pans**
+
 'c': reset camera to the original position
 'z': camera zoom out
 'x': camera zoom in
