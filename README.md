@@ -10,8 +10,6 @@ create a tool to visualize 3D data rotation and translation
 'z': camera zoom out
 'x': camera zoom in
 
-'d': reset image to the original position
-
 'g': register other meshes (facial nerve and chora) using the same RT that ossicles use
 'h': register other meshes (facial nerve and ossicles) using the same RT that chorda use
 'j': register other meshes (ossicles and chora) using the same RT that facial nerve use
