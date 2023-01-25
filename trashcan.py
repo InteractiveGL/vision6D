@@ -934,3 +934,146 @@ def event_reset_image(self, *args):
 
 
 self.pv_plotter.add_key_event('d', self.event_reset_image)
+
+@pytest.mark.parametrize(
+    "app, name, hand_draw_mask, RT",
+    [
+        (lazy_fixture("app_full"), "full", MASK_PATH_NUMPY_FULL, RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX), # error: 0.28274715843164144
+        (lazy_fixture("app_half"), "half", MASK_PATH_NUMPY_FULL, np.array([[ -0.14038217,  -0.3013128,   -0.94313491, -12.57631681],
+                                                    [  0.36747861,   0.8686707,   -0.33222081, -29.6271648],
+                                                    [  0.91937604,  -0.3932198,   -0.01121988, -121.43998767],
+                                                    [  0.,           0.,           0.,           1.        ]])), # error: 0.47600086480825793
+        (lazy_fixture("app_quarter"), "quarter", MASK_PATH_NUMPY_FULL, np.array([[ -0.14038217,  -0.3013128,   -0.94313491, -12.78081408],
+                                                            [  0.36747861,   0.8686707,   -0.33222081, -29.76732486],
+                                                            [  0.91937604,  -0.3932198,   -0.01121988, -168.66437969],
+                                                            [  0.,           0.,           0.,           1.        ]])), # error: 0.06540031192830804
+        (lazy_fixture("app_smallest"), "smallest", MASK_PATH_NUMPY_FULL, np.array([[ -0.14038217,  -0.3013128,   -0.94313491, -12.67572154],
+                                                    [  0.36747861,   0.8686707,   -0.33222081, -29.70215918],
+                                                    [  0.91937604,  -0.3932198,   -0.01121988, -355.22828667],
+                                                    [  0.,           0.,           0.,           1.        ]])), # error: 2.9173443682367446
+        ]
+)
+def test_pnp_with_masked_ossicles_surgical_microscope(app, name, hand_draw_mask, RT):
+    
+    mask_full = np.load(hand_draw_mask)
+    
+    #  mask = np.load(MASK_PATH_NUMPY_FULL || MASK_PATH_NUMPY_QUARTER || MASK_PATH_NUMPY_SMALLEST) / 255
+    
+    if app.window_size == (1920, 1080):
+        mask = mask_full / 255
+        mask = np.where(mask != 0, 1, 0)
+    elif app.window_size == (960, 540):
+        mask = skimage.transform.rescale(mask_full, 1/2)
+        mask = np.where(mask > 0.1, 1, 0) 
+    elif app.window_size == (480, 270):
+        mask = skimage.transform.rescale(mask_full, 1/4)
+        mask = np.where(mask > 0.1, 1, 0)
+    elif app.window_size == (240, 135):
+        mask = skimage.transform.rescale(mask_full, 1/8)
+        mask = np.where(mask > 0.1, 1, 0)
+        
+    plt.subplot(211)
+    plt.imshow(mask_full)
+    plt.subplot(212)
+    plt.imshow(mask)
+    plt.show()
+    
+    # Use whole mask with epnp
+    # mask = np.ones((1080, 1920))
+   
+    # expand the dimension
+    ossicles_mask = np.expand_dims(mask, axis=-1)
+   
+    # Dilate mask
+    # mask = cv2.dilate(mask, np.ones((5,5),np.uint8), iterations = 100)
+        
+    app.set_transformation_matrix(RT)
+    app.load_meshes({'ossicles': OSSICLES_MESH_PATH})
+    app.plot()
+
+    # Create rendering
+    render_black_bg = app.render_scene(render_image=False, render_objects=['ossicles'])
+    # save the rendered whole image
+    vis.utils.save_image(render_black_bg, TEST_DATA_DIR, f"rendered_mask_whole_{name}.png")
+
+    mask_render = vis.utils.color2binary_mask(render_black_bg)
+    mask_render_masked = mask_render * ossicles_mask
+
+    render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)  # render_masked_white_bg = render_white_bg * ossicles_mask
+    # save the rendered partial image
+    vis.utils.save_image(render_masked_black_bg, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
+    assert (mask_render_masked == vis.utils.color2binary_mask(render_masked_black_bg)).all()
+    
+    plt.subplot(221)
+    plt.imshow(render_black_bg)
+    plt.subplot(222)
+    plt.imshow(ossicles_mask)
+    plt.subplot(223)
+    plt.imshow(mask_render_masked)
+    plt.subplot(224)
+    plt.imshow(render_masked_black_bg)
+    plt.show()
+    
+    # Create 2D-3D correspondences
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_masked_black_bg, app, 'ossicles')
+    
+    logger.debug(f"The total points are {pts3d.shape[0]}")
+
+    pts2d = pts2d.astype('float32')
+    pts3d = pts3d.astype('float32')
+    camera_intrinsics = app.camera_intrinsics.astype('float32')
+    
+    if pts2d.shape[0] < 4:
+        predicted_pose = np.eye(4)
+        inliers = []
+    else:
+        dist_coeffs = np.zeros((4, 1))
+        
+        # Get a rotation matrix
+        predicted_pose = np.eye(4)
+        
+        # Use EPNP
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
+            
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
+            logger.debug(len(inliers)) # 50703
+            
+    logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
+            
+    assert np.isclose(predicted_pose, RT, atol=4).all()
+
+
+def test_compute_rigid_transformation():
+    ply_data = pv.get_reader(OSSICLES_MESH_PATH_PLY).read()
+    ply_data.points = ply_data.points.astype("double")
+    mesh_data = pv.wrap(vis.utils.load_trimesh(OLD_OSSICLES_MESH_PATH))
+    
+    ply_vertices = ply_data.points
+    mesh_vertices = mesh_data.points
+
+    """
+    ply_transfromed_vertices_pv = ply_data.transform(RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    ply_transfromed_vertices = vis.utils.transform_vertices(ply_vertices, RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    assert np.isclose(ply_transfromed_vertices_pv.points, ply_transfromed_vertices, atol=1e-10).all()
+
+    mesh_transformed_vertices_pv = mesh_data.transform(RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    mesh_transformed_vertices = vis.utils.transform_vertices(mesh_vertices, RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX)
+    assert np.isclose(mesh_transformed_vertices_pv.points, mesh_transformed_vertices, atol=1e-10).all()
+
+    rt = vis.utils.rigid_transform_3D(mesh_transformed_vertices, ply_transfromed_vertices)
+    # rt = np.linalg.inv(rt)
+
+    mesh_transformed = vis.utils.transform_vertices(mesh_transformed_vertices, rt)
+    mesh_transformed_pv = mesh_transformed_vertices_pv.transform(rt)
+    assert np.isclose(mesh_transformed_pv.points, mesh_transformed, atol=1e-10).all()
+
+    # rt = vis.utils.rigid_transform_3D(ply_vertices, mesh_vertices) # input data shape need to be 3 by N
+    # rt = np.linalg.inv(rt)
+    gt_pose = RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX @ rt
+    """
+
+    rt = vis.utils.rigid_transform_3D(mesh_vertices, ply_vertices)
+    gt_pose = rt @ RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX
+    print(gt_pose)
