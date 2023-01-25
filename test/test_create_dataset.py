@@ -242,7 +242,7 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
     mask_render = vis.utils.color2binary_mask(render_black_bg)
     mask_render_masked = mask_render * ossicles_mask
 
-    render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)  # render_masked_white_bg = render_white_bg * ossicles_mask
+    render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)
     # save the rendered partial image
     vis.utils.save_image(render_masked_black_bg, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
     assert (mask_render_masked == vis.utils.color2binary_mask(render_masked_black_bg)).all()
