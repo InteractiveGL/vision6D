@@ -221,8 +221,7 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
     # save the GT pose to .npy file
     np.save(DATA_DIR / f"{name}_gt_pose.npy", RT)
     
-    mask = np.load(hand_draw_mask) / 255
-    mask = np.where(mask != 0, 1, 0)
+    mask = np.load(hand_draw_mask).astype("bool")
     
     plt.imshow(mask)
     plt.show()
@@ -245,7 +244,7 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
     render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)
     # save the rendered partial image
     vis.utils.save_image(render_masked_black_bg, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
-    assert (mask_render_masked == vis.utils.color2binary_mask(render_masked_black_bg)).all()
+    assert (mask_render_masked == vis.utils.color2binary_mask(render_masked_black_bg)).all(), "mask_render_masked is not the same as converted render_masked_black_bg"
     
     plt.subplot(221)
     plt.imshow(render_black_bg)
@@ -262,26 +261,7 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
-    pts2d = pts2d.astype('float32')
-    pts3d = pts3d.astype('float32')
-    camera_intrinsics = app.camera_intrinsics.astype('float32')
-    
-    if pts2d.shape[0] < 4:
-        predicted_pose = np.eye(4)
-        inliers = []
-    else:
-        dist_coeffs = np.zeros((4, 1))
-        
-        # Get a rotation matrix
-        predicted_pose = np.eye(4)
-        
-        # Use EPNP
-        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
-            
-        if success:
-            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
-            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
-            logger.debug(len(inliers)) # 50703
+    predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, app.camera_intrinsics, app.camera.position)
             
     logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
             

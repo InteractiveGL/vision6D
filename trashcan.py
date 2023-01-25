@@ -1077,3 +1077,16 @@ def test_compute_rigid_transformation():
     rt = vis.utils.rigid_transform_3D(mesh_vertices, ply_vertices)
     gt_pose = rt @ RL_20210304_0_OSSICLES_TRANSFORMATION_MATRIX
     print(gt_pose)
+
+def color2binary_mask(color_mask):
+    # binary_mask = copy.deepcopy(color_mask)
+    binary_mask = np.zeros(color_mask[...,:1].shape)
+    
+    black_pixels_mask = np.all(color_mask == [0, 0, 0], axis=-1)
+    non_black_pixels_mask = ~black_pixels_mask
+    # non_black_pixels_mask = np.any(color_mask != [0, 0, 0], axis=-1)  
+
+    binary_mask[black_pixels_mask] = [0]
+    binary_mask[non_black_pixels_mask] = [1]
+    
+    return binary_mask

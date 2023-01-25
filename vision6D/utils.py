@@ -96,6 +96,13 @@ def meshread(fid, linesread=False, meshread2=False):
     # Return data
     return mesh
 
+def load_meshobj(meshpath):
+    with open(meshpath, "rb") as fid:
+        mesh = meshread(fid)
+    orient = mesh.orient / np.array([1,2,3])
+    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
+    return mesh
+
 def load_trimesh(meshpath):
     with open(meshpath, "rb") as fid:
         mesh = meshread(fid)
@@ -103,18 +110,11 @@ def load_trimesh(meshpath):
     mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
     mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
     return mesh
-    
-def color2binary_mask(color_mask):
-    # binary_mask = copy.deepcopy(color_mask)
-    binary_mask = np.zeros(color_mask[...,:1].shape)
-    
-    black_pixels_mask = np.all(color_mask == [0, 0, 0], axis=-1)
-    non_black_pixels_mask = ~black_pixels_mask
-    # non_black_pixels_mask = np.any(color_mask != [0, 0, 0], axis=-1)  
 
-    binary_mask[black_pixels_mask] = [0]
-    binary_mask[non_black_pixels_mask] = [1]
-    
+def color2binary_mask(color_mask):
+    binary_mask = np.zeros(color_mask[...,:1].shape)
+    x, y, _ = np.where(color_mask != [0., 0., 0.])
+    binary_mask[x, y] = 1      
     return binary_mask
 
 def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, obj:Type, object_name:str, npts:int=-1):
@@ -149,6 +149,30 @@ def create_2d_3d_pairs(mask:np.ndarray, render:np.ndarray, obj:Type, object_name
     vtx = np.stack([r, g, b], axis=1)
     
     return rand_pts, vtx
+
+def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, camera_position):
+    pts2d = pts2d.astype('float32')
+    pts3d = pts3d.astype('float32')
+    camera_intrinsics = camera_intrinsics.astype('float32')
+    
+    if pts2d.shape[0] < 4:
+        predicted_pose = np.eye(4)
+        # inliers = []
+    else:
+        dist_coeffs = np.zeros((4, 1))
+        
+        # Get a rotation matrix
+        predicted_pose = np.eye(4)
+        
+        # Use EPNP
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
+            
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(camera_position)
+            # logger.debug(len(inliers)) # 50703
+
+    return predicted_pose
 
 def transform_vertices(vertices, transformation_matrix=np.eye(4)):
 
