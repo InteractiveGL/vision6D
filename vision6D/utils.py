@@ -117,18 +117,19 @@ def color2binary_mask(color_mask):
     binary_mask[x, y] = 1      
     return binary_mask
 
-def create_2d_3d_pairs(color_mask:np.ndarray, obj:Type, object_name:str, npts:int=-1, binary_mask:np.ndarray = None):
+def create_2d_3d_pairs(color_mask:np.ndarray, obj:Type, object_name:str, npts:int=-1, binary_mask:np.ndarray=None):
 
     if binary_mask is None:
         binary_mask = color2binary_mask(color_mask)
-        # To convert color_mask to bool type, we need to consider all three channels for color image, or conbine all channels to grey for color images!
-        color_mask_bool = (0.2989 * color_mask[..., :1] + 0.5870*color_mask[..., 1:2] + 0.1140*color_mask[..., 2:]).astype("bool") 
-        # # solution2
-        # color_mask_bool = np.logical_or(color_mask.astype("bool")[..., :1], color_mask.astype("bool")[..., 1:2], color_mask.astype("bool")[..., 2:])
-        # # solution3
-        # color_mask_bool = color_mask.astype("bool")
-        # color_mask_bool = (color_mask_bool[..., :1] + color_mask_bool[..., 1:2] + color_mask_bool[..., 2:]).astype("bool")
-        assert (binary_mask == color_mask_bool).all(), "binary_mask is not the same as the color_mask_bool"
+
+    # To convert color_mask to bool type, we need to consider all three channels for color image, or conbine all channels to grey for color images!
+    color_mask_bool = (0.2989 * color_mask[..., :1] + 0.5870*color_mask[..., 1:2] + 0.1140*color_mask[..., 2:]).astype("bool") 
+    # # solution2
+    # color_mask_bool = np.logical_or(color_mask.astype("bool")[..., :1], color_mask.astype("bool")[..., 1:2], color_mask.astype("bool")[..., 2:])
+    # # solution3
+    # color_mask_bool = color_mask.astype("bool")
+    # color_mask_bool = (color_mask_bool[..., :1] + color_mask_bool[..., 1:2] + color_mask_bool[..., 2:]).astype("bool")
+    assert (binary_mask == color_mask_bool).all(), "binary_mask is not the same as the color_mask_bool"
 
     # Randomly select points in the mask
     idx = np.where(binary_mask == 1)

@@ -257,7 +257,7 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
     plt.show()
     
     # Create 2D-3D correspondences
-    # pts2d, pts3d = vis.utils.create_2d_3d_pairs(color_mask, app, 'ossicles', binary_mask)
+    # pts2d, pts3d = vis.utils.create_2d_3d_pairs(color_mask, app, 'ossicles', binary_mask=binary_mask)
     pts2d, pts3d = vis.utils.create_2d_3d_pairs(color_mask, app, 'ossicles')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
