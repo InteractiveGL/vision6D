@@ -211,7 +211,7 @@ def test_generate_image(app, name):
     "app, name, hand_draw_mask, ossicles_path, RT",
     [
         (lazy_fixture("app_full"), "5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997), # error: 0.8573262508172124
-        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088), # error: 5.253714309928259
+        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088), # error: 5.398165257981464
         (lazy_fixture("app_full"), "6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108), # error: 0.8516761480978112
         (lazy_fixture("app_full"), "6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742), # error: 2.415673998426594
         ]
@@ -227,37 +227,38 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
     plt.show()
 
     # expand the dimension
-    ossicles_mask = np.expand_dims(mask, axis=-1)
+    seg_mask = np.expand_dims(mask, axis=-1)
         
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': ossicles_path})
     app.plot()
 
     # Create rendering
-    render_black_bg = app.render_scene(render_image=False, render_objects=['ossicles'])
+    color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
     # save the rendered whole image
-    vis.utils.save_image(render_black_bg, TEST_DATA_DIR, f"rendered_mask_whole_{name}.png")
+    vis.utils.save_image(color_mask_whole, TEST_DATA_DIR, f"rendered_mask_whole_{name}.png")
 
-    mask_render = vis.utils.color2binary_mask(render_black_bg)
-    mask_render_masked = mask_render * ossicles_mask
+    color_mask_binarized = vis.utils.color2binary_mask(color_mask_whole)
+    binary_mask = color_mask_binarized * seg_mask
 
-    render_masked_black_bg = (render_black_bg * ossicles_mask).astype(np.uint8)
+    color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
     # save the rendered partial image
-    vis.utils.save_image(render_masked_black_bg, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
-    assert (mask_render_masked == vis.utils.color2binary_mask(render_masked_black_bg)).all(), "mask_render_masked is not the same as converted render_masked_black_bg"
+    vis.utils.save_image(color_mask, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
+    assert (binary_mask == vis.utils.color2binary_mask(color_mask)).all(), "render_binary_mask is not the same as converted render_color_mask"
     
     plt.subplot(221)
-    plt.imshow(render_black_bg)
+    plt.imshow(color_mask_whole)
     plt.subplot(222)
-    plt.imshow(ossicles_mask)
+    plt.imshow(seg_mask)
     plt.subplot(223)
-    plt.imshow(mask_render_masked)
+    plt.imshow(binary_mask)
     plt.subplot(224)
-    plt.imshow(render_masked_black_bg)
+    plt.imshow(color_mask)
     plt.show()
     
     # Create 2D-3D correspondences
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(mask_render_masked, render_masked_black_bg, app, 'ossicles')
+    # pts2d, pts3d = vis.utils.create_2d_3d_pairs(color_mask, app, 'ossicles', binary_mask)
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(color_mask, app, 'ossicles')
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
