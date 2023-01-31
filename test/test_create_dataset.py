@@ -208,15 +208,15 @@ def test_generate_image(app, name):
 
 
 @pytest.mark.parametrize(
-    "app, name, hand_draw_mask, ossicles_path, RT",
+    "app, name, hand_draw_mask, ossicles_path, RT, rescale",
     [
-        (lazy_fixture("app_full"), "5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997), # error: 0.8573262508172124
-        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088), # error: 5.398165257981464
-        (lazy_fixture("app_full"), "6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108), # error: 0.8516761480978112
-        (lazy_fixture("app_full"), "6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742), # error: 2.415673998426594
+        (lazy_fixture("app_full"), "5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997, "True"), # error: 0.8573262508172124 # if rescale: 0.5510600582101389
+        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088, "True"), # error: 5.398165257981464 # if rescale: 6.120078001305548
+        (lazy_fixture("app_full"), "6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108, "True"), # error: 0.8516761480978112 # if rescale: 0.21774485476235367
+        (lazy_fixture("app_full"), "6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742, "True"), # error: 2.415673998426594 # if rescale: 148.14798220849184
         ]
 )
-def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
+def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT, rescale):
 
     # save the GT pose to .npy file
     np.save(DATA_DIR / f"{name}_gt_pose.npy", RT)
@@ -242,9 +242,16 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT):
     binary_mask = color_mask_binarized * seg_mask
 
     color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
+
     # save the rendered partial image
     vis.utils.save_image(color_mask, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
     assert (binary_mask == vis.utils.color2binary_mask(color_mask)).all(), "render_binary_mask is not the same as converted render_color_mask"
+
+    if rescale:
+        downscale_color_mask = cv2.resize(color_mask, (384, 216), interpolation = cv2.INTER_AREA)
+        downscale_binary_mask = cv2.resize(binary_mask, (384, 216), interpolation = cv2.INTER_AREA)
+        color_mask = cv2.resize(downscale_color_mask, (1920, 1080), interpolation = cv2.INTER_AREA)
+        binary_mask = cv2.resize(downscale_binary_mask, (1920, 1080), interpolation = cv2.INTER_AREA)
     
     plt.subplot(221)
     plt.imshow(color_mask_whole)
