@@ -12,6 +12,8 @@ import cv2
 from scipy.spatial.transform import Rotation as R
 from pytest_lazyfixture  import lazy_fixture
 import skimage.transform
+import torch
+import torchvision
 
 import vision6D as vis
 
@@ -57,26 +59,32 @@ gt_pose_5997 = np.array([[  -0.14498174,   -0.34676691,   -0.92667849,  -10.6034
                     [   0.,            0.,            0.,            1.        ]] ) #  GT pose
                                         
 gt_pose_60881 = np.array([[  0.2720979,   -0.10571448,  -0.96757074, -23.77536492],
-                                                        [  0.33708389,   0.95272971,  -0.00929905, -27.7404459 ],
-                                                        [  0.91309533,  -0.32021318,   0.29176419, -20.44275252],
-                                                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
+                        [  0.33708389,   0.95272971,  -0.00929905, -27.7404459 ],
+                        [  0.91309533,  -0.32021318,   0.29176419, -20.44275252],
+                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
 
 gt_pose_6088 = np.array([[  0.36049218,  -0.12347807,  -0.93605796, -24.3777202 ],
-                                                        [  0.31229879,   0.96116227,  -0.00651795, -27.43646144],
-                                                        [  0.89102231,  -0.28692541,   0.38099733, -19.1631882 ],
-                                                        [  0.,           0.,           0.,           1.        ]])
+                        [  0.31229879,   0.96116227,  -0.00651795, -27.43646144],
+                        [  0.89102231,  -0.28692541,   0.38099733, -19.1631882 ],
+                        [  0.,           0.,           0.,           1.        ]])
 
 
 gt_pose_6108 = np.array([[  0.18750646,   0.35092506,  -0.91743823, -29.81739935],
-                                                    [  0.55230585,   0.73470634,   0.39390969, -19.10118172],
-                                                    [  0.81228048,  -0.58056712,  -0.0560558,  227.40282413],
-                                                    [  0.,           0.,           0.,           1.        ]]) #  GT pose
+                        [  0.55230585,   0.73470634,   0.39390969, -19.10118172],
+                        [  0.81228048,  -0.58056712,  -0.0560558,  227.40282413],
+                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
 gt_pose_6742 = np.array([[ -0.00205008,  -0.27174699,   0.96236655,  16.14180134],
-                                                        [ -0.4431008,    0.86298269,   0.24273971,  -4.42885807],
-                                                        [ -0.89646944,  -0.42592774,  -0.1221805,  458.83536963],
-                                                        [  0.,           0.,           0.,           1.        ]] ) #  GT pose
+                        [ -0.4431008,    0.86298269,   0.24273971,  -4.42885807],
+                        [ -0.89646944,  -0.42592774,  -0.1221805,  458.83536963],
+                        [  0.,           0.,           0.,           1.        ]] ) #  GT pose
+
+
+# gt_pose_6742 = np.array([[ -0.0035555 ,  -0.26786957,   0.96344862,  16.13498199],
+#                         [ -0.44352236,   0.86393019,   0.23856349,  -4.50723201],
+#                         [ -0.89625625,  -0.4264628 ,  -0.12187785, 461.15278925],
+#                         [  0.        ,   0.        ,   0.        ,   1.        ]])
 
 # full size of the (1920, 1080)
 @pytest.fixture
@@ -208,18 +216,18 @@ def test_generate_image(app, name):
 
 
 @pytest.mark.parametrize(
-    "app, name, hand_draw_mask, ossicles_path, RT, rescale",
+    "app, name, hand_draw_mask, ossicles_path, RT, resize",
     [
-        (lazy_fixture("app_full"), "5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997, "True"), # error: 0.8573262508172124 # if rescale: 0.5510600582101389
-        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088, "True"), # error: 5.398165257981464 # if rescale: 6.120078001305548
-        (lazy_fixture("app_full"), "6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108, "True"), # error: 0.8516761480978112 # if rescale: 0.21774485476235367
-        (lazy_fixture("app_full"), "6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742, "True"), # error: 2.415673998426594 # if rescale: 148.14798220849184
+        (lazy_fixture("app_full"), "5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997, 1/5), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
+        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088, 1/5), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
+        (lazy_fixture("app_full"), "6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108, 1/5), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
+        (lazy_fixture("app_full"), "6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742, 1/5), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
         ]
 )
-def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT, rescale):
+def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT, resize):
 
     # save the GT pose to .npy file
-    np.save(DATA_DIR / f"{name}_gt_pose.npy", RT)
+    # np.save(DATA_DIR / f"{name}_gt_pose.npy", RT)
     
     mask = np.load(hand_draw_mask).astype("bool")
     
@@ -247,12 +255,25 @@ def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT, rescale)
     vis.utils.save_image(color_mask, TEST_DATA_DIR, f"rendered_mask_partial_{name}.png")
     assert (binary_mask == vis.utils.color2binary_mask(color_mask)).all(), "render_binary_mask is not the same as converted render_color_mask"
 
-    if rescale:
-        downscale_color_mask = cv2.resize(color_mask, (384, 216), interpolation = cv2.INTER_AREA)
-        downscale_binary_mask = cv2.resize(binary_mask, (384, 216), interpolation = cv2.INTER_AREA)
+    if resize:
+        resize_width = int(1920 * resize)
+        resize_height = int(1080 * resize)
+        downscale_color_mask = cv2.resize(color_mask, (resize_width, resize_height), interpolation = cv2.INTER_AREA)
+        downscale_binary_mask = cv2.resize(binary_mask, (resize_width, resize_height), interpolation = cv2.INTER_AREA)
+        # numpy implementation
         color_mask = cv2.resize(downscale_color_mask, (1920, 1080), interpolation = cv2.INTER_AREA)
         binary_mask = cv2.resize(downscale_binary_mask, (1920, 1080), interpolation = cv2.INTER_AREA)
-    
+        # # torch implementation
+        # trans = torchvision.transforms.Resize((1080, 1920))
+        # color_mask = trans(torch.tensor(downscale_color_mask).permute(2,0,1))
+        # color_mask = color_mask.permute(1,2,0).detach().cpu().numpy()
+        # binary_mask = trans(torch.tensor(downscale_binary_mask).unsqueeze(-1).permute(2,0,1))
+        # binary_mask = binary_mask.permute(1,2,0).squeeze().detach().cpu().numpy()
+        # make sure the binary mask only contains 0 and 1
+        binary_mask = np.where(binary_mask != 0, 1, 0)
+        binary_mask_bool = binary_mask.astype('bool')
+        assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
+
     plt.subplot(221)
     plt.imshow(color_mask_whole)
     plt.subplot(222)

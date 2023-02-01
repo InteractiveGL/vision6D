@@ -122,6 +122,11 @@ def create_2d_3d_pairs(color_mask:np.ndarray, obj:Type, object_name:str, npts:in
     if binary_mask is None:
         binary_mask = color2binary_mask(color_mask)
 
+    # make sure the binary mask only contains 0 and 1
+    binary_mask = np.where(binary_mask != 0, 1, 0)
+    binary_mask_bool = binary_mask.astype('bool')
+    assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
+
     # To convert color_mask to bool type, we need to consider all three channels for color image, or conbine all channels to grey for color images!
     color_mask_bool = (0.2989 * color_mask[..., :1] + 0.5870*color_mask[..., 1:2] + 0.1140*color_mask[..., 2:]).astype("bool") 
     # # solution2
