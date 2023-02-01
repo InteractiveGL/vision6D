@@ -86,33 +86,11 @@ gt_pose_6742 = np.array([[ -0.00205008,  -0.27174699,   0.96236655,  16.14180134
 #                         [ -0.89625625,  -0.4264628 ,  -0.12187785, 461.15278925],
 #                         [  0.        ,   0.        ,   0.        ,   1.        ]])
 
-# full size of the (1920, 1080)
+# app size of the (1920, 1080)
 @pytest.fixture
-def app_full():
+def app():
     return vis.App(register=True, scale=1)
     
-# 1/2 size of the (1920, 1080) -> (960, 540)
-@pytest.fixture
-def app_half():
-    return vis.App(register=True, scale=1/2)
-    
-# 1/4 size of the (1920, 1080) -> (480, 270)
-@pytest.fixture
-def app_quarter():
-    return vis.App(register=True, scale=1/4)
-    
-# 1/8 size of the (1920, 1080) -> (240, 135)
-@pytest.fixture
-def app_smallest():
-    return vis.App(register=True, scale=1/8)
-    
-@pytest.mark.parametrize(
-    "app",
-    [lazy_fixture("app_full"),
-     lazy_fixture("app_half"),
-     lazy_fixture("app_quarter"), 
-     lazy_fixture("app_smallest")]
-)  
 def test_load_image(app):
     image_source = np.array(Image.open(IMAGE_NUMPY_PATH))
     # image_source = IMAGE_JPG_PATH
@@ -129,25 +107,17 @@ def test_load_image(app):
     (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742),
     ]
 )  
-def test_load_mesh_from_dataset(image_path, ossicles_path, facial_nerve_path, chorda_path, RT):
-    app_full = vis.App(register=True, scale=1)
+def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_path, chorda_path, RT):
     image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
-    app_full.load_image(image_numpy)
-    app_full.set_transformation_matrix(RT)
-    app_full.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
-    app_full.bind_meshes("ossicles", "g")
-    app_full.bind_meshes("chorda", "h")
-    app_full.bind_meshes("facial_nerve", "j")
-    app_full.set_reference("ossicles")
-    app_full.plot()
-
-@pytest.mark.parametrize(
-    "app",
-    [lazy_fixture("app_full"),
-     lazy_fixture("app_half"),
-     lazy_fixture("app_quarter"), 
-     lazy_fixture("app_smallest")]
-)  
+    app.load_image(image_numpy)
+    app.set_transformation_matrix(RT)
+    app.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
+    app.bind_meshes("ossicles", "g")
+    app.bind_meshes("chorda", "h")
+    app.bind_meshes("facial_nerve", "j")
+    app.set_reference("ossicles")
+    app.plot()
+  
 def test_load_mesh(app):
     image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
     app.load_image(image_numpy)
@@ -159,13 +129,6 @@ def test_load_mesh(app):
     app.set_reference("ossicles")
     app.plot()
 
-@pytest.mark.parametrize(
-    "app",
-    [lazy_fixture("app_full"),
-     lazy_fixture("app_half"),
-     lazy_fixture("app_quarter"), 
-     lazy_fixture("app_smallest")]
-)  
 def test_render_scene(app):
     app.register = False
     app.set_transformation_matrix(gt_pose_5997)
@@ -179,14 +142,7 @@ def test_render_scene(app):
     plt.show()
     print("hhh")
     
-@pytest.mark.parametrize(
-    "app, name",
-    [(lazy_fixture("app_full"), "full"),
-     (lazy_fixture("app_half"), "half"),
-     (lazy_fixture("app_quarter"), "quarter"), 
-     (lazy_fixture("app_smallest"), "smallest")]
-)  
-def test_save_plot(app, name):
+def test_save_plot(app):
     app.set_register(False)
     image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
     app.load_image(image_numpy)
@@ -198,30 +154,23 @@ def test_save_plot(app, name):
     app.set_reference("ossicles")
     image_np = app.plot()
     plt.imshow(image_np); plt.show()
-    vis.utils.save_image(image_np, TEST_DATA_DIR, f"image_{name}_plot.png")
+    vis.utils.save_image(image_np, TEST_DATA_DIR, f"image_plot.png")
     
-@pytest.mark.parametrize(
-    "app, name",
-    [(lazy_fixture("app_full"), "full"),
-     (lazy_fixture("app_half"), "half"),
-     (lazy_fixture("app_quarter"), "quarter"), 
-     (lazy_fixture("app_smallest"), "smallest")]
-)  
-def test_generate_image(app, name):
+def test_generate_image(app):
     # image_np = app.render_scene(render_image=True, image_source=IMAGE_JPG_PATH)
     image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
     image_np = app.render_scene(render_image=True, image_source=image_numpy)
     plt.imshow(image_np); plt.show()
-    vis.utils.save_image(image_np, TEST_DATA_DIR, f"image_{name}.png")
+    vis.utils.save_image(image_np, TEST_DATA_DIR, f"image.png")
 
 
 @pytest.mark.parametrize(
-    "app, name, hand_draw_mask, ossicles_path, RT, resize",
+    "name, hand_draw_mask, ossicles_path, RT, resize",
     [
-        (lazy_fixture("app_full"), "5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997, 1/5), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
-        (lazy_fixture("app_full"), "6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088, 1/5), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
-        (lazy_fixture("app_full"), "6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108, 1/5), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
-        (lazy_fixture("app_full"), "6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742, 1/5), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
+        ("5997", mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997, 1/5), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
+        ("6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088, 1/5), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
+        ("6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108, 1/5), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
+        ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742, 1/5), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
         ]
 )
 def test_pnp_from_dataset(app, name, hand_draw_mask, ossicles_path, RT, resize):
