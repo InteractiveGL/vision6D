@@ -1,13 +1,11 @@
 import __future__
-import pickle
 import copy
-from typing import Tuple, Type
+from typing import Type
 
 import numpy as np
 import matplotlib.pyplot as plt
 from easydict import EasyDict
 import trimesh
-from trimesh import Trimesh
 from PIL import Image
 import cv2
 

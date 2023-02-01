@@ -2,15 +2,10 @@ from typing import List, Dict, Tuple
 import pathlib
 import logging
 import numpy as np
-from PIL import Image
-import copy
 import math
 import functools
 
 import pyvista as pv
-import trimesh
-import cv2
-from easydict import EasyDict
 import matplotlib.pyplot as plt
 import vision6D as vis
 
