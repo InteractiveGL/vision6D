@@ -22,10 +22,12 @@ class App:
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_viewup: Tuple=(0,-1,0),
+            orientation: str="right"
         ):
         
         self.window_size = (int(width*scale), int(height*scale))
         self.scale = scale
+        self.orientation = orientation
         self.reference = None
         self.transformation_matrix = None
         
@@ -126,15 +128,12 @@ class App:
             
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
-    def load_image(self, image_source, scale_factor:list=[0.01,0.01,1]):
+    def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
+
+        if self.orientation == "left": image_source = image_source[:, ::-1, ...]
         
-        if isinstance(image_source, pathlib.Path):
-            self.image_polydata['image'] = pv.get_reader(image_source).read()
-            self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
-            
-        elif isinstance(image_source, np.ndarray):
-            self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
-            self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+        self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+        self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
 
         self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
         self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
@@ -168,6 +167,9 @@ class App:
                     mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
+
+            # mirror the object's orientation to right if the orientation of the mesh is left
+            if self.orientation == "left": mesh_data = mesh_data.reflect((1, 0, 0))
                 
             self.mesh_polydata[mesh_name] = mesh_data
             
@@ -324,19 +326,13 @@ class App:
             last_image = self.pv_plotter.last_image
             return last_image
         
-    def render_scene(self, render_image:bool, image_source=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
+    def render_scene(self, render_image:bool, image_source:np.ndarray, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
         
         self.pv_render.enable_joystick_actor_style()
  
         if render_image:
-            if isinstance(image_source, pathlib.Path):
-                image = pv.get_reader(image_source).read()
-                image = image.scale(scale_factor, inplace=False)
-                
-            elif isinstance(image_source, np.ndarray):
-                image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
-                image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
-
+            image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+            image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
             image = image.translate(-1 * np.array(image.center), inplace=False)
             self.pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
         else:

@@ -1090,3 +1090,9 @@ def color2binary_mask(color_mask):
     binary_mask[non_black_pixels_mask] = [1]
     
     return binary_mask
+
+if isinstance(image_source, pathlib.Path):
+                image = pv.get_reader(image_source).read()
+                image = image.scale(scale_factor, inplace=False)
+                
+            elif isinstance(image_source, np.ndarray):

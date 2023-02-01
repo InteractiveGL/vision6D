@@ -78,8 +78,17 @@ gt_pose_6108 = np.array([[  0.18750646,   0.35092506,  -0.91743823, -29.81739935
 gt_pose_6742 = np.array([[ -0.00205008,  -0.27174699,   0.96236655,  16.14180134],
                         [ -0.4431008,    0.86298269,   0.24273971,  -4.42885807],
                         [ -0.89646944,  -0.42592774,  -0.1221805,  458.83536963],
-                        [  0.,           0.,           0.,           1.        ]] ) #  GT pose
+                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
+R = np.linalg.inv([[ -0.00205008,  -0.27174699,   0.96236655],
+            [ -0.4431008,    0.86298269,   0.24273971],
+            [ -0.89646944,  -0.42592774,  -0.1221805]])
+
+t = np.array([[-16.14180134],
+            [4.42885807],
+            [-458.83536963]])
+
+gt_pose_6742 = np.vstack((np.hstack((R, t)), np.array([0, 0, 0, 1])))
 
 # gt_pose_6742 = np.array([[ -0.0035555 ,  -0.26786957,   0.96344862,  16.13498199],
 #                         [ -0.44352236,   0.86393019,   0.23856349,  -4.50723201],
@@ -115,22 +124,21 @@ def app_smallest():
 )  
 def test_load_image(app):
     image_source = np.array(Image.open(IMAGE_NUMPY_PATH))
-    # image_source = IMAGE_JPG_PATH
     app.set_image_opacity(1)
     app.load_image(image_source, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
     app.plot()
     
 @pytest.mark.parametrize(
-    "image_path, ossicles_path, facial_nerve_path, chorda_path, RT",
-    [(DATA_DIR / "5997_0.png", DATA_DIR / "5997_right_ossicles.mesh", DATA_DIR / "5997_right_facial_nerve.mesh", DATA_DIR / "5997_right_chorda.mesh", gt_pose_5997),
-    (DATA_DIR / "6088_0.png", DATA_DIR / "6088_right_ossicles.mesh", DATA_DIR / "6088_right_facial_nerve.mesh", DATA_DIR / "6088_right_chorda.mesh", gt_pose_6088),
-    (DATA_DIR / "6108_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742),
+    "image_path, ossicles_path, facial_nerve_path, chorda_path, RT, orientation",
+    [(DATA_DIR / "5997_0.png", DATA_DIR / "5997_right_ossicles.mesh", DATA_DIR / "5997_right_facial_nerve.mesh", DATA_DIR / "5997_right_chorda.mesh", gt_pose_5997, "right"),
+    (DATA_DIR / "6088_0.png", DATA_DIR / "6088_right_ossicles.mesh", DATA_DIR / "6088_right_facial_nerve.mesh", DATA_DIR / "6088_right_chorda.mesh", gt_pose_6088, "right"),
+    (DATA_DIR / "6108_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108, "right"),
+    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, "left"),
     ]
 )  
-def test_load_mesh_from_dataset(image_path, ossicles_path, facial_nerve_path, chorda_path, RT):
-    app_full = vis.App(register=True, scale=1)
+def test_load_mesh_from_dataset(image_path, ossicles_path, facial_nerve_path, chorda_path, RT, orientation):
+    app_full = vis.App(register=True, scale=1, orientation=orientation)
     image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
     app_full.load_image(image_numpy)
     app_full.set_transformation_matrix(RT)
