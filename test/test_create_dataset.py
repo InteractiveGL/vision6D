@@ -121,11 +121,11 @@ def test_load_image(app):
     [(DATA_DIR / "5997_0.png", DATA_DIR / "5997_right_ossicles.mesh", DATA_DIR / "5997_right_facial_nerve.mesh", DATA_DIR / "5997_right_chorda.mesh", gt_pose_5997, False),
     (DATA_DIR / "6088_0.png", DATA_DIR / "6088_right_ossicles.mesh", DATA_DIR / "6088_right_facial_nerve.mesh", DATA_DIR / "6088_right_chorda.mesh", gt_pose_6088, False),
     (DATA_DIR / "6108_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108, False),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, True),
+    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742_mirror, True),
     ]
 )  
-def test_load_mesh_from_dataset(image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror):
-    app = vis.App(register=True, scale=1, mirror=mirror)
+def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror):
+    app.set_mirror(mirror)
     image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_transformation_matrix(RT)
@@ -195,13 +195,22 @@ def test_generate_image(app):
     [("5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997, 1/5, False), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
     ("6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088, 1/5, False), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
     ("6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108, 1/5, False), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
-    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742_mirror, 1, True), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
+    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742, 1/5, False), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
+    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742_mirror, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: ...
     ]
 )
 def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror):
 
+    ossicles_side = ossicles_path.stem.split("_")[1]
+    if mirror:
+        if ossicles_side == "right":
+            ossicles_side = "left"
+        elif ossicles_side == "left":
+            ossicles_side = "right"
+
     # save the GT pose to .npy file
-    # np.save(DATA_DIR / f"{name}_gt_pose.npy", RT)
+    gt_pose_name = f"{name}_{ossicles_side}_gt_pose.npy"
+    np.save(DATA_DIR / gt_pose_name, RT)
     app = vis.App(register=True, scale=1, mirror=mirror)
 
     mask = np.load(hand_draw_mask).astype("bool")
