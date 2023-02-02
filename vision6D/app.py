@@ -57,6 +57,9 @@ class App:
         self.pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
         self.pv_render.store_image = True
         
+    def set_mirror(self, mirror: bool):
+        self.mirror = mirror
+
     def set_register(self, register: bool):
         # plot image and ossicles
         self.register = register

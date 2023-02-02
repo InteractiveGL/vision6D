@@ -147,12 +147,19 @@ def test_load_mesh(app):
     app.set_reference("ossicles")
     app.plot()
 
-def test_render_scene(app):
-    app.register = False
-    app.set_transformation_matrix(gt_pose_5997)
-    # app.load_meshes({'ossicles': OSSICLES_MESH_PATH, 'facial_nerve': FACIAL_NERVE_MESH_PATH, 'chorda': CHORDA_MESH_PATH})
-    # image_np = app.render_scene(black_background, render_image=False, render_objects=['ossicles', 'facial_nerve', 'chorda'])
-    app.load_meshes({'ossicles': OSSICLES_MESH_PATH})
+@pytest.mark.parametrize(
+    "mesh_path, pose, mirror",
+    [(OSSICLES_MESH_PATH_5997, gt_pose_5997, False), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
+    (OSSICLES_MESH_PATH_6088, gt_pose_6088, False), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
+    (OSSICLES_MESH_PATH_6108, gt_pose_6108, False), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
+    (OSSICLES_MESH_PATH_6742, gt_pose_6742_mirror, True), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
+    ]
+)
+def test_render_scene(app, mesh_path, pose, mirror):
+    app.set_register(False)
+    app.set_mirror(mirror)
+    app.set_transformation_matrix(pose)
+    app.load_meshes({'ossicles': mesh_path})
     image_np = app.render_scene(render_image=False, render_objects=['ossicles'])
     plt.imshow(image_np)
     image = Image.fromarray(image_np)
