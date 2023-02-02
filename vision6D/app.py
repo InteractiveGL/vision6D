@@ -22,12 +22,12 @@ class App:
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_viewup: Tuple=(0,-1,0),
-            orientation: str="right"
+            mirror: bool=False
         ):
         
         self.window_size = (int(width*scale), int(height*scale))
         self.scale = scale
-        self.orientation = orientation
+        self.mirror = mirror
         self.reference = None
         self.transformation_matrix = None
         
@@ -130,7 +130,7 @@ class App:
         
     def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
 
-        if self.orientation == "left": image_source = image_source[:, ::-1, ...]
+        if self.mirror: image_source = image_source[:, ::-1, ...]
         
         self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
         self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
@@ -168,8 +168,8 @@ class App:
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
 
-            # mirror the object's orientation to right if the orientation of the mesh is left
-            if self.orientation == "left": 
+            # mirror the objects
+            if self.mirror: 
                 mesh_data_reflect = mesh_data.reflect((1, 0, 0)) # pyvista implementation
 
                 mesh_data_vertices = mesh_data.points * np.array((-1, 1, 1))
@@ -335,7 +335,7 @@ class App:
             last_image = self.pv_plotter.last_image
             return last_image
         
-    def render_scene(self, render_image:bool, image_source:np.ndarray, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
+    def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
         
         self.pv_render.enable_joystick_actor_style()
  

@@ -1096,3 +1096,19 @@ if isinstance(image_source, pathlib.Path):
                 image = image.scale(scale_factor, inplace=False)
                 
             elif isinstance(image_source, np.ndarray):
+
+    
+# 1/2 size of the (1920, 1080) -> (960, 540)
+@pytest.fixture
+def app_half():
+    return vis.App(register=True, scale=1/2)
+    
+# 1/4 size of the (1920, 1080) -> (480, 270)
+@pytest.fixture
+def app_quarter():
+    return vis.App(register=True, scale=1/4)
+    
+# 1/8 size of the (1920, 1080) -> (240, 135)
+@pytest.fixture
+def app_smallest():
+    return vis.App(register=True, scale=1/8)
