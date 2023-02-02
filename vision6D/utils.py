@@ -138,7 +138,7 @@ def trimesh2meshobj(meshpath, mesh, mirror=False):
     if mirror:
         if 'left' in name: side = "right"
         elif "right" in name: side = "left"
-        name = name.split("_")[0] + "_" + side + "_" + name.split("_")[-1] 
+        name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:])
 
     filename = meshpath.parent / (name + ".mesh")
     writemesh(filename, meshobj)
