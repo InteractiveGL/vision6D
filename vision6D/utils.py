@@ -97,16 +97,27 @@ def meshread(fid, linesread=False, meshread2=False):
 def load_meshobj(meshpath):
     with open(meshpath, "rb") as fid:
         mesh = meshread(fid)
-    orient = mesh.orient / np.array([1,2,3])
-    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
     return mesh
 
 def load_trimesh(meshpath):
-    mesh = load_meshobj(meshpath)
-    mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
+    meshobj = load_meshobj(meshpath)
+    mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T)
+    orient = meshobj.orient / np.array([1, 2, 3])
+    mesh.vertices = mesh.vertices * meshobj.sz * orient
     return mesh
 
-def writemesh(filename, mesh):
+def writemesh(meshpath, vertices):
+    mesh = load_meshobj(meshpath)
+    mesh.vertices = vertices # the shape has to be N x 3
+    # mesh.orient = np.array((1, 2, 3), dtype="int32")
+    # mesh.sz = np.array((1.0, 1.0, 1.0), dtype='float32')
+
+    name = meshpath.stem
+    if 'left' in name: side = "right"
+    elif "right" in name: side = "left"
+    name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:])
+    filename = meshpath.parent / (name + ".mesh")
+
     with open(filename, "wb") as f:
         f.write(mesh.id.astype('int32'))
         f.write(mesh.numverts.astype('int32'))
@@ -116,9 +127,10 @@ def writemesh(filename, mesh):
         f.write(mesh.dim.astype('int32'))
         f.write(mesh.sz.astype('float32'))
         f.write(mesh.color.astype('int32'))
-        # ndarray need to be C-continuous!
-        f.write(mesh.vertices.astype("float32").tobytes(order='C'))
-        f.write(mesh.triangles.astype("int32").tobytes(order='C'))
+        # ndarray need to be continuous!
+        f.write(mesh.vertices.astype("float32").tobytes(order='F'))
+        f.write(mesh.triangles.astype("int32").tobytes(order='F'))
+        """
         # if hasattr(mesh, "opacity"):
         #     f.write(mesh.opacity.T)
         #     if hasattr(mesh, "colormap"):
@@ -126,22 +138,8 @@ def writemesh(filename, mesh):
         #         f.write(mesh.colormap.numverts.T)
         #         f.write(mesh.colormap.cols.T)
         #         f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
-
-def trimesh2meshobj(meshpath, mesh, mirror=False):
-    meshobj = copy.deepcopy(load_meshobj(meshpath))
-    meshobj.vertices = mesh.vertices # the shape has to be N x 3
-    meshobj.triangles = mesh.faces # the shape has to be N x 3
-    meshobj.sz = np.array([1.0,1.0,1.0], dtype="float32")
-    meshobj.orient = np.array([1,2,3], dtype='int32')
-
-    name = meshpath.stem
-    if mirror:
-        if 'left' in name: side = "right"
-        elif "right" in name: side = "left"
-        name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:])
-
-    filename = meshpath.parent / (name + ".mesh")
-    writemesh(filename, meshobj)
+        """
+    print("finish writing to a mesh file")
         
 def color2binary_mask(color_mask):
     binary_mask = np.zeros(color_mask[...,:1].shape)

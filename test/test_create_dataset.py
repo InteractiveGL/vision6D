@@ -81,6 +81,11 @@ gt_pose_6742 = np.array([[ -0.00205008,  -0.27174699,   0.96236655,  16.14180134
                         [ -0.89646944,  -0.42592774,  -0.1221805,  458.83536963],
                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
+# gt_pose_6742 = np.array([[ -1,  0,   0,  0],
+#                         [ 0,  1,   0,  0],
+#                         [ 0,  0,  1,  0],
+#                         [ 0.,  0.,  0., 1. ]]) #  GT pose
+
 gt_pose_6742_mirror = np.array([[0.23328984,   0.39176946,  -0.88999581, -12.24053709],
                                 [  0.40846391,   0.79110787,   0.45530822,  -0.72599635],
                                 [  0.88245853,  -0.46974996,   0.02453373, 492.60459054],
@@ -109,6 +114,14 @@ gt_pose_6742_mirror = np.array([[0.23328984,   0.39176946,  -0.88999581, -12.240
 @pytest.fixture
 def app():
     return vis.App(register=True, scale=1)
+
+# TODO
+@pytest.fixture
+def meshpaths():
+    meshs = {}
+    meshs['OSSICLES_MESH_PATH_5997_right'] = OSSICLES_MESH_PATH_5997_right
+
+    return meshs
     
 def test_load_image(app):
     image_source = np.array(Image.open(IMAGE_NUMPY_PATH))
@@ -118,16 +131,21 @@ def test_load_image(app):
     app.plot()
     
 @pytest.mark.parametrize(
-    "image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror",
-    [(DATA_DIR / "5997_0.png", DATA_DIR / "5997_right_ossicles.mesh", DATA_DIR / "5997_right_facial_nerve.mesh", DATA_DIR / "5997_right_chorda.mesh", gt_pose_5997, False),
-    (DATA_DIR / "6088_0.png", DATA_DIR / "6088_right_ossicles.mesh", DATA_DIR / "6088_right_facial_nerve.mesh", DATA_DIR / "6088_right_chorda.mesh", gt_pose_6088, False),
-    (DATA_DIR / "6108_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108, False),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742_mirror, True),
+    "image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image",
+    [(DATA_DIR / "5997_0.png", DATA_DIR / "5997_right_ossicles.mesh", DATA_DIR / "5997_right_facial_nerve.mesh", DATA_DIR / "5997_right_chorda.mesh", gt_pose_5997, False, False),
+    (DATA_DIR / "6088_0.png", DATA_DIR / "6088_right_ossicles.mesh", DATA_DIR / "6088_right_facial_nerve.mesh", DATA_DIR / "6088_right_chorda.mesh", gt_pose_6088, False, False),
+    (DATA_DIR / "6108_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108, False, False),
+    (DATA_DIR / "6742_0.png", DATA_DIR / "original" / "6742_left_ossicles.mesh", DATA_DIR / "original" / "6742_left_facial_nerve.mesh", DATA_DIR / "original" / "6742_left_chorda.mesh", gt_pose_6742, True, False),
+    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, False, False),
+    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742_mirror, True, True),
+    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_right_ossicles.mesh", DATA_DIR / "6742_right_facial_nerve.mesh", DATA_DIR / "6742_right_chorda.mesh", gt_pose_6742, True, False),
     ]
 )  
-def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror):
-    app.set_mirror(mirror)
+def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image):
+    app.set_mirror_objects(mirror_objects)
     image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
+    if mirror_image:
+        image_numpy = image_numpy[:, ::-1, ...]
     app.load_image(image_numpy)
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
@@ -149,7 +167,7 @@ def test_load_mesh(app):
     app.plot()
 
 @pytest.mark.parametrize(
-    "mesh_path, pose, mirror",
+    "mesh_path, pose, mirror_objects",
     [(OSSICLES_MESH_PATH_5997_right, gt_pose_5997, False), 
     (OSSICLES_MESH_PATH_6088_right, gt_pose_6088, False),
     (OSSICLES_MESH_PATH_6108_right, gt_pose_6108, False),
@@ -157,9 +175,9 @@ def test_load_mesh(app):
     (OSSICLES_MESH_PATH_6742_left, gt_pose_6742_mirror, True),
     ]
 )
-def test_render_scene(app, mesh_path, pose, mirror):
+def test_render_scene(app, mesh_path, pose, mirror_objects):
     app.set_register(False)
-    app.set_mirror(mirror)
+    app.set_mirror_objects(mirror_objects)
     app.set_transformation_matrix(pose)
     app.load_meshes({'ossicles': mesh_path})
     image_np = app.render_scene(render_image=False, render_objects=['ossicles'])

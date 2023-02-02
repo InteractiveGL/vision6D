@@ -22,12 +22,12 @@ class App:
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_viewup: Tuple=(0,-1,0),
-            mirror: bool=False
+            mirror_objects: bool=False
         ):
         
         self.window_size = (int(width*scale), int(height*scale))
         self.scale = scale
-        self.mirror = mirror
+        self.mirror_objects = mirror_objects
         self.reference = None
         self.transformation_matrix = None
         
@@ -57,8 +57,8 @@ class App:
         self.pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
         self.pv_render.store_image = True
         
-    def set_mirror(self, mirror: bool):
-        self.mirror = mirror
+    def set_mirror_objects(self, mirror_objects: bool):
+        self.mirror_objects = mirror_objects
 
     def set_register(self, register: bool):
         # plot image and ossicles
@@ -132,8 +132,6 @@ class App:
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
     def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
-
-        if self.mirror: image_source = image_source[:, ::-1, ...]
         
         self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
         self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
@@ -166,17 +164,22 @@ class App:
                     mesh_data = pv.get_reader(mesh_source).read()
                     # Convert the data type from float32 to float64 to match with load_trimesh
                     mesh_data.points = mesh_data.points.astype("double")
-                elif '.mesh' in str(mesh_source):
+                elif '.mesh' in str(mesh_source): # .mesh obj data
                     trimesh_data = vis.utils.load_trimesh(mesh_source)
                     # mirror the objects
-                    if self.mirror:
-                        trimesh_data.vertices = trimesh_data.vertices * np.array((-1, 1, 1))
-                        vis.utils.trimesh2meshobj(mesh_source, trimesh_data, self.mirror)
+                    if self.mirror_objects:
+                        trimesh_data.vertices = trimesh_data.vertices * np.array([-1, 1, 1])
+                        # save the mirrored objects
+                        meshobj_data = vis.utils.load_meshobj(mesh_source)
+                        # meshobj_data.veritces = meshobj_data.vertices * np.array([1, 1, 1]).reshape((-1, 1))
+                        meshobj_data.veritces = meshobj_data.vertices * np.array([-1, 1, 1]).reshape((-1, 1))
+                        # meshobj_data.veritces = trimesh_data.vertices.T
+                        vis.utils.writemesh(mesh_source, meshobj_data.veritces)
                     mesh_data = pv.wrap(trimesh_data)
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
                 # mirror the objects
-                if self.mirror: mesh_data = mesh_data.reflect((1, 0, 0)) # pyvista implementation
+                if self.mirror_objects: mesh_data = mesh_data.reflect((1, 0, 0)) # pyvista implementation
                 
             self.mesh_polydata[mesh_name] = mesh_data
             
@@ -196,10 +199,7 @@ class App:
             
             # Save actor for later
             self.mesh_actors[mesh_name] = actor
-            
-            # logger.debug(f"\n{mesh_name} orientation: {self.mesh_actors[mesh_name].orientation}")
-            # logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
-            
+        
         if len(self.mesh_actors) == 1:
             self.set_reference(reference_name)
             
