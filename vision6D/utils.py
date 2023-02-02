@@ -102,12 +102,35 @@ def load_meshobj(meshpath):
     return mesh
 
 def load_trimesh(meshpath):
-    with open(meshpath, "rb") as fid:
-        mesh = meshread(fid)
-    orient = mesh.orient / np.array([1,2,3])
-    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
+    mesh = load_meshobj(meshpath)
     mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
     return mesh
+
+def trimesh2meshobj(meshpath, mesh):
+    meshobj = load_meshobj(meshpath)
+    meshobj.vertices = mesh.vertices.T.astype(str(meshobj.vertices.dtype))
+    meshobj.triangles = mesh.faces.T.astype(str(meshobj.triangles.dtype))
+
+    filename = meshpath.parent / (meshpath.stem.split('.')[0] + '_new.mesh')
+    with open(filename, "wb") as f:
+        f.write(meshobj.id.T)
+        f.write(meshobj.numverts.T)
+        f.write(meshobj.numtris.T)
+        f.write(np.int32(-1).T)
+        f.write(meshobj.orient.T)
+        f.write(meshobj.dim.T)
+        f.write(meshobj.sz.T)
+        f.write(meshobj.color.T)
+        # ndarray need to be C-continuous!
+        f.write(meshobj.vertices.T.tobytes(order='C'))
+        f.write(meshobj.triangles.T.tobytes(order='C'))
+        if hasattr(meshobj, "opacity"):
+            f.write(meshobj.opacity.T)
+            if hasattr(meshobj, "colormap"):
+                f.write(meshobj.colormap.numcols.T)
+                f.write(meshobj.colormap.numverts.T)
+                f.write(meshobj.colormap.cols.T)
+                f.write(meshobj.colormap.vertexindexes.T.tobytes(order='C'))
 
 def color2binary_mask(color_mask):
     binary_mask = np.zeros(color_mask[...,:1].shape)
