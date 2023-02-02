@@ -171,10 +171,14 @@ class App:
             # mirror the object's orientation to right if the orientation of the mesh is left
             if self.orientation == "left": 
                 mesh_data_reflect = mesh_data.reflect((1, 0, 0)) # pyvista implementation
+
+                mesh_data_vertices = mesh_data.points * np.array((-1, 1, 1))
+
                 # mirror the mesh along the x axis
                 mirror_x = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                 mesh_data.points = vis.utils.transform_vertices(mesh_data.points, mirror_x)
-                assert (mesh_data.points == mesh_data_reflect.points).all(), "mesh_data.points should equal to mesh_data_reflect!"
+
+                assert (mesh_data.points == mesh_data_reflect.points).all() and (mesh_data.points == mesh_data_vertices).all(), "mesh_data.points should equal to mesh_data_reflect!"
                 
             self.mesh_polydata[mesh_name] = mesh_data
             
