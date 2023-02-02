@@ -167,21 +167,16 @@ class App:
                     # Convert the data type from float32 to float64 to match with load_trimesh
                     mesh_data.points = mesh_data.points.astype("double")
                 elif '.mesh' in str(mesh_source):
-                    mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
+                    trimesh_data = vis.utils.load_trimesh(mesh_source)
+                    # mirror the objects
+                    if self.mirror:
+                        trimesh_data.vertices = trimesh_data.vertices * np.array((-1, 1, 1))
+                        vis.utils.trimesh2meshobj(mesh_source, trimesh_data, self.mirror)
+                    mesh_data = pv.wrap(trimesh_data)
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
-
-            # mirror the objects
-            if self.mirror: 
-                mesh_data_reflect = mesh_data.reflect((1, 0, 0)) # pyvista implementation
-
-                mesh_data_vertices = mesh_data.points * np.array((-1, 1, 1))
-
-                # mirror the mesh along the x axis
-                mirror_x = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                mesh_data.points = vis.utils.transform_vertices(mesh_data.points, mirror_x)
-
-                assert (mesh_data.points == mesh_data_reflect.points).all() and (mesh_data.points == mesh_data_vertices).all(), "mesh_data.points should equal to mesh_data_reflect!"
+                # mirror the objects
+                if self.mirror: mesh_data = mesh_data.reflect((1, 0, 0)) # pyvista implementation
                 
             self.mesh_polydata[mesh_name] = mesh_data
             

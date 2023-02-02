@@ -43,10 +43,11 @@ CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
 # FACIAL_NERVE_MESH_PATH = TEST_DATA_DIR / "facial_nerve_001_not_colored.ply"
 # CHORDA_MESH_PATH = TEST_DATA_DIR / "chorda_001_not_colored.ply"
 
-OSSICLES_MESH_PATH_5997 = DATA_DIR / "5997_right_ossicles.mesh"
-OSSICLES_MESH_PATH_6088 = DATA_DIR / "6088_right_ossicles.mesh"
-OSSICLES_MESH_PATH_6108 = DATA_DIR / "6108_right_ossicles.mesh"
-OSSICLES_MESH_PATH_6742 = DATA_DIR / "6742_left_ossicles.mesh"
+OSSICLES_MESH_PATH_5997_right = DATA_DIR / "5997_right_ossicles.mesh"
+OSSICLES_MESH_PATH_6088_right = DATA_DIR / "6088_right_ossicles.mesh"
+OSSICLES_MESH_PATH_6108_right = DATA_DIR / "6108_right_ossicles.mesh"
+OSSICLES_MESH_PATH_6742_left = DATA_DIR / "6742_left_ossicles.mesh"
+OSSICLES_MESH_PATH_6742_right = DATA_DIR / "6742_right_ossicles.mesh"
 
 mask_5997_hand_draw_numpy = DATA_DIR / "mask_5997_hand_draw_numpy.npy"
 mask_6088_hand_draw_numpy = DATA_DIR / "mask_6088_hand_draw_numpy.npy"
@@ -149,10 +150,11 @@ def test_load_mesh(app):
 
 @pytest.mark.parametrize(
     "mesh_path, pose, mirror",
-    [(OSSICLES_MESH_PATH_5997, gt_pose_5997, False), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
-    (OSSICLES_MESH_PATH_6088, gt_pose_6088, False), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
-    (OSSICLES_MESH_PATH_6108, gt_pose_6108, False), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
-    (OSSICLES_MESH_PATH_6742, gt_pose_6742_mirror, True), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
+    [(OSSICLES_MESH_PATH_5997_right, gt_pose_5997, False), 
+    (OSSICLES_MESH_PATH_6088_right, gt_pose_6088, False),
+    (OSSICLES_MESH_PATH_6108_right, gt_pose_6108, False),
+    (OSSICLES_MESH_PATH_6742_right, gt_pose_6742_mirror, False),
+    (OSSICLES_MESH_PATH_6742_left, gt_pose_6742_mirror, True),
     ]
 )
 def test_render_scene(app, mesh_path, pose, mirror):
@@ -192,11 +194,11 @@ def test_generate_image(app):
 
 @pytest.mark.parametrize(
     "name, hand_draw_mask, ossicles_path, RT, resize, mirror",
-    [("5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997, gt_pose_5997, 1/5, False), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
-    ("6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088, gt_pose_6088, 1/5, False), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
-    ("6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108, gt_pose_6108, 1/5, False), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
-    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742, 1/5, False), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
-    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742, gt_pose_6742_mirror, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: ...
+    [("5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997_right, gt_pose_5997, 1/5, False), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
+    ("6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088_right, gt_pose_6088, 1/5, False), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
+    ("6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108_right, gt_pose_6108, 1/5, False), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
+    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742, 1/5, False), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
+    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742_mirror, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: ...
     ]
 )
 def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror):
