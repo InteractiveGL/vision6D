@@ -102,10 +102,7 @@ def load_meshobj(meshpath):
     return mesh
 
 def load_trimesh(meshpath):
-    with open(meshpath, "rb") as fid:
-        mesh = meshread(fid)
-    orient = mesh.orient / np.array([1,2,3])
-    mesh.vertices = mesh.vertices * np.expand_dims(mesh.sz, axis=1) * np.expand_dims(orient, axis=1)
+    mesh = load_meshobj(meshpath)
     mesh = trimesh.Trimesh(vertices=mesh.vertices.T, faces=mesh.triangles.T)
     return mesh
 
