@@ -166,23 +166,22 @@ class App:
                     mesh_data.points = mesh_data.points.astype("double")
                 elif '.mesh' in str(mesh_source): # .mesh obj data
                     trimesh_data = vis.utils.load_trimesh(mesh_source)
-                    # mirror the objects
-                    if self.mirror_objects:
-                        trimesh_data.vertices = trimesh_data.vertices * np.array([-1, 1, 1])
-                        # save the mirrored objects
-                        meshobj_data = vis.utils.load_meshobj(mesh_source)
-                        # meshobj_data.veritces = meshobj_data.vertices * np.array([1, 1, 1]).reshape((-1, 1))
-                        meshobj_data.veritces = meshobj_data.vertices * np.array([-1, 1, 1]).reshape((-1, 1))
-                        # meshobj_data.veritces = trimesh_data.vertices.T
-                        vis.utils.writemesh(mesh_source, meshobj_data.veritces)
+                    # # mirror the objects
+                    # if self.mirror_objects:
+                    #     trimesh_data.vertices = trimesh_data.vertices * np.array([-1, 1, 1])
+                    #     # save the mirrored objects
+                    #     meshobj_data = vis.utils.load_meshobj(mesh_source)
+                    #     # meshobj_data.veritces = meshobj_data.vertices * np.array([1, 1, 1]).reshape((-1, 1))
+                    #     meshobj_data.veritces = meshobj_data.vertices * np.array([-1, 1, 1]).reshape((-1, 1))
+                    #     # meshobj_data.veritces = trimesh_data.vertices.T
+                    #     vis.utils.writemesh(mesh_source, meshobj_data.veritces)
                     mesh_data = pv.wrap(trimesh_data)
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
                 # mirror the objects
-                if self.mirror_objects: mesh_data = mesh_data.reflect((1, 0, 0)) # pyvista implementation
-                
+
             self.mesh_polydata[mesh_name] = mesh_data
-            
+
             self.set_vertices(mesh_name, mesh_data.points)
             
             # set the color to be the meshes' initial location, and never change the color
@@ -199,6 +198,28 @@ class App:
             
             # Save actor for later
             self.mesh_actors[mesh_name] = actor
+                
+            if self.mirror_objects: 
+                center = np.mean(mesh_data.points, axis=0)
+                mesh_data = mesh_data.reflect((1, 0, 0), point = center) # mirror the object based on the center point
+                mesh_name = mesh_name + '_reflect'
+                self.mesh_polydata[mesh_name] = mesh_data
+                self.set_vertices(mesh_name, mesh_data.points)
+                
+                # set the color to be the meshes' initial location, and never change the color
+                colors = vis.utils.color_mesh(mesh_data.points.T)
+                
+                # Color the vertex
+                mesh_data.point_data.set_scalars(colors)
+
+                mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
+                
+                mesh.user_matrix = self.transformation_matrix
+                
+                actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
+                
+                # Save actor for later
+                self.mesh_actors[mesh_name] = actor
         
         if len(self.mesh_actors) == 1:
             self.set_reference(reference_name)
