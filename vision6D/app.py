@@ -40,15 +40,15 @@ class App:
         self.binded_meshes = {}
         
         # default opacity for image and surface
-        self.set_image_opacity(0.999) # self.image_opacity = 0.35
-        self.set_surface_opacity(0.999) # self.surface_opacity = 1
+        self.set_image_opacity(0.1) # self.image_opacity = 0.35
+        self.set_surface_opacity(1) # self.surface_opacity = 1
 
         # Set up the camera
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
         self.cam_viewup = cam_viewup
-        self.set_camera_intrinsics()
-        self.set_camera_extrinsics()
+        self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
+        self.set_camera_extrinsics(self.cam_focal_length, self.scale, self.cam_viewup)
         
         # Set the attribute and its implications
         self.set_register(register)
@@ -76,22 +76,17 @@ class App:
     def set_surface_opacity(self, surface_opacity: float):
         self.surface_opacity = surface_opacity
 
-    def set_camera_extrinsics(self):
-        # self.camera.SetPosition((0,0,0))
-        # self.camera.SetFocalPoint((0,0,(self.cam_focal_length/100)/self.scale))
-        self.camera.SetPosition((0,0,-(self.cam_focal_length/100)/self.scale))
+    def set_camera_extrinsics(self, cam_focal_length, scale, cam_viewup):
+        self.camera.SetPosition((0,0,-(cam_focal_length/100)/scale))
         self.camera.SetFocalPoint((0,0,0))
-        self.camera.SetViewUp(self.cam_viewup)
+        self.camera.SetViewUp(cam_viewup)
     
-    def set_camera_intrinsics(self):
-
-        width = self.window_size[0]
-        height = self.window_size[1]
+    def set_camera_intrinsics(self, width, height, cam_focal_length):
         
         # Set camera intrinsic attribute
         self.camera_intrinsics = np.array([
-            [self.cam_focal_length, 0, width/2],
-            [0, self.cam_focal_length, height/2],
+            [cam_focal_length, 0, width/2],
+            [0, cam_focal_length, height/2],
             [0, 0, 1]
         ])
         
@@ -201,7 +196,7 @@ class App:
                 
             if self.mirror_objects: 
                 center = np.mean(mesh_data.points, axis=0)
-                mesh_data = mesh_data.reflect((1, 0, 0), point = center) # mirror the object based on the center point
+                mesh_data = mesh_data.reflect((0, 1, 0), point = center) # mirror the object based on the center point
                 mesh_name = mesh_name + '_reflect'
                 self.mesh_polydata[mesh_name] = mesh_data
                 self.set_vertices(mesh_name, mesh_data.points)
