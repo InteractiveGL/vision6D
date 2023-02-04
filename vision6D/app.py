@@ -160,8 +160,18 @@ class App:
                     # Convert the data type from float32 to float64 to match with load_trimesh
                     mesh_data.points = mesh_data.points.astype("double")
                 elif '.mesh' in str(mesh_source): # .mesh obj data
-                    trimesh_data = vis.utils.load_trimesh(mesh_source)
-                    # # mirror the objects
+                    trimesh_data, dim = vis.utils.load_trimesh(mesh_source)
+                    # trimesh_data.vertices = (dim[0] - 1) - trimesh_data.vertices[..., 0]
+                    vis.utils.writemesh(mesh_source, trimesh_data)
+
+                    # trimesh_data, dim = vis.utils.load_trimesh(mesh_source)
+                    # print("hhh")
+                    # # flip along the x axis
+                    # # trimesh_data.vertices = (dim[0] - 1) - trimesh_data.vertices[..., 0]
+                    # vis.utils.writemesh(mesh_source, trimesh_data.vertices)
+
+
+                    # mirror the objects
                     # if self.mirror_objects:
                     #     trimesh_data.vertices = trimesh_data.vertices * np.array([-1, 1, 1])
                     #     # save the mirrored objects
@@ -194,27 +204,27 @@ class App:
             # Save actor for later
             self.mesh_actors[mesh_name] = actor
                 
-            if self.mirror_objects: 
-                center = np.mean(mesh_data.points, axis=0)
-                mesh_data = mesh_data.reflect((0, 1, 0), point = center) # mirror the object based on the center point
-                mesh_name = mesh_name + '_reflect'
-                self.mesh_polydata[mesh_name] = mesh_data
-                self.set_vertices(mesh_name, mesh_data.points)
+            # if self.mirror_objects: 
+            #     center = np.mean(mesh_data.points, axis=0)
+            #     mesh_data = mesh_data.reflect((0, 1, 0), point = center) # mirror the object based on the center point
+            #     mesh_name = mesh_name + '_reflect'
+            #     self.mesh_polydata[mesh_name] = mesh_data
+            #     self.set_vertices(mesh_name, mesh_data.points)
                 
-                # set the color to be the meshes' initial location, and never change the color
-                colors = vis.utils.color_mesh(mesh_data.points.T)
+            #     # set the color to be the meshes' initial location, and never change the color
+            #     colors = vis.utils.color_mesh(mesh_data.points.T)
                 
-                # Color the vertex
-                mesh_data.point_data.set_scalars(colors)
+            #     # Color the vertex
+            #     mesh_data.point_data.set_scalars(colors)
 
-                mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
+            #     mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
                 
-                mesh.user_matrix = self.transformation_matrix
+            #     mesh.user_matrix = self.transformation_matrix
                 
-                actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
+            #     actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
                 
-                # Save actor for later
-                self.mesh_actors[mesh_name] = actor
+            #     # Save actor for later
+            #     self.mesh_actors[mesh_name] = actor
         
         if len(self.mesh_actors) == 1:
             self.set_reference(reference_name)

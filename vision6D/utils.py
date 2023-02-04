@@ -96,21 +96,27 @@ def meshread(fid, linesread=False, meshread2=False):
 
 def load_meshobj(meshpath):
     with open(meshpath, "rb") as fid:
-        mesh = meshread(fid)
-    return mesh
+        meshobj = meshread(fid)
+    dim = meshobj.dim
+    orient = meshobj.orient / np.array([1, 2, 3])
+
+    for i in range(len(orient)):
+        if orient[i] == -1:
+            meshobj.vertices[i] = (dim[i] - 1) - meshobj.vertices[i].T
+
+    meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
+    return meshobj, dim
 
 def load_trimesh(meshpath):
-    meshobj = load_meshobj(meshpath)
+    meshobj, dim = load_meshobj(meshpath)
     mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T)
-    orient = meshobj.orient / np.array([1, 2, 3])
-    mesh.vertices = mesh.vertices * meshobj.sz * orient
-    return mesh
+    return mesh, dim
 
-def writemesh(meshpath, vertices):
-    mesh = load_meshobj(meshpath)
-    mesh.vertices = vertices # the shape has to be N x 3
-    # mesh.orient = np.array((1, 2, 3), dtype="int32")
-    # mesh.sz = np.array((1.0, 1.0, 1.0), dtype='float32')
+def writemesh(meshpath, mesh):
+    meshobj, _ = load_meshobj(meshpath)
+    meshobj.vertices = mesh.vertices.T # the shape has to be 3 x N
+    meshobj.orient = np.array((1, 2, 3), dtype="int32")
+    meshobj.sz = np.array((1.0, 1.0, 1.0), dtype='float32')
 
     name = meshpath.stem
     if 'left' in name: side = "right"
@@ -119,17 +125,17 @@ def writemesh(meshpath, vertices):
     filename = meshpath.parent / (name + ".mesh")
 
     with open(filename, "wb") as f:
-        f.write(mesh.id.astype('int32'))
-        f.write(mesh.numverts.astype('int32'))
-        f.write(mesh.numtris.astype('int32'))
+        f.write(meshobj.id.astype('int32'))
+        f.write(meshobj.numverts.astype('int32'))
+        f.write(meshobj.numtris.astype('int32'))
         f.write(np.int32(-1))
-        f.write(mesh.orient.astype('int32'))
-        f.write(mesh.dim.astype('int32'))
-        f.write(mesh.sz.astype('float32'))
-        f.write(mesh.color.astype('int32'))
+        f.write(meshobj.orient.astype('int32'))
+        f.write(meshobj.dim.astype('int32'))
+        f.write(meshobj.sz.astype('float32'))
+        f.write(meshobj.color.astype('int32'))
         # ndarray need to be continuous!
-        f.write(mesh.vertices.astype("float32").tobytes(order='F'))
-        f.write(mesh.triangles.astype("int32").tobytes(order='F'))
+        f.write(meshobj.vertices.astype("float32").tobytes(order='F'))
+        f.write(meshobj.triangles.astype("int32").tobytes(order='F'))
         """
         # if hasattr(mesh, "opacity"):
         #     f.write(mesh.opacity.T)
