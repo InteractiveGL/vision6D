@@ -104,6 +104,9 @@ def load_meshobj(meshpath):
         if orient[i] == -1:
             meshobj.vertices[i] = (dim[i] - 1) - meshobj.vertices[i].T
 
+    # flip along x axis
+    meshobj.vertices[0] = (dim[0] - 1) - meshobj.vertices[0].T
+
     meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
     return meshobj, dim
 

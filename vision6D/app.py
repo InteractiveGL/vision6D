@@ -161,6 +161,7 @@ class App:
                     mesh_data.points = mesh_data.points.astype("double")
                 elif '.mesh' in str(mesh_source): # .mesh obj data
                     trimesh_data, dim = vis.utils.load_trimesh(mesh_source)
+
                     # trimesh_data.vertices = (dim[0] - 1) - trimesh_data.vertices[..., 0]
                     vis.utils.writemesh(mesh_source, trimesh_data)
 
