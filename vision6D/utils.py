@@ -98,14 +98,15 @@ def load_meshobj(meshpath):
     with open(meshpath, "rb") as fid:
         meshobj = meshread(fid)
     dim = meshobj.dim
+    # load the original ossicles
     orient = meshobj.orient / np.array([1, 2, 3])
-
     for i in range(len(orient)):
         if orient[i] == -1:
             meshobj.vertices[i] = (dim[i] - 1) - meshobj.vertices[i].T
 
-    # flip along x axis
-    meshobj.vertices[0] = (dim[0] - 1) - meshobj.vertices[0].T
+    # flip along x/L axis
+    # meshobj.vertices[-1] = (dim[-1] - 1) - meshobj.vertices[-1].T
+    # meshobj.vertices[0] = (dim[0] - 1) - meshobj.vertices[0].T
 
     meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
     return meshobj, dim

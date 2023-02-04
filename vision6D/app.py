@@ -40,8 +40,8 @@ class App:
         self.binded_meshes = {}
         
         # default opacity for image and surface
-        self.set_image_opacity(0.1) # self.image_opacity = 0.35
-        self.set_surface_opacity(1) # self.surface_opacity = 1
+        self.set_image_opacity(0.8) # self.image_opacity = 0.35
+        self.set_surface_opacity(0.99) # self.surface_opacity = 1
 
         # Set up the camera
         self.camera = pv.Camera()
@@ -162,7 +162,6 @@ class App:
                 elif '.mesh' in str(mesh_source): # .mesh obj data
                     trimesh_data, dim = vis.utils.load_trimesh(mesh_source)
 
-                    # trimesh_data.vertices = (dim[0] - 1) - trimesh_data.vertices[..., 0]
                     vis.utils.writemesh(mesh_source, trimesh_data)
 
                     # trimesh_data, dim = vis.utils.load_trimesh(mesh_source)
