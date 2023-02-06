@@ -1124,3 +1124,12 @@ def app_smallest():
 #     mesh_data.points = vis.utils.transform_vertices(mesh_data.points, mirror_x)
 
 #     assert (mesh_data.points == mesh_data_reflect.points).all() and (mesh_data.points == mesh_data_vertices).all(), "mesh_data.points should equal to mesh_data_reflect!"
+
+# elif isinstance(mesh_source, pv.PolyData):
+#                 mesh_data = mesh_source
+
+if '.ply' in str(mesh_source):
+    mesh_data = pv.get_reader(mesh_source).read()
+    # Convert the data type from float32 to float64 to match with load_trimesh
+    mesh_data.points = mesh_data.points.astype("double")
+elif '.mesh' in str(mesh_source): # .mesh obj data
