@@ -94,30 +94,28 @@ def meshread(fid, linesread=False, meshread2=False):
     # Return data
     return mesh
 
-def load_meshobj(meshpath):
+def load_meshobj(meshpath, mirror=False):
     with open(meshpath, "rb") as fid:
         meshobj = meshread(fid)
-    dim = meshobj.dim
+
     # load the original ossicles
-    orient = meshobj.orient / np.array([1, 2, 3])
-    for i in range(len(orient)):
-        if orient[i] == -1:
-            meshobj.vertices[i] = (dim[i] - 1) - meshobj.vertices[i].T
+    idx = np.where(meshobj.orient != np.array((1,2,3)))
+    for i in idx: meshobj.vertices[i] = (meshobj.dim[i] - 1).reshape((-1,1)) - meshobj.vertices[i]
 
-    # flip along x/L axis
-    # meshobj.vertices[-1] = (dim[-1] - 1) - meshobj.vertices[-1].T
-    # meshobj.vertices[0] = (dim[0] - 1) - meshobj.vertices[0].T
-
+    if mirror:
+        # flip along x/L axis
+        meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
+        
     meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
-    return meshobj, dim
+    return meshobj
 
-def load_trimesh(meshpath):
-    meshobj, dim = load_meshobj(meshpath)
+def load_trimesh(meshpath, mirror=False):
+    meshobj = load_meshobj(meshpath, mirror)
     mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T)
-    return mesh, dim
+    return mesh
 
 def writemesh(meshpath, mesh):
-    meshobj, _ = load_meshobj(meshpath)
+    meshobj = load_meshobj(meshpath)
     meshobj.vertices = mesh.vertices.T # the shape has to be 3 x N
     meshobj.orient = np.array((1, 2, 3), dtype="int32")
     meshobj.sz = np.array((1.0, 1.0, 1.0), dtype='float32')

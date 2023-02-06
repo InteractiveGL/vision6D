@@ -59,10 +59,10 @@ gt_pose_5997 = np.array([[  -0.14498174,   -0.34676691,   -0.92667849,  -10.6034
                     [   0.93130693,   -0.36411267,   -0.00945343, -119.95253896],
                     [   0.,            0.,            0.,            1.        ]] ) #  GT pose
                                         
-gt_pose_60881 = np.array([[  0.2720979,   -0.10571448,  -0.96757074, -23.77536492],
-                        [  0.33708389,   0.95272971,  -0.00929905, -27.7404459 ],
-                        [  0.91309533,  -0.32021318,   0.29176419, -20.44275252],
-                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
+# gt_pose_60881 = np.array([[  0.2720979,   -0.10571448,  -0.96757074, -23.77536492],
+                        # [  0.33708389,   0.95272971,  -0.00929905, -27.7404459 ],
+                        # [  0.91309533,  -0.32021318,   0.29176419, -20.44275252],
+                        # [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
 
 gt_pose_6088 = np.array([[  0.36049218,  -0.12347807,  -0.93605796, -24.3777202 ],
@@ -76,59 +76,17 @@ gt_pose_6108 = np.array([[  0.18750646,   0.35092506,  -0.91743823, -29.81739935
                         [  0.81228048,  -0.58056712,  -0.0560558,  227.40282413],
                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
-gt_pose_6742 = np.array([[  0.08142244,  -0.22290108,   0.97143477, -21.33779758],
-                        [ -0.58239236,   0.78031899,   0.22786272,  -9.0573175 ],
-                        [ -0.80881982,  -0.58430931,  -0.06628042, 457.93700994],
-                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
+# gt_pose_6742 = np.array([[  0.08142244,  -0.22290108,   0.97143477, -21.33779758],
+#                         [ -0.58239236,   0.78031899,   0.22786272,  -9.0573175 ],
+#                         [ -0.80881982,  -0.58430931,  -0.06628042, 457.93700994],
+#                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
-# gt_pose_6742 = np.array([[ -1,  0,   0,  0],
-#                         [ 0,  1,   0,  0],
-#                         [ 0,  0,  1,  0],
-#                         [ 0.,  0.,  0., 1. ]])
-
-# gt_pose_6742 = np.array([[  0.28790526,  -0.24734799,  -0.9251646,  -12.24053709],
-#                         [  0.66839126,   0.74375356,   0.00915233, -0.72599635],
-#                         [  0.68583065,  -0.62100694,   0.37945579, 492.60459054 ],
-#                         [  0.,           0.,           0.,           1.        ]])
-
-# [[ -0.19549364   0.34786441  -0.91693652 -12.82534858]
-#  [  0.03072974   0.93669065   0.34880699 -13.62468151]
-#  [  0.9802234    0.04001233  -0.19380685 464.48887801]
-#  [  0.           0.           0.           1.        ]]
+gt_pose_6742 = np.eye(4)
 
 # gt_pose_6742_mirror = np.array([[0.23328984,   0.39176946,  -0.88999581, -12.24053709],
 #                                 [  0.40846391,   0.79110787,   0.45530822,  -0.72599635],
 #                                 [  0.88245853,  -0.46974996,   0.02453373, 492.60459054],
 #                                 [  0.,           0.,           0.,           1.        ]])
-
-gt_pose_6742_mirror = np.array([[  0.08142244,  0.22290108,   -0.97143477, -21.33779758],
-                        [ -0.58239236,   0.78031899,   0.22786272,  -9.0573175 ],
-                        [ -0.80881982,  -0.58430931,  -0.06628042, 457.93700994],
-                        [  0.,           0.,           0.,           1.        ]]) #  GT pose
-
-# gt_pose_6742_mirror1 =([[  0.19205769,   0.07361098,  -0.97861907,  18.44582621],
-#                         [  0.72178424,   0.66504686,   0.19167722, -27.12433923],
-#                         [  0.66493709,  -0.74316491,   0.07459611, 435.12913391],
-#                         [  0.,           0.,           0.,           1.        ]])
-
-# R = np.array([[ -0.00205008,  -0.27174699,   0.96236655],
-#             [ -0.4431008,    0.86298269,   0.24273971],
-#             [ -0.89646944,  -0.42592774,  -0.1221805]])
-
-# mirror_x = np.array([[-1, 0, 0],
-#                     [0, -1, 0],
-#                     [0, 0, 1]])
-
-# t = np.array([[16.14180134],
-#             [-4.42885807],
-#             [458.83536963]])
-
-# gt_pose_6742 = np.vstack((np.hstack((R@mirror_x, t)), np.array([0, 0, 0, 1])))
-
-# gt_pose_6742 = np.array([[ -0.0035555 ,  -0.26786957,   0.96344862,  16.13498199],
-#                         [ -0.44352236,   0.86393019,   0.23856349,  -4.50723201],
-#                         [ -0.89625625,  -0.4264628 ,  -0.12187785, 461.15278925],
-#                         [  0.        ,   0.        ,   0.        ,   1.        ]])
 
 # size of the (1920, 1080)
 @pytest.fixture
@@ -157,7 +115,7 @@ def test_load_image(app):
     (DATA_DIR / "6108_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108, False, False),
     (DATA_DIR / "6742_0.png", DATA_DIR / "original" / "6742_left_ossicles.mesh", DATA_DIR / "original" / "6742_left_facial_nerve.mesh", DATA_DIR / "original" / "6742_left_chorda.mesh", gt_pose_6742, True, False),
     (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, False, False),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742_mirror, True, True),
+    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, True, True),
     (DATA_DIR / "6742_0.png", DATA_DIR / "6742_right_ossicles.mesh", DATA_DIR / "6742_right_facial_nerve.mesh", DATA_DIR / "6742_right_chorda.mesh", gt_pose_6742, True, False),
     ]
 )  
@@ -191,8 +149,8 @@ def test_load_mesh(app):
     [(OSSICLES_MESH_PATH_5997_right, gt_pose_5997, False), 
     (OSSICLES_MESH_PATH_6088_right, gt_pose_6088, False),
     (OSSICLES_MESH_PATH_6108_right, gt_pose_6108, False),
-    (OSSICLES_MESH_PATH_6742_right, gt_pose_6742_mirror, False),
-    (OSSICLES_MESH_PATH_6742_left, gt_pose_6742_mirror, True),
+    (OSSICLES_MESH_PATH_6742_right, gt_pose_6742, False),
+    (OSSICLES_MESH_PATH_6742_left, gt_pose_6742, True),
     ]
 )
 def test_render_scene(app, mesh_path, pose, mirror_objects):
@@ -236,7 +194,7 @@ def test_generate_image(app):
     ("6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088_right, gt_pose_6088, 1/5, False), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
     ("6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108_right, gt_pose_6108, 1/5, False), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
     ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742, 1/5, False), # error: 2.415673998426594 # if resize cv2: 148.14798220849184 # if resize torch: 212.11247242207978
-    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742_mirror, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: ...
+    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: ...
     ]
 )
 def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror):

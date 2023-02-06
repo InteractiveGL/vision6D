@@ -160,7 +160,7 @@ class App:
                     # Convert the data type from float32 to float64 to match with load_trimesh
                     mesh_data.points = mesh_data.points.astype("double")
                 elif '.mesh' in str(mesh_source): # .mesh obj data
-                    trimesh_data, dim = vis.utils.load_trimesh(mesh_source)
+                    trimesh_data = vis.utils.load_trimesh(mesh_source, self.mirror_objects)
 
                     vis.utils.writemesh(mesh_source, trimesh_data)
 
