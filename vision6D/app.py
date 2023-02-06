@@ -157,7 +157,6 @@ class App:
                 # Load the '.mesh' file
                 assert '.mesh' in str(mesh_source), "the file type has to be '.mesh'"
                 trimesh_data = vis.utils.load_trimesh(mesh_source, self.mirror_objects)
-                vis.utils.writemesh(mesh_source, trimesh_data)
                 mesh_data = pv.wrap(trimesh_data)
             
             self.mesh_polydata[mesh_name] = mesh_data

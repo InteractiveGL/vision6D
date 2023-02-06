@@ -106,19 +106,21 @@ def load_trimesh(meshpath, mirror=False):
     for i in idx: meshobj.vertices[i] = (meshobj.dim[i] - 1).reshape((-1,1)) - meshobj.vertices[i]
 
     # Reflection Relative to YZ Plane (x):
-    if mirror: meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
+    if mirror: 
+        meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
+        writemesh(meshpath, meshobj.vertices)
         
     meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
     mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T)
     return mesh
 
-def writemesh(meshpath, mesh):
+def writemesh(meshpath, vertices):
     """
     write mesh object to improvise, and keep the original meshobj.sz
     """
     meshobj = load_meshobj(meshpath)
     # the shape has to be 3 x N
-    meshobj.vertices = mesh.vertices.T / meshobj.sz.reshape((-1, 1))
+    meshobj.vertices = vertices # mesh.vertices.T / meshobj.sz.reshape((-1, 1))
     meshobj.orient = np.array((1, 2, 3), dtype="int32")
 
     name = meshpath.stem
