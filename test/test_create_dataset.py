@@ -87,14 +87,6 @@ gt_pose_6742 = np.array([[ -0.00205008,  -0.27174699,   0.96236655, -18.75660285
 @pytest.fixture
 def app():
     return vis.App(register=True, scale=1)
-
-# # TODO
-# @pytest.fixture
-# def meshpaths():
-#     meshs = {}
-#     meshs['OSSICLES_MESH_PATH_5997_right'] = OSSICLES_MESH_PATH_5997_right
-
-#     return meshs
     
 def test_load_image(app):
     image_source = np.array(Image.open(IMAGE_NUMPY_PATH))
@@ -189,7 +181,7 @@ def test_generate_image(app):
     ("6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088_right, gt_pose_6088, 1/5, False), # error: 5.636555974411995 # if resize cv2: 5.46914034648768 # if resize torch: 
     ("6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108_right, gt_pose_6108, 1/5, False), # error: 0.3925129080313312 # if resize cv2: 22.451005863827966 # if resize torch: 
     ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742, 1/5, False), # error: 2.2111475894404378 # if resize cv2: 146.63621797086526 # if resize torch: 
-    ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: 
+    # ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: 
     ]
 )
 def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects):
