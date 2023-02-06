@@ -335,13 +335,42 @@ class App:
             last_image = self.pv_plotter.last_image
             return last_image
         
-    def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
+    # def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
+        
+    #     self.pv_render.enable_joystick_actor_style()
+ 
+    #     if render_image:
+    #         image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+    #         image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+    #         image = image.translate(-1 * np.array(image.center), inplace=False)
+    #         self.pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
+    #     else:
+    #         # background set to black
+    #         self.pv_render.set_background('black')
+            
+    #         # Render the targeting objects
+    #         for object in render_objects:
+    #             mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
+    #             mesh.user_matrix = self.transformation_matrix
+        
+    #     self.pv_render.camera = self.camera.copy()
+    #     self.pv_render.disable()
+    #     self.pv_render.show()
+        
+    #     return self.pv_render.last_image
+    def render_scene(self, render_image:bool, image_source=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
         
         self.pv_render.enable_joystick_actor_style()
  
         if render_image:
-            image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
-            image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+            if isinstance(image_source, pathlib.Path):
+                image = pv.get_reader(image_source).read()
+                image = image.scale(scale_factor, inplace=False)
+                
+            elif isinstance(image_source, np.ndarray):
+                image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
+                image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+
             image = image.translate(-1 * np.array(image.center), inplace=False)
             self.pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
         else:

@@ -54,10 +54,10 @@ mask_6088_hand_draw_numpy = DATA_DIR / "mask_6088_hand_draw_numpy.npy"
 mask_6108_hand_draw_numpy = DATA_DIR / "mask_6108_hand_draw_numpy.npy"
 mask_6742_hand_draw_numpy = DATA_DIR / "mask_6742_hand_draw_numpy.npy"
 
-gt_pose_5997 = np.array([[  -0.14498174,   -0.34676691,   -0.92667849,  -10.60345244],
-                    [   0.33413722,    0.86439266,   -0.3757361,   -29.9112112 ],
-                    [   0.93130693,   -0.36411267,   -0.00945343, -119.95253896],
-                    [   0.,            0.,            0.,            1.        ]] ) #  GT pose
+gt_pose_5997 = np.array([[  -0.14498174,   -0.34676691,   -0.92667849,   29.87789505],
+                        [   0.33413722,    0.86439266,   -0.3757361,   -13.14321823],
+                        [   0.93130693,   -0.36411267,   -0.00945343, -119.95253896],
+                        [   0.,            0.,            0.,            1.        ]]) #  GT pose
                                         
 # gt_pose_60881 = np.array([[  0.2720979,   -0.10571448,  -0.96757074, -23.77536492],
                         # [  0.33708389,   0.95272971,  -0.00929905, -27.7404459 ],
@@ -93,13 +93,13 @@ gt_pose_6742 = np.array([[  0.08142244,  -0.22290108,   0.97143477, -21.33779758
 def app():
     return vis.App(register=True, scale=1)
 
-# TODO
-@pytest.fixture
-def meshpaths():
-    meshs = {}
-    meshs['OSSICLES_MESH_PATH_5997_right'] = OSSICLES_MESH_PATH_5997_right
+# # TODO
+# @pytest.fixture
+# def meshpaths():
+#     meshs = {}
+#     meshs['OSSICLES_MESH_PATH_5997_right'] = OSSICLES_MESH_PATH_5997_right
 
-    return meshs
+#     return meshs
     
 def test_load_image(app):
     image_source = np.array(Image.open(IMAGE_NUMPY_PATH))
@@ -154,7 +154,7 @@ def test_load_mesh(app):
     ]
 )
 def test_render_scene(app, mesh_path, pose, mirror_objects):
-    app.set_register(False)
+    app.set_register(True)
     app.set_mirror_objects(mirror_objects)
     app.set_transformation_matrix(pose)
     app.load_meshes({'ossicles': mesh_path})
@@ -189,7 +189,7 @@ def test_generate_image(app):
 
 
 @pytest.mark.parametrize(
-    "name, hand_draw_mask, ossicles_path, RT, resize, mirror",
+    "name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects",
     [("5997",  mask_5997_hand_draw_numpy, OSSICLES_MESH_PATH_5997_right, gt_pose_5997, 1/5, False), # error: 0.8573262508172124 # if resize cv2: 0.5510600582101389 # if resize torch: 0.5943676548096519
     ("6088", mask_6088_hand_draw_numpy, OSSICLES_MESH_PATH_6088_right, gt_pose_6088, 1/5, False), # error: 5.398165257981464 # if resize cv2: 6.120078001305548 # if resize torch: 5.234686698024397
     ("6108", mask_6108_hand_draw_numpy, OSSICLES_MESH_PATH_6108_right, gt_pose_6108, 1/5, False), # error: 0.8516761480978112 # if resize cv2: 0.21774485476235367 # if resize torch: 49.322628634236146
@@ -197,10 +197,10 @@ def test_generate_image(app):
     ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: ...
     ]
 )
-def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror):
+def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects):
 
     ossicles_side = ossicles_path.stem.split("_")[1]
-    if mirror:
+    if mirror_objects:
         if ossicles_side == "right":
             ossicles_side = "left"
         elif ossicles_side == "left":
@@ -209,10 +209,10 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     # save the GT pose to .npy file
     gt_pose_name = f"{name}_{ossicles_side}_gt_pose.npy"
     np.save(DATA_DIR / gt_pose_name, RT)
-    app = vis.App(register=True, scale=1, mirror=mirror)
+    app = vis.App(register=True, scale=1, mirror_objects=mirror_objects)
 
     mask = np.load(hand_draw_mask).astype("bool")
-    if mirror:
+    if mirror_objects:
         mask = mask[..., ::-1]
     
     plt.imshow(mask)
