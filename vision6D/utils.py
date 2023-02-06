@@ -94,23 +94,21 @@ def meshread(fid, linesread=False, meshread2=False):
     # Return data
     return mesh
 
-def load_meshobj(meshpath, mirror=False):
+def load_meshobj(meshpath):
     with open(meshpath, "rb") as fid:
         meshobj = meshread(fid)
+    return meshobj
 
+def load_trimesh(meshpath, mirror=False):
+    meshobj = load_meshobj(meshpath)
     # load the original ossicles
     idx = np.where(meshobj.orient != np.array((1,2,3)))
     for i in idx: meshobj.vertices[i] = (meshobj.dim[i] - 1).reshape((-1,1)) - meshobj.vertices[i]
 
-    if mirror:
-        # flip along x/L axis
-        meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
+    # flip along x/L axis
+    if mirror: meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
         
     meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
-    return meshobj
-
-def load_trimesh(meshpath, mirror=False):
-    meshobj = load_meshobj(meshpath, mirror)
     mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T)
     return mesh
 

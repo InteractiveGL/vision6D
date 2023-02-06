@@ -161,13 +161,10 @@ class App:
                     mesh_data.points = mesh_data.points.astype("double")
                 elif '.mesh' in str(mesh_source): # .mesh obj data
                     trimesh_data = vis.utils.load_trimesh(mesh_source, self.mirror_objects)
-
                     vis.utils.writemesh(mesh_source, trimesh_data)
 
-                    # trimesh_data, dim = vis.utils.load_trimesh(mesh_source)
-                    # print("hhh")
-                    # # flip along the x axis
-                    # # trimesh_data.vertices = (dim[0] - 1) - trimesh_data.vertices[..., 0]
+                    # flip along the x axis
+                    # trimesh_data.vertices = (dim[0] - 1) - trimesh_data.vertices[..., 0]
                     # vis.utils.writemesh(mesh_source, trimesh_data.vertices)
 
 
