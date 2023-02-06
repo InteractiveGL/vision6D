@@ -104,6 +104,8 @@ def load_trimesh(meshpath, mirror=False):
     # load the original ossicles
     idx = np.where(meshobj.orient != np.array((1,2,3)))
     for i in idx: meshobj.vertices[i] = (meshobj.dim[i] - 1).reshape((-1,1)) - meshobj.vertices[i]
+    # check the results
+    # writemesh(meshpath, meshobj.vertices)
 
     # Reflection Relative to YZ Plane (x):
     if mirror: 
