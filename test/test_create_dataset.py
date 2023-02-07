@@ -23,25 +23,15 @@ np.set_printoptions(suppress=True)
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 GITROOT = CWD.parent
+OP_DATA_DIR = GITROOT.parent / 'ossicles_6D_pose_estimation' / 'data' / 'frames'
 DATA_DIR = GITROOT / 'data'
 
 TEST_DATA_DIR = CWD / 'data'
-IMAGE_JPG_PATH = TEST_DATA_DIR / "image.jpg"
 IMAGE_NUMPY_PATH = TEST_DATA_DIR / "image.png"
-MASK_PATH_NUMPY_FULL = TEST_DATA_DIR / "segmented_mask_numpy.npy"
-MASK_PATH_NUMPY_QUARTER = TEST_DATA_DIR / "quarter_image_mask_numpy.npy"
-MASK_PATH_NUMPY_SMALLEST = TEST_DATA_DIR / "smallest_image_mask_numpy.npy"
-STANDARD_LENS_MASK_PATH_NUMPY = TEST_DATA_DIR / "test1.npy"
 
 OSSICLES_MESH_PATH = DATA_DIR / "5997_right_ossicles.mesh"
 FACIAL_NERVE_MESH_PATH = DATA_DIR / "5997_right_facial_nerve.mesh"
 CHORDA_MESH_PATH = DATA_DIR / "5997_right_chorda.mesh"
-
-# OSSICLES_MESH_PATH_PLY = TEST_DATA_DIR / "ossicles_001_not_colored.ply"
-# OLD_OSSICLES_MESH_PATH = DATA_DIR / "5997_right_output_mesh_from_df.mesh"
-# OSSICLES_MESH_PATH = TEST_DATA_DIR / "ossicles_001_not_colored.ply"
-# FACIAL_NERVE_MESH_PATH = TEST_DATA_DIR / "facial_nerve_001_not_colored.ply"
-# CHORDA_MESH_PATH = TEST_DATA_DIR / "chorda_001_not_colored.ply"
 
 OSSICLES_MESH_PATH_5997_right = DATA_DIR / "5997_right_ossicles.mesh"
 OSSICLES_MESH_PATH_6088_right = DATA_DIR / "6088_right_ossicles.mesh"
@@ -97,13 +87,12 @@ def test_load_image(app):
     
 @pytest.mark.parametrize(
     "image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image",
-    [(DATA_DIR / "5997_0.png", DATA_DIR / "5997_right_ossicles.mesh", DATA_DIR / "5997_right_facial_nerve.mesh", DATA_DIR / "5997_right_chorda.mesh", gt_pose_5997, False, False),
-    (DATA_DIR / "6088_0.png", DATA_DIR / "6088_right_ossicles.mesh", DATA_DIR / "6088_right_facial_nerve.mesh", DATA_DIR / "6088_right_chorda.mesh", gt_pose_6088, False, False),
-    (DATA_DIR / "6108_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108, False, False),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "original" / "6742_left_ossicles.mesh", DATA_DIR / "original" / "6742_left_facial_nerve.mesh", DATA_DIR / "original" / "6742_left_chorda.mesh", gt_pose_6742, False, False),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, False, False),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, True, True),
-    (DATA_DIR / "6742_0.png", DATA_DIR / "6742_right_ossicles.mesh", DATA_DIR / "6742_right_facial_nerve.mesh", DATA_DIR / "6742_right_chorda.mesh", gt_pose_6742, True, False),
+    [(OP_DATA_DIR / "CIP.5997.8381493978443_video_trim" / "CIP.5997.8381493978443_video_trim_0.png", DATA_DIR / "5997_right_ossicles.mesh", DATA_DIR / "5997_right_facial_nerve.mesh", DATA_DIR / "5997_right_chorda.mesh", gt_pose_5997, False, False),
+    (OP_DATA_DIR / "CIP.6088.1681356523312_video_trim" / "CIP.6088.1681356523312_video_trim_0.png", DATA_DIR / "6088_right_ossicles.mesh", DATA_DIR / "6088_right_facial_nerve.mesh", DATA_DIR / "6088_right_chorda.mesh", gt_pose_6088, False, False),
+    (OP_DATA_DIR / "CIP.6108.1638408845868_video_trim" / "CIP.6108.1638408845868_video_trim_0.png", DATA_DIR / "6108_right_ossicles.mesh", DATA_DIR / "6108_right_facial_nerve.mesh", DATA_DIR / "6108_right_chorda.mesh", gt_pose_6108, False, False),
+    (OP_DATA_DIR / "CIP.6742.8381574350255_video_trim" / "CIP.6742.8381574350255_video_trim_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, False, False),
+    (OP_DATA_DIR / "CIP.6742.8381574350255_video_trim" / "CIP.6742.8381574350255_video_trim_0.png", DATA_DIR / "6742_left_ossicles.mesh", DATA_DIR / "6742_left_facial_nerve.mesh", DATA_DIR / "6742_left_chorda.mesh", gt_pose_6742, True, True),
+    (OP_DATA_DIR / "CIP.6742.8381574350255_video_trim" / "CIP.6742.8381574350255_video_trim_0.png", DATA_DIR / "6742_right_ossicles.mesh", DATA_DIR / "6742_right_facial_nerve.mesh", DATA_DIR / "6742_right_chorda.mesh", gt_pose_6742, True, False),
     ]
 )  
 def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image):
@@ -168,7 +157,6 @@ def test_save_plot(app):
     
 
 def test_generate_image(app):
-    # image_np = app.render_scene(render_image=True, image_source=IMAGE_JPG_PATH)
     image_numpy = np.array(Image.open(IMAGE_NUMPY_PATH)) # (H, W, 3)
     image_np = app.render_scene(render_image=True, image_source=image_numpy)
     plt.imshow(image_np); plt.show()

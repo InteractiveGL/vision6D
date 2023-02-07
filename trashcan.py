@@ -1133,3 +1133,8 @@ if '.ply' in str(mesh_source):
     # Convert the data type from float32 to float64 to match with load_trimesh
     mesh_data.points = mesh_data.points.astype("double")
 elif '.mesh' in str(mesh_source): # .mesh obj data
+
+MASK_PATH_NUMPY_FULL = TEST_DATA_DIR / "segmented_mask_numpy.npy"
+MASK_PATH_NUMPY_QUARTER = TEST_DATA_DIR / "quarter_image_mask_numpy.npy"
+MASK_PATH_NUMPY_SMALLEST = TEST_DATA_DIR / "smallest_image_mask_numpy.npy"
+STANDARD_LENS_MASK_PATH_NUMPY = TEST_DATA_DIR / "test1.npy"
