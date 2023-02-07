@@ -136,7 +136,7 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
 
     # save the GT pose to .npy file
     gt_pose_name = f"{name}_{ossicles_side}_gt_pose.npy"
-    np.save(vis.config.DATA_DIR / gt_pose_name, RT)
+    np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, RT)
     app = vis.App(register=True, scale=1, mirror_objects=mirror_objects)
 
     if hand_draw_mask is not None: 
@@ -159,7 +159,7 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     # Create rendering
     color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
     # save the rendered whole image
-    vis.utils.save_image(color_mask_whole, vis.config.DATA_DIR, f"rendered_mask_whole_{name}.png")
+    vis.utils.save_image(color_mask_whole, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
 
     color_mask_binarized = vis.utils.color2binary_mask(color_mask_whole)
     binary_mask = color_mask_binarized * seg_mask
@@ -167,7 +167,7 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     assert (binary_mask == vis.utils.color2binary_mask(color_mask)).all(), "render_binary_mask is not the same as converted render_color_mask"
 
     # save the rendered partial image
-    if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.DATA_DIR, f"rendered_mask_partial_{name}.png")
+    if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
     
     resize_width = int(1920 * resize)
     resize_height = int(1080 * resize)

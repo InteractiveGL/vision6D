@@ -27,10 +27,10 @@ OSSICLES_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.838
 FACIAL_NERVE_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "6742_right_facial_nerve.mesh"
 CHORDA_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "6742_right_chorda.mesh"
 
-mask_5997_hand_draw_numpy = DATA_DIR / "mask_5997_hand_draw_numpy.npy"
-mask_6088_hand_draw_numpy = DATA_DIR / "mask_6088_hand_draw_numpy.npy"
-mask_6108_hand_draw_numpy = DATA_DIR / "mask_6108_hand_draw_numpy.npy"
-mask_6742_hand_draw_numpy = DATA_DIR / "mask_6742_hand_draw_numpy.npy"
+mask_5997_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_5997_hand_draw_numpy.npy"
+mask_6088_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6088_hand_draw_numpy.npy"
+mask_6108_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6108_hand_draw_numpy.npy"
+mask_6742_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6742_hand_draw_numpy.npy"
 
 gt_pose_5997_right = np.array([[  -0.14498174,   -0.34676691,   -0.92667849,   29.36436624],
                         [   0.33413722,    0.86439266,   -0.3757361,   -13.54538251],
