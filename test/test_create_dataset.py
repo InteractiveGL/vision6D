@@ -26,7 +26,7 @@ def app():
     return vis.App(register=True, scale=1)
     
 def test_load_image(app):
-    image_source = np.array(Image.open(vis.config.OP_DATA_DIR / "frames" /"CIP.5997.8381493978443_video_trim" / "CIP.5997.8381493978443_video_trim_0.png"))
+    image_source = np.array(Image.open(vis.config.IMAGE_PATH_5997))
     app.set_image_opacity(1)
     app.load_image(image_source, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
@@ -34,14 +34,15 @@ def test_load_image(app):
     
 @pytest.mark.parametrize(
     "image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image",
-    [(vis.config.OP_DATA_DIR / "frames" /"CIP.5997.8381493978443_video_trim" / "CIP.5997.8381493978443_video_trim_0.png", vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.FACIAL_NERVE_MESH_PATH_5997_right, vis.config.CHORDA_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, False, False),
-    (vis.config.OP_DATA_DIR / "frames" / "CIP.6088.1681356523312_video_trim" / "CIP.6088.1681356523312_video_trim_0.png", vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.FACIAL_NERVE_MESH_PATH_6088_right, vis.config.CHORDA_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, False, False),
-    (vis.config.OP_DATA_DIR / "frames" / "CIP.6108.1638408845868_video_trim" / "CIP.6108.1638408845868_video_trim_0.png", vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.FACIAL_NERVE_MESH_PATH_6108_right, vis.config.CHORDA_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, False, False),
-    (vis.config.OP_DATA_DIR / "frames" / "CIP.6742.8381574350255_video_trim" / "CIP.6742.8381574350255_video_trim_0.png", vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.FACIAL_NERVE_MESH_PATH_6742_left, vis.config.CHORDA_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, False, False),
+    [(vis.config.IMAGE_PATH_455, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.FACIAL_NERVE_MESH_PATH_455_right, vis.config.CHORDA_MESH_PATH_455_right, vis.config.gt_pose_455_right, False, False),
+    (vis.config.IMAGE_PATH_5997, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.FACIAL_NERVE_MESH_PATH_5997_right, vis.config.CHORDA_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, False, False),
+    (vis.config.IMAGE_PATH_6088, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.FACIAL_NERVE_MESH_PATH_6088_right, vis.config.CHORDA_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, False, False),
+    (vis.config.IMAGE_PATH_6108, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.FACIAL_NERVE_MESH_PATH_6108_right, vis.config.CHORDA_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, False, False),
+    (vis.config.IMAGE_PATH_6742, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.FACIAL_NERVE_MESH_PATH_6742_left, vis.config.CHORDA_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, False, False),
     
-    (vis.config.OP_DATA_DIR / "frames" / "CIP.6742.8381574350255_video_trim" / "CIP.6742.8381574350255_video_trim_0.png", vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.FACIAL_NERVE_MESH_PATH_6742_left, vis.config.CHORDA_MESH_PATH_6742_left, vis.config.gt_pose_6742_right, True, True),
-    (vis.config.OP_DATA_DIR / "frames" / "CIP.6742.8381574350255_video_trim" / "CIP.6742.8381574350255_video_trim_0.png", vis.config.OSSICLES_MESH_PATH_6742_right, vis.config.FACIAL_NERVE_MESH_PATH_6742_right, vis.config.CHORDA_MESH_PATH_6742_right, vis.config.gt_pose_6742_right, False, False),
-    (vis.config.OP_DATA_DIR / "frames" / "CIP.6742.8381574350255_video_trim" / "CIP.6742.8381574350255_video_trim_0.png", vis.config.OSSICLES_MESH_PATH_6742_right, vis.config.FACIAL_NERVE_MESH_PATH_6742_right, vis.config.CHORDA_MESH_PATH_6742_right, vis.config.gt_pose_6742_left, True, False),
+    (vis.config.IMAGE_PATH_6742, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.FACIAL_NERVE_MESH_PATH_6742_left, vis.config.CHORDA_MESH_PATH_6742_left, vis.config.gt_pose_6742_right, True, True),
+    (vis.config.IMAGE_PATH_6742, vis.config.OSSICLES_MESH_PATH_6742_right, vis.config.FACIAL_NERVE_MESH_PATH_6742_right, vis.config.CHORDA_MESH_PATH_6742_right, vis.config.gt_pose_6742_right, False, False),
+    (vis.config.IMAGE_PATH_6742, vis.config.OSSICLES_MESH_PATH_6742_right, vis.config.FACIAL_NERVE_MESH_PATH_6742_right, vis.config.CHORDA_MESH_PATH_6742_right, vis.config.gt_pose_6742_left, True, False),
     ]
 )  
 def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image):
@@ -59,7 +60,7 @@ def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_pat
     app.plot()
 
 def test_load_mesh(app):
-    image_numpy = np.array(Image.open(vis.config.OP_DATA_DIR / "frames" /"CIP.5997.8381493978443_video_trim" / "CIP.5997.8381493978443_video_trim_0.png")) # (H, W, 3)
+    image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_transformation_matrix(vis.config.gt_pose_5997_right)
     app.load_meshes({'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 'chorda': vis.config.CHORDA_MESH_PATH_5997_right})
@@ -94,7 +95,7 @@ def test_render_scene(app, mesh_path, pose, mirror_objects):
     
 def test_save_plot(app):
     app.set_register(False)
-    image_numpy = np.array(Image.open(vis.config.OP_DATA_DIR / "frames" /"CIP.5997.8381493978443_video_trim" / "CIP.5997.8381493978443_video_trim_0.png")) # (H, W, 3)
+    image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_transformation_matrix(vis.config.gt_pose_5997_right)
     app.load_meshes({'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 'chorda': vis.config.CHORDA_MESH_PATH_5997_right})
@@ -106,25 +107,27 @@ def test_save_plot(app):
     plt.imshow(image_np); plt.show() 
 
 def test_generate_image(app):
-    image_numpy = np.array(Image.open(vis.config.OP_DATA_DIR / "frames" /"CIP.5997.8381493978443_video_trim" / "CIP.5997.8381493978443_video_trim_0.png")) # (H, W, 3)
+    image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     image_np = app.render_scene(render_image=True, image_source=image_numpy)
     plt.imshow(image_np); plt.show()
 
 @pytest.mark.parametrize(
     "name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects",
-    [("5997", None, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/5, False), # error: 0.021086712065792698 # if resize cv2: 0.020330257484100347 # if resize torch: 
+    [("455", None, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.gt_pose_455_right, 1/5, False), # no resize: 0.05338873922462614 # resize 1/5 cv2: 0.026132524126728313 # if resize torch: 
+        
+    ("5997", None, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/5, False), # no resize: 0.021086712065792698 # resize 1/5 cv2: 0.020330257484100347 # if resize torch: 
     ("5997",  vis.config.mask_5997_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/5, False), # error: 1.3682088051366954 # if resize cv2: 1.0566890956912622 # if resize torch: 
     
-    ("6088", None, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/5, False), # error: 5.491416579722634 # if resize cv2: 5.534377619304417 # if resize torch: 
+    ("6088", None, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/5, False), # no resize: 5.491416579722634 # resize 1/5 cv2: 5.534377619304417 # if resize torch: 
     ("6088", vis.config.mask_6088_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/5, False), # error: 5.636555974411995 # if resize cv2: 5.46914034648768 # if resize torch: 
     
-    ("6108", None, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1/5, False), # error: 0.01895783336598894 # if resize cv2: 0.1413067780393649 # if resize torch: 
+    ("6108", None, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1/5, False), # no resize: 0.01895783336598894 # resize 1/5 cv2: 0.1413067780393649 # if resize torch: 
     ("6108", vis.config.mask_6108_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1/5, False), # error: 0.3925129080313312 # if resize cv2: 22.451005863827966 # if resize torch: 
     
-    ("6742", None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/5, False), # error: 0.04155607588744 # if resize cv2: 0.13983189316096442 # if resize torch: 
+    ("6742", None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/5, False), # no resize: 0.04155607588744 # resize 1/5 cv2: 0.13983189316096442 # if resize torch: 
     ("6742", vis.config.mask_6742_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/5, False), # error: 2.2111475894404378 # if resize cv2: 146.63621797086526 # if resize torch: 
     
-    # ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742_right, 1/5, True), # error: 5.214560773437986 # if resize cv2: 230.26984657453482 # if resize torch: 
+    # ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742_right, 1/5, True), # no resize: 5.214560773437986 # resize 1/5 cv2: 230.26984657453482 # if resize torch: 
     ]
 )
 def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects):
