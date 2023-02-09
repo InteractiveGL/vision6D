@@ -36,6 +36,36 @@ OSSICLES_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.838
 FACIAL_NERVE_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "6742_right_facial_nerve.mesh"
 CHORDA_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "6742_right_chorda.mesh"
 
+IMAGE_PATH_632 = OP_DATA_DIR / "frames" /"CIP.632.8381493978443_video_trim" / "CIP.632.8381493978443_video_trim_0.png"
+OSSICLES_MESH_PATH_632_right = OP_DATA_DIR / "surgical_planning" / "CIP.632.8381493978443_video_trim" / "mesh" / "632_right_ossicles.mesh"
+FACIAL_NERVE_MESH_PATH_632_right = OP_DATA_DIR / "surgical_planning"/ "CIP.632.8381493978443_video_trim" / "mesh" / "632_right_facial_nerve.mesh"
+CHORDA_MESH_PATH_632_right = OP_DATA_DIR / "surgical_planning"/ "CIP.632.8381493978443_video_trim" / "mesh" / "632_right_chorda.mesh"
+
+IMAGE_PATH_6087 = OP_DATA_DIR / "frames" /"CIP.6087.8415865242263_video_trim" / "CIP.6087.8415865242263_video_trim_0.png"
+OSSICLES_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning" / "CIP.6087.8415865242263_video_trim" / "mesh" / "6087_left_ossicles.mesh"
+FACIAL_NERVE_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning"/ "CIP.6087.8415865242263_video_trim" / "mesh" / "6087_left_facial_nerve.mesh"
+CHORDA_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning"/ "CIP.6087.8415865242263_video_trim" / "mesh" / "6087_left_chorda.mesh"
+
+IMAGE_PATH_6320 = OP_DATA_DIR / "frames" /"CIP.6320.5959167268122_video_trim" / "CIP.6320.5959167268122_video_trim_0.png"
+OSSICLES_MESH_PATH_6320_right = OP_DATA_DIR / "surgical_planning" / "CIP.6320.5959167268122_video_trim" / "mesh" / "6320_right_ossicles.mesh"
+FACIAL_NERVE_MESH_PATH_6320_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6320.5959167268122_video_trim" / "mesh" / "6320_right_facial_nerve.mesh"
+CHORDA_MESH_PATH_6320_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6320.5959167268122_video_trim" / "mesh" / "6320_right_chorda.mesh"
+
+IMAGE_PATH_6329 = OP_DATA_DIR / "frames" /"CIP.6329.6010707468438_vieo_trim" / "CIP.6329.6010707468438_vieo_trim_0.png"
+OSSICLES_MESH_PATH_6329_right = OP_DATA_DIR / "surgical_planning" / "CIP.6329.6010707468438_vieo_trim" / "mesh" / "6329_right_ossicles.mesh"
+FACIAL_NERVE_MESH_PATH_6329_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6329.6010707468438_vieo_trim" / "mesh" / "6329_right_facial_nerve.mesh"
+CHORDA_MESH_PATH_6329_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6329.6010707468438_vieo_trim" / "mesh" / "6329_right_chorda.mesh"
+
+IMAGE_PATH_6602 = OP_DATA_DIR / "frames" /"CIP.6602.7866163404219_video_trim" / "CIP.6602.7866163404219_video_trim_0.png"
+OSSICLES_MESH_PATH_6602_right = OP_DATA_DIR / "surgical_planning" / "CIP.6602.7866163404219_video_trim" / "mesh" / "6602_right_ossicles.mesh"
+FACIAL_NERVE_MESH_PATH_6602_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6602.7866163404219_video_trim" / "mesh" / "6602_right_facial_nerve.mesh"
+CHORDA_MESH_PATH_6602_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6602.7866163404219_video_trim" / "mesh" / "6602_right_chorda.mesh"
+
+IMAGE_PATH_6751 = OP_DATA_DIR / "frames" /"CIP.6751.1844636424484_video_trim" / "CIP.6751.1844636424484_video_trim_0.png"
+OSSICLES_MESH_PATH_6751_right = OP_DATA_DIR / "surgical_planning" / "CIP.6751.1844636424484_video_trim" / "mesh" / "6751_right_ossicles.mesh"
+FACIAL_NERVE_MESH_PATH_6751_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6751.1844636424484_video_trim" / "mesh" / "6751_right_facial_nerve.mesh"
+CHORDA_MESH_PATH_6751_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6751.1844636424484_video_trim" / "mesh" / "6751_right_chorda.mesh"
+
 mask_5997_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_5997_hand_draw_numpy.npy"
 mask_6088_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6088_hand_draw_numpy.npy"
 mask_6108_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6108_hand_draw_numpy.npy"
@@ -69,3 +99,33 @@ gt_pose_6742_left = np.array([[ -0.00205008,  -0.27174699,   0.96236655, -18.756
                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
 
 gt_pose_6742_right = np.eye(4)
+
+gt_pose_632_right = np.array([[  0.01213903,  -0.23470041,  -0.97199196,  23.83199935],
+                            [  0.7709136,    0.62127575,  -0.14038752, -19.05412711],
+                            [  0.63682404,  -0.74761766,   0.18847542, 602.2021275 ],
+                            [  0.,           0.,           0.,           1.        ]])
+
+gt_pose_6087_left = np.array([[  0.20370912,  -0.21678892,   0.95472779, -20.79224732],
+                                [ -0.62361071,   0.72302221,   0.29723487,  -4.9027381 ],
+                                [ -0.75472663,  -0.65592793,   0.01209432,  30.25550556],
+                                [  0.,           0.,           0.,           1.        ]])
+
+gt_pose_6320_right = np.array([[  0.13992712,  -0.06843788,  -0.98779384,  19.45358842],
+                            [  0.50910393,   0.86061441,   0.01249129, -27.0485824 ],
+                            [  0.84925473,  -0.50463759,   0.15526529, 305.97544605],
+                            [  0.,           0.,           0.,           1.        ]])
+
+gt_pose_6329_right = np.array([[  0.09418739,   0.38382761,  -0.91858865,   7.3397235 ],
+                                [  0.66883124,   0.65905617,   0.34396181, -33.31646256],
+                                [  0.73742355,  -0.64677765,  -0.19464113, 302.59170409],
+                                [  0.,           0.,           0.,           1.        ]])
+
+gt_pose_6602_right = np.array([[  0.22534241,   0.44679594,  -0.86579107,   3.33442317],
+                                [  0.49393868,   0.7135863,    0.496809,   -28.9554841 ],
+                                [  0.83978889,  -0.53959983,  -0.05988854, 299.38210116],
+                                [  0.,           0.,           0.,           1.        ]])
+
+gt_pose_6751_right = np.array([[  0.14325502,  -0.47155627,  -0.87012222,  22.98132783],
+                                [  0.88314596,   0.45772661,  -0.10266232, -23.0138221 ],
+                                [  0.44668916,  -0.75373804,   0.48202465, 137.22705977],
+                                [  0.,           0.,           0.,           1.        ]])
