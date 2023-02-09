@@ -1138,3 +1138,29 @@ MASK_PATH_NUMPY_FULL = TEST_DATA_DIR / "segmented_mask_numpy.npy"
 MASK_PATH_NUMPY_QUARTER = TEST_DATA_DIR / "quarter_image_mask_numpy.npy"
 MASK_PATH_NUMPY_SMALLEST = TEST_DATA_DIR / "smallest_image_mask_numpy.npy"
 STANDARD_LENS_MASK_PATH_NUMPY = TEST_DATA_DIR / "test1.npy"
+
+"""
+if self.mirror_objects: 
+    center = np.mean(mesh_data.points, axis=0)
+    mesh_data = mesh_data.reflect((1, 0, 0), point = center) # mirror the object based on the center point
+    mesh_name = mesh_name + '_reflect'
+    self.mesh_polydata[mesh_name] = mesh_data
+    self.set_vertices(mesh_name, mesh_data.points)
+    
+    # set the color to be the meshes' initial location, and never change the color
+    colors = vis.utils.color_mesh(mesh_data.points.T)
+    
+    # Color the vertex
+    mesh_data.point_data.set_scalars(colors)
+
+    mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
+    
+    mesh.user_matrix = self.transformation_matrix
+    
+    actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
+    
+    # Save actor for later
+    self.mesh_actors[mesh_name] = actor
+""" 
+
+# meshobj.vertices = vertices # mesh.vertices.T / meshobj.sz.reshape((-1, 1))

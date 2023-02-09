@@ -110,25 +110,31 @@ def load_trimesh(meshpath, mirror=False):
     # Reflection Relative to YZ Plane (x):
     if mirror: 
         meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
-        writemesh(meshpath, meshobj.vertices)
         
     meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
+
+    # writemesh(meshpath, meshobj.vertices, mirror=mirror)
+
     mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T)
     return mesh
 
-def writemesh(meshpath, vertices):
+def writemesh(meshpath, vertices, mirror=False, center=False):
     """
     write mesh object to improvise, and keep the original meshobj.sz
     """
     meshobj = load_meshobj(meshpath)
     # the shape has to be 3 x N
-    meshobj.vertices = vertices # mesh.vertices.T / meshobj.sz.reshape((-1, 1))
+    meshobj.vertices = vertices / meshobj.sz.reshape((-1, 1))
     meshobj.orient = np.array((1, 2, 3), dtype="int32")
 
-    name = meshpath.stem
-    if 'left' in name: side = "right"
-    elif "right" in name: side = "left"
-    name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:])
+    name = meshpath.stem + '_' + 'processed'
+    if center:
+        name = '_'.join(name.split("_")[:2]) + "_" + "centered" + "_" + '_'.join(name.split("_")[2:-1])
+    if mirror:
+        if 'left' in name: side = "right"
+        elif "right" in name: side = "left"
+        name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:-1])
+    
     filename = meshpath.parent / (name + ".mesh")
 
     with open(filename, "wb") as f:

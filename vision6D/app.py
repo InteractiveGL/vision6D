@@ -140,11 +140,9 @@ class App:
 
         # Save actor for later
         self.image_actors["image"] = actor
-        self.image_actors["image-origin"] = actor.copy()
+        self.image_actors["image-origin"] = actor.copy()        
 
     def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
-        
-        reference_name = None
         
         if self.transformation_matrix is None:
            raise RuntimeError("Transformation matrix is not set")
@@ -178,33 +176,30 @@ class App:
             # Save actor for later
             self.mesh_actors[mesh_name] = actor
 
-            """
-            if self.mirror_objects: 
-                center = np.mean(mesh_data.points, axis=0)
-                mesh_data = mesh_data.reflect((1, 0, 0), point = center) # mirror the object based on the center point
-                mesh_name = mesh_name + '_reflect'
-                self.mesh_polydata[mesh_name] = mesh_data
-                self.set_vertices(mesh_name, mesh_data.points)
-                
-                # set the color to be the meshes' initial location, and never change the color
-                colors = vis.utils.color_mesh(mesh_data.points.T)
-                
-                # Color the vertex
-                mesh_data.point_data.set_scalars(colors)
+        if len(self.mesh_actors) == 1: self.set_reference(reference_name)
 
-                mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
-                
-                mesh.user_matrix = self.transformation_matrix
-                
-                actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
-                
-                # Save actor for later
-                self.mesh_actors[mesh_name] = actor
-            """ 
-        
-        if len(self.mesh_actors) == 1:
-            self.set_reference(reference_name)
-            
+    def center_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
+        assert self.reference is not None, "Need to set the self.reference name first!"
+
+        other_meshes = {}
+        for id, obj in self.mesh_polydata.items():
+            center = np.mean(obj.points, axis=0)
+            obj.points -= center
+            if id == self.reference:
+                reference_center = center.copy()
+                # vis.utils.writemesh(paths[id], obj.points.T, center=True)
+            else:
+                other_meshes[id] = center
+
+        # add the offset
+        for id, center in other_meshes.items():
+            offset = center - reference_center
+            self.mesh_polydata[id].points += offset
+            # vis.utils.writemesh(paths[id], self.mesh_polydata[id].points.T, center=True)
+    
+        print('hhhh')
+
+    # configure event functions
     def event_zoom_out(self, *args):
         self.pv_plotter.camera.zoom(0.5)
         logger.debug("event_zoom_out callback complete")
