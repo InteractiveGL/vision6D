@@ -1,6 +1,7 @@
 import __future__
 import copy
 from typing import Type
+import logging
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +10,9 @@ import trimesh
 from PIL import Image
 import cv2
 
+# Create logger
+logger = logging.getLogger("vision6D")
+
 def fread(fid, _len, _type):
     if _len == 0:
         return np.empty(0)
@@ -16,7 +20,7 @@ def fread(fid, _len, _type):
         _type = np.int16
     elif _type == "int32":
         _type = np.int32
-    elif _type == "float":
+    elif _type == "float32":
         _type = np.float32
     elif _type == "double":
         _type = np.double
@@ -58,7 +62,7 @@ def meshread(fid, linesread=False, meshread2=False):
     if n == -1:
         mesh.orient = fread(fid, 3, "int32")
         mesh.dim = fread(fid, 3, "int32")
-        mesh.sz = fread(fid, 3, "float")
+        mesh.sz = fread(fid, 3, "float32")
         mesh.color = fread(fid, 3, "int32")
     else:
         mesh.color = np.zeros(3)
@@ -67,29 +71,17 @@ def meshread(fid, linesread=False, meshread2=False):
 
     # Given input parameter `linesread`
     if linesread:
-        mesh.vertices = fread(fid, 3 * mesh.numverts, "float").reshape(
-            [3, mesh.numverts], order="F"
-        )
-        mesh.triangles = fread(fid, 2 * mesh.numtris, "int32").reshape(
-            [2, mesh.numtris], order="F"
-        )
+        mesh.vertices = fread(fid, 3 * mesh.numverts, "float32").reshape([3, mesh.numverts], order="F")
+        mesh.triangles = fread(fid, 2 * mesh.numtris, "int32").reshape([2, mesh.numtris], order="F")
     # Given input parameter `meshread2`
     elif meshread2:
-        mesh.vertices = fread(fid, 3 * mesh.numverts, "double").reshape(
-            [3, mesh.numverts], order="F"
-        )
-        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape(
-            [3, mesh.numtris], order="F"
-        )
+        mesh.vertices = fread(fid, 3 * mesh.numverts, "double").reshape([3, mesh.numverts], order="F")
+        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape([3, mesh.numtris], order="F")
     # Given input parameter `meshread`
     else:
         # Loading mesh vertices and triangles
-        mesh.vertices = fread(fid, 3 * mesh.numverts, "float").reshape(
-            [3, mesh.numverts], order="F"
-        )
-        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape(
-            [3, mesh.numtris], order="F"
-        )
+        mesh.vertices = fread(fid, 3 * mesh.numverts, "float32").reshape([3, mesh.numverts], order="F")
+        mesh.triangles = fread(fid, 3 * mesh.numtris, "int32").reshape([3, mesh.numtris], order="F")
 
     # Return data
     return mesh
@@ -115,29 +107,33 @@ def load_trimesh(meshpath, mirror=False):
 
     # writemesh(meshpath, meshobj.vertices, mirror=mirror)
 
-    mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T)
+    mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T, process=False)
+    # mesh.vertices = meshobj.vertices.T.astype(np.float32)
+    # mesh.faces = meshobj.triangles.T.astype(np.float32)
+    assert mesh.vertices.shape == meshobj.vertices.T.shape
+    assert mesh.faces.shape == meshobj.triangles.T.shape
     return mesh
 
-def writemesh(meshpath, vertices, mirror=False, center=False):
+def writemesh(meshpath, mesh, mirror=False, suffix=''):
     """
     write mesh object to improvise, and keep the original meshobj.sz
     """
     meshobj = load_meshobj(meshpath)
     # the shape has to be 3 x N
-    meshobj.vertices = vertices / meshobj.sz.reshape((-1, 1))
+    meshobj.vertices = mesh.vertices.T / meshobj.sz.reshape((-1, 1))
     meshobj.orient = np.array((1, 2, 3), dtype="int32")
 
-    name = meshpath.stem + '_' + 'processed'
-    if center:
-        name = '_'.join(name.split("_")[:2]) + "_" + "centered" + "_" + '_'.join(name.split("_")[2:-1])
+    name = meshpath.stem
+
+    if "centered" in name: name = '_'.join(name.split("_")[:-1])
+    name += suffix
+    
     if mirror:
         if 'left' in name: side = "right"
         elif "right" in name: side = "left"
         name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:-1])
-    
-    filename = meshpath.parent / (name + ".mesh")
 
-    with open(filename, "wb") as f:
+    with open(meshpath.parent / (name + ".mesh"), "wb") as f:
         f.write(meshobj.id.astype('int32'))
         f.write(meshobj.numverts.astype('int32'))
         f.write(meshobj.numtris.astype('int32'))
@@ -147,7 +143,7 @@ def writemesh(meshpath, vertices, mirror=False, center=False):
         f.write(meshobj.sz.astype('float32'))
         f.write(meshobj.color.astype('int32'))
         # ndarray need to be continuous!
-        f.write(meshobj.vertices.astype("float32").tobytes(order='F'))
+        f.write(np.array(meshobj.vertices).astype("float32").tobytes(order='F'))
         f.write(meshobj.triangles.astype("int32").tobytes(order='F'))
         """
         # if hasattr(mesh, "opacity"):
@@ -159,6 +155,7 @@ def writemesh(meshpath, vertices, mirror=False, center=False):
         #         f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
         """
     print("finish writing to a mesh file")
+    
         
 def color2binary_mask(color_mask):
     binary_mask = np.zeros(color_mask[...,:1].shape)

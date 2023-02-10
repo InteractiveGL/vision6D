@@ -1164,3 +1164,50 @@ if self.mirror_objects:
 """ 
 
 # meshobj.vertices = vertices # mesh.vertices.T / meshobj.sz.reshape((-1, 1))
+
+def center_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
+    assert self.reference is not None, "Need to set the self.reference name first!"
+
+    other_meshes = {}
+    for id, obj in self.mesh_polydata.items():
+        center = np.mean(obj.points, axis=0)
+        obj.points -= center
+        if id == self.reference:
+            reference_center = center.copy()
+            # vis.utils.writemesh(paths[id], obj.points.T, center=True)
+        else:
+            other_meshes[id] = center
+
+    # add the offset
+    for id, center in other_meshes.items():
+        offset = center - reference_center
+        self.mesh_polydata[id].points += offset
+        # vis.utils.writemesh(paths[id], self.mesh_polydata[id].points.T, center=True)
+
+    print('hhhh')
+
+app.center_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
+
+# if 'centered' in name: name = '_'.join(name.split("_")[:-1]) + suffix
+# else: name += suffix
+
+def center_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
+    assert self.reference is not None, "Need to set the self.reference name first!"
+
+    other_meshes = {}
+    for id, obj in self.mesh_polydata.items():
+        center = np.mean(obj.points, axis=0)
+        obj.points -= center
+        if id == self.reference:
+            reference_center = center.copy()
+            # vis.utils.writemesh(paths[id], obj.points.T, center=True)
+        else:
+            other_meshes[id] = center
+
+    # add the offset
+    for id, center in other_meshes.items():
+        offset = center - reference_center
+        self.mesh_polydata[id].points += offset
+        # vis.utils.writemesh(paths[id], self.mesh_polydata[id].points.T, center=True)
+
+    print('hhhh')

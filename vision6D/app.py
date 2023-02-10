@@ -178,27 +178,6 @@ class App:
 
         if len(self.mesh_actors) == 1: self.set_reference(reference_name)
 
-    def center_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
-        assert self.reference is not None, "Need to set the self.reference name first!"
-
-        other_meshes = {}
-        for id, obj in self.mesh_polydata.items():
-            center = np.mean(obj.points, axis=0)
-            obj.points -= center
-            if id == self.reference:
-                reference_center = center.copy()
-                # vis.utils.writemesh(paths[id], obj.points.T, center=True)
-            else:
-                other_meshes[id] = center
-
-        # add the offset
-        for id, center in other_meshes.items():
-            offset = center - reference_center
-            self.mesh_polydata[id].points += offset
-            # vis.utils.writemesh(paths[id], self.mesh_polydata[id].points.T, center=True)
-    
-        print('hhhh')
-
     # configure event functions
     def event_zoom_out(self, *args):
         self.pv_plotter.camera.zoom(0.5)
