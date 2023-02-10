@@ -28,8 +28,9 @@ class App:
         self.window_size = (int(width*scale), int(height*scale))
         self.scale = scale
         self.mirror_objects = mirror_objects
+        self.transformation_matrix = np.eye(4)
         self.reference = None
-        self.transformation_matrix = None
+        
         
         self.image_actors = {}
         self.mesh_actors = {}
@@ -142,11 +143,8 @@ class App:
         self.image_actors["image"] = actor
         self.image_actors["image-origin"] = actor.copy()        
 
-    def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
-        
-        if self.transformation_matrix is None:
-           raise RuntimeError("Transformation matrix is not set")
-        
+    def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)], transformation_matrix):
+                
         for mesh_name, mesh_source in paths.items():
             
             reference_name = mesh_name
@@ -169,7 +167,7 @@ class App:
 
             mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
             
-            mesh.user_matrix = self.transformation_matrix
+            mesh.user_matrix = transformation_matrix
             
             actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
             

@@ -4,6 +4,7 @@ from typing import Type
 import logging
 
 import numpy as np
+import pyvista as pv
 import matplotlib.pyplot as plt
 from easydict import EasyDict
 import trimesh
@@ -161,7 +162,7 @@ def color2binary_mask(color_mask):
     binary_mask[x, y] = 1      
     return binary_mask
 
-def create_2d_3d_pairs(color_mask:np.ndarray, obj:Type, object_name:str, npts:int=-1, binary_mask:np.ndarray=None):
+def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, npts:int=-1, binary_mask:np.ndarray=None):
 
     if binary_mask is None:
         binary_mask = color2binary_mask(color_mask)
@@ -203,7 +204,7 @@ def create_2d_3d_pairs(color_mask:np.ndarray, obj:Type, object_name:str, npts:in
     if np.max(rgb) > 1:
         rgb = rgb / 255
 
-    vertices = getattr(obj, f'{object_name}_vertices')
+    # vertices = getattr(obj, f'{object_name}_vertices')
     r = rgb[:, 0] * (np.max(vertices[0]) - np.min(vertices[0])) + np.min(vertices[0])
     g = rgb[:, 1] * (np.max(vertices[1]) - np.min(vertices[1])) + np.min(vertices[1])
     b = rgb[:, 2] * (np.max(vertices[2]) - np.min(vertices[2])) + np.min(vertices[2])
