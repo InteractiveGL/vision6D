@@ -107,9 +107,7 @@ def load_trimesh(meshpath, mirror=False):
 
     # writemesh(meshpath, meshobj.vertices, mirror=mirror)
 
-    mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T, process=False)
-    # mesh.vertices = meshobj.vertices.T.astype(np.float32)
-    # mesh.faces = meshobj.triangles.T.astype(np.float32)
+    mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T, process=False) # mesh.vertices = meshobj.vertices.T.astype(np.float32) # mesh.faces = meshobj.triangles.T.astype(np.float32)
     assert mesh.vertices.shape == meshobj.vertices.T.shape
     assert mesh.faces.shape == meshobj.triangles.T.shape
     return mesh
