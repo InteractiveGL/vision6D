@@ -46,8 +46,9 @@ class App:
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
         self.cam_viewup = cam_viewup
+        self.cam_position = -(self.cam_focal_length/100)/scale
         self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
-        self.set_camera_extrinsics(self.cam_focal_length, self.scale, self.cam_viewup)
+        self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         
         # Set the attribute and its implications
         self.set_register(register)
@@ -75,8 +76,8 @@ class App:
     def set_surface_opacity(self, surface_opacity: float):
         self.surface_opacity = surface_opacity
 
-    def set_camera_extrinsics(self, cam_focal_length, scale, cam_viewup):
-        self.camera.SetPosition((0,0,-(cam_focal_length/100)/scale))
+    def set_camera_extrinsics(self, cam_position, cam_viewup):
+        self.camera.SetPosition((0,0,cam_position))
         self.camera.SetFocalPoint((0,0,0))
         self.camera.SetViewUp(cam_viewup)
     
@@ -98,9 +99,9 @@ class App:
         wcy =  2*(cy - float(height)/2) / height
         self.camera.SetWindowCenter(wcx, wcy) # (0,0)
         
-        # Setting the focal length
-        view_angle = 180 / math.pi * (2.0 * math.atan2(height/2.0, f))
-        self.camera.SetViewAngle(view_angle) # ~30 degree
+        # Setting the view angle in degrees
+        view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f))
+        self.camera.SetViewAngle(view_angle) # view angle should be in degrees
         
     def set_transformation_matrix(self, matrix:np.ndarray):
         self.transformation_matrix = matrix
