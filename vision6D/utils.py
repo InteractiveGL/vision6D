@@ -98,16 +98,14 @@ def load_trimesh(meshpath, mirror=False):
     idx = np.where(meshobj.orient != np.array((1,2,3)))
     for i in idx: meshobj.vertices[i] = (meshobj.dim[i] - 1).reshape((-1,1)) - meshobj.vertices[i]
     # check the results
-    # writemesh(meshpath, meshobj.vertices)
+    # writemesh(meshpath, meshobj, mirror)
 
     # Reflection Relative to YZ Plane (x):
-    if mirror: 
-        meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
+    # if mirror: 
+    #     meshobj.vertices[0] = (meshobj.dim[0] - 1) - meshobj.vertices[0].T
+    #     writemesh(meshpath, meshobj, mirror=mirror)
         
     meshobj.vertices = meshobj.vertices * meshobj.sz.reshape((-1, 1))
-
-    # writemesh(meshpath, meshobj.vertices, mirror=mirror)
-
     mesh = trimesh.Trimesh(vertices=meshobj.vertices.T, faces=meshobj.triangles.T, process=False) # mesh.vertices = meshobj.vertices.T.astype(np.float32) # mesh.faces = meshobj.triangles.T.astype(np.float32)
     assert mesh.vertices.shape == meshobj.vertices.T.shape
     assert mesh.faces.shape == meshobj.triangles.T.shape
@@ -119,7 +117,7 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
     """
     meshobj = load_meshobj(meshpath)
     # the shape has to be 3 x N
-    meshobj.vertices = mesh.vertices.T / meshobj.sz.reshape((-1, 1))
+    meshobj.vertices = mesh.vertices.T / meshobj.sz.reshape((-1, 1)) if mesh.vertices.shape[1]==3 else mesh.vertices / meshobj.sz.reshape((-1, 1))
     meshobj.orient = np.array((1, 2, 3), dtype="int32")
 
     name = meshpath.stem
@@ -154,7 +152,6 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
         #         f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
         """
     print("finish writing to a mesh file")
-    
         
 def color2binary_mask(color_mask):
     binary_mask = np.zeros(color_mask[...,:1].shape)
@@ -173,7 +170,7 @@ def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, npts:
     assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
 
     # To convert color_mask to bool type, we need to consider all three channels for color image, or conbine all channels to grey for color images!
-    color_mask_bool = (0.2989 * color_mask[..., :1] + 0.5870*color_mask[..., 1:2] + 0.1140*color_mask[..., 2:]).astype("bool") 
+    color_mask_bool = (0.2989*color_mask[..., :1] + 0.5870*color_mask[..., 1:2] + 0.1140*color_mask[..., 2:]).astype("bool") 
     # # solution2
     # color_mask_bool = np.logical_or(color_mask.astype("bool")[..., :1], color_mask.astype("bool")[..., 1:2], color_mask.astype("bool")[..., 2:])
     # # solution3
