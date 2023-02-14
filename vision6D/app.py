@@ -28,7 +28,7 @@ class App:
         self.window_size = (int(width*scale), int(height*scale))
         self.scale = scale
         self.mirror_objects = mirror_objects
-        self.transformation_matrix = np.eye(4)
+        self.transformation_matrix = None
         self.reference = None
         
         # initial the dictionaries
@@ -142,7 +142,9 @@ class App:
         self.image_actors["image"] = actor
         self.image_actors["image-origin"] = actor.copy()        
 
-    def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)], transformation_matrix):
+    def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
+
+        assert self.transformation_matrix is not None, "Need to set the transformation matrix first!"
                 
         for mesh_name, mesh_source in paths.items():
             
@@ -166,7 +168,7 @@ class App:
             mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
             
             # Set the transformation matrix to be the mesh's user_matrix
-            mesh.user_matrix = transformation_matrix
+            mesh.user_matrix = self.transformation_matrix
 
             # plot meshes
             # mesh.plot()
@@ -194,7 +196,7 @@ class App:
                 mesh_data.point_data.set_scalars(colors)
                 mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name)
                 # Set the transformation matrix to be the mesh's user_matrix
-                mesh.user_matrix = transformation_matrix
+                mesh.user_matrix = self.transformation_matrix
                 # Add and save the actor
                 actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
                 self.mesh_actors[mesh_name] = actor

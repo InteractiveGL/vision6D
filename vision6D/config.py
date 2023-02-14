@@ -77,7 +77,11 @@ FACIAL_NERVE_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742
 CHORDA_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "6742_left_chorda_processed_right.mesh"
 
 # right ossicles
-gt_pose_455_right = np.eye(4)
+# gt_pose_455_right = np.eye(4)
+gt_pose_455_right = np.array([[ 0.38100506, -0.036584,   -0.92384888, -4.78796069],
+                            [ 0.68508419,  0.68217898,  0.25552199, -2.45344322],
+                            [ 0.62088227, -0.73026943,  0.28497676,  0.01822901],
+                            [ 0.,          0.,          0.,          1.        ]])
 gt_pose_5997_right = np.eye(4)
 gt_pose_6088_right = np.eye(4)
 gt_pose_6108_right = np.eye(4)

@@ -33,49 +33,30 @@ def test_load_image(app):
     app.load_image(image_source, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
     app.plot()
-    
-def test_flip_left_ossicles_color(app):
-
-    ossicles_path = vis.config.OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "6742_right_ossicles.mesh"
-
-    app.load_meshes({'ossicles': ossicles_path}, app.transformation_matrix)
-    
-    app.plot()
-
-    rendered_mask_path = vis.config.DATA_DIR / "rendered_mask" / "rendered_mask_whole_6742.png"
-    rendered_mask = np.array(PIL.Image.open(rendered_mask_path)) / 255
-
-    modified_mask = np.where(rendered_mask != [0, 0, 0], 1 - rendered_mask, rendered_mask)
-    modified_mask = modified_mask[:, ::-1, ...]
-
-    vertices = getattr(app, f'ossicles_vertices')
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(modified_mask, vertices)
-    predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, app.camera_intrinsics, app.camera.position)
-
-    print("hhhh")
 
 @pytest.mark.parametrize(
-    "image_path, ossicles_path, facial_nerve_path, chorda_path",
+    "image_path, ossicles_path, facial_nerve_path, chorda_path, gt_pose",
     [# right ossicles
-    (vis.config.IMAGE_PATH_455, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.FACIAL_NERVE_MESH_PATH_455_right, vis.config.CHORDA_MESH_PATH_455_right),
-    (vis.config.IMAGE_PATH_5997, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.FACIAL_NERVE_MESH_PATH_5997_right, vis.config.CHORDA_MESH_PATH_5997_right),
-    (vis.config.IMAGE_PATH_6088, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.FACIAL_NERVE_MESH_PATH_6088_right, vis.config.CHORDA_MESH_PATH_6088_right),
-    (vis.config.IMAGE_PATH_6108, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.FACIAL_NERVE_MESH_PATH_6108_right, vis.config.CHORDA_MESH_PATH_6108_right),
-    (vis.config.IMAGE_PATH_632, vis.config.OSSICLES_MESH_PATH_632_right, vis.config.FACIAL_NERVE_MESH_PATH_632_right, vis.config.CHORDA_MESH_PATH_632_right),
-    (vis.config.IMAGE_PATH_6320, vis.config.OSSICLES_MESH_PATH_6320_right, vis.config.FACIAL_NERVE_MESH_PATH_6320_right, vis.config.CHORDA_MESH_PATH_6320_right),
-    (vis.config.IMAGE_PATH_6329, vis.config.OSSICLES_MESH_PATH_6329_right, vis.config.FACIAL_NERVE_MESH_PATH_6329_right, vis.config.CHORDA_MESH_PATH_6329_right),
-    (vis.config.IMAGE_PATH_6602, vis.config.OSSICLES_MESH_PATH_6602_right, vis.config.FACIAL_NERVE_MESH_PATH_6602_right, vis.config.CHORDA_MESH_PATH_6602_right),
-    (vis.config.IMAGE_PATH_6751, vis.config.OSSICLES_MESH_PATH_6751_right, vis.config.FACIAL_NERVE_MESH_PATH_6751_right, vis.config.CHORDA_MESH_PATH_6751_right),
+    (vis.config.IMAGE_PATH_455, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.FACIAL_NERVE_MESH_PATH_455_right, vis.config.CHORDA_MESH_PATH_455_right, vis.config.gt_pose_455_right),
+    (vis.config.IMAGE_PATH_5997, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.FACIAL_NERVE_MESH_PATH_5997_right, vis.config.CHORDA_MESH_PATH_5997_right, vis.config.gt_pose_5997_right),
+    (vis.config.IMAGE_PATH_6088, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.FACIAL_NERVE_MESH_PATH_6088_right, vis.config.CHORDA_MESH_PATH_6088_right, vis.config.gt_pose_6088_right),
+    (vis.config.IMAGE_PATH_6108, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.FACIAL_NERVE_MESH_PATH_6108_right, vis.config.CHORDA_MESH_PATH_6108_right, vis.config.gt_pose_6108_right),
+    (vis.config.IMAGE_PATH_632, vis.config.OSSICLES_MESH_PATH_632_right, vis.config.FACIAL_NERVE_MESH_PATH_632_right, vis.config.CHORDA_MESH_PATH_632_right, vis.config.gt_pose_632_right),
+    (vis.config.IMAGE_PATH_6320, vis.config.OSSICLES_MESH_PATH_6320_right, vis.config.FACIAL_NERVE_MESH_PATH_6320_right, vis.config.CHORDA_MESH_PATH_6320_right, vis.config.gt_pose_6320_right),
+    (vis.config.IMAGE_PATH_6329, vis.config.OSSICLES_MESH_PATH_6329_right, vis.config.FACIAL_NERVE_MESH_PATH_6329_right, vis.config.CHORDA_MESH_PATH_6329_right, vis.config.gt_pose_6329_right),
+    (vis.config.IMAGE_PATH_6602, vis.config.OSSICLES_MESH_PATH_6602_right, vis.config.FACIAL_NERVE_MESH_PATH_6602_right, vis.config.CHORDA_MESH_PATH_6602_right, vis.config.gt_pose_6602_right),
+    (vis.config.IMAGE_PATH_6751, vis.config.OSSICLES_MESH_PATH_6751_right, vis.config.FACIAL_NERVE_MESH_PATH_6751_right, vis.config.CHORDA_MESH_PATH_6751_right, vis.config.gt_pose_6751_right),
     # left ossicles
-    (vis.config.IMAGE_PATH_6742, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.FACIAL_NERVE_MESH_PATH_6742_left, vis.config.CHORDA_MESH_PATH_6742_left),
-    (vis.config.IMAGE_PATH_6087, vis.config.OSSICLES_MESH_PATH_6087_left, vis.config.FACIAL_NERVE_MESH_PATH_6087_left, vis.config.CHORDA_MESH_PATH_6087_left),
+    (vis.config.IMAGE_PATH_6742, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.FACIAL_NERVE_MESH_PATH_6742_left, vis.config.CHORDA_MESH_PATH_6742_left, vis.config.gt_pose_6742_left),
+    (vis.config.IMAGE_PATH_6087, vis.config.OSSICLES_MESH_PATH_6087_left, vis.config.FACIAL_NERVE_MESH_PATH_6087_left, vis.config.CHORDA_MESH_PATH_6087_left, vis.config.gt_pose_6087_left),
     ]
 )  
-def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_path):
+def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_path, gt_pose):
     image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_reference('ossicles')
-    app.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path}, app.transformation_matrix)
+    app.set_transformation_matrix(gt_pose)
+    app.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
     app.bind_meshes("ossicles", "g")
     app.bind_meshes("chorda", "h")
     app.bind_meshes("facial_nerve", "j")
@@ -111,7 +92,7 @@ def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_pat
         image_numpy = image_numpy[:, ::-1, ...]
     app.load_image(image_numpy)
     app.set_transformation_matrix(RT)
-    app.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path}, app.transformation_matrix)
+    app.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
     app.bind_meshes("ossicles", "g")
     app.bind_meshes("chorda", "h")
     app.bind_meshes("facial_nerve", "j")
@@ -119,40 +100,41 @@ def test_load_mesh_from_dataset(app, image_path, ossicles_path, facial_nerve_pat
     app.plot()
 
 @pytest.mark.parametrize(
-    "mesh_path, mirror_objects",
-    [(vis.config.OSSICLES_MESH_PATH_5997_right, False), 
-    (vis.config.OSSICLES_MESH_PATH_6088_right, False),
-    (vis.config.OSSICLES_MESH_PATH_6108_right, False),
-    (vis.config.OSSICLES_MESH_PATH_632_right, False),
-    (vis.config.OSSICLES_MESH_PATH_6320_right, False),
-    (vis.config.OSSICLES_MESH_PATH_6329_right, False),
-    (vis.config.OSSICLES_MESH_PATH_6602_right, False),
-    (vis.config.OSSICLES_MESH_PATH_6751_right, False),
-    (vis.config.OSSICLES_MESH_PATH_455_right, False),
+    "mesh_path, gt_pose, mirror_objects",
+    [(vis.config.OSSICLES_MESH_PATH_455_right, vis.config.gt_pose_455_right, False),
+    (vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, False), 
+    (vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, False),
+    (vis.config.OSSICLES_MESH_PATH_632_right, vis.config.gt_pose_632_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6320_right, vis.config.gt_pose_6320_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6329_right, vis.config.gt_pose_6329_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6602_right, vis.config.gt_pose_6602_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6751_right, vis.config.gt_pose_6751_right, False),
+    
+    (vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, False),
+    (vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, True),
 
-    (vis.config.OSSICLES_MESH_PATH_6742_left, False),
-    (vis.config.OSSICLES_MESH_PATH_6742_left, True),
-
-    (vis.config.OSSICLES_MESH_PATH_6742_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6742_right, vis.config.gt_pose_6742_right, False),
     ]
 )
-def test_render_scene(app, mesh_path, mirror_objects):
+def test_render_scene(app, mesh_path, gt_pose, mirror_objects):
     app.set_register(True)
     app.set_mirror_objects(mirror_objects)
-    app.load_meshes({'ossicles': mesh_path}, app.transformation_matrix)
+    app.set_transformation_matrix(gt_pose)
+    app.load_meshes({'ossicles': mesh_path})
     image_np = app.render_scene(render_image=False, render_objects=['ossicles'])
+    # point = (image_np[542, 946] / 255).astype('float32')
     plt.imshow(image_np)
-    image = Image.fromarray(image_np)
-    plt.imshow(image)
     plt.show()
+    print("hhh")
     
 def test_save_plot(app):
     app.set_register(False)
+    app.set_transformation_matrix(np.eye(4))
     image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     app.load_image(image_numpy)
 
-    app.load_meshes({'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 'chorda': vis.config.CHORDA_MESH_PATH_5997_right}, 
-                    app.transformation_matrix)
+    app.load_meshes({'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 'chorda': vis.config.CHORDA_MESH_PATH_5997_right})
 
     app.bind_meshes("ossicles", "g")
     app.bind_meshes("chorda", "h")
@@ -212,7 +194,7 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     seg_mask = np.expand_dims(seg_mask, axis=-1)
         
     app.set_transformation_matrix(RT)
-    app.load_meshes({'ossicles': ossicles_path}, app.transformation_matrix)
+    app.load_meshes({'ossicles': ossicles_path})
     app.plot()
 
     # Create rendering

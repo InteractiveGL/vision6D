@@ -1211,3 +1211,25 @@ def center_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
         # vis.utils.writemesh(paths[id], self.mesh_polydata[id].points.T, center=True)
 
     print('hhhh')
+
+def test_flip_left_ossicles_color(app):
+
+    ossicles_path = vis.config.OSSICLES_MESH_PATH_6742_left
+
+    app.set_transformation_matrix(np.eye(4))
+
+    app.load_meshes({'ossicles': ossicles_path})
+    
+    app.plot()
+
+    rendered_mask_path = vis.config.DATA_DIR / "rendered_mask" / "rendered_mask_whole_6742.png"
+    rendered_mask = np.array(PIL.Image.open(rendered_mask_path)) / 255
+
+    modified_mask = np.where(rendered_mask != [0, 0, 0], 1 - rendered_mask, rendered_mask)
+    modified_mask = modified_mask[:, ::-1, ...]
+
+    vertices = getattr(app, f'ossicles_vertices')
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(modified_mask, vertices)
+    predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, app.camera_intrinsics, app.camera.position)
+
+    print("hhhh")
