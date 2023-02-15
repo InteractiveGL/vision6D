@@ -46,7 +46,7 @@ class App:
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
         self.cam_viewup = cam_viewup
-        self.cam_position = -(self.cam_focal_length/100)/scale
+        self.cam_position = -(self.cam_focal_length/100)/self.scale
         self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
         self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         
