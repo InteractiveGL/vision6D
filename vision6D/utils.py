@@ -92,7 +92,7 @@ def load_meshobj(meshpath):
         meshobj = meshread(fid)
     return meshobj
 
-def load_trimesh(meshpath, mirror=False):
+def load_trimesh(meshpath):
     meshobj = load_meshobj(meshpath)
     # load the original ossicles
     idx = np.where(meshobj.orient != np.array((1,2,3)))

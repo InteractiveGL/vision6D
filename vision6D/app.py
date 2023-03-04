@@ -37,6 +37,7 @@ class App:
         self.image_polydata = {}
         self.mesh_polydata = {}
         self.binded_meshes = {}
+        self.initial_poses = {}
         
         # default opacity for image and surface
         self.set_image_opacity(0.8) # self.image_opacity = 0.35
@@ -153,7 +154,7 @@ class App:
             if isinstance(mesh_source, pathlib.WindowsPath):
                 # Load the '.mesh' file
                 assert '.mesh' in str(mesh_source), "the file type has to be '.mesh'"
-                trimesh_data = vis.utils.load_trimesh(mesh_source, self.mirror_objects)
+                trimesh_data = vis.utils.load_trimesh(mesh_source)
                 mesh_data = pv.wrap(trimesh_data)
 
             # Save the mesh data to dictionary
@@ -169,6 +170,7 @@ class App:
             
             # Set the transformation matrix to be the mesh's user_matrix
             mesh.user_matrix = self.transformation_matrix
+            self.initial_poses[mesh_name] = self.transformation_matrix
 
             # plot meshes
             # mesh.plot()
@@ -176,27 +178,32 @@ class App:
             # Add and save the actor
             actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
             self.mesh_actors[mesh_name] = actor
+            
 
             if self.mirror_objects:
-                mesh_name = mesh_name + '_reflect'
+                mesh_name = mesh_name + '_mirror'
 
-                # create a DEEP copy, equivalent to mesh_data = mesh_data.reflect((1, 0, 0))
-                # mesh_data = mesh_data.copy(deep=True)
-                # mesh_data.points = vis.utils.transform_vertices(mesh_data.points, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+                # create a DEEP copy
+                mesh_data = mesh_data.copy(deep=True)
+                # mesh_data.points = (np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T).T
 
                 # mirror the object based on the origin (0, 0, 0)
-                mesh_data = mesh_data.reflect((1, 0, 0), point=(0, 0, 0)) 
+                # mesh_data = mesh_data.reflect((1, 0, 0), point=(0, 0, 0)) 
                 
                 # Save the mesh data to dictionary
                 self.mesh_polydata[mesh_name] = mesh_data
                 # set vertices attribute
                 self.set_vertices(mesh_name, mesh_data.points)
                 # Color the vertex: set the color to be the meshes' initial location, and never change the color
-                colors = vis.utils.color_mesh(mesh_data.points.T)
+                # colors = vis.utils.color_mesh(mesh_data.points.T)
+                colors = vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T)
                 mesh_data.point_data.set_scalars(colors)
                 mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name)
                 # Set the transformation matrix to be the mesh's user_matrix
+                self.transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
                 mesh.user_matrix = self.transformation_matrix
+                self.initial_poses[mesh_name] = self.transformation_matrix
+
                 # Add and save the actor
                 actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
                 self.mesh_actors[mesh_name] = actor
@@ -243,7 +250,7 @@ class App:
                 
         transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
-            if len(self.mesh_actors) <= 3: actor.user_matrix = transformation_matrix
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             actor.GetProperty().opacity = self.surface_opacity
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
 
@@ -253,7 +260,7 @@ class App:
         
         transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = transformation_matrix
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
     
@@ -264,7 +271,7 @@ class App:
         transformation_matrix = self.mesh_actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            self.mesh_actors[f"{obj}"].user_matrix = transformation_matrix
+            self.mesh_actors[f"{obj}"].user_matrix = transformation_matrix if not "_mirror" in obj else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.pv_plotter.add_actor(self.mesh_actors[f"{obj}"], pickable=True, name=obj)
         
         logger.debug(f"realign: main => {main_mesh}, others => {other_meshes} complete")
@@ -272,7 +279,7 @@ class App:
     def event_gt_position(self, *args):
         
         for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = self.transformation_matrix
+            actor.user_matrix = self.initial_poses[actor_name]
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
 
         logger.debug("event_gt_position callback complete")
@@ -281,7 +288,9 @@ class App:
         self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
             # update the the actor's user matrix
+            self.transformation_matrix = self.transformation_matrix if not '_mirror' in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
             actor.user_matrix = self.transformation_matrix
+            self.initial_poses[actor_name] = self.transformation_matrix
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
         
         logger.debug(f"\ncurrent transformation matrix: \n{self.transformation_matrix}")
