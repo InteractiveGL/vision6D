@@ -164,49 +164,17 @@ class App:
             self.set_vertices(mesh_name, mesh_data.points)
 
             # Color the vertex: set the color to be the meshes' initial location, and never change the color
-            colors = vis.utils.color_mesh(mesh_data.points.T)
+            colors = vis.utils.color_mesh(mesh_data.points.T) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T)
             mesh_data.point_data.set_scalars(colors)
             mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
             
             # Set the transformation matrix to be the mesh's user_matrix
-            mesh.user_matrix = self.transformation_matrix
+            mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
             self.initial_poses[mesh_name] = self.transformation_matrix
-
-            # plot meshes
-            # mesh.plot()
             
             # Add and save the actor
             actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
             self.mesh_actors[mesh_name] = actor
-            
-
-            if self.mirror_objects:
-                mesh_name = mesh_name + '_mirror'
-
-                # create a DEEP copy
-                mesh_data = mesh_data.copy(deep=True)
-                # mesh_data.points = (np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T).T
-
-                # mirror the object based on the origin (0, 0, 0)
-                # mesh_data = mesh_data.reflect((1, 0, 0), point=(0, 0, 0)) 
-                
-                # Save the mesh data to dictionary
-                self.mesh_polydata[mesh_name] = mesh_data
-                # set vertices attribute
-                self.set_vertices(mesh_name, mesh_data.points)
-                # Color the vertex: set the color to be the meshes' initial location, and never change the color
-                # colors = vis.utils.color_mesh(mesh_data.points.T)
-                colors = vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T)
-                mesh_data.point_data.set_scalars(colors)
-                mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name)
-                # Set the transformation matrix to be the mesh's user_matrix
-                self.transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-                mesh.user_matrix = self.transformation_matrix
-                self.initial_poses[mesh_name] = self.transformation_matrix
-
-                # Add and save the actor
-                actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
-                self.mesh_actors[mesh_name] = actor
 
         if len(self.mesh_actors) == 1: self.set_reference(reference_name)
 
@@ -358,7 +326,7 @@ class App:
             # Render the targeting objects
             for object in render_objects:
                 mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
-                mesh.user_matrix = self.transformation_matrix
+                mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
         
         self.pv_render.camera = self.camera.copy()
         self.pv_render.disable()

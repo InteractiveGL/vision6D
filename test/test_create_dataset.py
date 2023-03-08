@@ -149,21 +149,17 @@ def test_generate_image(app):
     ("6742", None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, False), # no resize: 0.04155607588744 # resize 1/5 cv2: 0.13983189316096442 # if resize torch: 
     ("6742", vis.config.mask_6742_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, False), # error: 2.2111475894404378 # if resize cv2: 146.63621797086526 # if resize torch: 
     
-    # ("6742", mask_6742_hand_draw_numpy, OSSICLES_MESH_PATH_6742_left, gt_pose_6742_left, 1/5, True), # no resize: 5.214560773437986 # resize 1/5 cv2: 230.26984657453482 # if resize torch: 
+    ("6742", None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, True), # no resize: 5.214560773437986 # resize 1/5 cv2: 230.26984657453482 # if resize torch: 
     ]
 )
 def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects):
 
-    ossicles_side = ossicles_path.stem.split("_")[1]
-    if mirror_objects:
-        if ossicles_side == "right": ossicles_side = "left"
-        elif ossicles_side == "left": ossicles_side = "right"
-
     # save the GT pose to .npy file
-    gt_pose_name = f"{name}_{ossicles_side}_gt_pose.npy"
-    np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, RT)
-    app = vis.App(register=True, scale=1, mirror_objects=mirror_objects)
+    # ossicles_side = ossicles_path.stem.split("_")[1]
+    # gt_pose_name = f"{name}_{ossicles_side}_gt_pose.npy"
+    # np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, RT)
 
+    app = vis.App(register=True, scale=1, mirror_objects=mirror_objects)
     w, h = app.window_size
 
     if hand_draw_mask is not None: 
@@ -237,6 +233,8 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     logger.debug(f"The total points are {pts3d.shape[0]}")
 
     predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, app.camera_intrinsics, app.camera.position)
+
+    if mirror_objects: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
             
     logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
             

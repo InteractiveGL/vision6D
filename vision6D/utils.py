@@ -213,23 +213,14 @@ def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, camera_position):
     pts2d = pts2d.astype('float32')
     pts3d = pts3d.astype('float32')
     camera_intrinsics = camera_intrinsics.astype('float32')
-    
-    if pts2d.shape[0] < 4:
-        predicted_pose = np.eye(4)
-        # inliers = []
-    else:
-        dist_coeffs = np.zeros((4, 1))
-        
-        # Get a rotation matrix
-        predicted_pose = np.eye(4)
-        
-        # Use EPNP
-        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, dist_coeffs, confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
-            
+
+    predicted_pose = np.eye(4)
+    if pts2d.shape[0] > 4:
+        # Use EPNP, inliers are the indices of the inliers
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, distCoeffs=np.zeros((4, 1)), confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
         if success:
             predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
             predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(camera_position)
-            # logger.debug(len(inliers)) # 50703
 
     return predicted_pose
 
