@@ -153,53 +153,20 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
         """
     print("finish writing to a mesh file")
         
-def color2binary_mask(color_mask):
-    binary_mask = np.zeros(color_mask[...,:1].shape)
-    x, y, _ = np.where(color_mask != [0., 0., 0.])
-    binary_mask[x, y] = 1      
-    return binary_mask
+def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, binary_mask:np.ndarray=None):
 
-def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, npts:int=-1, binary_mask:np.ndarray=None):
-
-    if binary_mask is None:
-        binary_mask = color2binary_mask(color_mask)
-
-    # make sure the binary mask only contains 0 and 1
-    binary_mask = np.where(binary_mask != 0, 1, 0)
-    binary_mask_bool = binary_mask.astype('bool')
-    assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
-
-    # To convert color_mask to bool type, we need to consider all three channels for color image, or conbine all channels to grey for color images!
-    color_mask_bool = (0.2989*color_mask[..., :1] + 0.5870*color_mask[..., 1:2] + 0.1140*color_mask[..., 2:]).astype("bool") 
-    # # solution2
-    # color_mask_bool = np.logical_or(color_mask.astype("bool")[..., :1], color_mask.astype("bool")[..., 1:2], color_mask.astype("bool")[..., 2:])
-    # # solution3
-    # color_mask_bool = color_mask.astype("bool")
-    # color_mask_bool = (color_mask_bool[..., :1] + color_mask_bool[..., 1:2] + color_mask_bool[..., 2:]).astype("bool")
-    assert (binary_mask == color_mask_bool).all(), "binary_mask is not the same as the color_mask_bool"
+    if binary_mask is None: binary_mask = (0.3*color_mask[..., :1] + 0.59*color_mask[..., 1:2] + 0.11*color_mask[..., 2:]).astype("bool").astype('uint8')
 
     # Randomly select points in the mask
     idx = np.where(binary_mask == 1)
     
     # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
-    # pts = np.array([(x,y) for x,y in zip(idx[1], idx[0])])
     x, y = idx[1], idx[0]
     pts = np.stack((x, y), axis=1)
     
-    if npts == -1:
-        rand_pts = pts
-    else:
-        rand_pts_idx = np.random.choice(pts.shape[0], npts)
-        rand_pts = pts[rand_pts_idx,:]
-        
-    # # noise check
-    # rand_pts = np.vstack((rand_pts, [0, 0]))
-    
     # Obtain the 3D verticies (normaize rgb values)
-    rgb = color_mask[rand_pts[:,1], rand_pts[:,0]]
-
-    if np.max(rgb) > 1:
-        rgb = rgb / 255
+    rgb = color_mask[pts[:,1], pts[:,0]]
+    if np.max(rgb) > 1: rgb = rgb / 255
 
     # vertices = getattr(obj, f'{object_name}_vertices')
     r = rgb[:, 0] * (np.max(vertices[0]) - np.min(vertices[0])) + np.min(vertices[0])
@@ -207,7 +174,7 @@ def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, npts:
     b = rgb[:, 2] * (np.max(vertices[2]) - np.min(vertices[2])) + np.min(vertices[2])
     vtx = np.stack([r, g, b], axis=1)
     
-    return rand_pts, vtx
+    return vtx, pts
 
 def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, camera_position):
     pts2d = pts2d.astype('float32')

@@ -181,54 +181,33 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
 
     # Create rendering
     color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
-    # save the rendered whole image
-    vis.utils.save_image(color_mask_whole, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
-
-    color_mask_binarized = vis.utils.color2binary_mask(color_mask_whole)
-    binary_mask = color_mask_binarized * seg_mask
+    
+    # generate the color mask based on the segmentation mask
     color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
-    assert (binary_mask == vis.utils.color2binary_mask(color_mask)).all(), "render_binary_mask is not the same as converted render_color_mask"
 
+    # save the rendered whole image
+    # vis.utils.save_image(color_mask_whole, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
     # save the rendered partial image
-    if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
+    # if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
     
     # numpy implementation
-    resize_height = int(h * resize)
-    resize_width = int(w * resize)
-    downscale_color_mask = cv2.resize(color_mask, (resize_width, resize_height), interpolation=cv2.INTER_AREA)
-    downscale_binary_mask = cv2.resize(binary_mask, (resize_width, resize_height), interpolation=cv2.INTER_AREA)
-        
+    downscale_color_mask = cv2.resize(color_mask, (int(w * resize), int(h * resize)), interpolation=cv2.INTER_AREA)
+            
     # based on the ratio of the mask size compare with the whole image
-    if np.sum(downscale_binary_mask) / (downscale_binary_mask.shape[0] * downscale_binary_mask.shape[1]) > 0.01:
-        color_mask = cv2.resize(downscale_color_mask, (w, h), interpolation=cv2.INTER_LINEAR)
-        binary_mask = cv2.resize(downscale_binary_mask, (w, h), interpolation=cv2.INTER_LINEAR)
-    else:
-        color_mask = cv2.resize(downscale_color_mask, (w, h), interpolation=cv2.INTER_AREA)
-        binary_mask = cv2.resize(downscale_binary_mask, (w, h), interpolation=cv2.INTER_AREA)
-    # # torch implementation
-    # trans = torchvision.transforms.Resize((h, w))
-    # color_mask = trans(torch.tensor(downscale_color_mask).permute(2,0,1))
-    # color_mask = color_mask.permute(1,2,0).detach().cpu().numpy()
-    # binary_mask = trans(torch.tensor(downscale_binary_mask).unsqueeze(-1).permute(2,0,1))
-    # binary_mask = binary_mask.permute(1,2,0).squeeze().detach().cpu().numpy()
-    # make sure the binary mask only contains 0 and 1
-    binary_mask = np.where(binary_mask != 0, 1, 0)
-    binary_mask_bool = binary_mask.astype('bool')
-    assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
+    color_mask = cv2.resize(downscale_color_mask, (w, h), interpolation=cv2.INTER_LINEAR)
+    # color_mask = cv2.resize(downscale_color_mask, (w, h), interpolation=cv2.INTER_AREA)
 
-    plt.subplot(221)
+    plt.subplot(311)
     plt.imshow(color_mask_whole)
-    plt.subplot(222)
+    plt.subplot(312)
     plt.imshow(seg_mask)
-    plt.subplot(223)
-    plt.imshow(binary_mask)
-    plt.subplot(224)
+    plt.subplot(313)
     plt.imshow(color_mask)
     plt.show()
     
     # Create 2D-3D correspondences
     vertices = getattr(app, f'ossicles_vertices')
-    pts2d, pts3d = vis.utils.create_2d_3d_pairs(color_mask, vertices) #, binary_mask=binary_mask)
+    pts3d, pts2d = vis.utils.create_2d_3d_pairs(color_mask, vertices) #, binary_mask=binary_mask)
     
     logger.debug(f"The total points are {pts3d.shape[0]}")
 

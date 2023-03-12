@@ -1321,3 +1321,53 @@ def test_flip_left_ossicles_color(app):
     #     # Add and save the actor
     #     actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
     #     self.mesh_actors[mesh_name] = actor
+
+color_mask_binarized = vis.utils.color2binary_mask(color_mask_whole)
+binary_mask = color_mask_binarized * seg_mask
+color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
+assert (binary_mask == vis.utils.color2binary_mask(color_mask)).all(), "render_binary_mask is not the same as converted render_color_mask"
+
+downscale_binary_mask = cv2.resize(binary_mask, (resize_width, resize_height), interpolation=cv2.INTER_AREA)
+
+ # # torch implementation
+# trans = torchvision.transforms.Resize((h, w))
+# color_mask = trans(torch.tensor(downscale_color_mask).permute(2,0,1))
+# color_mask = color_mask.permute(1,2,0).detach().cpu().numpy()
+# binary_mask = trans(torch.tensor(downscale_binary_mask).unsqueeze(-1).permute(2,0,1))
+# binary_mask = binary_mask.permute(1,2,0).squeeze().detach().cpu().numpy()
+
+# make sure the binary mask only contains 0 and 1
+binary_mask = np.where(binary_mask != 0, 1, 0)
+binary_mask_bool = binary_mask.astype('bool')
+assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
+
+plt.subplot(223)
+plt.imshow(binary_mask)
+
+def color2binary_mask(color_mask):
+    binary_mask = np.zeros(color_mask[...,:1].shape)
+    x, y, _ = np.where(color_mask != [0., 0., 0.])
+    binary_mask[x, y] = 1      
+    return 
+
+# binary_mask = color2binary_mask(color_mask)
+        
+# make sure the binary mask only contains 0 and 1
+binary_mask = np.where(binary_mask != 0, 1, 0)
+binary_mask_bool = binary_mask.astype('bool')
+assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
+
+# To convert color_mask to bool type, we need to consider all three channels for color image, or conbine all channels to grey for color images!
+color_mask_bool = (0.3*color_mask[..., :1] + 0.59*color_mask[..., 1:2] + 0.11*color_mask[..., 2:]).astype("bool") 
+# # solution2
+# color_mask_bool = np.logical_or(color_mask.astype("bool")[..., :1], color_mask.astype("bool")[..., 1:2], color_mask.astype("bool")[..., 2:])
+# # solution3
+# color_mask_bool = color_mask.astype("bool")
+# color_mask_bool = (color_mask_bool[..., :1] + color_mask_bool[..., 1:2] + color_mask_bool[..., 2:]).astype("bool")
+assert (binary_mask == color_mask_bool).all(), "binary_mask is not the same as the color_mask_bool"
+
+if npts == -1:
+    rand_pts = pts
+else:
+    rand_pts_idx = np.random.choice(pts.shape[0], npts)
+    rand_pts = pts[rand_pts_idx,:]

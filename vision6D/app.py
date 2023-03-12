@@ -151,7 +151,7 @@ class App:
             
             reference_name = mesh_name
 
-            if isinstance(mesh_source, pathlib.WindowsPath):
+            if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
                 # Load the '.mesh' file
                 assert '.mesh' in str(mesh_source), "the file type has to be '.mesh'"
                 trimesh_data = vis.utils.load_trimesh(mesh_source)
