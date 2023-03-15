@@ -153,9 +153,17 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
         """
     print("finish writing to a mesh file")
         
+def color2binary_mask(color_mask):
+    binary_mask = np.zeros(color_mask[...,:1].shape, dtype=np.uint8)
+    x, y, _ = np.where(color_mask != [0., 0., 0.])
+    binary_mask[x, y] = 1 
+    return binary_mask
+
 def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, binary_mask:np.ndarray=None):
 
-    if binary_mask is None: binary_mask = (0.3*color_mask[..., :1] + 0.59*color_mask[..., 1:2] + 0.11*color_mask[..., 2:]).astype("bool").astype('uint8')
+    if binary_mask is None: 
+        binary_mask = color2binary_mask(color_mask)
+        assert (binary_mask == (0.3*color_mask[..., :1] + 0.59*color_mask[..., 1:2] + 0.11*color_mask[..., 2:]).astype("bool").astype('uint8')).all()
 
     # Randomly select points in the mask
     idx = np.where(binary_mask == 1)

@@ -159,24 +159,21 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     # np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, RT)
 
     app = vis.App(register=True, mirror_objects=mirror_objects)
+    w, h = app.window_size
 
+    # Use the hand segmented mask
     if hand_draw_mask is not None: 
         seg_mask = np.load(hand_draw_mask).astype("bool")
-        plt.imshow(seg_mask)
-        plt.show()
+        if mirror_objects: seg_mask = seg_mask[..., ::-1]
     # no segmentation mask, use the whole mask to predict
-    else: 
-        w, h = app.window_size
-        seg_mask = np.ones((h, w)).astype("bool")
-
-    if mirror_objects: seg_mask = seg_mask[..., ::-1]
+    else: seg_mask = np.ones((h, w)).astype("bool")
 
     # expand the dimension
     seg_mask = np.expand_dims(seg_mask, axis=-1)
         
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': ossicles_path})
-    app.plot()
+    # app.plot()
 
     # Create rendering
     color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
