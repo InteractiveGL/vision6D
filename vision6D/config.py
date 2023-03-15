@@ -5,6 +5,7 @@ import os
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 GITROOT = CWD.parent
 OP_DATA_DIR = GITROOT.parent / 'ossicles_6D_pose_estimation' / 'data'
+YOLOV8_DATA_DIR = GITROOT.parent / 'yolov8'
 DATA_DIR = GITROOT / 'data'
 
 # right ossicles
@@ -23,7 +24,7 @@ OSSICLES_MESH_PATH_6088_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6088.168
 FACIAL_NERVE_MESH_PATH_6088_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6088.1681356523312_video_trim" / "mesh" / "6088_right_facial_nerve_processed.mesh"
 CHORDA_MESH_PATH_6088_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6088.1681356523312_video_trim" / "mesh" / "6088_right_chorda_processed.mesh"
 
-IMAGE_PATH_6108 = OP_DATA_DIR / "frames" / "CIP.6108.1638408845868_video_trim" / "CIP.6108.1638408845868_video_trim_0.png"
+IMAGE_PATH_6108 = YOLOV8_DATA_DIR / "runs" / "segment" / "CIP.6108.1638408845868_video_trim_right" / "images" / "ossicles" / "CIP.6108.1638408845868_video_trim2.png"
 OSSICLES_MESH_PATH_6108_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6108.1638408845868_video_trim" / "mesh" / "6108_right_ossicles_processed.mesh"
 FACIAL_NERVE_MESH_PATH_6108_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6108.1638408845868_video_trim" / "mesh" / "6108_right_facial_nerve_processed.mesh"
 CHORDA_MESH_PATH_6108_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6108.1638408845868_video_trim" / "mesh" / "6108_right_chorda_processed.mesh"
@@ -81,10 +82,10 @@ gt_pose_6088_right = np.array([[ 0.15329824,  0.02588047, -0.987841,   -3.967299
                                 [ 0.54896258,  0.82898159,  0.10690934, -1.73777328],
                                 [ 0.82166887, -0.55867676,  0.11287402, -8.0172838 ],
                                 [ 0.,          0.,          0.,          1.        ]])
-gt_pose_6108_right = np.array([[-0.18876861, -0.20334526, -0.9607378,  -2.23840364],
-                            [ 0.36843877,  0.89219498, -0.26122975, -4.75413415],
+gt_pose_6108_right = np.array([[-0.18876861, -0.20334526, -0.9607378 , -2.24840364],
+                            [ 0.36843877,  0.89219498, -0.26122975, -4.57413415],
                             [ 0.91028528, -0.40328503, -0.09349813, 40.47957643],
-                            [ 0.,          0.,          0.,          1.        ]] )
+                            [ 0.        ,  0.        ,  0.        ,  1.        ]])
 gt_pose_632_right = np.array([[ -0.01120854,  -0.07776647,  -0.99690859,  -3.81118655],
                             [  0.30193174,   0.95017292,  -0.07751544,  -1.11610844],
                             [  0.95326365,  -0.30186718,   0.01283011, 456.68699975],

@@ -12,21 +12,19 @@ import vision6D as vis
 logger = logging.getLogger("vision6D")
 
 class App:
-
+    # The unit is mm
     def __init__(
             self, 
             register,
             width: int=1920,
             height: int=1080,
-            scale: float=1,
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_viewup: Tuple=(0,-1,0),
             mirror_objects: bool=False
         ):
         
-        self.window_size = (int(width*scale), int(height*scale))
-        self.scale = scale
+        self.window_size = (int(width), int(height))
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
         self.reference = None
@@ -47,7 +45,7 @@ class App:
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
         self.cam_viewup = cam_viewup
-        self.cam_position = -(self.cam_focal_length/100)/self.scale
+        self.cam_position = -(self.cam_focal_length/100) # -500mm
         self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
         self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         
@@ -104,8 +102,9 @@ class App:
         view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f))
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
         
-    def set_transformation_matrix(self, matrix:np.ndarray):
-        self.transformation_matrix = matrix
+    def set_transformation_matrix(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
+        
+        self.transformation_matrix = matrix if matrix is not None else np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
     
     def set_reference(self, name:str):
         self.reference = name

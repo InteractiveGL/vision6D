@@ -25,7 +25,7 @@ np.set_printoptions(suppress=True)
 # size: (1920, 1080)
 @pytest.fixture
 def app():
-    return vis.App(register=True, scale=1)
+    return vis.App(register=True)
     
 def test_load_image(app):
     image_source = np.array(Image.open(vis.config.IMAGE_PATH_5997))
@@ -60,7 +60,6 @@ def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_pat
     app.bind_meshes("ossicles", "g")
     app.bind_meshes("chorda", "h")
     app.bind_meshes("facial_nerve", "j")
-    app.set_reference("ossicles")
     app.plot()
 
 @pytest.mark.parametrize(
@@ -159,8 +158,7 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     # gt_pose_name = f"{name}_{ossicles_side}_gt_pose.npy"
     # np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, RT)
 
-    app = vis.App(register=True, scale=1, mirror_objects=mirror_objects)
-    w, h = app.window_size
+    app = vis.App(register=True, mirror_objects=mirror_objects)
 
     if hand_draw_mask is not None: 
         seg_mask = np.load(hand_draw_mask).astype("bool")
@@ -168,6 +166,7 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
         plt.show()
     # no segmentation mask, use the whole mask to predict
     else: 
+        w, h = app.window_size
         seg_mask = np.ones((h, w)).astype("bool")
 
     if mirror_objects: seg_mask = seg_mask[..., ::-1]
@@ -190,13 +189,12 @@ def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirro
     # save the rendered partial image
     # if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
     
-    # numpy implementation
-    downscale_color_mask = cv2.resize(color_mask, (int(w * resize), int(h * resize)), interpolation=cv2.INTER_AREA)
+    # Downscale color_mask
+    downscale_color_mask = cv2.resize(color_mask, (int(color_mask.shape[1] * resize), int(color_mask.shape[0] * resize)), interpolation=cv2.INTER_LINEAR)
             
-    # based on the ratio of the mask size compare with the whole image
-    color_mask = cv2.resize(downscale_color_mask, (w, h), interpolation=cv2.INTER_LINEAR)
-    # color_mask = cv2.resize(downscale_color_mask, (w, h), interpolation=cv2.INTER_AREA)
-
+    # Upscale color_mask
+    color_mask = cv2.resize(downscale_color_mask, (int(downscale_color_mask.shape[1] / resize), int(downscale_color_mask.shape[0] / resize)), interpolation=cv2.INTER_LINEAR)
+    
     plt.subplot(311)
     plt.imshow(color_mask_whole)
     plt.subplot(312)
