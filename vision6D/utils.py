@@ -207,12 +207,15 @@ def transform_vertices(vertices, transformation_matrix=np.eye(4)):
     
     return transformed_vertices
 
+def normalize(x):
+    return (x - min(x)) / (max(x) - min(x)) #- 0.5
+
 def color_mesh(vertices):
         colors = copy.deepcopy(vertices)
         # normalize vertices and center it to 0
-        colors[0] = (vertices[0] - np.min(vertices[0])) / (np.max(vertices[0]) - np.min(vertices[0])) #- 0.5
-        colors[1] = (vertices[1] - np.min(vertices[1])) / (np.max(vertices[1]) - np.min(vertices[1])) #- 0.5
-        colors[2] = (vertices[2] - np.min(vertices[2])) / (np.max(vertices[2]) - np.min(vertices[2])) #- 0.5
+        colors[0] = normalize(vertices[0])
+        colors[1] = normalize(vertices[1])
+        colors[2] = normalize(vertices[2])
         colors = colors.T #+ np.array([0.5, 0.5, 0.5])
         
         return colors

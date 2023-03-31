@@ -15,7 +15,7 @@ class App:
     # The unit is mm
     def __init__(
             self, 
-            register,
+            off_screen=False,
             width: int=1920,
             height: int=1080,
             # use surgical microscope for medical device with view angle 1 degree
@@ -28,6 +28,7 @@ class App:
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
         self.reference = None
+        self.set_off_screen(off_screen=off_screen)
         
         # initial the dictionaries
         self.image_actors = {}
@@ -49,25 +50,14 @@ class App:
         self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
         self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         
-        # Set the attribute and its implications
-        self.set_register(register)
-        
-        # render image and ossicles
-        self.pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
-        self.pv_render.store_image = True
-        
+        # plot image and ossicles
+        self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]])
+
     def set_mirror_objects(self, mirror_objects: bool):
         self.mirror_objects = mirror_objects
 
-    def set_register(self, register: bool):
-        # plot image and ossicles
-        self.register = register
-        
-        if self.register:
-            self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]])
-        else:
-            self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=True)
-            self.pv_plotter.store_image = True
+    def set_off_screen(self, off_screen: bool):
+        self.off_screen = off_screen
     
     def set_image_opacity(self, image_opacity: float):
         self.image_opacity = image_opacity
@@ -152,9 +142,9 @@ class App:
 
             if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
                 # Load the '.mesh' file
-                assert '.mesh' in str(mesh_source), "the file type has to be '.mesh'"
-                trimesh_data = vis.utils.load_trimesh(mesh_source)
-                mesh_data = pv.wrap(trimesh_data)
+                if '.mesh' in str(mesh_source): mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
+                # Load the '.ply' file
+                elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
 
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = mesh_data
@@ -297,38 +287,53 @@ class App:
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
         
-        if self.register:
+        if not self.off_screen:
             self.pv_plotter.add_axes()
-            # add the camera orientation to move the camera
-            _ = self.pv_plotter.add_camera_orientation_widget()
-            # Actual presenting
-            self.pv_plotter.show(title="vision6D") # cpos: [(0.0, 0.0, -500.0), (0.0, 0.0, 0.0), (0.0, -1.0, 0.0)]
+            self.pv_plotter.add_camera_orientation_widget()
         else:
+            self.pv_plotter.off_screen = self.off_screen
             self.pv_plotter.disable()
-            self.pv_plotter.show(title="vision6D")
-            last_image = self.pv_plotter.last_image
-            return last_image
+            
+        self.pv_plotter.show("vision6D")
+        # depth_image = self.pv_plotter.get_image_depth()
+
+        return self.pv_plotter.last_image
         
     def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
         
-        self.pv_render.enable_joystick_actor_style()
+        pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        pv_render.enable_joystick_actor_style()
  
         if render_image:
             image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
             image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
             image = image.translate(-1 * np.array(image.center), inplace=False)
-            self.pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
+            pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
         else:
             # background set to black
-            self.pv_render.set_background('black')
+            pv_render.set_background('white')
             
             # Render the targeting objects
             for object in render_objects:
-                mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
+                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
                 mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
         
-        self.pv_render.camera = self.camera.copy()
-        self.pv_render.disable()
-        self.pv_render.show()
+        pv_render.camera = self.camera.copy()
+        pv_render.disable()
+        pv_render.show()
+
+        # obtain the depth map
+        depth_map = pv_render.get_image_depth()
+        plt.figure()
+        plt.imshow(depth_map)
+        plt.colorbar(label='Distance to Camera')
+        plt.title('Depth image')
+        plt.xlabel('X Pixel')
+        plt.ylabel('Y Pixel')
+        plt.show()
+
+        mask = ~np.isnan(depth_map)
+        object_depth = depth_map[mask]
+        average_depth = np.mean(object_depth)
         
-        return self.pv_render.last_image
+        return pv_render.last_image

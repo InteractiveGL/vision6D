@@ -1371,3 +1371,6 @@ if npts == -1:
 else:
     rand_pts_idx = np.random.choice(pts.shape[0], npts)
     rand_pts = pts[rand_pts_idx,:]
+
+# self.pv_plotter.off_screen = self.off_screen
+# if not self.pv_plotter.off_screen:

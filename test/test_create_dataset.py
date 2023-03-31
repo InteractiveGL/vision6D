@@ -25,7 +25,7 @@ np.set_printoptions(suppress=True)
 # size: (1920, 1080)
 @pytest.fixture
 def app():
-    return vis.App(register=True)
+    return vis.App()
     
 def test_load_image(app):
     image_source = np.array(Image.open(vis.config.IMAGE_PATH_5997))
@@ -52,6 +52,11 @@ def test_load_image(app):
     ]
 )  
 def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_path, gt_pose):
+    # save the GT pose to .npy file
+    path = vis.config.OSSICLES_MESH_PATH_5997_right.stem.split('_')
+    gt_pose_name = f"{path[0]}_{path[1]}_gt_pose.npy" # path[0] -> name; path[1] -> side
+    np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, gt_pose)
+
     image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_reference('ossicles')
@@ -101,18 +106,16 @@ def test_load_mesh_mirror_ossicles(app, image_path, ossicles_path, facial_nerve_
     ]
 )
 def test_render_scene(app, mesh_path, gt_pose, mirror_objects):
-    app.set_register(True)
     app.set_mirror_objects(mirror_objects)
     app.set_transformation_matrix(gt_pose)
     app.load_meshes({'ossicles': mesh_path})
     image_np = app.render_scene(render_image=False, render_objects=['ossicles'])
-    # point = (image_np[542, 946] / 255).astype('float32')
     plt.imshow(image_np)
     plt.show()
     print("hhh")
     
 def test_save_plot(app):
-    app.set_register(False)
+    app.set_off_screen(True)
     app.set_transformation_matrix(np.eye(4))
     image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     app.load_image(image_numpy)
@@ -133,32 +136,27 @@ def test_generate_image(app):
     plt.imshow(image_np); plt.show()
 
 @pytest.mark.parametrize(
-    "name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects",
-    [("455", None, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.gt_pose_455_right, 1/10, False), # no resize: 0.05338873922462614 # resize 1/5 cv2: 0.026132524126728313 # if resize torch: 
+    "hand_draw_mask, ossicles_path, RT, resize, mirror_objects",
+    [(None, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.gt_pose_455_right, 1/10, False), # no resize: 0.05338873922462614 # resize 1/5 cv2: 0.026132524126728313 # if resize torch: 
         
-    ("5997", None, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/10, False), # no resize: 0.021086712065792698 # resize 1/5 cv2: 0.020330257484100347 # if resize torch: 
-    ("5997",  vis.config.mask_5997_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/10, False), # error: 1.3682088051366954 # if resize cv2: 1.0566890956912622 # if resize torch: 
+    (None, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/10, False), # no resize: 0.021086712065792698 # resize 1/5 cv2: 0.020330257484100347 # if resize torch: 
+    (vis.config.mask_5997_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/10, False), # error: 1.3682088051366954 # if resize cv2: 1.0566890956912622 # if resize torch: 
     
-    ("6088", None, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/10, False), # no resize: 5.491416579722634 # resize 1/5 cv2: 5.534377619304417 # if resize torch: 
-    ("6088", vis.config.mask_6088_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/10, False), # error: 5.636555974411995 # if resize cv2: 5.46914034648768 # if resize torch: 
+    (None, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/10, False), # no resize: 5.491416579722634 # resize 1/5 cv2: 5.534377619304417 # if resize torch: 
+    (vis.config.mask_6088_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/10, False), # error: 5.636555974411995 # if resize cv2: 5.46914034648768 # if resize torch: 
     
-    ("6108", None, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1/10, False), # no resize: 0.01895783336598894 # resize 1/5 cv2: 0.1413067780393649 # if resize torch: 
-    ("6108", vis.config.mask_6108_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1/10, False), # error: 0.3925129080313312 # if resize cv2: 22.451005863827966 # if resize torch: 
+    (None, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1/10, False), # no resize: 0.01895783336598894 # resize 1/5 cv2: 0.1413067780393649 # if resize torch: 
+    (vis.config.mask_6108_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1/10, False), # error: 0.3925129080313312 # if resize cv2: 22.451005863827966 # if resize torch: 
     
-    ("6742", None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, False), # no resize: 0.04155607588744 # resize 1/5 cv2: 0.13983189316096442 # if resize torch: 
-    ("6742", vis.config.mask_6742_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, False), # error: 2.2111475894404378 # if resize cv2: 146.63621797086526 # if resize torch: 
+    (None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, False), # no resize: 0.04155607588744 # resize 1/5 cv2: 0.13983189316096442 # if resize torch: 
+    (vis.config.mask_6742_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, False), # error: 2.2111475894404378 # if resize cv2: 146.63621797086526 # if resize torch: 
     
-    ("6742", None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, True), # no resize: 5.214560773437986 # resize 1/5 cv2: 230.26984657453482 # if resize torch: 
+    (None, vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, 1/10, True), # no resize: 5.214560773437986 # resize 1/5 cv2: 230.26984657453482 # if resize torch: 
     ]
 )
-def test_pnp_from_dataset(name, hand_draw_mask, ossicles_path, RT, resize, mirror_objects):
+def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_objects):
 
-    # save the GT pose to .npy file
-    # ossicles_side = ossicles_path.stem.split("_")[1]
-    # gt_pose_name = f"{name}_{ossicles_side}_gt_pose.npy"
-    # np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, RT)
-
-    app = vis.App(register=True, mirror_objects=mirror_objects)
+    app = vis.App(off_screen=False, mirror_objects=mirror_objects)
     w, h = app.window_size
 
     # Use the hand segmented mask
