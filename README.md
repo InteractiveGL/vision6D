@@ -18,8 +18,8 @@ create a tool to visualize 3D data rotation and translation
 'k': reset objects pose to the pre-defined GT pose
 'l': Update the pre-defined GT pose the current RT
 
-'v': increase image opacity
-'b': decrease image opacity
+'b': increase image opacity
+'n': decrease image opacity
 
 'y': increase surface opacity
 'u': decrease surface opacity

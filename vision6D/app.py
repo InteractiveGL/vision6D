@@ -31,7 +31,6 @@ class App:
         self.set_off_screen(off_screen=off_screen)
         
         # initial the dictionaries
-        self.image_actors = {}
         self.mesh_actors = {}
         self.image_polydata = {}
         self.mesh_polydata = {}
@@ -120,17 +119,14 @@ class App:
         
         self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
         self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
-
         self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
-        self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
-            
+
         # Then add it to the plotter
         image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=self.image_opacity, name='image')
         actor, _ = self.pv_plotter.add_actor(image, pickable=False, name="image")
 
         # Save actor for later
-        self.image_actors["image"] = actor
-        self.image_actors["image-origin"] = actor.copy()        
+        self.image_actor = actor    
 
     def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
 
@@ -190,8 +186,8 @@ class App:
             if self.image_opacity <= 0:
                 self.image_opacity = 0
         
-        self.image_actors["image"].GetProperty().opacity = self.image_opacity
-        self.pv_plotter.add_actor(self.image_actors["image"], pickable=False, name="image")
+        self.image_actor.GetProperty().opacity = self.image_opacity
+        self.pv_plotter.add_actor(self.image_actor, pickable=False, name="image")
 
         logger.debug("event_toggle_image_opacity callback complete")
         
@@ -275,9 +271,9 @@ class App:
         self.pv_plotter.add_key_event('l', self.event_update_position)
         
         event_toggle_image_opacity_up_func = functools.partial(self.event_toggle_image_opacity, up=True)
-        self.pv_plotter.add_key_event('v', event_toggle_image_opacity_up_func)
+        self.pv_plotter.add_key_event('b', event_toggle_image_opacity_up_func)
         event_toggle_image_opacity_down_func = functools.partial(self.event_toggle_image_opacity, up=False)
-        self.pv_plotter.add_key_event('b', event_toggle_image_opacity_down_func)
+        self.pv_plotter.add_key_event('n', event_toggle_image_opacity_down_func)
         
         event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=True)
         self.pv_plotter.add_key_event('y', event_toggle_surface_opacity_up_func)
@@ -295,7 +291,6 @@ class App:
             self.pv_plotter.disable()
             
         self.pv_plotter.show("vision6D")
-        # depth_image = self.pv_plotter.get_image_depth()
 
         return self.pv_plotter.last_image
         
