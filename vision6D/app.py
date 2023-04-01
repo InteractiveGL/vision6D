@@ -12,58 +12,51 @@ import vision6D as vis
 logger = logging.getLogger("vision6D")
 
 class App:
-
+    # The unit is mm
     def __init__(
             self, 
-            register,
+            off_screen=False,
             width: int=1920,
             height: int=1080,
-            scale: float=1,
             # use surgical microscope for medical device with view angle 1 degree
             cam_focal_length:int=5e+4,
             cam_viewup: Tuple=(0,-1,0),
+            mirror_objects: bool=False
         ):
         
-        self.window_size = (int(width*scale), int(height*scale))
-        self.scale = scale
-        self.reference = None
+        self.window_size = (int(width), int(height))
+        self.mirror_objects = mirror_objects
         self.transformation_matrix = None
+        self.reference = None
+        self.set_off_screen(off_screen=off_screen)
         
-        self.image_actors = {}
+        # initial the dictionaries
         self.mesh_actors = {}
-        
         self.image_polydata = {}
         self.mesh_polydata = {}
-        
         self.binded_meshes = {}
+        self.initial_poses = {}
         
         # default opacity for image and surface
-        self.set_image_opacity(0.999) # self.image_opacity = 0.35
-        self.set_surface_opacity(0.999) # self.surface_opacity = 1
+        self.set_image_opacity(0.8) # self.image_opacity = 0.35
+        self.set_surface_opacity(0.99) # self.surface_opacity = 1
 
         # Set up the camera
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
         self.cam_viewup = cam_viewup
-        self.set_camera_intrinsics()
-        self.set_camera_extrinsics()
+        self.cam_position = -(self.cam_focal_length/100) # -500mm
+        self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
+        self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         
-        # Set the attribute and its implications
-        self.set_register(register)
-        
-        # render image and ossicles
-        self.pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
-        self.pv_render.store_image = True
-        
-    def set_register(self, register: bool):
         # plot image and ossicles
-        self.register = register
-        
-        if self.register:
-            self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]])
-        else:
-            self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=True)
-            self.pv_plotter.store_image = True
+        self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]])
+
+    def set_mirror_objects(self, mirror_objects: bool):
+        self.mirror_objects = mirror_objects
+
+    def set_off_screen(self, off_screen: bool):
+        self.off_screen = off_screen
     
     def set_image_opacity(self, image_opacity: float):
         self.image_opacity = image_opacity
@@ -71,22 +64,17 @@ class App:
     def set_surface_opacity(self, surface_opacity: float):
         self.surface_opacity = surface_opacity
 
-    def set_camera_extrinsics(self):
-        # self.camera.SetPosition((0,0,0))
-        # self.camera.SetFocalPoint((0,0,(self.cam_focal_length/100)/self.scale))
-        self.camera.SetPosition((0,0,-(self.cam_focal_length/100)/self.scale))
+    def set_camera_extrinsics(self, cam_position, cam_viewup):
+        self.camera.SetPosition((0,0,cam_position))
         self.camera.SetFocalPoint((0,0,0))
-        self.camera.SetViewUp(self.cam_viewup)
+        self.camera.SetViewUp(cam_viewup)
     
-    def set_camera_intrinsics(self):
-
-        width = self.window_size[0]
-        height = self.window_size[1]
+    def set_camera_intrinsics(self, width, height, cam_focal_length):
         
         # Set camera intrinsic attribute
         self.camera_intrinsics = np.array([
-            [self.cam_focal_length, 0, width/2],
-            [0, self.cam_focal_length, height/2],
+            [cam_focal_length, 0, width/2],
+            [0, cam_focal_length, height/2],
             [0, 0, 1]
         ])
         
@@ -99,12 +87,13 @@ class App:
         wcy =  2*(cy - float(height)/2) / height
         self.camera.SetWindowCenter(wcx, wcy) # (0,0)
         
-        # Setting the focal length
-        view_angle = 180 / math.pi * (2.0 * math.atan2(height/2.0, f))
-        self.camera.SetViewAngle(view_angle) # ~30 degree
+        # Setting the view angle in degrees
+        view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f))
+        self.camera.SetViewAngle(view_angle) # view angle should be in degrees
         
-    def set_transformation_matrix(self, matrix:np.ndarray):
-        self.transformation_matrix = matrix
+    def set_transformation_matrix(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
+        
+        self.transformation_matrix = matrix if matrix is not None else np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
     
     def set_reference(self, name:str):
         self.reference = name
@@ -126,74 +115,55 @@ class App:
             
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
         
-    def load_image(self, image_source, scale_factor:list=[0.01,0.01,1]):
+    def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
         
-        if isinstance(image_source, pathlib.Path):
-            self.image_polydata['image'] = pv.get_reader(image_source).read()
-            self.image_polydata['image'] = self.image_polydata['image'].scale(scale_factor, inplace=False)
-            
-        elif isinstance(image_source, np.ndarray):
-            self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
-            self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
-
+        self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+        self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
         self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
-        self.image_polydata["image-origin"] = self.image_polydata['image'].copy()
-            
+
         # Then add it to the plotter
         image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=self.image_opacity, name='image')
         actor, _ = self.pv_plotter.add_actor(image, pickable=False, name="image")
 
         # Save actor for later
-        self.image_actors["image"] = actor
-        self.image_actors["image-origin"] = actor.copy()
+        self.image_actor = actor    
 
     def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
-        
-        reference_name = None
-        
-        if self.transformation_matrix is None:
-           raise RuntimeError("Transformation matrix is not set")
-        
+
+        assert self.transformation_matrix is not None, "Need to set the transformation matrix first!"
+                
         for mesh_name, mesh_source in paths.items():
             
             reference_name = mesh_name
 
-            if isinstance(mesh_source, pathlib.WindowsPath):
-                # Load the mesh
-                if '.ply' in str(mesh_source):
-                    mesh_data = pv.get_reader(mesh_source).read()
-                    # Convert the data type from float32 to float64 to match with load_trimesh
-                    mesh_data.points = mesh_data.points.astype("double")
-                elif '.mesh' in str(mesh_source):
-                    mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
-            elif isinstance(mesh_source, pv.PolyData):
-                mesh_data = mesh_source
-                
-            self.mesh_polydata[mesh_name] = mesh_data
-            
-            self.set_vertices(mesh_name, mesh_data.points)
-            
-            # set the color to be the meshes' initial location, and never change the color
-            colors = vis.utils.color_mesh(mesh_data.points.T)
-            
-            # Color the vertex
-            mesh_data.point_data.set_scalars(colors)
+            if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
+                # Load the '.mesh' file
+                if '.mesh' in str(mesh_source): mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
+                # Load the '.ply' file
+                elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
 
-            mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
+            # Save the mesh data to dictionary
+            self.mesh_polydata[mesh_name] = mesh_data
+
+            # Set vertices attribute
+            self.set_vertices(mesh_name, mesh_data.points)
+
+            # Color the vertex: set the color to be the meshes' initial location, and never change the color
+            colors = vis.utils.color_mesh(mesh_data.points.T) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T)
+            mesh_data.point_data.set_scalars(colors)
+            mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
             
-            mesh.user_matrix = self.transformation_matrix
+            # Set the transformation matrix to be the mesh's user_matrix
+            mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+            self.initial_poses[mesh_name] = self.transformation_matrix
             
+            # Add and save the actor
             actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
-            
-            # Save actor for later
             self.mesh_actors[mesh_name] = actor
-            
-            # logger.debug(f"\n{mesh_name} orientation: {self.mesh_actors[mesh_name].orientation}")
-            # logger.debug(f"\n{mesh_name} position: {self.mesh_actors[mesh_name].position}")
-            
-        if len(self.mesh_actors) == 1:
-            self.set_reference(reference_name)
-            
+
+        if len(self.mesh_actors) == 1: self.set_reference(reference_name)
+
+    # configure event functions
     def event_zoom_out(self, *args):
         self.pv_plotter.camera.zoom(0.5)
         logger.debug("event_zoom_out callback complete")
@@ -216,8 +186,8 @@ class App:
             if self.image_opacity <= 0:
                 self.image_opacity = 0
         
-        self.image_actors["image"].GetProperty().opacity = self.image_opacity
-        self.pv_plotter.add_actor(self.image_actors["image"], pickable=False, name="image")
+        self.image_actor.GetProperty().opacity = self.image_opacity
+        self.pv_plotter.add_actor(self.image_actor, pickable=False, name="image")
 
         logger.debug("event_toggle_image_opacity callback complete")
         
@@ -233,7 +203,7 @@ class App:
                 
         transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = transformation_matrix
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             actor.GetProperty().opacity = self.surface_opacity
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
 
@@ -243,19 +213,18 @@ class App:
         
         transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = transformation_matrix
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
     
     def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
         
-        objs = {'fix' : main_mesh,
-                'move': other_meshes}
+        objs = {'fix' : main_mesh, 'move': other_meshes}
         
         transformation_matrix = self.mesh_actors[f"{objs['fix']}"].user_matrix
         
         for obj in objs['move']:
-            self.mesh_actors[f"{obj}"].user_matrix = transformation_matrix
+            self.mesh_actors[f"{obj}"].user_matrix = transformation_matrix if not "_mirror" in obj else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.pv_plotter.add_actor(self.mesh_actors[f"{obj}"], pickable=True, name=obj)
         
         logger.debug(f"realign: main => {main_mesh}, others => {other_meshes} complete")
@@ -263,20 +232,22 @@ class App:
     def event_gt_position(self, *args):
         
         for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = self.transformation_matrix
+            actor.user_matrix = self.initial_poses[actor_name]
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
 
-        logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
         logger.debug("event_gt_position callback complete")
         
-    def event_change_gt_position(self, *args):
+    def event_update_position(self, *args):
         self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
         for actor_name, actor in self.mesh_actors.items():
+            # update the the actor's user matrix
+            self.transformation_matrix = self.transformation_matrix if not '_mirror' in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
             actor.user_matrix = self.transformation_matrix
+            self.initial_poses[actor_name] = self.transformation_matrix
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
         
-        logger.debug(f"\ncurrent gt rt: \n{self.transformation_matrix}")
-        logger.debug("event_change_gt_position callback complete")
+        logger.debug(f"\ncurrent transformation matrix: \n{self.transformation_matrix}")
+        logger.debug("event_update_position callback complete")
     
     def plot(self):
         
@@ -297,12 +268,12 @@ class App:
             self.pv_plotter.add_key_event(mesh_data['key'], event_func)
         
         self.pv_plotter.add_key_event('k', self.event_gt_position)
-        self.pv_plotter.add_key_event('l', self.event_change_gt_position)
+        self.pv_plotter.add_key_event('l', self.event_update_position)
         
         event_toggle_image_opacity_up_func = functools.partial(self.event_toggle_image_opacity, up=True)
-        self.pv_plotter.add_key_event('v', event_toggle_image_opacity_up_func)
+        self.pv_plotter.add_key_event('b', event_toggle_image_opacity_up_func)
         event_toggle_image_opacity_down_func = functools.partial(self.event_toggle_image_opacity, up=False)
-        self.pv_plotter.add_key_event('b', event_toggle_image_opacity_down_func)
+        self.pv_plotter.add_key_event('n', event_toggle_image_opacity_down_func)
         
         event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=True)
         self.pv_plotter.add_key_event('y', event_toggle_surface_opacity_up_func)
@@ -312,44 +283,44 @@ class App:
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
         
-        if self.register:
+        if not self.off_screen:
             self.pv_plotter.add_axes()
-            # add the camera orientation to move the camera
-            _ = self.pv_plotter.add_camera_orientation_widget()
-            # Actual presenting
-            self.pv_plotter.show(title="vision6D") # cpos: [(0.0, 0.0, -500.0), (0.0, 0.0, 0.0), (0.0, -1.0, 0.0)]
+            self.pv_plotter.add_camera_orientation_widget()
         else:
+            self.pv_plotter.off_screen = self.off_screen
             self.pv_plotter.disable()
-            self.pv_plotter.show(title="vision6D")
-            last_image = self.pv_plotter.last_image
-            return last_image
+            
+        self.pv_plotter.show("vision6D")
+
+        return self.pv_plotter.last_image
         
-    def render_scene(self, render_image:bool, image_source=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
+    def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1, return_depth_map: bool=False):
         
-        self.pv_render.enable_joystick_actor_style()
+        pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        pv_render.enable_joystick_actor_style()
  
         if render_image:
-            if isinstance(image_source, pathlib.Path):
-                image = pv.get_reader(image_source).read()
-                image = image.scale(scale_factor, inplace=False)
-                
-            elif isinstance(image_source, np.ndarray):
-                image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=(0.01, 0.01, 1), origin=(0.0, 0.0, 0.0))
-                image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
-
+            assert image_source is not None, "image source cannot be None!"
+            image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+            image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
             image = image.translate(-1 * np.array(image.center), inplace=False)
-            self.pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
+            pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
         else:
             # background set to black
-            self.pv_render.set_background('black')
+            pv_render.set_background('white')
             
             # Render the targeting objects
             for object in render_objects:
-                mesh = self.pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
-                mesh.user_matrix = self.transformation_matrix
+                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
+                mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
         
-        self.pv_render.camera = self.camera.copy()
-        self.pv_render.disable()
-        self.pv_render.show()
-        
-        return self.pv_render.last_image
+        pv_render.camera = self.camera.copy()
+        pv_render.disable()
+        pv_render.show()
+
+        # obtain the rendered image
+        rendered_image = pv_render.last_image
+        # obtain the depth map
+        depth_map = pv_render.get_image_depth()
+              
+        return rendered_image if not return_depth_map else (rendered_image, depth_map)

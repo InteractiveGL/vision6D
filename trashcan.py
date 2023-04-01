@@ -1091,6 +1091,12 @@ def color2binary_mask(color_mask):
     
     return binary_mask
 
+if isinstance(image_source, pathlib.Path):
+                image = pv.get_reader(image_source).read()
+                image = image.scale(scale_factor, inplace=False)
+                
+            elif isinstance(image_source, np.ndarray):
+
     
 # 1/2 size of the (1920, 1080) -> (960, 540)
 @pytest.fixture
@@ -1106,3 +1112,265 @@ def app_quarter():
 @pytest.fixture
 def app_smallest():
     return vis.App(register=True, scale=1/8)
+
+# # mirror the objects
+# if self.mirror: 
+#     mesh_data_reflect = mesh_data.reflect((1, 0, 0)) # pyvista implementation
+
+#     mesh_data_vertices = mesh_data.points * np.array((-1, 1, 1))
+
+#     # mirror the mesh along the x axis
+#     mirror_x = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+#     mesh_data.points = vis.utils.transform_vertices(mesh_data.points, mirror_x)
+
+#     assert (mesh_data.points == mesh_data_reflect.points).all() and (mesh_data.points == mesh_data_vertices).all(), "mesh_data.points should equal to mesh_data_reflect!"
+
+# elif isinstance(mesh_source, pv.PolyData):
+#                 mesh_data = mesh_source
+
+if '.ply' in str(mesh_source):
+    mesh_data = pv.get_reader(mesh_source).read()
+    # Convert the data type from float32 to float64 to match with load_trimesh
+    mesh_data.points = mesh_data.points.astype("double")
+elif '.mesh' in str(mesh_source): # .mesh obj data
+
+MASK_PATH_NUMPY_FULL = TEST_DATA_DIR / "segmented_mask_numpy.npy"
+MASK_PATH_NUMPY_QUARTER = TEST_DATA_DIR / "quarter_image_mask_numpy.npy"
+MASK_PATH_NUMPY_SMALLEST = TEST_DATA_DIR / "smallest_image_mask_numpy.npy"
+STANDARD_LENS_MASK_PATH_NUMPY = TEST_DATA_DIR / "test1.npy"
+
+"""
+if self.mirror_objects: 
+    center = np.mean(mesh_data.points, axis=0)
+    mesh_data = mesh_data.reflect((1, 0, 0), point = center) # mirror the object based on the center point
+    mesh_name = mesh_name + '_reflect'
+    self.mesh_polydata[mesh_name] = mesh_data
+    self.set_vertices(mesh_name, mesh_data.points)
+    
+    # set the color to be the meshes' initial location, and never change the color
+    colors = vis.utils.color_mesh(mesh_data.points.T)
+    
+    # Color the vertex
+    mesh_data.point_data.set_scalars(colors)
+
+    mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity = self.surface_opacity, name=mesh_name)
+    
+    mesh.user_matrix = self.transformation_matrix
+    
+    actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
+    
+    # Save actor for later
+    self.mesh_actors[mesh_name] = actor
+""" 
+
+# meshobj.vertices = vertices # mesh.vertices.T / meshobj.sz.reshape((-1, 1))
+
+def center_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
+    assert self.reference is not None, "Need to set the self.reference name first!"
+
+    other_meshes = {}
+    for id, obj in self.mesh_polydata.items():
+        center = np.mean(obj.points, axis=0)
+        obj.points -= center
+        if id == self.reference:
+            reference_center = center.copy()
+            # vis.utils.writemesh(paths[id], obj.points.T, center=True)
+        else:
+            other_meshes[id] = center
+
+    # add the offset
+    for id, center in other_meshes.items():
+        offset = center - reference_center
+        self.mesh_polydata[id].points += offset
+        # vis.utils.writemesh(paths[id], self.mesh_polydata[id].points.T, center=True)
+
+    print('hhhh')
+
+app.center_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
+
+# if 'centered' in name: name = '_'.join(name.split("_")[:-1]) + suffix
+# else: name += suffix
+
+def center_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
+    assert self.reference is not None, "Need to set the self.reference name first!"
+
+    other_meshes = {}
+    for id, obj in self.mesh_polydata.items():
+        center = np.mean(obj.points, axis=0)
+        obj.points -= center
+        if id == self.reference:
+            reference_center = center.copy()
+            # vis.utils.writemesh(paths[id], obj.points.T, center=True)
+        else:
+            other_meshes[id] = center
+
+    # add the offset
+    for id, center in other_meshes.items():
+        offset = center - reference_center
+        self.mesh_polydata[id].points += offset
+        # vis.utils.writemesh(paths[id], self.mesh_polydata[id].points.T, center=True)
+
+    print('hhhh')
+
+def test_flip_left_ossicles_color(app):
+
+    ossicles_path = vis.config.OSSICLES_MESH_PATH_6742_left
+
+    app.set_transformation_matrix(np.eye(4))
+
+    app.load_meshes({'ossicles': ossicles_path})
+    
+    app.plot()
+
+    rendered_mask_path = vis.config.DATA_DIR / "rendered_mask" / "rendered_mask_whole_6742.png"
+    rendered_mask = np.array(PIL.Image.open(rendered_mask_path)) / 255
+
+    modified_mask = np.where(rendered_mask != [0, 0, 0], 1 - rendered_mask, rendered_mask)
+    modified_mask = modified_mask[:, ::-1, ...]
+
+    vertices = getattr(app, f'ossicles_vertices')
+    pts2d, pts3d = vis.utils.create_2d_3d_pairs(modified_mask, vertices)
+    predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, app.camera_intrinsics, app.camera.position)
+
+    print("hhhh")
+
+# ~ config.py
+# gt_pose_455_right = np.array([[  0.36189961,   0.31967712,  -0.87569128,   5.33823202],
+#                             [  0.40967285,   0.78925644,   0.45743024, -32.5816239 ],
+#                             [  0.83737496,  -0.52429077,   0.15466856,  12.5083066 ],
+#                             [  0.,           0.,           0.,           1.        ]])
+
+# gt_pose_5997_right = np.array([[  -0.14498174,   -0.34676691,   -0.92667849,   29.36436624],
+#                         [   0.33413722,    0.86439266,   -0.3757361,   -13.54538251],
+#                         [   0.93130693,   -0.36411267,   -0.00945343, -104.0636636 ],
+#                         [   0.,            0.,            0.,            1.        ]])
+
+
+# gt_pose_6088_right = np.array([[  0.36049218,  -0.12347807,  -0.93605796,  17.37936422],
+#                         [  0.31229879,   0.96116227,  -0.00651795, -27.17513405],
+#                         [  0.89102231,  -0.28692541,   0.38099733, -19.1631882 ],
+#                         [  0.,           0.,           0.,           1.        ]])
+
+
+# gt_pose_6108_right = np.array([[  0.20755796,   0.33304378,  -0.9197834,   10.89388084],
+#                         [  0.61199071,   0.68931778,   0.38769624, -36.58529423],
+#                         [  0.76314289,  -0.64336834,  -0.06074633, 229.45832825],
+#                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
+
+# gt_pose_6742_left = np.array([[ -0.00205008,  -0.27174699,   0.96236655, -18.75660285],
+#                         [ -0.4431008,    0.86298269,   0.24273971, -13.34068231],
+#                         [ -0.89646944,  -0.42592774,  -0.1221805,  458.83536963],
+#                         [  0.,           0.,           0.,           1.        ]]) #  GT pose
+
+# gt_pose_6742_right = np.eye(4)
+
+# gt_pose_632_right = np.array([[  0.01213903,  -0.23470041,  -0.97199196,  23.83199935],
+#                             [  0.7709136,    0.62127575,  -0.14038752, -19.05412711],
+#                             [  0.63682404,  -0.74761766,   0.18847542, 602.2021275 ],
+#                             [  0.,           0.,           0.,           1.        ]])
+
+# gt_pose_6087_left = np.array([[  0.20370912,  -0.21678892,   0.95472779, -20.79224732],
+#                                 [ -0.62361071,   0.72302221,   0.29723487,  -4.9027381 ],
+#                                 [ -0.75472663,  -0.65592793,   0.01209432,  30.25550556],
+#                                 [  0.,           0.,           0.,           1.        ]])
+
+# gt_pose_6320_right = np.array([[  0.13992712,  -0.06843788,  -0.98779384,  19.45358842],
+#                             [  0.50910393,   0.86061441,   0.01249129, -27.0485824 ],
+#                             [  0.84925473,  -0.50463759,   0.15526529, 305.97544605],
+#                             [  0.,           0.,           0.,           1.        ]])
+
+# gt_pose_6329_right = np.array([[  0.09418739,   0.38382761,  -0.91858865,   7.3397235 ],
+#                                 [  0.66883124,   0.65905617,   0.34396181, -33.31646256],
+#                                 [  0.73742355,  -0.64677765,  -0.19464113, 302.59170409],
+#                                 [  0.,           0.,           0.,           1.        ]])
+
+# gt_pose_6602_right = np.array([[  0.22534241,   0.44679594,  -0.86579107,   3.33442317],
+#                                 [  0.49393868,   0.7135863,    0.496809,   -28.9554841 ],
+#                                 [  0.83978889,  -0.53959983,  -0.05988854, 299.38210116],
+#                                 [  0.,           0.,           0.,           1.        ]])
+
+# gt_pose_6751_right = np.array([[  0.14325502,  -0.47155627,  -0.87012222,  22.98132783],
+#                                 [  0.88314596,   0.45772661,  -0.10266232, -23.0138221 ],
+#                                 [  0.44668916,  -0.75373804,   0.48202465, 137.22705977],
+#                                 [  0.,           0.,           0.,           1.        ]])
+
+# if self.mirror_objects:
+    #     mesh_name = mesh_name + '_mirror'
+
+    #     # create a DEEP copy
+    #     mesh_data = mesh_data.copy(deep=True)
+    #     # mesh_data.points = (np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T).T
+
+    #     # mirror the object based on the origin (0, 0, 0)
+    #     # mesh_data = mesh_data.reflect((1, 0, 0), point=(0, 0, 0)) 
+        
+    #     # Save the mesh data to dictionary
+    #     self.mesh_polydata[mesh_name] = mesh_data
+    #     # set vertices attribute
+    #     self.set_vertices(mesh_name, mesh_data.points)
+    #     # Color the vertex: set the color to be the meshes' initial location, and never change the color
+    #     # colors = vis.utils.color_mesh(mesh_data.points.T)
+    #     colors = vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T)
+    #     mesh_data.point_data.set_scalars(colors)
+    #     mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name)
+    #     # Set the transformation matrix to be the mesh's user_matrix
+    #     self.transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+    #     mesh.user_matrix = self.transformation_matrix
+    #     self.initial_poses[mesh_name] = self.transformation_matrix
+
+    #     # Add and save the actor
+    #     actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
+    #     self.mesh_actors[mesh_name] = actor
+
+color_mask_binarized = vis.utils.color2binary_mask(color_mask_whole)
+binary_mask = color_mask_binarized * seg_mask
+color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
+assert (binary_mask == vis.utils.color2binary_mask(color_mask)).all(), "render_binary_mask is not the same as converted render_color_mask"
+
+downscale_binary_mask = cv2.resize(binary_mask, (resize_width, resize_height), interpolation=cv2.INTER_AREA)
+
+ # # torch implementation
+# trans = torchvision.transforms.Resize((h, w))
+# color_mask = trans(torch.tensor(downscale_color_mask).permute(2,0,1))
+# color_mask = color_mask.permute(1,2,0).detach().cpu().numpy()
+# binary_mask = trans(torch.tensor(downscale_binary_mask).unsqueeze(-1).permute(2,0,1))
+# binary_mask = binary_mask.permute(1,2,0).squeeze().detach().cpu().numpy()
+
+# make sure the binary mask only contains 0 and 1
+binary_mask = np.where(binary_mask != 0, 1, 0)
+binary_mask_bool = binary_mask.astype('bool')
+assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
+
+plt.subplot(223)
+plt.imshow(binary_mask)
+
+def color2binary_mask(color_mask):
+    binary_mask = np.zeros(color_mask[...,:1].shape)
+    x, y, _ = np.where(color_mask != [0., 0., 0.])
+    binary_mask[x, y] = 1      
+    return 
+
+# binary_mask = color2binary_mask(color_mask)
+        
+# make sure the binary mask only contains 0 and 1
+binary_mask = np.where(binary_mask != 0, 1, 0)
+binary_mask_bool = binary_mask.astype('bool')
+assert (binary_mask == binary_mask_bool).all(), "binary mask should be the same as binary mask bool"
+
+# To convert color_mask to bool type, we need to consider all three channels for color image, or conbine all channels to grey for color images!
+color_mask_bool = (0.3*color_mask[..., :1] + 0.59*color_mask[..., 1:2] + 0.11*color_mask[..., 2:]).astype("bool") 
+# # solution2
+# color_mask_bool = np.logical_or(color_mask.astype("bool")[..., :1], color_mask.astype("bool")[..., 1:2], color_mask.astype("bool")[..., 2:])
+# # solution3
+# color_mask_bool = color_mask.astype("bool")
+# color_mask_bool = (color_mask_bool[..., :1] + color_mask_bool[..., 1:2] + color_mask_bool[..., 2:]).astype("bool")
+assert (binary_mask == color_mask_bool).all(), "binary_mask is not the same as the color_mask_bool"
+
+if npts == -1:
+    rand_pts = pts
+else:
+    rand_pts_idx = np.random.choice(pts.shape[0], npts)
+    rand_pts = pts[rand_pts_idx,:]
+
+# self.pv_plotter.off_screen = self.off_screen
+# if not self.pv_plotter.off_screen:
