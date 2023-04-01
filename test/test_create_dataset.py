@@ -53,9 +53,9 @@ def test_load_image(app):
 )  
 def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_path, gt_pose):
     # save the GT pose to .npy file
-    path = vis.config.OSSICLES_MESH_PATH_5997_right.stem.split('_')
+    path = ossicles_path.stem.split('_')
     gt_pose_name = f"{path[0]}_{path[1]}_gt_pose.npy" # path[0] -> name; path[1] -> side
-    np.save(vis.config.DATA_DIR / "gt_pose" / gt_pose_name, gt_pose)
+    np.save(vis.config.OP_DATA_DIR / "gt_poses" / gt_pose_name, gt_pose)
 
     image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
     app.load_image(image_numpy)
@@ -113,7 +113,44 @@ def test_render_scene(app, mesh_path, gt_pose, mirror_objects):
     plt.imshow(image_np)
     plt.show()
     print("hhh")
+
+@pytest.mark.parametrize(
+    "mesh_path, gt_pose, mirror_objects",
+    [(vis.config.OSSICLES_MESH_PATH_455_right, vis.config.gt_pose_455_right, False),
+    (vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, False), 
+    (vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, False),
+    (vis.config.OSSICLES_MESH_PATH_632_right, vis.config.gt_pose_632_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6320_right, vis.config.gt_pose_6320_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6329_right, vis.config.gt_pose_6329_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6602_right, vis.config.gt_pose_6602_right, False),
+    (vis.config.OSSICLES_MESH_PATH_6751_right, vis.config.gt_pose_6751_right, False),
     
+    (vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, False),
+    (vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, True),
+    ]
+) 
+def test_get_depth_map(app, mesh_path, gt_pose, mirror_objects):
+    app.set_mirror_objects(mirror_objects)
+    app.set_transformation_matrix(gt_pose)
+    app.load_meshes({'ossicles': mesh_path})
+    _, depth_map = app.render_scene(render_image=False, render_objects=['ossicles'], return_depth_map=True)
+    
+    # show the depth map
+    # plt.figure()
+    # plt.imshow(depth_map)
+    # plt.colorbar(label='Distance to Camera')
+    # plt.title('Depth image')
+    # plt.xlabel('X Pixel')
+    # plt.ylabel('Y Pixel')
+    # plt.show()
+
+    depth = depth_map[~np.isnan(depth_map)]
+
+    z = app.cam_position - np.mean(depth)
+
+    assert np.isclose(z, app.transformation_matrix[2,3], atol=2)
+
 def test_save_plot(app):
     app.set_off_screen(True)
     app.set_transformation_matrix(np.eye(4))
@@ -171,7 +208,6 @@ def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_obje
         
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': ossicles_path})
-    # app.plot()
 
     # Create rendering
     color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
@@ -180,9 +216,9 @@ def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_obje
     color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
 
     # save the rendered whole image
-    # vis.utils.save_image(color_mask_whole, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
+    # vis.utils.save_image(color_mask_whole, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
     # save the rendered partial image
-    # if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.DATA_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
+    # if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
     
     # Downscale color_mask
     downscale_color_mask = cv2.resize(color_mask, (int(color_mask.shape[1] * resize), int(color_mask.shape[0] * resize)), interpolation=cv2.INTER_LINEAR)
@@ -209,5 +245,15 @@ def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_obje
     if mirror_objects: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
             
     logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
-            
+
+    # gt_render = app.render_scene(render_image=True, render_objects=['ossicles'])
+    # app.set_transformation_matrix(predicted_pose)
+    # predict_render = app.render_scene(render_image=True, image_source=vis.config.IMAGE_PATH_6108, render_objects=['ossicles'])
+
+    # plt.subplot(121)
+    # plt.imshow(gt_render)
+    # plt.subplot(122)
+    # plt.imshow(predict_render)
+    # plt.show()
+
     assert np.isclose(predicted_pose, RT, atol=20).all()

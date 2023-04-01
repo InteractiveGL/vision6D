@@ -294,12 +294,13 @@ class App:
 
         return self.pv_plotter.last_image
         
-    def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1):
+    def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1, return_depth_map: bool=False):
         
         pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
         pv_render.enable_joystick_actor_style()
  
         if render_image:
+            assert image_source is not None, "image source cannot be None!"
             image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
             image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
             image = image.translate(-1 * np.array(image.center), inplace=False)
@@ -317,18 +318,9 @@ class App:
         pv_render.disable()
         pv_render.show()
 
+        # obtain the rendered image
+        rendered_image = pv_render.last_image
         # obtain the depth map
         depth_map = pv_render.get_image_depth()
-        plt.figure()
-        plt.imshow(depth_map)
-        plt.colorbar(label='Distance to Camera')
-        plt.title('Depth image')
-        plt.xlabel('X Pixel')
-        plt.ylabel('Y Pixel')
-        plt.show()
-
-        mask = ~np.isnan(depth_map)
-        object_depth = depth_map[mask]
-        average_depth = np.mean(object_depth)
-        
-        return pv_render.last_image
+              
+        return rendered_image if not return_depth_map else (rendered_image, depth_map)

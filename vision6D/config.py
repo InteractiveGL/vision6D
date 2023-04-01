@@ -6,7 +6,7 @@ CWD = pathlib.Path(os.path.abspath(__file__)).parent
 GITROOT = CWD.parent
 OP_DATA_DIR = GITROOT.parent / 'ossicles_6D_pose_estimation' / 'data'
 YOLOV8_DATA_DIR = GITROOT.parent / 'yolov8'
-DATA_DIR = GITROOT / 'data'
+OUTPUT_DIR = GITROOT / 'output'
 
 # right ossicles
 IMAGE_PATH_455 = OP_DATA_DIR / "frames" /"CIP.455.8381493978235_video_trim" / "CIP.455.8381493978235_video_trim_0.png"
@@ -119,7 +119,7 @@ gt_pose_6087_left = np.array([[-0.23073306, -0.45187525,  0.8617256,   4.2646895
                             [ 0.,          0.,          0.,          1.        ]])
 
 # hand draw masks
-mask_5997_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_5997_hand_draw_numpy.npy"
-mask_6088_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6088_hand_draw_numpy.npy"
-mask_6108_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6108_hand_draw_numpy.npy"
-mask_6742_hand_draw_numpy = DATA_DIR / "hand_draw_mask" / "mask_6742_hand_draw_numpy.npy"
+mask_5997_hand_draw_numpy = OUTPUT_DIR / "hand_draw_mask" / "mask_5997_hand_draw_numpy.npy"
+mask_6088_hand_draw_numpy = OUTPUT_DIR / "hand_draw_mask" / "mask_6088_hand_draw_numpy.npy"
+mask_6108_hand_draw_numpy = OUTPUT_DIR / "hand_draw_mask" / "mask_6108_hand_draw_numpy.npy"
+mask_6742_hand_draw_numpy = OUTPUT_DIR / "hand_draw_mask" / "mask_6742_hand_draw_numpy.npy"
