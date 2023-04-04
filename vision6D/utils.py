@@ -226,6 +226,12 @@ def save_image(array, folder, name):
     img = Image.fromarray(array)
     img.save(folder / name)
 
+def mesh2ply(meshpath, output_path):
+    mesh = load_trimesh(meshpath)
+    ply_file = trimesh.exchange.ply.export_ply(mesh)
+    with open(output_path, "wb") as fid:
+        fid.write(ply_file)
+
 def rigid_transform_3D(A, B):
 
     assert A.shape == B.shape

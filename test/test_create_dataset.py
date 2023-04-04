@@ -25,7 +25,7 @@ np.set_printoptions(suppress=True)
 # size: (1920, 1080)
 @pytest.fixture
 def app():
-    return vis.App()
+    return vis.App(off_screen=False)
     
 def test_load_image(app):
     image_source = np.array(Image.open(vis.config.IMAGE_PATH_5997))
@@ -151,8 +151,8 @@ def test_get_depth_map(app, mesh_path, gt_pose, mirror_objects):
 
     assert np.isclose(z, app.transformation_matrix[2,3], atol=2)
 
-def test_save_plot(app):
-    app.set_off_screen(True)
+def test_save_plot():
+    app = vis.App(off_screen=True)
     app.set_transformation_matrix(np.eye(4))
     image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     app.load_image(image_numpy)
@@ -171,6 +171,28 @@ def test_generate_image(app):
     image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     image_np = app.render_scene(render_image=True, image_source=image_numpy)
     plt.imshow(image_np); plt.show()
+
+@pytest.mark.parametrize(
+    "ossicles_path",
+    [# right ossicles
+    (vis.config.OSSICLES_MESH_PATH_455_right),
+    (vis.config.OSSICLES_MESH_PATH_5997_right),
+    (vis.config.OSSICLES_MESH_PATH_6088_right),
+    (vis.config.OSSICLES_MESH_PATH_6108_right),
+    (vis.config.OSSICLES_MESH_PATH_632_right),
+    (vis.config.OSSICLES_MESH_PATH_6320_right),
+    (vis.config.OSSICLES_MESH_PATH_6329_right),
+    (vis.config.OSSICLES_MESH_PATH_6602_right),
+    (vis.config.OSSICLES_MESH_PATH_6751_right),
+    # left ossicles
+    (vis.config.OSSICLES_MESH_PATH_6742_left),
+    (vis.config.OSSICLES_MESH_PATH_6087_left),
+    ]
+)
+def test_convert_mesh2ply(ossicles_path):
+    output_name = ossicles_path.stem + ".ply"
+    output_path = ossicles_path.parent / output_name
+    vis.utils.mesh2ply(ossicles_path, output_path)
 
 @pytest.mark.parametrize(
     "hand_draw_mask, ossicles_path, RT, resize, mirror_objects",

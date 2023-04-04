@@ -15,8 +15,8 @@ logger = logging.getLogger("vision6D")
 class App:
     # The unit is mm
     def __init__(
-            self, 
-            off_screen=False,
+            self,
+            off_screen: bool,
             width: int=1920,
             height: int=1080,
             # use surgical microscope for medical device with view angle 1 degree
@@ -25,11 +25,11 @@ class App:
             mirror_objects: bool=False
         ):
         
+        self.off_screen = off_screen
         self.window_size = (int(width), int(height))
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
         self.reference = None
-        self.set_off_screen(off_screen=off_screen)
         
         # initial the dictionaries
         self.mesh_actors = {}
@@ -51,14 +51,11 @@ class App:
         self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         
         # plot image and ossicles
-        self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]])
+        self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=off_screen)
 
     def set_mirror_objects(self, mirror_objects: bool):
         self.mirror_objects = mirror_objects
 
-    def set_off_screen(self, off_screen: bool):
-        self.off_screen = off_screen
-    
     def set_image_opacity(self, image_opacity: float):
         self.image_opacity = image_opacity
     
@@ -258,46 +255,44 @@ class App:
         
         if self.reference is None:
            raise RuntimeError("reference name is not set")
-
-        self.pv_plotter.enable_joystick_actor_style()
-        self.pv_plotter.enable_trackball_actor_style()
-
-        # Register callbacks
-        self.pv_plotter.add_key_event('c', self.event_reset_camera)
-        self.pv_plotter.add_key_event('z', self.event_zoom_out)
-        self.pv_plotter.add_key_event('x', self.event_zoom_in)
-        self.pv_plotter.add_key_event('t', self.event_track_registration)
-
-        for main_mesh, mesh_data in self.binded_meshes.items():
-            event_func = functools.partial(self.event_realign_meshes, main_mesh=main_mesh, other_meshes=mesh_data['meshes'])
-            self.pv_plotter.add_key_event(mesh_data['key'], event_func)
-        
-        self.pv_plotter.add_key_event('k', self.event_gt_position)
-        self.pv_plotter.add_key_event('l', self.event_update_position)
-        
-        event_toggle_image_opacity_up_func = functools.partial(self.event_toggle_image_opacity, up=True)
-        self.pv_plotter.add_key_event('b', event_toggle_image_opacity_up_func)
-        event_toggle_image_opacity_down_func = functools.partial(self.event_toggle_image_opacity, up=False)
-        self.pv_plotter.add_key_event('n', event_toggle_image_opacity_down_func)
-        
-        event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=True)
-        self.pv_plotter.add_key_event('y', event_toggle_surface_opacity_up_func)
-        event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=False)
-        self.pv_plotter.add_key_event('u', event_toggle_surface_opacity_up_func)
         
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
-        
+
         if not self.off_screen:
+            self.pv_plotter.enable_joystick_actor_style()
+            self.pv_plotter.enable_trackball_actor_style()
+
+            # Register callbacks
+            self.pv_plotter.add_key_event('c', self.event_reset_camera)
+            self.pv_plotter.add_key_event('z', self.event_zoom_out)
+            self.pv_plotter.add_key_event('x', self.event_zoom_in)
+            self.pv_plotter.add_key_event('t', self.event_track_registration)
+
+            for main_mesh, mesh_data in self.binded_meshes.items():
+                event_func = functools.partial(self.event_realign_meshes, main_mesh=main_mesh, other_meshes=mesh_data['meshes'])
+                self.pv_plotter.add_key_event(mesh_data['key'], event_func)
+            
+            self.pv_plotter.add_key_event('k', self.event_gt_position)
+            self.pv_plotter.add_key_event('l', self.event_update_position)
+            
+            event_toggle_image_opacity_up_func = functools.partial(self.event_toggle_image_opacity, up=True)
+            self.pv_plotter.add_key_event('b', event_toggle_image_opacity_up_func)
+            event_toggle_image_opacity_down_func = functools.partial(self.event_toggle_image_opacity, up=False)
+            self.pv_plotter.add_key_event('n', event_toggle_image_opacity_down_func)
+            
+            event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=True)
+            self.pv_plotter.add_key_event('y', event_toggle_surface_opacity_up_func)
+            event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=False)
+            self.pv_plotter.add_key_event('u', event_toggle_surface_opacity_up_func)
+            
             self.pv_plotter.add_axes()
             self.pv_plotter.add_camera_orientation_widget()
+            self.pv_plotter.show("vision6D")
         else:
-            self.pv_plotter.off_screen = self.off_screen
             self.pv_plotter.disable()
-            
-        self.pv_plotter.show("vision6D")
-
-        return self.pv_plotter.last_image
+            self.pv_plotter.show()
+            return self.pv_plotter.last_image
         
     def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1, return_depth_map: bool=False):
         
