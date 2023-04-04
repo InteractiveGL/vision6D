@@ -214,11 +214,6 @@ def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_obje
     
     # generate the color mask based on the segmentation mask
     color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
-
-    # save the rendered whole image
-    # vis.utils.save_image(color_mask_whole, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
-    # save the rendered partial image
-    # if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
     
     # Downscale color_mask
     downscale_color_mask = cv2.resize(color_mask, (int(color_mask.shape[1] * resize), int(color_mask.shape[0] * resize)), interpolation=cv2.INTER_LINEAR)

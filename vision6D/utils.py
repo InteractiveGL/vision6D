@@ -176,10 +176,10 @@ def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, binar
     rgb = color_mask[pts[:,1], pts[:,0]]
     if np.max(rgb) > 1: rgb = rgb / 255
 
-    # vertices = getattr(obj, f'{object_name}_vertices')
-    r = rgb[:, 0] * (np.max(vertices[0]) - np.min(vertices[0])) + np.min(vertices[0])
-    g = rgb[:, 1] * (np.max(vertices[1]) - np.min(vertices[1])) + np.min(vertices[1])
-    b = rgb[:, 2] * (np.max(vertices[2]) - np.min(vertices[2])) + np.min(vertices[2])
+    # denormalize to get the rgb value for vertices respectively
+    r = de_normalize(rgb[:, 0], vertices[..., 0])
+    g = de_normalize(rgb[:, 1], vertices[..., 1])
+    b = de_normalize(rgb[:, 2], vertices[..., 2])
     vtx = np.stack([r, g, b], axis=1)
     
     return vtx, pts
@@ -208,17 +208,19 @@ def transform_vertices(vertices, transformation_matrix=np.eye(4)):
     return transformed_vertices
 
 def normalize(x):
-    return (x - min(x)) / (max(x) - min(x)) #- 0.5
+    return (x - min(x)) / (max(x) - min(x))
+
+def de_normalize(rgb, vertices):
+    return rgb * (np.max(vertices) - np.min(vertices)) + np.min(vertices)
 
 def color_mesh(vertices):
-        colors = copy.deepcopy(vertices)
-        # normalize vertices and center it to 0
-        colors[0] = normalize(vertices[0])
-        colors[1] = normalize(vertices[1])
-        colors[2] = normalize(vertices[2])
-        colors = colors.T #+ np.array([0.5, 0.5, 0.5])
-        
-        return colors
+    assert vertices.shape[1] == 3, "the vertices is suppose to be transposed"
+    colors = copy.deepcopy(vertices)
+    # normalize vertices and center it to 0
+    colors[..., 0] = normalize(vertices[..., 0])
+    colors[..., 1] = normalize(vertices[..., 1])
+    colors[..., 2] = normalize(vertices[..., 2])
+    return colors
 
 def save_image(array, folder, name):
     img = Image.fromarray(array)

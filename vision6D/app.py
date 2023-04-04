@@ -8,6 +8,7 @@ import functools
 import pyvista as pv
 import matplotlib.pyplot as plt
 import vision6D as vis
+from scipy.spatial import distance_matrix
 
 logger = logging.getLogger("vision6D")
 
@@ -39,7 +40,7 @@ class App:
         
         # default opacity for image and surface
         self.set_image_opacity(0.8) # self.image_opacity = 0.35
-        self.set_surface_opacity(0.99) # self.surface_opacity = 1
+        self.set_mesh_opacity(0.99) # self.surface_opacity = 1
 
         # Set up the camera
         self.camera = pv.Camera()
@@ -61,7 +62,7 @@ class App:
     def set_image_opacity(self, image_opacity: float):
         self.image_opacity = image_opacity
     
-    def set_surface_opacity(self, surface_opacity: float):
+    def set_mesh_opacity(self, surface_opacity: float):
         self.surface_opacity = surface_opacity
 
     def set_camera_extrinsics(self, cam_position, cam_viewup):
@@ -99,10 +100,8 @@ class App:
         self.reference = name
         
     def set_vertices(self, name:str, vertices: pv.pyvista_ndarray):
-        if vertices.shape[0] == 3: 
-            setattr(self, f"{name}_vertices", vertices)
-        elif vertices.shape[1] == 3: 
-            setattr(self, f"{name}_vertices", vertices.T)
+        assert vertices.shape[1] == 3, "it should be N by 3 matrix"
+        setattr(self, f"{name}_vertices", vertices)
         
     # Suitable for total two and above mesh quantities
     def bind_meshes(self, main_mesh: str, key: str):
@@ -146,13 +145,19 @@ class App:
             self.mesh_polydata[mesh_name] = mesh_data
 
             # Set vertices attribute
-            self.set_vertices(mesh_name, mesh_data.points)
+            self.set_vertices(mesh_name, mesh_data.points) # N by 3 matrix
+
+            # get the atlas mesh
+            # mesh_5997 = pv.wrap(vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right))
+            # dist_mat = distance_matrix(mesh_data.points, mesh_5997.points)
+            # min_ind = dist_mat.argmin(axis=1)
+            # colors = vis.utils.color_mesh(mesh_5997.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+            # colors = colors[min_ind, :]
 
             # Color the vertex: set the color to be the meshes' initial location, and never change the color
-            colors = vis.utils.color_mesh(mesh_data.points.T) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points.T)
-            mesh_data.point_data.set_scalars(colors)
-            mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
-            
+            colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+            mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+
             # Set the transformation matrix to be the mesh's user_matrix
             mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
             self.initial_poses[mesh_name] = self.transformation_matrix
@@ -307,11 +312,12 @@ class App:
             pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
         else:
             # background set to black
-            pv_render.set_background('white')
+            pv_render.set_background('black')
+            assert pv_render.background_color == "black", "pv_render's background need to be black"
             
             # Render the targeting objects
             for object in render_objects:
-                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, opacity=surface_opacity)
+                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, style='surface', opacity=surface_opacity)
                 mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
         
         pv_render.camera = self.camera.copy()

@@ -1374,3 +1374,11 @@ else:
 
 # self.pv_plotter.off_screen = self.off_screen
 # if not self.pv_plotter.off_screen:
+
+# mesh_data.point_data.set_scalars(colors)
+# mesh = self.pv_plotter.add_mesh(mesh_data, rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+            
+# save the rendered whole image
+# vis.utils.save_image(color_mask_whole, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
+# save the rendered partial image
+# if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
