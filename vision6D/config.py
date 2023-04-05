@@ -8,6 +8,9 @@ OP_DATA_DIR = GITROOT.parent / 'ossicles_6D_pose_estimation' / 'data'
 YOLOV8_DATA_DIR = GITROOT.parent / 'yolov8'
 OUTPUT_DIR = GITROOT / 'output'
 
+# average ossicles
+AVERAGE_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "average_mesh.ply"
+
 # right ossicles
 IMAGE_PATH_455 = OP_DATA_DIR / "frames" /"CIP.455.8381493978235_video_trim" / "CIP.455.8381493978235_video_trim_0.png"
 OSSICLES_MESH_PATH_455_right = OP_DATA_DIR / "surgical_planning" / "CIP.455.8381493978235_video_trim" / "mesh" / "455_right_ossicles_processed.mesh"
@@ -71,10 +74,18 @@ FACIAL_NERVE_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning"/ "CIP.6087.
 CHORDA_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning"/ "CIP.6087.8415865242263_video_trim" / "mesh" / "6087_left_chorda_centered.mesh"
 
 # right ossicles
+# actual pose for the 455 mesh
 gt_pose_455_right = np.array([[  0.17173876,   0.02410131,  -0.98484766,  -4.55591751],
                             [  0.16926624,   0.98411177,   0.05360012,  -4.69918678],
                             [  0.97049201,  -0.17590668,   0.1649306,  -42.87675677],
                             [  0.,           0.,           0.,           1.        ]])
+
+# pose for the average mesh
+# gt_pose_455_right = np.array([[  0.17173876,   0.02410131,  -0.98484766,  -4.7329448 ],
+#                         [  0.16926624,   0.98411177,   0.05360012,  -4.2705944 ],
+#                         [  0.97049201,  -0.17590668,   0.1649306,  -42.87675677],
+#                         [  0.,           0.,           0.,           1.        ]])
+
 gt_pose_5997_right = np.array([[  -0.14498174,   -0.34676691,   -0.92667849,   -3.05033148],
                                 [   0.33413722,    0.86439266,   -0.3757361,    -1.54732514],
                                 [   0.93130693,   -0.36411267,   -0.00945343, -119.95253896],
