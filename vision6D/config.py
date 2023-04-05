@@ -10,6 +10,7 @@ OUTPUT_DIR = GITROOT / 'output'
 
 # average ossicles
 AVERAGE_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "average_mesh.ply"
+ATLAS_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "ref_atlas_ossicles.mesh"
 
 # right ossicles
 IMAGE_PATH_455 = OP_DATA_DIR / "frames" /"CIP.455.8381493978235_video_trim" / "CIP.455.8381493978235_video_trim_0.png"

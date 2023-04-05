@@ -13,8 +13,10 @@ from scipy.spatial.transform import Rotation as R
 from pytest_lazyfixture  import lazy_fixture
 import skimage.transform
 import torch
+import trimesh
 import torchvision
 import vision6D as vis
+from scipy.spatial import distance_matrix
 
 import logging
 import PIL
@@ -198,7 +200,7 @@ def test_convert_mesh2ply(ossicles_path):
     "hand_draw_mask, ossicles_path, RT, resize, mirror_objects",
     [(None, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.gt_pose_455_right, 1/10, False), # no resize: 0.05338873922462614 # resize 1/5 cv2: 0.026132524126728313 # if resize torch: 
         
-    (None, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/10, False), # no resize: 0.021086712065792698 # resize 1/5 cv2: 0.020330257484100347 # if resize torch: 
+    (None, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1, False), # no resize: 0.021086712065792698 # resize 1/5 cv2: 0.020330257484100347 # if resize torch: 
     (vis.config.mask_5997_hand_draw_numpy, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1/10, False), # error: 1.3682088051366954 # if resize cv2: 1.0566890956912622 # if resize torch: 
     
     (None, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1/10, False), # no resize: 5.491416579722634 # resize 1/5 cv2: 5.534377619304417 # if resize torch: 
@@ -274,3 +276,78 @@ def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_obje
     # plt.show()
 
     assert np.isclose(predicted_pose, RT, atol=20).all()
+
+def test_target_colormask2atlas_colormask():
+    app = vis.App(off_screen=True)
+    gt_pose = vis.config.gt_pose_5997_right
+    meshpath = vis.config.OSSICLES_MESH_PATH_5997_right
+    app.set_transformation_matrix(gt_pose)
+    app.load_meshes({'ossicles': meshpath})
+    color_mask = app.render_scene(render_image=False, render_objects=['ossicles'])
+
+    # show the image
+    plt.imshow(color_mask)
+    plt.show()
+
+    binary_mask = vis.utils.color2binary_mask(color_mask)
+    idx = np.where(binary_mask == 1)
+    pts = np.stack((idx[1], idx[0]), axis=1)
+    # Obtain the 3D verticies (normaize rgb values)
+    rgb = color_mask[pts[:,1], pts[:,0]] / 255
+
+    # get the vertices from the atlas ossicles
+    atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+    atlas_mesh.vertices -= np.mean(atlas_mesh.vertices, axis=0)
+    mesh_5997 = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
+
+    # load the vertices
+    # denormalize to get the rgb value for vertices respectively
+    r = vis.utils.de_normalize(rgb[:, 0], atlas_mesh.vertices[..., 0])
+    g = vis.utils.de_normalize(rgb[:, 1], atlas_mesh.vertices[..., 1])
+    b = vis.utils.de_normalize(rgb[:, 2], atlas_mesh.vertices[..., 2])
+    vtx = np.stack([r, g, b], axis=1)
+
+    # ~ EPNP algorithm
+    pts2d = pts.astype('float32')
+    pts3d = vtx.astype('float32')
+    camera_intrinsics = app.camera_intrinsics.astype('float32')
+
+    predicted_pose = np.eye(4)
+    if pts2d.shape[0] > 4:
+        # Use EPNP, inliers are the indices of the inliers
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, distCoeffs=np.zeros((4, 1)), confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.cam_position)
+    
+    projected_points, _ = cv2.projectPoints(mesh_5997.vertices, rotation_vector, translation_vector, camera_matrix=app.camera_intrinsics, dist_coeffs=np.zeros((4, 1)))
+    projected_points = projected_points.reshape(-1, 2)
+    
+    # rt, _ = trimesh.registration.mesh_other(mesh_5997, atlas_mesh, samples=2454) # samples number equal to the number of vertices
+
+    points_atlas = []
+    points_vtx = []
+    for i, j in zip(atlas_mesh.vertices, vtx):
+        if np.isclose(i, j, rtol=0.1).all():
+            points_atlas.append(i)
+            points_vtx.append(j)
+
+    print("jjj")
+
+    # Calculate the closest points on mesh2's surface for each vertex in mesh1
+    # closest_points, distance, triangle_id = atlas_mesh.nearest.on_surface(vtx)
+    # # Find the index of the minimum distance
+    # min_distance_index = np.argmin(distance)
+
+    # # Get the corresponding closest points on both meshes
+    # point_on_mesh2 = closest_points[min_distance_index]
+
+    # print("jjj")
+
+    # dist_mat = distance_matrix(atlas_mesh.vertices, vtx)
+    # min_ind = dist_mat.argmin(axis=1)
+    # true_vtx = vtx[min_ind, :]
+
+
+
+    
