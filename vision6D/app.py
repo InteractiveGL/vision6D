@@ -3,6 +3,7 @@ import pathlib
 import logging
 import numpy as np
 import math
+import trimesh
 import functools
 
 import pyvista as pv
@@ -134,7 +135,10 @@ class App:
 
             if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
                 # Load the '.mesh' file
-                if '.mesh' in str(mesh_source): mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
+                if '.mesh' in str(mesh_source):
+                    mesh_source = vis.utils.load_trimesh(mesh_source)
+                    mesh_source = trimesh.sample.sample_surface_even(mesh_source, 10000)
+                    mesh_data = pv.wrap(mesh_source)
                 # Load the '.ply' file
                 elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
 
@@ -152,7 +156,8 @@ class App:
             # colors = colors[min_ind, :]
 
             # Color the vertex: set the color to be the meshes' initial location, and never change the color
-            colors = vis.utils.color_mesh(atlas_mesh.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+            # colors = vis.utils.color_mesh(atlas_mesh.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+            colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
             mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
 
             # Set the transformation matrix to be the mesh's user_matrix
@@ -312,7 +317,7 @@ class App:
             
             # Render the targeting objects
             for object in render_objects:
-                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, style='points', opacity=surface_opacity)
+                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, style='surface', opacity=surface_opacity)
                 mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
         
         pv_render.camera = self.camera.copy()

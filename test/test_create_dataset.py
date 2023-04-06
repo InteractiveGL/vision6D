@@ -139,13 +139,13 @@ def test_get_depth_map(app, mesh_path, gt_pose, mirror_objects):
     _, depth_map = app.render_scene(render_image=False, render_objects=['ossicles'], return_depth_map=True)
     
     # show the depth map
-    # plt.figure()
-    # plt.imshow(depth_map)
-    # plt.colorbar(label='Distance to Camera')
-    # plt.title('Depth image')
-    # plt.xlabel('X Pixel')
-    # plt.ylabel('Y Pixel')
-    # plt.show()
+    plt.figure()
+    plt.imshow(depth_map)
+    plt.colorbar(label='Distance to Camera')
+    plt.title('Depth image')
+    plt.xlabel('X Pixel')
+    plt.ylabel('Y Pixel')
+    plt.show()
 
     depth = depth_map[~np.isnan(depth_map)]
 
@@ -318,7 +318,7 @@ def test_target_colormask2atlas_colormask():
         success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, distCoeffs=np.zeros((4, 1)), confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
         if success:
             predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
-            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.cam_position)
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
     
     projected_points, _ = cv2.projectPoints(mesh_5997.vertices, rotation_vector, translation_vector, camera_matrix=app.camera_intrinsics, dist_coeffs=np.zeros((4, 1)))
     projected_points = projected_points.reshape(-1, 2)
