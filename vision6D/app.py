@@ -135,40 +135,17 @@ class App:
 
             if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
                 # Load the '.mesh' file
-                if '.mesh' in str(mesh_source):
-                    mesh_source = vis.utils.load_trimesh(mesh_source)
-                    mesh_source = trimesh.sample.sample_surface_even(mesh_source, 10000)
-                    mesh_data = pv.wrap(mesh_source)
+                # mesh_source.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
+                if '.mesh' in str(mesh_source): mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))                    
                 # Load the '.ply' file
                 elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
 
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = mesh_data
-
             # Set vertices attribute
             self.set_vertices(mesh_name, mesh_data.points) # N by 3 matrix
 
-            # get the atlas mesh
-            atlas_mesh = pv.wrap(vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH))
-            # dist_mat = distance_matrix(mesh_data.points, mesh_5997.points)
-            # min_ind = dist_mat.argmin(axis=1)
-            # colors = vis.utils.color_mesh(mesh_5997.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
-            # colors = colors[min_ind, :]
-
-            # Color the vertex: set the color to be the meshes' initial location, and never change the color
-            # colors = vis.utils.color_mesh(atlas_mesh.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
-            colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
-            mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
-
-            # Set the transformation matrix to be the mesh's user_matrix
-            mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-            self.initial_poses[mesh_name] = self.transformation_matrix
-            
-            # Add and save the actor
-            actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
-            self.mesh_actors[mesh_name] = actor
-
-        if len(self.mesh_actors) == 1: self.set_reference(reference_name)
+        if len(self.mesh_polydata) == 1: self.set_reference(reference_name)
 
     # configure event functions
     def event_zoom_out(self, *args):
@@ -261,6 +238,33 @@ class App:
         if self.reference is None:
            raise RuntimeError("reference name is not set")
         
+        # load the mesh pyvista data
+        for mesh_name, mesh_data in self.mesh_polydata.items():
+            # get the atlas mesh
+            # atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+            # atlas_mesh.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
+            # atlas_mesh = pv.wrap(atlas_mesh)
+
+            # dist_mat = distance_matrix(mesh_data.points, mesh_5997.points)
+            # min_ind = dist_mat.argmin(axis=1)
+            # colors = vis.utils.color_mesh(mesh_5997.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+            # colors = colors[min_ind, :]
+
+            # Color the vertex: set the color to be the meshes' initial location, and never change the color
+            # colors = vis.utils.color_mesh(atlas_mesh.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+            colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+            
+            # add the color to pv_plotter
+            mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+
+            # Set the transformation matrix to be the mesh's user_matrix
+            mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+            self.initial_poses[mesh_name] = self.transformation_matrix
+            
+            # Add and save the actor
+            actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
+            self.mesh_actors[mesh_name] = actor
+
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
 
@@ -317,7 +321,53 @@ class App:
             
             # Render the targeting objects
             for object in render_objects:
-                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, style='surface', opacity=surface_opacity)
+                mesh_data = self.mesh_polydata[object]
+                colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+                mesh = pv_render.add_mesh(mesh_data,
+                                        scalars=colors, 
+                                        rgb=True, 
+                                        style='surface',
+                                        opacity=surface_opacity)
+                mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+        
+        pv_render.camera = self.camera.copy()
+        pv_render.disable()
+        pv_render.show()
+
+        # obtain the rendered image
+        rendered_image = pv_render.last_image
+        # obtain the depth map
+        depth_map = pv_render.get_image_depth()
+              
+        return rendered_image if not return_depth_map else (rendered_image, depth_map)
+    
+    def render_scene_point_clouds(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1, return_depth_map: bool=False):
+        
+        pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        pv_render.enable_joystick_actor_style()
+ 
+        if render_image:
+            assert image_source is not None, "image source cannot be None!"
+            image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+            image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+            image = image.translate(-1 * np.array(image.center), inplace=False)
+            pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
+        else:
+            # background set to black
+            pv_render.set_background('black')
+            assert pv_render.background_color == "black", "pv_render's background need to be black"
+            
+            # Render the targeting objects
+            for object in render_objects:
+                mesh_data = self.mesh_polydata[object]
+                colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+                mesh = pv_render.add_mesh(mesh_data,
+                                        scalars=colors,
+                                        rgb=True, 
+                                        style='points', 
+                                        point_size=1, 
+                                        render_points_as_spheres=False,
+                                        opacity=surface_opacity)
                 mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
         
         pv_render.camera = self.camera.copy()
