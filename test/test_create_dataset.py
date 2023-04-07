@@ -27,7 +27,10 @@ np.set_printoptions(suppress=True)
 # size: (1920, 1080)
 @pytest.fixture
 def app():
-    return vis.App(off_screen=False)
+    app = vis.App(off_screen=False)
+    app.set_image_opacity(0.8)
+    app.set_mesh_opacity(0.99)
+    return app
     
 def test_load_image(app):
     image_source = np.array(Image.open(vis.config.IMAGE_PATH_5997))
@@ -107,11 +110,12 @@ def test_load_mesh_mirror_ossicles(app, image_path, ossicles_path, facial_nerve_
     (vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, True),
     ]
 )
-def test_render_scene(app, mesh_path, gt_pose, mirror_objects):
+def test_scene_render(mesh_path, gt_pose, mirror_objects):
+    app = vis.App(off_screen=True)
     app.set_mirror_objects(mirror_objects)
     app.set_transformation_matrix(gt_pose)
     app.load_meshes({'ossicles': mesh_path})
-    image_np = app.render_scene(render_image=False, render_objects=['ossicles'])
+    image_np = app.plot()
     plt.imshow(image_np)
     plt.show()
     print("hhh")
@@ -132,12 +136,13 @@ def test_render_scene(app, mesh_path, gt_pose, mirror_objects):
     (vis.config.OSSICLES_MESH_PATH_6742_left, vis.config.gt_pose_6742_left, True),
     ]
 ) 
-def test_get_depth_map(app, mesh_path, gt_pose, mirror_objects):
+def test_get_depth_map(mesh_path, gt_pose, mirror_objects):
+    app = vis.App(off_screen=True)
     app.set_mirror_objects(mirror_objects)
     app.set_transformation_matrix(gt_pose)
     app.load_meshes({'ossicles': mesh_path})
-    _, depth_map = app.render_scene(render_image=False, render_objects=['ossicles'], return_depth_map=True)
-    
+    _, depth_map = app.plot(return_depth_map=True)
+        
     # show the depth map
     plt.figure()
     plt.imshow(depth_map)
@@ -153,26 +158,28 @@ def test_get_depth_map(app, mesh_path, gt_pose, mirror_objects):
 
     assert np.isclose(z, app.transformation_matrix[2,3], atol=2)
 
-def test_save_plot():
+def test_plot_mesh_off_screen():
     app = vis.App(off_screen=True)
     app.set_transformation_matrix(np.eye(4))
-    image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
-    app.load_image(image_numpy)
-
+    # image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
+    # app.load_image(image_numpy)
     app.load_meshes({'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 'chorda': vis.config.CHORDA_MESH_PATH_5997_right})
-
-    app.bind_meshes("ossicles", "g")
-    app.bind_meshes("chorda", "h")
-    app.bind_meshes("facial_nerve", "j")
     app.set_reference("ossicles")
     image_np = app.plot()
     plt.imshow(image_np)
     plt.show() 
 
-def test_generate_image(app):
+def test_render_surgery_image(app):
+    # image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
+    # image_np = app.render_scene(render_image=True, image_source=image_numpy)
+    # plt.imshow(image_np); plt.show()
+    app = vis.App(off_screen=True)
+    app.set_image_opacity(1)
     image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
-    image_np = app.render_scene(render_image=True, image_source=image_numpy)
-    plt.imshow(image_np); plt.show()
+    app.load_image(image_numpy)
+    image_np = app.plot()
+    plt.imshow(image_np)
+    plt.show() 
 
 @pytest.mark.parametrize(
     "ossicles_path",
@@ -217,7 +224,7 @@ def test_convert_mesh2ply(ossicles_path):
 )
 def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_objects):
 
-    app = vis.App(off_screen=False, mirror_objects=mirror_objects)
+    app = vis.App(off_screen=True, mirror_objects=mirror_objects)
     w, h = app.window_size
 
     # Use the hand segmented mask
@@ -234,7 +241,7 @@ def test_pnp_from_dataset(hand_draw_mask, ossicles_path, RT, resize, mirror_obje
     app.load_meshes({'ossicles': ossicles_path})
 
     # Create rendering
-    color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
+    color_mask_whole = app.plot()
     
     # generate the color mask based on the segmentation mask
     color_mask = (color_mask_whole * seg_mask).astype(np.uint8)

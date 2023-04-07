@@ -25,13 +25,14 @@ logger = logging.getLogger("vision6D")
 np.set_printoptions(suppress=True)
 
 def test_render_point_clouds():
+    # set the off_screen to True
     app = vis.App(off_screen=True)
     gt_pose = vis.config.gt_pose_5997_right
     meshpath = vis.config.OSSICLES_MESH_PATH_5997_right
     app.set_transformation_matrix(gt_pose)
     app.load_meshes({'ossicles': meshpath})
-    # color_mask = app.render_scene(render_image=False, render_objects=['ossicles'])
-    color_mask = app.render_scene_point_clouds(render_image=False, render_objects=['ossicles'])
+    # render the color mask since the off_screen is True
+    color_mask = app.plot()
 
     # show the image
     plt.imshow(color_mask)

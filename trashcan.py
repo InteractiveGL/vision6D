@@ -1382,3 +1382,84 @@ else:
 # vis.utils.save_image(color_mask_whole, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_whole_{name}.png")
 # save the rendered partial image
 # if hand_draw_mask is not None: vis.utils.save_image(color_mask, vis.config.OUTPUT_DIR / "rendered_mask", f"rendered_mask_partial_{name}.png")
+
+    def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1, return_depth_map: bool=False):
+        
+        pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        pv_render.enable_joystick_actor_style()
+ 
+        if render_image:
+            assert image_source is not None, "image source cannot be None!"
+            image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+            image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+            image = image.translate(-1 * np.array(image.center), inplace=False)
+            pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
+        else:
+            # background set to black
+            pv_render.set_background('black')
+            assert pv_render.background_color == "black", "pv_render's background need to be black"
+            
+            # Render the targeting objects
+            for object in render_objects:
+                mesh_data = self.mesh_polydata[object]
+                colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+                mesh = pv_render.add_mesh(mesh_data,
+                                        scalars=colors, 
+                                        rgb=True, 
+                                        style='surface',
+                                        opacity=surface_opacity)
+                mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+        
+        pv_render.camera = self.camera.copy()
+        pv_render.disable()
+        pv_render.show()
+
+        # obtain the rendered image
+        rendered_image = pv_render.last_image
+        # obtain the depth map
+        depth_map = pv_render.get_image_depth()
+              
+        return rendered_image if not return_depth_map else (rendered_image, depth_map)
+    
+    def render_scene_point_clouds(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1, return_depth_map: bool=False):
+        
+        pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        pv_render.enable_joystick_actor_style()
+ 
+        if render_image:
+            assert image_source is not None, "image source cannot be None!"
+            image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+            image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+            image = image.translate(-1 * np.array(image.center), inplace=False)
+            pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
+        else:
+            # background set to black
+            pv_render.set_background('black')
+            assert pv_render.background_color == "black", "pv_render's background need to be black"
+            
+            # Render the targeting objects
+            for object in render_objects:
+                mesh_data = self.mesh_polydata[object]
+                colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+                mesh = pv_render.add_mesh(mesh_data,
+                                        scalars=colors,
+                                        rgb=True, 
+                                        style='points', 
+                                        point_size=1, 
+                                        render_points_as_spheres=False,
+                                        opacity=surface_opacity)
+                mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+        
+        pv_render.camera = self.camera.copy()
+        # pv_render.disable()
+        pv_render.show()
+        depth_map = pv_render.get_image_depth()
+
+        # obtain the rendered image
+        rendered_image = pv_render.last_image
+        # obtain the depth map
+          
+        return rendered_image if not return_depth_map else (rendered_image, depth_map)
+
+# color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
+    
