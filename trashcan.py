@@ -1463,3 +1463,16 @@ else:
 
 # color_mask_whole = app.render_scene(render_image=False, render_objects=['ossicles'])
     
+# get the atlas mesh
+# atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+# atlas_mesh.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
+# atlas_mesh = pv.wrap(atlas_mesh)
+
+# dist_mat = distance_matrix(mesh_data.points, mesh_5997.points)
+# min_ind = dist_mat.argmin(axis=1)
+# colors = vis.utils.color_mesh(mesh_5997.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+# colors = colors[min_ind, :]
+
+# Color the vertex: set the color to be the meshes' initial location, and never change the color
+# colors = vis.utils.color_mesh(atlas_mesh.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+# colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)

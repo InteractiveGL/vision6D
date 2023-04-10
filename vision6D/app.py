@@ -18,6 +18,7 @@ class App:
     def __init__(
             self,
             off_screen: bool,
+            nocs_color: bool=False,
             width: int=1920,
             height: int=1080,
             # use surgical microscope for medical device with view angle 1 degree
@@ -27,6 +28,7 @@ class App:
         ):
         
         self.off_screen = off_screen
+        self.nocs_color = nocs_color
         self.window_size = (int(width), int(height))
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
@@ -78,12 +80,24 @@ class App:
             if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
                 # Load the '.mesh' file
                 # mesh_source.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
-                if '.mesh' in str(mesh_source): mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))                    
+                if '.mesh' in str(mesh_source): 
+                    mesh_source = vis.utils.load_trimesh(mesh_source)
+                    if not self.nocs_color:
+                        if mesh_name == 'ossicles':
+                            atlas_mesh_source = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+                            colors, _, _ = vis.utils.color_mesh_with_fast_marching(atlas_mesh_source)
+                        else:
+                            colors, _, _ = vis.utils.color_mesh_with_fast_marching(mesh_source)
+                    else:
+                        colors = vis.utils.color_mesh(mesh_source.vertices)
+                    
+                    mesh_data = pv.wrap(mesh_source)
+
                 # Load the '.ply' file
                 elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
 
             # Save the mesh data to dictionary
-            self.mesh_polydata[mesh_name] = mesh_data
+            self.mesh_polydata[mesh_name] = (mesh_data, colors)
             # Set vertices attribute
             self.set_vertices(mesh_name, mesh_data.points) # N by 3 matrix
 
@@ -240,27 +254,23 @@ class App:
         if self.reference is None and len(self.mesh_polydata) >= 1: raise RuntimeError("reference name is not set")
         
         # load the mesh pyvista data
-        for mesh_name, mesh_data in self.mesh_polydata.items():
-            # get the atlas mesh
-            # atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
-            # atlas_mesh.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
-            # atlas_mesh = pv.wrap(atlas_mesh)
-
-            # dist_mat = distance_matrix(mesh_data.points, mesh_5997.points)
-            # min_ind = dist_mat.argmin(axis=1)
-            # colors = vis.utils.color_mesh(mesh_5997.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
-            # colors = colors[min_ind, :]
-
-            # Color the vertex: set the color to be the meshes' initial location, and never change the color
-            # colors = vis.utils.color_mesh(atlas_mesh.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
-            colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+        for mesh_name, mesh_info in self.mesh_polydata.items():
             
+            mesh_data, colors = mesh_info
+
             # add the color to pv_plotter
             if not self.off_screen:
-                mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+                mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
             else:
-                mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', rgb=True, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
-            
+                if self.nocs_color:
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+                else:
+                    # mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', cmap='viridis', opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='points', cmap='viridis', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+                    # viridis_table = pv.LookupTable(cmap='viridis')
+                    # viridis_table.map_value(colors)
+
             # Set the transformation matrix to be the mesh's user_matrix
             mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
             self.initial_poses[mesh_name] = self.transformation_matrix

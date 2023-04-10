@@ -26,7 +26,7 @@ np.set_printoptions(suppress=True)
 
 def test_render_point_clouds():
     # set the off_screen to True
-    app = vis.App(off_screen=True)
+    app = vis.App(off_screen=True, nocs_color=False)
     gt_pose = vis.config.gt_pose_5997_right
     meshpath = vis.config.OSSICLES_MESH_PATH_5997_right
     app.set_transformation_matrix(gt_pose)
@@ -37,6 +37,13 @@ def test_render_point_clouds():
     # show the image
     plt.imshow(color_mask)
     plt.show()
+
+    # check if the mapped color table exist in the generated color mask
+    # np.any(np.all(color_mask/255 == [0, 0, 0], axis=2))
+
+    viridis_colormap = plt.cm.get_cmap("viridis").colors
+
+    color_mask = color_mask / 255
 
     binary_mask = vis.utils.color2binary_mask(color_mask)
     idx = np.where(binary_mask == 1)
@@ -95,6 +102,24 @@ def test_render_point_clouds():
     # dist_mat = distance_matrix(atlas_mesh.vertices, vtx)
     # min_ind = dist_mat.argmin(axis=1)
     # true_vtx = vtx[min_ind, :]
+
+def test_color_mesh_with_fast_marching():
+    atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+    mesh_5997 = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
+    distances, north_pole, south_pole = vis.utils.color_mesh_with_fast_marching(atlas_mesh)
+
+    pl = pv.Plotter(shape=(1, 2))
+    pl.subplot(0, 0)
+    pl.add_mesh(atlas_mesh, scalars=distances, point_size=1, opacity=1)
+    pl.add_points(atlas_mesh.vertices[north_pole], color='red', render_points_as_spheres=True, point_size=15)
+    pl.add_points(atlas_mesh.vertices[south_pole], color='blue', render_points_as_spheres=True, point_size=15)
+    
+    pl.subplot(0, 1)
+    pl.add_mesh(mesh_5997, scalars=distances, point_size=1, opacity=1)
+    pl.add_points(mesh_5997.vertices[north_pole], color='red', render_points_as_spheres=True, point_size=15)
+    pl.add_points(mesh_5997.vertices[south_pole], color='blue', render_points_as_spheres=True, point_size=15)
+    
+    pl.show()
 
 
 

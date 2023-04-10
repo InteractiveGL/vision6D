@@ -10,6 +10,7 @@ from easydict import EasyDict
 import trimesh
 from PIL import Image
 import cv2
+import pygeodesic.geodesic as geodesic
 
 # Create logger
 logger = logging.getLogger("vision6D")
@@ -222,6 +223,13 @@ def color_mesh(vertices):
     colors[..., 2] = normalize(vertices[..., 2])
     return colors
 
+def color_mesh_with_fast_marching(mesh):
+    north_pole = 50 # pick the first point in mesh
+    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
+    distances, best_source = geoalg.geodesicDistances(np.array([north_pole]), None)
+    south_pole = distances.argmax() # the point that farthest from the first mesh point 0
+    return distances, north_pole, south_pole
+    
 def save_image(array, folder, name):
     img = Image.fromarray(array)
     img.save(folder / name)
