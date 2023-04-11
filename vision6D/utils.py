@@ -222,13 +222,6 @@ def color_mesh(vertices):
     colors[..., 1] = normalize(vertices[..., 1])
     colors[..., 2] = normalize(vertices[..., 2])
     return colors
-
-def color_mesh_with_fast_marching(mesh):
-    north_pole = 50 # pick the first point in mesh
-    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
-    distances, best_source = geoalg.geodesicDistances(np.array([north_pole]), None)
-    south_pole = distances.argmax() # the point that farthest from the first mesh point 0
-    return distances, north_pole, south_pole
     
 def save_image(array, folder, name):
     img = Image.fromarray(array)
@@ -279,3 +272,15 @@ def rigid_transform_3D(A, B):
     rt = np.vstack((np.hstack((R, t)), np.array([0,0,0,1])))
 
     return rt
+
+# ~ use fast marching to color mash
+def color_mesh_with_fast_marching(mesh):
+    north_pole = 0 # pick the first point in mesh
+    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
+    distances, best_source = geoalg.geodesicDistances(np.array([north_pole]), None)
+    south_pole = distances.argmax() # the point that farthest from the first mesh point 0
+    map = {}
+    for i in range(len(distances)):
+        map[distances[i]] = mesh.vertices[i]
+
+    return distances, north_pole, south_pole
