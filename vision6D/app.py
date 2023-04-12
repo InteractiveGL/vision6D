@@ -281,6 +281,8 @@ class App:
 
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
+        # check the clipping range
+        # print(self.pv_plotter.camera.clipping_range)
 
         if not self.off_screen:
             self.pv_plotter.enable_joystick_actor_style()

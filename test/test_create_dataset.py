@@ -72,6 +72,9 @@ def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_pat
     app.bind_meshes("facial_nerve", "j")
     app.plot()
 
+    # check the clipping range
+    print(app.pv_plotter.camera.clipping_range)
+
 @pytest.mark.parametrize(
     "image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image",
     [# mirror left to right ossicles
