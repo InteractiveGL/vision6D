@@ -19,6 +19,7 @@ class App:
             self,
             off_screen: bool,
             nocs_color: bool=False,
+            point_clouds: bool=False,
             width: int=1920,
             height: int=1080,
             # use surgical microscope for medical device with view angle 1 degree
@@ -29,6 +30,7 @@ class App:
         
         self.off_screen = off_screen
         self.nocs_color = nocs_color
+        self.point_clouds = point_clouds
         self.window_size = (int(width), int(height))
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
@@ -260,14 +262,15 @@ class App:
 
             # add the color to pv_plotter
             if not self.off_screen:
-                mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+                if self.nocs_color: # color array is(2454, 3)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+                else: # color array is (2454, )
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', cmap='viridis', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='points', cmap='viridis', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
             else:
                 if self.nocs_color:
-                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
-                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, lighting=False, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
                 else:
-                    # mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', cmap='viridis', opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
-                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='points', cmap='viridis', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', cmap='viridis', opacity=self.surface_opacity, lighting=False, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='points', cmap='viridis', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
                     # viridis_table = pv.LookupTable(cmap='viridis')
                     # viridis_table.map_value(colors)
 
