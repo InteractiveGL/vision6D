@@ -3,7 +3,9 @@ import pathlib
 import logging
 import numpy as np
 import math
+import trimesh
 import functools
+import json
 
 import pyvista as pv
 import matplotlib.pyplot as plt
@@ -17,6 +19,8 @@ class App:
     def __init__(
             self,
             off_screen: bool,
+            nocs_color: bool=False,
+            point_clouds: bool=False,
             width: int=1920,
             height: int=1080,
             # use surgical microscope for medical device with view angle 1 degree
@@ -26,10 +30,15 @@ class App:
         ):
         
         self.off_screen = off_screen
+        self.nocs_color = nocs_color
+        self.point_clouds = point_clouds
         self.window_size = (int(width), int(height))
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
         self.reference = None
+
+        # get the latlon color
+        self.latlon = self.load_latitude_longitude(vis.config.CWD / "ossiclesCoordinateMapping.json")
         
         # initial the dictionaries
         self.mesh_actors = {}
@@ -39,8 +48,8 @@ class App:
         self.initial_poses = {}
         
         # default opacity for image and surface
-        self.set_image_opacity(0.8) # self.image_opacity = 0.35
-        self.set_mesh_opacity(0.99) # self.surface_opacity = 1
+        self.set_image_opacity(1) # self.image_opacity = 0.35
+        self.set_mesh_opacity(1) # self.surface_opacity = 1
 
         # Set up the camera
         self.camera = pv.Camera()
@@ -52,6 +61,64 @@ class App:
         
         # plot image and ossicles
         self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=off_screen)
+
+    def load_latitude_longitude(self, json_path):
+        # get the latitude and longitude
+        with open(json_path, "r") as f: data = json.load(f)
+        
+        latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
+        longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
+        placeholder = np.zeros((len(data['longitude']), 1))
+        
+        # set the latlon attribute
+        latlon = np.hstack((latitude, longitude, placeholder))
+        return latlon
+
+    def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
+        
+        self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
+        self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
+        self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
+
+        # Then add it to the plotter
+        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=self.image_opacity, name='image')
+        actor, _ = self.pv_plotter.add_actor(image, pickable=False, name="image")
+
+        # Save actor for later
+        self.image_actor = actor    
+
+    def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
+
+        assert self.transformation_matrix is not None, "Need to set the transformation matrix first!"
+                
+        for mesh_name, mesh_source in paths.items():
+            
+            reference_name = mesh_name
+
+            if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
+                # Load the '.mesh' file
+                # mesh_source.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
+                if '.mesh' in str(mesh_source): 
+                    mesh_source = vis.utils.load_trimesh(mesh_source)
+                    # Set vertices and faces attribute
+                    self.set_mesh_info(mesh_name, mesh_source)
+                    if self.nocs_color: colors = vis.utils.color_mesh(mesh_source.vertices)
+                    else:
+                        if mesh_name == 'ossicles': colors = self.latlon
+                        else: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
+                    
+                    mesh_data = pv.wrap(mesh_source)
+
+                # Load the '.ply' file
+                elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
+
+            elif isinstance(mesh_source, pv.PolyData):
+                mesh_data = mesh_source
+
+            # Save the mesh data to dictionary
+            self.mesh_polydata[mesh_name] = (mesh_data, colors)
+
+        if len(self.mesh_polydata) == 1: self.set_reference(reference_name)
 
     def set_mirror_objects(self, mirror_objects: bool):
         self.mirror_objects = mirror_objects
@@ -96,9 +163,10 @@ class App:
     def set_reference(self, name:str):
         self.reference = name
         
-    def set_vertices(self, name:str, vertices: pv.pyvista_ndarray):
-        assert vertices.shape[1] == 3, "it should be N by 3 matrix"
-        setattr(self, f"{name}_vertices", vertices)
+    def set_mesh_info(self, name:str, mesh: trimesh.Trimesh()):
+        assert mesh.vertices.shape[1] == 3, "it should be N by 3 matrix"
+        assert mesh.faces.shape[1] == 3, "it should be N by 3 matrix"
+        setattr(self, f"{name}_mesh", mesh)
         
     # Suitable for total two and above mesh quantities
     def bind_meshes(self, main_mesh: str, key: str):
@@ -110,62 +178,8 @@ class App:
                     other_meshes.append(mesh_name)
             
         self.binded_meshes[main_mesh] = {'key': key, 'meshes': other_meshes}
-        
-    def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
-        
-        self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
-        self.image_polydata['image'].point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
-        self.image_polydata['image'] = self.image_polydata['image'].translate(-1 * np.array(self.image_polydata['image'].center), inplace=False)
-
-        # Then add it to the plotter
-        image = self.pv_plotter.add_mesh(self.image_polydata['image'], rgb=True, opacity=self.image_opacity, name='image')
-        actor, _ = self.pv_plotter.add_actor(image, pickable=False, name="image")
-
-        # Save actor for later
-        self.image_actor = actor    
-
-    def load_meshes(self, paths: Dict[str, (pathlib.Path or pv.PolyData)]):
-
-        assert self.transformation_matrix is not None, "Need to set the transformation matrix first!"
-                
-        for mesh_name, mesh_source in paths.items():
-            
-            reference_name = mesh_name
-
-            if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
-                # Load the '.mesh' file
-                if '.mesh' in str(mesh_source): mesh_data = pv.wrap(vis.utils.load_trimesh(mesh_source))
-                # Load the '.ply' file
-                elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
-
-            # Save the mesh data to dictionary
-            self.mesh_polydata[mesh_name] = mesh_data
-
-            # Set vertices attribute
-            self.set_vertices(mesh_name, mesh_data.points) # N by 3 matrix
-
-            # get the atlas mesh
-            # mesh_5997 = pv.wrap(vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right))
-            # dist_mat = distance_matrix(mesh_data.points, mesh_5997.points)
-            # min_ind = dist_mat.argmin(axis=1)
-            # colors = vis.utils.color_mesh(mesh_5997.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
-            # colors = colors[min_ind, :]
-
-            # Color the vertex: set the color to be the meshes' initial location, and never change the color
-            colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
-            mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', rgb=True, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
-
-            # Set the transformation matrix to be the mesh's user_matrix
-            mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-            self.initial_poses[mesh_name] = self.transformation_matrix
-            
-            # Add and save the actor
-            actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
-            self.mesh_actors[mesh_name] = actor
-
-        if len(self.mesh_actors) == 1: self.set_reference(reference_name)
-
-    # configure event functions
+     # configure event functions
+    
     def event_zoom_out(self, *args):
         self.pv_plotter.camera.zoom(0.5)
         logger.debug("event_zoom_out callback complete")
@@ -251,13 +265,41 @@ class App:
         logger.debug(f"\ncurrent transformation matrix: \n{self.transformation_matrix}")
         logger.debug("event_update_position callback complete")
     
-    def plot(self):
+    def plot(self, return_depth_map=False):
         
-        if self.reference is None:
-           raise RuntimeError("reference name is not set")
+        if return_depth_map: assert self.off_screen == True, "Should set off_screen to True!"
+
+        if self.reference is None and len(self.mesh_polydata) >= 1: raise RuntimeError("reference name is not set")
         
+        # load the mesh pyvista data
+        for mesh_name, mesh_info in self.mesh_polydata.items():
+            
+            mesh_data, colors = mesh_info
+
+            # add the color to pv_plotter
+            if not self.off_screen:
+                if self.nocs_color: # color array is(2454, 3)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+                else: # color array is (2454, )
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+            else:
+                if self.nocs_color:
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, lighting=False, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+                else:
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, lighting=False, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
+
+            # Set the transformation matrix to be the mesh's user_matrix
+            mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+            self.initial_poses[mesh_name] = self.transformation_matrix
+            
+            # Add and save the actor
+            actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
+            self.mesh_actors[mesh_name] = actor
+
         # Set the camera initial parameters
         self.pv_plotter.camera = self.camera.copy()
+        # check the clipping range
+        # print(self.pv_plotter.camera.clipping_range)
 
         if not self.off_screen:
             self.pv_plotter.enable_joystick_actor_style()
@@ -290,38 +332,9 @@ class App:
             self.pv_plotter.add_camera_orientation_widget()
             self.pv_plotter.show("vision6D")
         else:
-            self.pv_plotter.disable()
+            if len(self.image_polydata) < 1: self.pv_plotter.set_background('black')
             self.pv_plotter.show()
-            return self.pv_plotter.last_image
-        
-    def render_scene(self, render_image:bool, image_source:np.ndarray=None, scale_factor:Tuple[float] = (0.01, 0.01, 1), render_objects:List=[], surface_opacity:float=1, return_depth_map: bool=False):
-        
-        pv_render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
-        pv_render.enable_joystick_actor_style()
- 
-        if render_image:
-            assert image_source is not None, "image source cannot be None!"
-            image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
-            image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
-            image = image.translate(-1 * np.array(image.center), inplace=False)
-            pv_render.add_mesh(image, rgb=True, opacity=1, name="image")
-        else:
-            # background set to black
-            pv_render.set_background('black')
-            assert pv_render.background_color == "black", "pv_render's background need to be black"
-            
-            # Render the targeting objects
-            for object in render_objects:
-                mesh = pv_render.add_mesh(self.mesh_polydata[object], rgb=True, style='surface', opacity=surface_opacity)
-                mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-        
-        pv_render.camera = self.camera.copy()
-        pv_render.disable()
-        pv_render.show()
-
-        # obtain the rendered image
-        rendered_image = pv_render.last_image
-        # obtain the depth map
-        depth_map = pv_render.get_image_depth()
-              
-        return rendered_image if not return_depth_map else (rendered_image, depth_map)
+            rendered_image = self.pv_plotter.last_image
+            # obtain the depth map
+            if return_depth_map: depth_map = self.pv_plotter.get_image_depth()
+            return rendered_image if not return_depth_map else (rendered_image, depth_map)

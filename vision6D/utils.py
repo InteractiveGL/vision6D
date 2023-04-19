@@ -10,6 +10,7 @@ from easydict import EasyDict
 import trimesh
 from PIL import Image
 import cv2
+import pygeodesic.geodesic as geodesic
 
 # Create logger
 logger = logging.getLogger("vision6D")
@@ -165,12 +166,12 @@ def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, binar
         binary_mask = color2binary_mask(color_mask)
         assert (binary_mask == (0.3*color_mask[..., :1] + 0.59*color_mask[..., 1:2] + 0.11*color_mask[..., 2:]).astype("bool").astype('uint8')).all()
 
-    # Randomly select points in the mask
     idx = np.where(binary_mask == 1)
-    
+
     # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
-    x, y = idx[1], idx[0]
-    pts = np.stack((x, y), axis=1)
+    idx = idx[:2][::-1]
+
+    pts = np.stack((idx[0], idx[1]), axis=1)
     
     # Obtain the 3D verticies (normaize rgb values)
     rgb = color_mask[pts[:,1], pts[:,0]]
@@ -221,7 +222,7 @@ def color_mesh(vertices):
     colors[..., 1] = normalize(vertices[..., 1])
     colors[..., 2] = normalize(vertices[..., 2])
     return colors
-
+    
 def save_image(array, folder, name):
     img = Image.fromarray(array)
     img.save(folder / name)
@@ -271,3 +272,37 @@ def rigid_transform_3D(A, B):
     rt = np.vstack((np.hstack((R, t)), np.array([0,0,0,1])))
 
     return rt
+
+def latLon2xyz(m,lat,lon,gx,gy):
+    vert = np.array([0, 0, 0])
+    for f in m.faces:
+        lonf = lon[f]
+        if np.sum(lonf==0)>0 and np.sum(lonf>=0.9)>0:
+            lonf[lonf==0] = 1
+        V = [[lat[f[1]] - lat[f[0]], lat[f[2]] - lat[f[0]]], [lonf[1] - lonf[0], lonf[2] - lonf[0]]]
+        ab = np.linalg.pinv(V) @ (np.array([gx,gy]) - np.array([lat[f[0]], lonf[0]]))
+        a = ab[0]
+        b = ab[1]
+        if a>=0 and b>=0 and a+b<=1:
+            vert = np.array(m.vertices[f[0]] + a*(m.vertices[f[1]]-m.vertices[f[0]]) + b*(m.vertices[f[2]]-m.vertices[f[0]]))
+            break
+    return vert
+
+# def latLon2xyz_vectorized(m, lat, lon, gx, gy):
+#     vert = np.array([0, 0, 0])
+#     f = m.faces
+#     lonf = lon[f]
+#     lonf[lonf == 0] = 1
+#     V = [[lat[f[:, 1]] - lat[f[:, 0]], lat[f[:, 2]] - lat[f[:, 0]]], [lonf[:, 1] - lonf[:, 0], lonf[:, 2] - lonf[:, 0]]]
+#     ab = np.linalg.pinv(V) @ (np.array([gx,gy])) - np.vstack((lat[f[:, 0]], lonf[:, 0]))
+#     a = ab[0]
+#     b = ab[1]
+#     mask = (a >= 0) & (b >= 0) & (a + b <= 1)
+#     idx = np.where(mask)[0]
+#     if len(idx) != 0: 
+#         vert = m.vertices[m.faces[idx, 0]] + \
+#             a[idx, np.newaxis] * (m.vertices[m.faces[idx, 1]] - \
+#             m.vertices[m.faces[idx, 0]]) + b[idx, np.newaxis] * (m.vertices[m.faces[idx, 2]] - \
+#             m.vertices[m.faces[idx, 0]])
+    
+#     return vert
