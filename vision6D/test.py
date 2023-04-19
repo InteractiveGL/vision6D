@@ -3,6 +3,7 @@ import pathlib
 import numpy as np
 import vision6D as vis
 
+
 if __name__ == "__main__":
     root = pathlib.Path.cwd()
     with open(root / "vision6D" / "ossiclesCoordinateMapping.json", "r") as f: data = json.load(f)
@@ -13,5 +14,6 @@ if __name__ == "__main__":
     latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
 
     # read atlas mesh
-    mesh = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
+    mesh1 = vis.utils.load_meshobj(vis.config.ATLAS_OSSICLES_MESH_PATH)
+    mesh2 = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
     print("hhh")

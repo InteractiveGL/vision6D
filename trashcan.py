@@ -1476,3 +1476,15 @@ else:
 # Color the vertex: set the color to be the meshes' initial location, and never change the color
 # colors = vis.utils.color_mesh(atlas_mesh.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
 # colors = vis.utils.color_mesh(mesh_data.points) if not self.mirror_objects else vis.utils.color_mesh(np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ mesh_data.points)
+
+# ~ use fast marching to color mash
+def color_mesh_with_fast_marching(mesh):
+    north_pole = 0 # pick the first point in mesh
+    geoalg = geodesic.PyGeodesicAlgorithmExact(mesh.vertices, mesh.faces)
+    distances, best_source = geoalg.geodesicDistances(np.array([north_pole]), None)
+    south_pole = distances.argmax() # the point that farthest from the first mesh point 0
+    map = {}
+    for i in range(len(distances)):
+        map[distances[i]] = mesh.vertices[i]
+
+    return distances, north_pole, south_pole

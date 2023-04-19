@@ -20,7 +20,7 @@ CHORDA_MESH_PATH_455_right = OP_DATA_DIR / "surgical_planning"/ "CIP.455.8381493
 
 IMAGE_PATH_5997 = OP_DATA_DIR / "frames" /"CIP.5997.8381493978443_video_trim" / "CIP.5997.8381493978443_video_trim_0.png"
 SEG_MASK_PATH_5997 = YOLOV8_DATA_DIR / "runs" / "segment" / "CIP.5997.8381493978443_video_trim_right_with_poses" / "seg_masks" / "ossicles" / "CIP.5997.8381493978443_video_trim.png"
-OSSICLES_MESH_PATH_5997_right = OP_DATA_DIR / "surgical_planning" / "CIP.5997.8381493978443_video_trim" / "mesh" / "5997_right_ossicles_processed.mesh"
+OSSICLES_MESH_PATH_5997_right = OP_DATA_DIR / "surgical_planning" / "CIP.5997.8381493978443_video_trim" / "mesh" / "5997_right_ossicles_centered.mesh"
 FACIAL_NERVE_MESH_PATH_5997_right = OP_DATA_DIR / "surgical_planning"/ "CIP.5997.8381493978443_video_trim" / "mesh" / "5997_right_facial_nerve_processed.mesh"
 CHORDA_MESH_PATH_5997_right = OP_DATA_DIR / "surgical_planning"/ "CIP.5997.8381493978443_video_trim" / "mesh" / "5997_right_chorda_processed.mesh"
 
@@ -86,9 +86,9 @@ CHORDA_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning"/ "CIP.6087.841586
 
 # right ossicles
 # actual pose for the 455 mesh
-gt_pose_455_right = np.array([[  0.17173876,   0.02410131,  -0.98484766,  -4.55591751],
-                            [  0.16926624,   0.98411177,   0.05360012,  -4.69918678],
-                            [  0.97049201,  -0.17590668,   0.1649306,  -42.87675677],
+gt_pose_455_right = np.array([[  0.28494291,  -0.03581576,  -0.95787513,  -9.04559663],
+                            [  0.44218641,   0.89153081,   0.09820385,  -5.80067862],
+                            [  0.85045795,  -0.45154186,   0.26987263, 361.11646935],
                             [  0.,           0.,           0.,           1.        ]])
 
 # pose for the average mesh

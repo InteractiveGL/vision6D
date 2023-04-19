@@ -5,6 +5,7 @@ import numpy as np
 import math
 import trimesh
 import functools
+import json
 
 import pyvista as pv
 import matplotlib.pyplot as plt
@@ -35,6 +36,9 @@ class App:
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
         self.reference = None
+
+        # get the latlon color
+        self.latlon = self.load_latitude_longitude(vis.config.CWD / "ossiclesCoordinateMapping.json")
         
         # initial the dictionaries
         self.mesh_actors = {}
@@ -57,7 +61,19 @@ class App:
         
         # plot image and ossicles
         self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=off_screen)
-       
+
+    def load_latitude_longitude(self, json_path):
+        # get the latitude and longitude
+        with open(json_path, "r") as f: data = json.load(f)
+        
+        latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
+        longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
+        placeholder = np.zeros((len(data['longitude']), 1))
+        
+        # set the latlon attribute
+        latlon = np.hstack((latitude, longitude, placeholder))
+        return latlon
+
     def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
         
         self.image_polydata['image'] = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=scale_factor, origin=(0.0, 0.0, 0.0))
@@ -84,24 +100,23 @@ class App:
                 # mesh_source.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
                 if '.mesh' in str(mesh_source): 
                     mesh_source = vis.utils.load_trimesh(mesh_source)
-                    if not self.nocs_color:
-                        if mesh_name == 'ossicles':
-                            atlas_mesh_source = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
-                            colors, _, _ = vis.utils.color_mesh_with_fast_marching(atlas_mesh_source)
-                        else:
-                            colors, _, _ = vis.utils.color_mesh_with_fast_marching(mesh_source)
+                    # Set vertices and faces attribute
+                    self.set_mesh_info(mesh_name, mesh_source)
+                    if self.nocs_color: colors = vis.utils.color_mesh(mesh_source.vertices)
                     else:
-                        colors = vis.utils.color_mesh(mesh_source.vertices)
+                        if mesh_name == 'ossicles': colors = self.latlon
+                        else: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
                     
                     mesh_data = pv.wrap(mesh_source)
 
                 # Load the '.ply' file
                 elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
 
+            elif isinstance(mesh_source, pv.PolyData):
+                mesh_data = mesh_source
+
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = (mesh_data, colors)
-            # Set vertices attribute
-            self.set_vertices(mesh_name, mesh_data.points) # N by 3 matrix
 
         if len(self.mesh_polydata) == 1: self.set_reference(reference_name)
 
@@ -148,9 +163,10 @@ class App:
     def set_reference(self, name:str):
         self.reference = name
         
-    def set_vertices(self, name:str, vertices: pv.pyvista_ndarray):
-        assert vertices.shape[1] == 3, "it should be N by 3 matrix"
-        setattr(self, f"{name}_vertices", vertices)
+    def set_mesh_info(self, name:str, mesh: trimesh.Trimesh()):
+        assert mesh.vertices.shape[1] == 3, "it should be N by 3 matrix"
+        assert mesh.faces.shape[1] == 3, "it should be N by 3 matrix"
+        setattr(self, f"{name}_mesh", mesh)
         
     # Suitable for total two and above mesh quantities
     def bind_meshes(self, main_mesh: str, key: str):
@@ -265,14 +281,12 @@ class App:
                 if self.nocs_color: # color array is(2454, 3)
                     mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
                 else: # color array is (2454, )
-                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', cmap='viridis', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='points', cmap='viridis', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
             else:
                 if self.nocs_color:
                     mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, lighting=False, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
                 else:
-                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='surface', cmap='viridis', opacity=self.surface_opacity, lighting=False, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, style='points', cmap='viridis', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
-                    # viridis_table = pv.LookupTable(cmap='viridis')
-                    # viridis_table.map_value(colors)
+                    mesh = self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, lighting=False, name=mesh_name) if not self.point_clouds else self.pv_plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, lighting=False, name=mesh_name) #, show_edges=True)
 
             # Set the transformation matrix to be the mesh's user_matrix
             mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
