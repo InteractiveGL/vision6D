@@ -4,6 +4,8 @@ from typing import Type
 import logging
 
 import numpy as np
+import pathlib
+import os
 import pyvista as pv
 import matplotlib.pyplot as plt
 from easydict import EasyDict
@@ -11,6 +13,9 @@ import trimesh
 from PIL import Image
 import cv2
 import pygeodesic.geodesic as geodesic
+import json
+
+CWD = pathlib.Path(os.path.abspath(__file__)).parent
 
 # Create logger
 logger = logging.getLogger("vision6D")
@@ -214,13 +219,16 @@ def normalize(x):
 def de_normalize(rgb, vertices):
     return rgb * (np.max(vertices) - np.min(vertices)) + np.min(vertices)
 
-def color_mesh(vertices):
-    assert vertices.shape[1] == 3, "the vertices is suppose to be transposed"
-    colors = copy.deepcopy(vertices)
-    # normalize vertices and center it to 0
-    colors[..., 0] = normalize(vertices[..., 0])
-    colors[..., 1] = normalize(vertices[..., 1])
-    colors[..., 2] = normalize(vertices[..., 2])
+def color_mesh(vertices, nocs=True):
+    if nocs:
+        assert vertices.shape[1] == 3, "the vertices is suppose to be transposed"
+        colors = copy.deepcopy(vertices)
+        # normalize vertices and center it to 0
+        colors[..., 0] = normalize(vertices[..., 0])
+        colors[..., 1] = normalize(vertices[..., 1])
+        colors[..., 2] = normalize(vertices[..., 2])
+    else:
+        colors = load_latitude_longitude(CWD.parent / "data" / "ossiclesCoordinateMapping.json")
     return colors
     
 def save_image(array, folder, name):
@@ -272,6 +280,18 @@ def rigid_transform_3D(A, B):
     rt = np.vstack((np.hstack((R, t)), np.array([0,0,0,1])))
 
     return rt
+
+def load_latitude_longitude(json_path):
+    # get the latitude and longitude
+    with open(json_path, "r") as f: data = json.load(f)
+    
+    latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
+    longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
+    placeholder = np.zeros((len(data['longitude']), 1))
+    
+    # set the latlon attribute
+    latlon = np.hstack((latitude, longitude, placeholder))
+    return latlon
 
 def latLon2xyz(m,lat,lon,gx,gy):
     vert = np.array([0, 0, 0])

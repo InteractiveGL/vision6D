@@ -5,7 +5,6 @@ import numpy as np
 import math
 import trimesh
 import functools
-import json
 
 import pyvista as pv
 import matplotlib.pyplot as plt
@@ -24,7 +23,8 @@ class App:
             width: int=1920,
             height: int=1080,
             # use surgical microscope for medical device with view angle 1 degree
-            cam_focal_length:int=5e+4,
+            cam_focal_length:int=50000,
+            cam_position: int=-500,
             cam_viewup: Tuple=(0,-1,0),
             mirror_objects: bool=False
         ):
@@ -36,9 +36,6 @@ class App:
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
         self.reference = None
-
-        # get the latlon color
-        self.latlon = self.load_latitude_longitude(vis.config.CWD / "ossiclesCoordinateMapping.json")
         
         # initial the dictionaries
         self.mesh_actors = {}
@@ -55,24 +52,12 @@ class App:
         self.camera = pv.Camera()
         self.cam_focal_length = cam_focal_length
         self.cam_viewup = cam_viewup
-        self.cam_position = -(self.cam_focal_length/100) # -500mm
+        self.cam_position = cam_position # -500mm
         self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
         self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         
         # plot image and ossicles
         self.pv_plotter = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], off_screen=off_screen)
-
-    def load_latitude_longitude(self, json_path):
-        # get the latitude and longitude
-        with open(json_path, "r") as f: data = json.load(f)
-        
-        latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
-        longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
-        placeholder = np.zeros((len(data['longitude']), 1))
-        
-        # set the latlon attribute
-        latlon = np.hstack((latitude, longitude, placeholder))
-        return latlon
 
     def load_image(self, image_source:np.ndarray, scale_factor:list=[0.01,0.01,1]):
         
@@ -97,16 +82,13 @@ class App:
 
             if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
                 # Load the '.mesh' file
-                # mesh_source.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
                 if '.mesh' in str(mesh_source): 
                     mesh_source = vis.utils.load_trimesh(mesh_source)
                     # Set vertices and faces attribute
                     self.set_mesh_info(mesh_name, mesh_source)
-                    if self.nocs_color: colors = vis.utils.color_mesh(mesh_source.vertices)
-                    else:
-                        if mesh_name == 'ossicles': colors = self.latlon
-                        else: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
-                    
+                    colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
+                    if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
+                    assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
                     mesh_data = pv.wrap(mesh_source)
 
                 # Load the '.ply' file
@@ -114,6 +96,9 @@ class App:
 
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source
+                colors = vis.utils.color_mesh(mesh_source.points, self.nocs_color)
+                if colors.shape != mesh_source.points.shape: colors = np.ones((len(mesh_source.points), 3)) * 0.5
+                assert colors.shape == mesh_source.points.shape, "colors shape should be the same as mesh_source.points shape"
 
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = (mesh_data, colors)
@@ -232,6 +217,7 @@ class App:
             actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
+            print(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
     
     def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
         

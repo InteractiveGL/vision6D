@@ -35,11 +35,15 @@ def app():
     return app
     
 def test_load_image(app):
+    app = vis.App(off_screen=True)
     image_source = np.array(Image.open(vis.config.IMAGE_PATH_5997))
     app.set_image_opacity(1)
     app.load_image(image_source, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
-    app.plot()
+    image = app.plot()
+    plt.imshow(image)
+    plt.show()
+    print("jjj")
 
 @pytest.mark.parametrize(
     "image_path, ossicles_path, facial_nerve_path, chorda_path, gt_pose",
@@ -302,15 +306,14 @@ def test_pnp_from_dataset_with_whole_mask(ossicles_path, RT, resize, mirror_obje
 
         print('jjj')
 
-
 @pytest.mark.parametrize(
     "seg_mask_path, ossicles_path, RT, resize, mirror_objects",
     [(vis.config.SEG_MASK_PATH_455, vis.config.OSSICLES_MESH_PATH_455_right, vis.config.gt_pose_455_right, 1, False), # NOCS: 4.488384543627544, latlon: 2.743228264764797
     (vis.config.SEG_MASK_PATH_5997, vis.config.OSSICLES_MESH_PATH_5997_right, vis.config.gt_pose_5997_right, 1, False), # NOCS: 0.4869732282376597, latlon: 0.7048112817417709
     (vis.config.SEG_MASK_PATH_6088, vis.config.OSSICLES_MESH_PATH_6088_right, vis.config.gt_pose_6088_right, 1, False), # NOCS: 5.141584362555274, latlon: 4.75351128030463
     (vis.config.SEG_MASK_PATH_6108, vis.config.OSSICLES_MESH_PATH_6108_right, vis.config.gt_pose_6108_right, 1, False), # NOCS: 0.31099783906069384, latlon: 22.33053148066907
-    (vis.config.SEG_MASK_PATH_632, vis.config.OSSICLES_MESH_PATH_632_right, vis.config.gt_pose_632_right, 1, False), # NOCS: 1.6396022010369367
-    (vis.config.SEG_MASK_PATH_6320, vis.config.OSSICLES_MESH_PATH_6320_right, vis.config.gt_pose_6320_right, 1, False), # 1.5311163543142274
+    (vis.config.SEG_MASK_PATH_632, vis.config.OSSICLES_MESH_PATH_632_right, vis.config.gt_pose_632_right, 1, False), # NOCS: 1.6396022010369367, latlon: 1285.9972156196638
+    (vis.config.SEG_MASK_PATH_6320, vis.config.OSSICLES_MESH_PATH_6320_right, vis.config.gt_pose_6320_right, 1, False), # NOCS: 1.5311163543142274
     (vis.config.SEG_MASK_PATH_6329, vis.config.OSSICLES_MESH_PATH_6329_right, vis.config.gt_pose_6329_right, 1, False), # 3.3874967544783314
     (vis.config.SEG_MASK_PATH_6602, vis.config.OSSICLES_MESH_PATH_6602_right, vis.config.gt_pose_6602_right, 1, False), # 2.9955671694308497
     (vis.config.SEG_MASK_PATH_6751, vis.config.OSSICLES_MESH_PATH_6751_right, vis.config.gt_pose_6751_right, 1, False), # 6.305744432992536
@@ -318,7 +321,7 @@ def test_pnp_from_dataset_with_whole_mask(ossicles_path, RT, resize, mirror_obje
 )
 def test_pnp_from_dataset_with_seg_mask(seg_mask_path, ossicles_path, RT, resize, mirror_objects):
 
-    app = vis.App(off_screen=True, nocs_color=False, point_clouds=False, mirror_objects=mirror_objects)
+    app = vis.App(off_screen=True, nocs_color=True, point_clouds=False, mirror_objects=mirror_objects)
 
     # Use the hand segmented mask
     seg_mask = np.array(PIL.Image.open(seg_mask_path)).astype("bool")
