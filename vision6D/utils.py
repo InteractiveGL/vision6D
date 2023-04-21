@@ -228,7 +228,7 @@ def color_mesh(vertices, nocs=True):
         colors[..., 1] = normalize(vertices[..., 1])
         colors[..., 2] = normalize(vertices[..., 2])
     else:
-        colors = load_latitude_longitude(CWD.parent / "data" / "ossiclesCoordinateMapping.json")
+        colors = load_latitude_longitude()
     return colors
     
 def save_image(array, folder, name):
@@ -281,9 +281,9 @@ def rigid_transform_3D(A, B):
 
     return rt
 
-def load_latitude_longitude(json_path):
+def load_latitude_longitude():
     # get the latitude and longitude
-    with open(json_path, "r") as f: data = json.load(f)
+    with open(CWD.parent / "data" / "ossiclesCoordinateMapping.json", "r") as f: data = json.load(f)
     
     latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
     longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)

@@ -100,6 +100,10 @@ class App:
                 if colors.shape != mesh_source.points.shape: colors = np.ones((len(mesh_source.points), 3)) * 0.5
                 assert colors.shape == mesh_source.points.shape, "colors shape should be the same as mesh_source.points shape"
 
+            # Save the ossicles latlon color if it is not nocs_color
+            if not self.nocs_color: 
+                if mesh_name == "ossicles": self.latlon = colors
+
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = (mesh_data, colors)
 

@@ -50,23 +50,34 @@ def find_closest_neighbors(pts3d):
 
     neighs = np.array(neighs)
 
-
 if __name__ == "__main__":
     pts2d = np.load("pts2d.npy")
-    pts3d = np.load("pts3d_latlon.npy")
+    pts3d = np.load("pts3d_nocs.npy")
 
-    app = vis.App(off_screen=False)
+    app = vis.App(off_screen=True)
+
+    binary_image = np.zeros((1080, 1920), dtype=np.uint8)
+    color_image = np.zeros((1080, 1920, 3), dtype=np.float64)
+    binary_image[pts2d[:, 1], pts2d[:, 0]] = 1
+    color_image[pts2d[:, 1], pts2d[:, 0]] = pts3d
 
     app.set_transformation_matrix(vis.config.gt_pose_632_right)
     point_plotter = app.pv_plotter
+    point_plotter.set_background('black')
     pts3d_points = point_plotter.add_points(pts3d)
     pts3d_points.user_matrix = app.transformation_matrix
     point_plotter.add_actor(pts3d_points)
     point_plotter.camera = app.camera
     point_plotter.show()
+    res = point_plotter.last_image
 
-    binary_image = np.zeros((1080, 1920), dtype=np.uint8)
-    binary_image[pts2d[:, 1], pts2d[:, 0]] = 1
+    plt.subplot(311)
+    plt.imshow(binary_image)
+    plt.subplot(312)
+    plt.imshow(color_image)
+    plt.subplot(313)
+    plt.imshow(res)
+    plt.show()
 
     xs = pts2d[:, 0]
     ys = pts2d[:, 1]
