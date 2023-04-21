@@ -74,8 +74,8 @@ def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_pat
     app.set_transformation_matrix(gt_pose)
     app.load_meshes({'ossicles': ossicles_path, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
     app.bind_meshes("ossicles", "g")
-    app.bind_meshes("chorda", "h")
-    app.bind_meshes("facial_nerve", "j")
+    app.bind_meshes("facial_nerve", "h")
+    app.bind_meshes("chorda", "j")
     app.plot()
 
     # check the clipping range
@@ -98,8 +98,8 @@ def test_load_mesh_mirror_ossicles(app, image_path, ossicles_path, facial_nerve_
     app.set_transformation_matrix(RT)
     app.load_meshes({'ossicles': ossicles_path})#, 'facial_nerve': facial_nerve_path, 'chorda': chorda_path})
     app.bind_meshes("ossicles", "g")
-    app.bind_meshes("chorda", "h")
-    app.bind_meshes("facial_nerve", "j")
+    # app.bind_meshes("facial_nerve", "h")
+    # app.bind_meshes("chorda", "j")
     app.set_reference("ossicles")
     app.plot()
 

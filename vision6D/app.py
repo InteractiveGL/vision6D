@@ -42,7 +42,6 @@ class App:
         self.image_polydata = {}
         self.mesh_polydata = {}
         self.binded_meshes = {}
-        self.initial_poses = {}
         
         # default opacity for image and surface
         self.set_image_opacity(1) # self.image_opacity = 0.35
@@ -238,7 +237,7 @@ class App:
     def event_gt_position(self, *args):
         
         for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = self.initial_poses[actor_name]
+            actor.user_matrix = self.initial_pose
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
 
         logger.debug("event_gt_position callback complete")
@@ -249,7 +248,7 @@ class App:
             # update the the actor's user matrix
             self.transformation_matrix = self.transformation_matrix if not '_mirror' in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
             actor.user_matrix = self.transformation_matrix
-            self.initial_poses[actor_name] = self.transformation_matrix
+            self.initial_pose = self.transformation_matrix
             self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
         
         logger.debug(f"\ncurrent transformation matrix: \n{self.transformation_matrix}")
@@ -280,7 +279,7 @@ class App:
 
             # Set the transformation matrix to be the mesh's user_matrix
             mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-            self.initial_poses[mesh_name] = self.transformation_matrix
+            self.initial_pose = self.transformation_matrix
             
             # Add and save the actor
             actor, _ = self.pv_plotter.add_actor(mesh, pickable=True, name=mesh_name)
