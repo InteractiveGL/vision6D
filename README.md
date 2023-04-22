@@ -23,3 +23,6 @@ create a tool to visualize 3D data rotation and translation
 
 'y': increase surface opacity
 'u': decrease surface opacity
+
+'s': Undo the last registration
+<!-- 'd': Redo the previous registration -->

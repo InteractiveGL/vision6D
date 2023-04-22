@@ -42,6 +42,8 @@ class App:
         self.image_polydata = {}
         self.mesh_polydata = {}
         self.binded_meshes = {}
+        self.undo_poses = []
+        self.redo_poses = []
         
         # default opacity for image and surface
         self.set_image_opacity(1) # self.image_opacity = 0.35
@@ -222,6 +224,25 @@ class App:
             logger.debug(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
             print(f"<Actor {actor_name}> RT: \n{actor.user_matrix}")
     
+    def event_undo_registration(self, *args):
+        if len(self.undo_poses) != 0: 
+            transformation_matrix = self.undo_poses.pop()
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
+            self.redo_poses.append(transformation_matrix)
+            if len(self.redo_poses) > 20: self.redo_poses.pop(0)
+
+    # redo function still need improvment
+    def event_redo_registration(self, *args):
+        if len(self.redo_poses) != 0:
+            transformation_matrix = self.redo_poses.pop()
+            if (transformation_matrix == self.mesh_actors[self.reference].user_matrix).all():
+                transformation_matrix = self.redo_poses.pop()
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                self.pv_plotter.add_actor(actor, pickable=True, name=actor_name)
+        
     def event_realign_meshes(self, *args, main_mesh=None, other_meshes=[]):
         
         objs = {'fix' : main_mesh, 'move': other_meshes}
@@ -253,6 +274,10 @@ class App:
         
         logger.debug(f"\ncurrent transformation matrix: \n{self.transformation_matrix}")
         logger.debug("event_update_position callback complete")
+    
+    def track_click_callback(self, *args):
+        if len(self.undo_poses) > 20: self.undo_poses.pop(0)
+        self.undo_poses.append(self.mesh_actors[self.reference].user_matrix)
     
     def plot(self, return_depth_map=False):
         
@@ -295,11 +320,15 @@ class App:
             self.pv_plotter.enable_trackball_actor_style()
 
             # Register callbacks
+            self.pv_plotter.track_click_position(callback=self.track_click_callback, side='l')
+
             self.pv_plotter.add_key_event('c', self.event_reset_camera)
             self.pv_plotter.add_key_event('z', self.event_zoom_out)
             self.pv_plotter.add_key_event('x', self.event_zoom_in)
             self.pv_plotter.add_key_event('t', self.event_track_registration)
-
+            self.pv_plotter.add_key_event('s', self.event_undo_registration)
+            self.pv_plotter.add_key_event('d', self.event_redo_registration)
+            
             for main_mesh, mesh_data in self.binded_meshes.items():
                 event_func = functools.partial(self.event_realign_meshes, main_mesh=main_mesh, other_meshes=mesh_data['meshes'])
                 self.pv_plotter.add_key_event(mesh_data['key'], event_func)
