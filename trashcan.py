@@ -1651,3 +1651,53 @@ def on_click(self):
         textboxValue = self.textbox.text()
         QMessageBox.question(self, 'Message - pythonspot.com', "You typed: " + textboxValue, QMessageBox.Ok, QMessageBox.Ok)
         self.textbox.setText("")
+
+# Add opacity related actions
+OpacityMenu = mainMenu.addMenu('Opacity')
+self.add_increase_image_opacity_action = QtWidgets.QAction('Increase Image Opacity', self)
+self.add_increase_image_opacity_action.triggered.connect(self.increase_image_opacity)
+OpacityMenu.addAction(self.add_increase_image_opacity_action)
+
+self.add_decrease_image_opacity_action = QtWidgets.QAction('Decrease Image Opacity', self)
+self.add_decrease_image_opacity_action.triggered.connect(self.decrease_image_opacity)
+OpacityMenu.addAction(self.add_decrease_image_opacity_action)
+
+self.add_increase_surface_opacity_action = QtWidgets.QAction('Increase Surface Opacity', self)
+self.add_increase_surface_opacity_action.triggered.connect(self.increase_surface_opacity)
+OpacityMenu.addAction(self.add_increase_surface_opacity_action)
+
+self.add_decrease_surface_opacity_action = QtWidgets.QAction('Decrease Surface Opacity', self)
+self.add_decrease_surface_opacity_action.triggered.connect(self.decrease_surface_opacity)
+OpacityMenu.addAction(self.add_decrease_surface_opacity_action)
+
+          
+def increase_image_opacity(self):
+    self.image_opacity += 0.1
+    if self.image_opacity >= 1: self.image_opacity = 1
+    self.image_actor.GetProperty().opacity = self.image_opacity
+    self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+def decrease_image_opacity(self):
+    self.image_opacity -= 0.1
+    if self.image_opacity <= 0: self.image_opacity = 0
+    self.image_actor.GetProperty().opacity = self.image_opacity
+    self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+def increase_surface_opacity(self):
+    self.surface_opacity += 0.1
+    if self.surface_opacity > 1: self.surface_opacity = 1
+
+    transformation_matrix = self.mesh_actors[self.reference].user_matrix
+    for actor_name, actor in self.mesh_actors.items():
+        actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        actor.GetProperty().opacity = self.surface_opacity
+        self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+def decrease_surface_opacity(self):
+    self.surface_opacity -= 0.1
+    if self.surface_opacity < 0: self.surface_opacity = 0
+    transformation_matrix = self.mesh_actors[self.reference].user_matrix
+    for actor_name, actor in self.mesh_actors.items():
+        actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        actor.GetProperty().opacity = self.surface_opacity
+        self.plotter.add_actor(actor, pickable=True, name=actor_name)
