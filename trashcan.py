@@ -1602,3 +1602,23 @@ def test_color_mesh_with_fast_marching():
     
     pl.show()
 
+"""
+self.add_redo_pose_action = QtWidgets.QAction('Redo pose', self)
+self.add_redo_pose_action.triggered.connect(self.redo_pose)
+RegisterMenu.addAction(self.add_redo_pose_action)
+"""
+self.redo_poses.append(transformation_matrix)
+if len(self.redo_poses) > 20: self.redo_poses.pop(0)
+
+"""
+def redo_pose(self):
+    if len(self.redo_poses) != 0:
+        transformation_matrix = self.redo_poses.pop()
+        if (transformation_matrix == self.mesh_actors[self.reference].user_matrix).all():
+            if len(self.redo_poses) != 0: transformation_matrix = self.redo_poses.pop()
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        self.undo_poses.append(transformation_matrix)
+        if len(self.undo_poses) > 20: self.undo_poses.pop(0)
+"""

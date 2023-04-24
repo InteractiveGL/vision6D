@@ -108,12 +108,6 @@ class MyMainWindow(MainWindow):
         self.add_undo_pose_action.triggered.connect(self.undo_pose)
         RegisterMenu.addAction(self.add_undo_pose_action)
 
-        """
-        self.add_redo_pose_action = QtWidgets.QAction('Redo pose', self)
-        self.add_redo_pose_action.triggered.connect(self.redo_pose)
-        RegisterMenu.addAction(self.add_redo_pose_action)
-        """
-
         if show:
             self.plotter.enable_joystick_actor_style()
             self.plotter.enable_trackball_actor_style()
@@ -143,7 +137,6 @@ class App(MyMainWindow):
         self.mesh_polydata = {}
         self.binded_meshes = {}
         self.undo_poses = []
-        self.redo_poses = []
         
         # default opacity for image and surface
         self.set_image_opacity(1) # self.image_opacity = 0.35
@@ -329,22 +322,7 @@ class App(MyMainWindow):
             for actor_name, actor in self.mesh_actors.items():
                 actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
-            self.redo_poses.append(transformation_matrix)
-            if len(self.redo_poses) > 20: self.redo_poses.pop(0)
-
-    """
-    def redo_pose(self):
-        if len(self.redo_poses) != 0:
-            transformation_matrix = self.redo_poses.pop()
-            if (transformation_matrix == self.mesh_actors[self.reference].user_matrix).all():
-                if len(self.redo_poses) != 0: transformation_matrix = self.redo_poses.pop()
-            for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
-            self.undo_poses.append(transformation_matrix)
-            if len(self.undo_poses) > 20: self.undo_poses.pop(0)
-    """
-    
+                
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     window = App()
