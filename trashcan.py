@@ -1622,3 +1622,32 @@ def redo_pose(self):
         self.undo_poses.append(transformation_matrix)
         if len(self.undo_poses) > 20: self.undo_poses.pop(0)
 """
+
+
+        # Add the set attribute button
+        SetAttrMenu = mainMenu.addMenu('SetAttr')
+        self.add_set_reference_action = QtWidgets.QAction('Set Reference Mesh', self)
+        self.add_set_reference_action.triggered.connect(self.set_textbox)
+        SetAttrMenu.addAction(self.add_set_reference_action)
+
+        self.add_current_pose_action = QtWidgets.QAction('Current pose', self)
+        self.add_current_pose_action.triggered.connect(self.current_pose)
+        RegisterMenu.addAction(self.add_current_pose_action)
+
+def set_textbox(self):
+        # Create textbox
+        self.textbox = QtWidgets.QLineEdit(self)
+        self.textbox.move(20, 20)
+        self.textbox.resize(280,40)
+        
+        # Create a button in the window
+        self.button = QtWidgets.QPushButton('Show text', self)
+        self.button.move(20,80)
+
+        # connect button to function on_click
+        self.button.clicked.connect(self.on_click)
+
+def on_click(self):
+        textboxValue = self.textbox.text()
+        QMessageBox.question(self, 'Message - pythonspot.com', "You typed: " + textboxValue, QMessageBox.Ok, QMessageBox.Ok)
+        self.textbox.setText("")
