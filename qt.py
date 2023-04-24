@@ -50,31 +50,60 @@ class MyMainWindow(MainWindow):
         exitButton.triggered.connect(self.close)
         fileMenu.addAction(exitButton)
 
-        # allow adding a sphere
+        # Add mesh actions
         meshMenu = mainMenu.addMenu('Mesh')
         self.add_mesh_action = QtWidgets.QAction('Add Mesh', self)
         self.add_mesh_action.triggered.connect(self.add_mesh)
         meshMenu.addAction(self.add_mesh_action)
 
-        # allow to add an image
-        meshMenu = mainMenu.addMenu('Image')
+        # Add image actions
+        imageMenu = mainMenu.addMenu('Image')
         self.add_image_action = QtWidgets.QAction('Add Image', self)
         self.add_image_action.triggered.connect(self.add_image)
-        meshMenu.addAction(self.add_image_action)
+        imageMenu.addAction(self.add_image_action)
 
-        # allow to add actions
-        meshMenu = mainMenu.addMenu('Actions')
+        # Add camera related actions
+        CameraMenu = mainMenu.addMenu('Camera')
         self.add_reset_camera_action = QtWidgets.QAction('Reset Camera', self)
         self.add_reset_camera_action.triggered.connect(self.reset_camera)
-        meshMenu.addAction(self.add_reset_camera_action)
+        CameraMenu.addAction(self.add_reset_camera_action)
 
         self.add_zoom_in_action = QtWidgets.QAction('Zoom in', self)
         self.add_zoom_in_action.triggered.connect(self.zoom_in)
-        meshMenu.addAction(self.add_zoom_in_action)
+        CameraMenu.addAction(self.add_zoom_in_action)
 
         self.add_zoom_out_action = QtWidgets.QAction('Zoom out', self)
         self.add_zoom_out_action.triggered.connect(self.zoom_out)
-        meshMenu.addAction(self.add_zoom_out_action)
+        CameraMenu.addAction(self.add_zoom_out_action)
+
+        # Add opacity related actions
+        OpacityMenu = mainMenu.addMenu('Opacity')
+        self.add_increase_image_opacity_action = QtWidgets.QAction('Increase Image Opacity', self)
+        self.add_increase_image_opacity_action.triggered.connect(self.increase_image_opacity)
+        OpacityMenu.addAction(self.add_increase_image_opacity_action)
+
+        self.add_decrease_image_opacity_action = QtWidgets.QAction('Decrease Image Opacity', self)
+        self.add_decrease_image_opacity_action.triggered.connect(self.decrease_image_opacity)
+        OpacityMenu.addAction(self.add_decrease_image_opacity_action)
+
+        self.add_increase_surface_opacity_action = QtWidgets.QAction('Increase Surface Opacity', self)
+        self.add_increase_surface_opacity_action.triggered.connect(self.increase_surface_opacity)
+        OpacityMenu.addAction(self.add_increase_surface_opacity_action)
+
+        self.add_decrease_surface_opacity_action = QtWidgets.QAction('Decrease Surface Opacity', self)
+        self.add_decrease_surface_opacity_action.triggered.connect(self.decrease_surface_opacity)
+        OpacityMenu.addAction(self.add_decrease_surface_opacity_action)
+
+        # Add register related actions
+        RegisterMenu = mainMenu.addMenu('Regiter')
+        self.add_reset_gt_pose_action = QtWidgets.QAction('Reset GT pose', self)
+        self.add_reset_gt_pose_action.triggered.connect(self.reset_gt_pose)
+        RegisterMenu.addAction(self.add_reset_gt_pose_action)
+
+        self.add_update_gt_pose_action = QtWidgets.QAction('Update GT pose', self)
+        self.add_update_gt_pose_action.triggered.connect(self.update_gt_pose)
+        RegisterMenu.addAction(self.add_update_gt_pose_action)
+
 
         if show:
             self.plotter.enable_joystick_actor_style()
@@ -85,7 +114,6 @@ class MyMainWindow(MainWindow):
             self.plotter.show()
             self.show()
 
-    
 class App(MyMainWindow):
     def __init__(self):
         super().__init__()
@@ -210,7 +238,6 @@ class App(MyMainWindow):
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = (mesh_data, colors)
 
-
     def add_image(self):
         """ add a image to the pyqt frame """
         image_source = np.array(PIL.Image.open(vis.config.IMAGE_PATH_5997))
@@ -234,6 +261,50 @@ class App(MyMainWindow):
     def zoom_out(self):
         self.plotter.camera.zoom(0.5)
           
+    def increase_image_opacity(self):
+        self.image_opacity += 0.2
+        if self.image_opacity >= 1: self.image_opacity = 1
+        self.image_actor.GetProperty().opacity = self.image_opacity
+        self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+    def decrease_image_opacity(self):
+        self.image_opacity -= 0.2
+        if self.image_opacity <= 0: self.image_opacity = 0
+        self.image_actor.GetProperty().opacity = self.image_opacity
+        self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+    def increase_surface_opacity(self):
+        self.surface_opacity += 0.2
+        if self.surface_opacity > 1: self.surface_opacity = 1
+
+        transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            actor.GetProperty().opacity = self.surface_opacity
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+    def decrease_surface_opacity(self):
+        self.surface_opacity -= 0.2
+        if self.surface_opacity < 0: self.surface_opacity = 0
+        transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            actor.GetProperty().opacity = self.surface_opacity
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+    def reset_gt_pose(self):
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = self.initial_pose
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+    def update_gt_pose(self):
+        self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        self.initial_pose = self.transformation_matrix
+        for actor_name, actor in self.mesh_actors.items():
+            # update the the actor's user matrix
+            self.transformation_matrix = self.transformation_matrix if not '_mirror' in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+            actor.user_matrix = self.transformation_matrix
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
