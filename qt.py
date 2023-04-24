@@ -14,7 +14,7 @@ import os
 os.environ["QT_API"] = "pyqt5"
 
 from qtpy import QtWidgets
-from PyQt5.QtWidgets import QLineEdit, QMessageBox, QPushButton, QInputDialog
+from PyQt5.QtWidgets import QLineEdit, QMessageBox, QPushButton, QInputDialog, QFileDialog 
 import pyvista as pv
 from pyvistaqt import QtInteractor, MainWindow
 import vision6D as vis
@@ -46,25 +46,25 @@ class MyMainWindow(MainWindow):
         mainMenu = self.menuBar()
         # simple dialog to record users input info
         self.input_dialog = QInputDialog()
+        self.file_dialog = QFileDialog()
+        
+        self.initial_dir = pathlib.Path('E:\GitHub\ossicles_6D_pose_estimation\data')
+        self.meshdict = {}
                 
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
-        exitButton = QtWidgets.QAction('Exit', self)
-        exitButton.setShortcut('Ctrl+Q')
-        exitButton.triggered.connect(self.close)
-        fileMenu.addAction(exitButton)
 
-        # Add image actions
-        imageMenu = mainMenu.addMenu('Image')
         self.add_image_action = QtWidgets.QAction('Add Image', self)
-        self.add_image_action.triggered.connect(self.add_image)
-        imageMenu.addAction(self.add_image_action)
+        self.add_image_action.triggered.connect(self.add_image_file)
+        fileMenu.addAction(self.add_image_action)
 
-        # Add mesh actions
-        meshMenu = mainMenu.addMenu('Mesh')
         self.add_mesh_action = QtWidgets.QAction('Add Mesh', self)
-        self.add_mesh_action.triggered.connect(self.add_mesh)
-        meshMenu.addAction(self.add_mesh_action)
+        self.add_mesh_action.triggered.connect(self.add_mesh_file)
+        fileMenu.addAction(self.add_mesh_action)
+
+        self.add_pose_action = QtWidgets.QAction('Add Pose', self)
+        self.add_pose_action.triggered.connect(self.add_pose_file)
+        fileMenu.addAction(self.add_pose_action)
 
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
@@ -89,29 +89,29 @@ class MyMainWindow(MainWindow):
         self.add_reset_camera_action.triggered.connect(self.reset_camera)
         CameraMenu.addAction(self.add_reset_camera_action)
 
-        self.add_zoom_in_action = QtWidgets.QAction('Zoom in (x)', self)
+        self.add_zoom_in_action = QtWidgets.QAction('Zoom In (x)', self)
         self.add_zoom_in_action.triggered.connect(self.zoom_in)
         CameraMenu.addAction(self.add_zoom_in_action)
 
-        self.add_zoom_out_action = QtWidgets.QAction('Zoom out (z)', self)
+        self.add_zoom_out_action = QtWidgets.QAction('Zoom Out (z)', self)
         self.add_zoom_out_action.triggered.connect(self.zoom_out)
         CameraMenu.addAction(self.add_zoom_out_action)
 
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Regiter')
-        self.add_reset_gt_pose_action = QtWidgets.QAction('Reset GT pose (k)', self)
+        self.add_reset_gt_pose_action = QtWidgets.QAction('Reset GT Pose (k)', self)
         self.add_reset_gt_pose_action.triggered.connect(self.reset_gt_pose)
         RegisterMenu.addAction(self.add_reset_gt_pose_action)
 
-        self.add_update_gt_pose_action = QtWidgets.QAction('Update GT pose (l)', self)
+        self.add_update_gt_pose_action = QtWidgets.QAction('Update GT Pose (l)', self)
         self.add_update_gt_pose_action.triggered.connect(self.update_gt_pose)
         RegisterMenu.addAction(self.add_update_gt_pose_action)
 
-        self.add_current_pose_action = QtWidgets.QAction('Current pose (t)', self)
+        self.add_current_pose_action = QtWidgets.QAction('Current Pose (t)', self)
         self.add_current_pose_action.triggered.connect(self.current_pose)
         RegisterMenu.addAction(self.add_current_pose_action)
 
-        self.add_undo_pose_action = QtWidgets.QAction('Undo pose (s)', self)
+        self.add_undo_pose_action = QtWidgets.QAction('Undo Pose (s)', self)
         self.add_undo_pose_action.triggered.connect(self.undo_pose)
         RegisterMenu.addAction(self.add_undo_pose_action)
 
@@ -133,6 +133,7 @@ class MyMainWindow(MainWindow):
 
             self.plotter.add_axes()
             self.plotter.add_camera_orientation_widget()
+
             self.plotter.show()
             self.show()
 
@@ -156,6 +157,25 @@ class MyMainWindow(MainWindow):
                 except AssertionError:
                     QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
 
+    def add_image_file(self):
+        image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "frames"), "Files (*.png *.jpg)")
+        if image_path != '': self.add_image(image_path)
+
+    def add_mesh_file(self):
+        mesh_source, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "surgical_planning"), "Files (*.mesh *.ply)")
+        if mesh_source != '':
+            mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name', text='ossicles')
+            if ok: 
+                self.meshdict[mesh_name] = mesh_source
+                self.add_mesh(mesh_name, mesh_source)
+            if self.reference is None: 
+                reply = QMessageBox.question(self,"vision6D", "Do you want to make this mesh as a reference?", QMessageBox.Yes, QMessageBox.No)
+                if reply == QMessageBox.Yes: self.reference = mesh_name
+      
+    def add_pose_file(self):
+        pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "gt_poses"), "Files (*.npy)")
+        if pose_path != '': self.set_transformation_matrix(matrix=np.load(pose_path))
+    
 class App(MyMainWindow):
     def __init__(self):
         super().__init__()
@@ -166,13 +186,8 @@ class App(MyMainWindow):
         self.point_clouds = False
         self.mirror_objects = False
 
-        self.paths = {
-            'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 
-            'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 
-            'chorda': vis.config.CHORDA_MESH_PATH_5997_right,
-        }
-
-        self.reference = 'ossicles'
+        self.reference = None
+        self.transformation_matrix = np.eye(4)
 
         # initial the dictionaries
         self.mesh_actors = {}
@@ -182,8 +197,8 @@ class App(MyMainWindow):
         self.undo_poses = []
         
         # default opacity for image and surface
-        self.set_image_opacity(1) # self.image_opacity = 0.35
-        self.set_mesh_opacity(1) # self.surface_opacity = 1
+        self.set_image_opacity(0.99) # self.image_opacity = 0.35
+        self.set_mesh_opacity(0.8) # self.surface_opacity = 1
 
         # Set up the camera
         self.camera = pv.Camera()
@@ -195,11 +210,16 @@ class App(MyMainWindow):
 
         self.plotter.camera = self.camera.copy()
 
-        self.transformation_matrix = vis.config.gt_pose_5997_right
-
     def set_reference(self, name:str):     
-        assert name in self.paths.keys(), "reference name is not in the path!"
+        assert name in self.meshdict.keys(), "reference name is not in the path!"
         self.reference = name
+  
+    def set_transformation_matrix(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
+        if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
+        self.transformation_matrix = matrix
+        self.initial_pose = self.transformation_matrix
+        self.reset_gt_pose()
+        self.reset_camera()
 
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
@@ -254,9 +274,10 @@ class App(MyMainWindow):
         view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f))
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
 
-    def add_image(self):
+    def add_image(self, file_path):
+
         """ add a image to the pyqt frame """
-        image_source = np.array(PIL.Image.open(vis.config.IMAGE_PATH_5997))
+        image_source = np.array(PIL.Image.open(file_path))
         image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=[0.01,0.01,1], origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((1920*1080, 3)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)
@@ -268,49 +289,41 @@ class App(MyMainWindow):
         # Save actor for later
         self.image_actor = actor 
 
-    def add_mesh(self):
+    def add_mesh(self, mesh_name, mesh_source):
         """ add a mesh to the pyqt frame """
-        assert self.transformation_matrix is not None, "Need to set the transformation matrix first!"
+                              
+        if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
+            # Load the '.mesh' file
+            if '.mesh' in str(mesh_source): 
+                mesh_source = vis.utils.load_trimesh(mesh_source)
+                # Set vertices and faces attribute
+                self.set_mesh_info(mesh_name, mesh_source)
+                colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
+                if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
+                assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
+                mesh_data = pv.wrap(mesh_source)
+
+            # Load the '.ply' file
+            elif '.ply' in str(mesh_source): 
+                mesh_data = pv.read(mesh_source)
+                colors = vis.utils.color_mesh(mesh_data.points, self.nocs_color)
+                if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+                assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+
+        if self.nocs_color: # color array is(2454, 3)
+            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+        else: # color array is (2454, )
+            if mesh_name == "ossicles": self.latlon = colors
+            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+
+        mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
                 
-        if len(self.paths) == 1: self.set_reference(self.paths.keys()[0])
+        # Add and save the actor
+        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+        self.mesh_actors[mesh_name] = actor
 
-        for mesh_name, mesh_source in self.paths.items():
-            
-            if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
-                # Load the '.mesh' file
-                if '.mesh' in str(mesh_source): 
-                    mesh_source = vis.utils.load_trimesh(mesh_source)
-                    # Set vertices and faces attribute
-                    self.set_mesh_info(mesh_name, mesh_source)
-                    colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
-                    if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
-                    assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
-                    mesh_data = pv.wrap(mesh_source)
-
-                # Load the '.ply' file
-                elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
-
-            elif isinstance(mesh_source, pv.PolyData):
-                mesh_data = mesh_source
-                colors = vis.utils.color_mesh(mesh_source.points, self.nocs_color)
-                if colors.shape != mesh_source.points.shape: colors = np.ones((len(mesh_source.points), 3)) * 0.5
-                assert colors.shape == mesh_source.points.shape, "colors shape should be the same as mesh_source.points shape"
-
-            if self.nocs_color: # color array is(2454, 3)
-                mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
-            else: # color array is (2454, )
-                if mesh_name == "ossicles": self.latlon = colors
-                mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
-
-            mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-            self.initial_pose = self.transformation_matrix
-            
-            # Add and save the actor
-            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-            self.mesh_actors[mesh_name] = actor
-
-            # Save the mesh data to dictionary
-            self.mesh_polydata[mesh_name] = (mesh_data, colors)
+        # Save the mesh data to dictionary
+        self.mesh_polydata[mesh_name] = (mesh_data, colors)
 
     def reset_camera(self, *args):
         self.plotter.camera = self.camera.copy()

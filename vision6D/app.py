@@ -93,7 +93,11 @@ class App:
                     mesh_data = pv.wrap(mesh_source)
 
                 # Load the '.ply' file
-                elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
+                elif '.ply' in str(mesh_source): 
+                    mesh_data = pv.read(mesh_source)
+                    colors = vis.utils.color_mesh(mesh_data.points, self.nocs_color)
+                    if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+                    assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
 
             elif isinstance(mesh_source, pv.PolyData):
                 mesh_data = mesh_source

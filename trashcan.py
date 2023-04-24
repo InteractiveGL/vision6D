@@ -1701,3 +1701,8 @@ def decrease_surface_opacity(self):
         actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         actor.GetProperty().opacity = self.surface_opacity
         self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+exitButton = QtWidgets.QAction('Exit', self)
+exitButton.setShortcut('Ctrl+Q')
+exitButton.triggered.connect(self.close)
+fileMenu.addAction(exitButton)
