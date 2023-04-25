@@ -311,6 +311,9 @@ class App(MyMainWindow):
                 
         # Add and save the actor
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+        
+        assert actor.name == mesh_name, "actor's name should equal to mesh_name"
+        
         self.mesh_actors[mesh_name] = actor
 
         # add remove current mesh to removeMenu
