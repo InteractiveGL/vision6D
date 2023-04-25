@@ -59,6 +59,8 @@ class MyMainWindow(MainWindow):
         
         self.initial_dir = pathlib.Path('E:\GitHub\ossicles_6D_pose_estimation\data')
         self.meshdict = {}
+        self.image_path = None
+        self.mesh_path = None
 
         os.makedirs(vis.config.GITROOT / "output", exist_ok=True)
         os.makedirs(vis.config.GITROOT / "output" / "mesh", exist_ok=True)
@@ -104,6 +106,7 @@ class MyMainWindow(MainWindow):
         RegisterMenu.addAction('LatLon', set_latlon_color)
 
         if show:
+            self.plotter.set_background('black'); assert self.plotter.background_color == "black", "plotter's background need to be black"
             self.plotter.enable_joystick_actor_style()
             self.plotter.enable_trackball_actor_style()
             self.plotter.track_click_position(callback=self.track_click_callback, side='l')
@@ -140,16 +143,24 @@ class MyMainWindow(MainWindow):
                 except AssertionError: QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
 
     def add_image_file(self):
-        self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "frames"), "Files (*.png *.jpg)")
+        if self.image_path == None or self.image_path == '':
+            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "frames"), "Files (*.png *.jpg)")
+        else:
+            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
+
         if self.image_path != '': self.add_image(self.image_path)
 
     def add_mesh_file(self):
-        self.mesh_source, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "surgical_planning"), "Files (*.mesh *.ply)")
-        if self.mesh_source != '':
+        if self.mesh_path == None or self.mesh_path == '':
+            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "surgical_planning"), "Files (*.mesh *.ply)")
+        else:
+            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
+
+        if self.mesh_path != '':
             mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name', text='ossicles')
             if ok: 
-                self.meshdict[mesh_name] = self.mesh_source
-                self.add_mesh(mesh_name, self.mesh_source)
+                self.meshdict[mesh_name] = self.mesh_path
+                self.add_mesh(mesh_name, self.mesh_path)
                 if self.reference is None: 
                     reply = QMessageBox.question(self,"vision6D", "Do you want to make this mesh as a reference?", QMessageBox.Yes, QMessageBox.No)
                     if reply == QMessageBox.Yes: self.reference = mesh_name
@@ -199,6 +210,10 @@ class MyMainWindow(MainWindow):
             QMessageBox.warning(self, 'vision6D', "Need to set a reference first!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
+        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes: camera = self.camera.copy()
+        else: camera = self.plotter.camera.copy()
+
         reply = QMessageBox.question(self,"vision6D", "Only render the reference mesh?", QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.No: render_all_meshes = True
         else: render_all_meshes = False
@@ -212,13 +227,13 @@ class MyMainWindow(MainWindow):
         # background set to black
         render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
             
-        pathname = pathlib.Path(self.mesh_source).stem
+        pathname = pathlib.Path(self.mesh_path).stem
 
         if self.image_actor is not None: 
-            id = path.Path(self.image_path).stem.split('_')[-1]
-            name = pathlib.Path(self.mesh_source).stem + f'_render_{id}.png'
+            id = pathlib.Path(self.image_path).stem.split('_')[-1]
+            name = pathlib.Path(self.mesh_path).stem + f'_render_{id}.png'
         else:
-            name = pathlib.Path(self.mesh_source).stem + '_render.png'
+            name = pathlib.Path(self.mesh_path).stem + '_render.png'
             
         if render_all_meshes:
             # Render the targeting objects
@@ -226,15 +241,15 @@ class MyMainWindow(MainWindow):
                 colors = mesh_data.point_data.active_scalars
                 if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
                 assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
-                mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name)
+                mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
                 mesh.user_matrix = transformation_matrix
 
-            render.camera = self.camera.copy()
+            render.camera = camera
             render.disable(); render.show()
 
             # obtain the rendered image
             image = render.last_image
-            output_path = vis.config.GITROOT / "output" / name
+            output_path = vis.config.GITROOT / "output" / "mesh" / name
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
@@ -244,9 +259,9 @@ class MyMainWindow(MainWindow):
             colors = mesh_data.point_data.active_scalars
             if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
             assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
-            mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name)
+            mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             mesh.user_matrix = transformation_matrix
-            render.camera = self.camera.copy()
+            render.camera = camera
             render.disable(); render.show()
 
             # obtain the rendered image
@@ -258,13 +273,20 @@ class MyMainWindow(MainWindow):
 
     def export_image_plot(self):
 
+        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes: camera = self.camera.copy()
+        else: camera = self.plotter.camera.copy()
+
         if self.image_actor == None:
             QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
         render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
-        render.add_actor(self.image_actor, pickable=False, name="image")
-        render.camera = self.camera.copy()
+        render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
+        image_actor = self.image_actor.copy(deep=True)
+        image_actor.GetProperty().opacity = 1
+        render.add_actor(image_actor, pickable=False, name="image")
+        render.camera = camera
         render.disable()
         render.show()
 
@@ -276,7 +298,6 @@ class MyMainWindow(MainWindow):
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
         QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
-
 
 class App(MyMainWindow):
     def __init__(self):
@@ -380,20 +401,20 @@ class App(MyMainWindow):
         remove_actor = functools.partial(self.remove_actor, self.image_actor.name)
         self.removeMenu.addAction(self.image_actor.name, remove_actor)
 
-    def add_mesh(self, mesh_name, mesh_source):
+    def add_mesh(self, mesh_name, mesh_path):
         """ add a mesh to the pyqt frame """
                               
-        if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
+        if isinstance(mesh_path, pathlib.WindowsPath) or isinstance(mesh_path, str):
             # Load the '.mesh' file
-            if '.mesh' in str(mesh_source): 
-                mesh_source = vis.utils.load_trimesh(mesh_source)
-                assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
+            if '.mesh' in str(mesh_path): 
+                mesh_path = vis.utils.load_trimesh(mesh_path)
+                assert (mesh_path.vertices.shape[1] == 3 and mesh_path.faces.shape[1] == 3), "it should be N by 3 matrix"
                 # Set vertices and faces attribute
-                setattr(self, f"{mesh_name}_mesh", mesh_source)
-                mesh_data = pv.wrap(mesh_source)
+                setattr(self, f"{mesh_name}_mesh", mesh_path)
+                mesh_data = pv.wrap(mesh_path)
 
             # Load the '.ply' file
-            elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
+            elif '.ply' in str(mesh_path): mesh_data = pv.read(mesh_path)
 
         self.mesh_polydata[mesh_name] = mesh_data
 
