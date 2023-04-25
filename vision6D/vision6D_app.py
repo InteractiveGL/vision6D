@@ -490,9 +490,10 @@ class App(MyMainWindow):
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def set_color(self, nocs_color):
+        self.nocs_color = nocs_color
         for mesh_name, mesh_data in self.mesh_polydata.items():
             # get the corresponding color
-            colors = vis.utils.color_mesh(mesh_data.points, nocs=nocs_color)
+            colors = vis.utils.color_mesh(mesh_data.points, nocs=self.nocs_color)
             if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
             assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
             
@@ -513,13 +514,16 @@ class App(MyMainWindow):
 
             color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False)
             gt_pose = self.mesh_actors[self.reference].user_matrix
-            pts3d, pts2d = vis.utils.create_2d_3d_pairs(color_mask, self.mesh_polydata[self.reference].points)
-            pts2d = pts2d.astype('float32')
-            pts3d = pts3d.astype('float32')
-            camera_intrinsics = self.camera_intrinsics.astype('float32')
-            predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
-            error = np.sum(np.abs(predicted_pose - gt_pose))
-            QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+            if self.nocs_color:
+                pts3d, pts2d = vis.utils.create_2d_3d_pairs(color_mask, self.mesh_polydata[self.reference].points)
+                pts2d = pts2d.astype('float32')
+                pts3d = pts3d.astype('float32')
+                camera_intrinsics = self.camera_intrinsics.astype('float32')
+                predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+                error = np.sum(np.abs(predicted_pose - gt_pose))
+                QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+            else:
+                QMessageBox.about(self,"vision6D", "Pending Implementation...")
 
         else:
             QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded!", QMessageBox.Ok, QMessageBox.Ok)
