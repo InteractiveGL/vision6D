@@ -1706,3 +1706,32 @@ exitButton = QtWidgets.QAction('Exit', self)
 exitButton.setShortcut('Ctrl+Q')
 exitButton.triggered.connect(self.close)
 fileMenu.addAction(exitButton)
+
+
+# for action in self.removeMenu.actions():
+#     if action.text() == name:
+#         self.removeMenu.removeAction(action)
+
+
+
+# self.add_pose_action = QtWidgets.QAction('Add Pose', self)
+# self.add_pose_action.triggered.connect(self.add_pose_file)
+# fileMenu.addAction(self.add_pose_action)
+
+self.add_mesh_action = QtWidgets.QAction('Add Mesh', self)
+self.add_mesh_action.triggered.connect(self.add_mesh_file)
+
+self.add_image_action = QtWidgets.QAction('Add Image', self)
+self.add_image_action.triggered.connect(self.add_image_file)
+
+# Add set attribute menu
+setAttrMenu = mainMenu.addMenu('Set')
+self.add_set_reference_action = QtWidgets.QAction('Set Reference', self)
+on_click_set_reference = functools.partial(self.on_click, info="Set Reference Mesh Name", hints='ossicles')
+self.add_set_reference_action.triggered.connect(on_click_set_reference)
+setAttrMenu.addAction(self.add_set_reference_action)
+
+CameraMenu = mainMenu.addMenu('Camera')
+self.add_reset_camera_action = QtWidgets.QAction('Reset Camera (c)', self)
+self.add_reset_camera_action.triggered.connect(self.reset_camera)
+CameraMenu.addAction(self.add_reset_camera_action)

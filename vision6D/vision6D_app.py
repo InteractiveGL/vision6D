@@ -62,67 +62,33 @@ class MyMainWindow(MainWindow):
                 
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
-
-        self.add_image_action = QtWidgets.QAction('Add Image', self)
-        self.add_image_action.triggered.connect(self.add_image_file)
-        fileMenu.addAction(self.add_image_action)
-
-        self.add_mesh_action = QtWidgets.QAction('Add Mesh', self)
-        self.add_mesh_action.triggered.connect(self.add_mesh_file)
-        fileMenu.addAction(self.add_mesh_action)
-
-        self.add_pose_action = QtWidgets.QAction('Add Pose', self)
-        self.add_pose_action.triggered.connect(self.add_pose_file)
-        fileMenu.addAction(self.add_pose_action)
+        fileMenu.addAction('Add Image', self.add_image_file)
+        fileMenu.addAction('Add Mesh', self.add_mesh_file)
+        fileMenu.addAction('Add Pose', self.add_pose_file)
+        self.removeMenu = fileMenu.addMenu("Remove")
+        fileMenu.addAction('Clear', self.clear_plot)
 
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
-        self.add_set_reference_action = QtWidgets.QAction('Set Reference', self)
-        on_click_set_reference = functools.partial(self.on_click, info="Set Reference Mesh Name", hints='ossicles')
-        self.add_set_reference_action.triggered.connect(on_click_set_reference)
-        setAttrMenu.addAction(self.add_set_reference_action)
-
-        self.add_set_image_opacity_action = QtWidgets.QAction('Set Image Opacity', self)
-        on_click_set_image_opacity = functools.partial(self.on_click, info="Set Image Opacity (range from 0 to 1)", hints='0.99')
-        self.add_set_image_opacity_action.triggered.connect(on_click_set_image_opacity)
-        setAttrMenu.addAction(self.add_set_image_opacity_action)
-
-        self.add_set_mesh_opacity_action = QtWidgets.QAction('Set Mesh Opacity', self)
-        on_click_set_mesh_opacity = functools.partial(self.on_click, info="Set Mesh Opacity (range from 0 to 1)", hints='0.99')
-        self.add_set_mesh_opacity_action.triggered.connect(on_click_set_mesh_opacity)
-        setAttrMenu.addAction(self.add_set_mesh_opacity_action)
+        set_reference_name_menu = functools.partial(self.set_menu, info="Set Reference Mesh Name", hints='ossicles')
+        setAttrMenu.addAction('Set Reference', set_reference_name_menu)
+        set_image_opacity_menu = functools.partial(self.set_menu, info="Set Image Opacity (range from 0 to 1)", hints='0.99')
+        setAttrMenu.addAction('Set Image Opacity', set_image_opacity_menu)
+        set_mesh_opacity_menu = functools.partial(self.set_menu, info="Set Mesh Opacity (range from 0 to 1)", hints='0.8')
+        setAttrMenu.addAction('Set Mesh Opacity', set_mesh_opacity_menu)
 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
-        self.add_reset_camera_action = QtWidgets.QAction('Reset Camera (c)', self)
-        self.add_reset_camera_action.triggered.connect(self.reset_camera)
-        CameraMenu.addAction(self.add_reset_camera_action)
-
-        self.add_zoom_in_action = QtWidgets.QAction('Zoom In (x)', self)
-        self.add_zoom_in_action.triggered.connect(self.zoom_in)
-        CameraMenu.addAction(self.add_zoom_in_action)
-
-        self.add_zoom_out_action = QtWidgets.QAction('Zoom Out (z)', self)
-        self.add_zoom_out_action.triggered.connect(self.zoom_out)
-        CameraMenu.addAction(self.add_zoom_out_action)
+        CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
+        CameraMenu.addAction('Zoom In (x)', self.zoom_in)
+        CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
 
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Regiter')
-        self.add_reset_gt_pose_action = QtWidgets.QAction('Reset GT Pose (k)', self)
-        self.add_reset_gt_pose_action.triggered.connect(self.reset_gt_pose)
-        RegisterMenu.addAction(self.add_reset_gt_pose_action)
-
-        self.add_update_gt_pose_action = QtWidgets.QAction('Update GT Pose (l)', self)
-        self.add_update_gt_pose_action.triggered.connect(self.update_gt_pose)
-        RegisterMenu.addAction(self.add_update_gt_pose_action)
-
-        self.add_current_pose_action = QtWidgets.QAction('Current Pose (t)', self)
-        self.add_current_pose_action.triggered.connect(self.current_pose)
-        RegisterMenu.addAction(self.add_current_pose_action)
-
-        self.add_undo_pose_action = QtWidgets.QAction('Undo Pose (s)', self)
-        self.add_undo_pose_action.triggered.connect(self.undo_pose)
-        RegisterMenu.addAction(self.add_undo_pose_action)
+        RegisterMenu.addAction('Reset GT Pose (k)', self.reset_gt_pose)
+        RegisterMenu.addAction('Update GT Pose (l)', self.update_gt_pose)
+        RegisterMenu.addAction('Current Pose (t)', self.current_pose)
+        RegisterMenu.addAction('Undo Pose (s)', self.undo_pose)
 
         if show:
             self.plotter.enable_joystick_actor_style()
@@ -146,25 +112,19 @@ class MyMainWindow(MainWindow):
             self.plotter.show()
             self.show()
 
-    def on_click(self, info, hints):
+    def set_menu(self, info, hints):
         output, ok = self.input_dialog.getText(self, 'Input', info, text=hints)
         info = info.upper()
         if ok: 
             if 'reference'.upper() in info:
-                try:
-                    self.set_reference(output)
-                except AssertionError:
-                    QMessageBox.warning(self, 'vision6D', "Reference name does not exist in the paths", QMessageBox.Ok, QMessageBox.Ok)
+                try: self.set_reference(output)
+                except AssertionError: QMessageBox.warning(self, 'vision6D', "Reference name does not exist in the paths", QMessageBox.Ok, QMessageBox.Ok)
             elif 'image opacity'.upper() in info:
-                try:
-                    self.set_image_opacity(float(output))
-                except AssertionError:
-                    QMessageBox.warning(self, 'vision6D', "Image opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                try: self.set_image_opacity(float(output))
+                except AssertionError: QMessageBox.warning(self, 'vision6D', "Image opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
             elif 'mesh opacity'.upper() in info:
-                try:
-                    self.set_mesh_opacity(float(output))
-                except AssertionError:
-                    QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                try: self.set_mesh_opacity(float(output))
+                except AssertionError: QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
 
     def add_image_file(self):
         image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "frames"), "Files (*.png *.jpg)")
@@ -185,6 +145,30 @@ class MyMainWindow(MainWindow):
         pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "gt_poses"), "Files (*.npy)")
         if pose_path != '': self.set_transformation_matrix(matrix=np.load(pose_path))
     
+    def remove_actor(self, name):
+        if self.reference == name: self.reference = None
+        if name == 'image': actor = self.image_actor
+        else: actor = self.mesh_actors[name]
+        self.plotter.remove_actor(actor)
+        actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
+        assert len(actions_to_remove) == 1, "the actions to remove should always be 1"
+        self.removeMenu.removeAction(actions_to_remove[0])
+
+    def clear_plot(self):
+        
+        # Clear out everything in the menu
+        for action in self.removeMenu.actions():
+            name = action.text()
+            if name == 'image': actor = self.image_actor
+            else: actor = self.mesh_actors[name]
+            self.plotter.remove_actor(actor)
+            self.removeMenu.removeAction(action)
+
+        # Re-initial the dictionaries
+        self.reference = None
+        self.mesh_actors = {}
+        self.undo_poses = []
+
 class App(MyMainWindow):
     def __init__(self):
         super().__init__()
@@ -200,9 +184,6 @@ class App(MyMainWindow):
 
         # initial the dictionaries
         self.mesh_actors = {}
-        self.image_polydata = {}
-        self.mesh_polydata = {}
-        self.binded_meshes = {}
         self.undo_poses = []
         
         # default opacity for image and surface
@@ -293,6 +274,10 @@ class App(MyMainWindow):
         # Save actor for later
         self.image_actor = actor 
 
+        # add remove current image to removeMenu
+        remove_actor = functools.partial(self.remove_actor, self.image_actor.name)
+        self.removeMenu.addAction(self.image_actor.name, remove_actor)
+
     def add_mesh(self, mesh_name, mesh_source):
         """ add a mesh to the pyqt frame """
                               
@@ -328,8 +313,9 @@ class App(MyMainWindow):
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
         self.mesh_actors[mesh_name] = actor
 
-        # Save the mesh data to dictionary
-        self.mesh_polydata[mesh_name] = (mesh_data, colors)
+        # add remove current mesh to removeMenu
+        remove_actor = functools.partial(self.remove_actor, actor.name)
+        self.removeMenu.addAction(actor.name, remove_actor)
 
     def reset_camera(self, *args):
         self.plotter.camera = self.camera.copy()
