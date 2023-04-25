@@ -97,11 +97,6 @@ class MyMainWindow(MainWindow):
         set_latlon_color = functools.partial(self.set_color, False)
         RegisterMenu.addAction('LatLon', set_latlon_color)
 
-        # Add Surface related actions
-        # RegisterMenu = mainMenu.addMenu('Surface')
-        # RegisterMenu.addAction('Mesh', self.set_mesh_surface)
-        # RegisterMenu.addAction('Point Clouds', self.set_point_clouds)
-
         if show:
             self.plotter.enable_joystick_actor_style()
             self.plotter.enable_trackball_actor_style()
@@ -194,9 +189,6 @@ class App(MyMainWindow):
         super().__init__()
 
         self.window_size = (1920, 1080)
-
-        self.nocs_color = True
-        self.point_clouds = False
         self.mirror_objects = False
 
         self.reference = None
