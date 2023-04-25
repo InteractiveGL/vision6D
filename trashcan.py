@@ -1758,3 +1758,7 @@ reply = QMessageBox.question(self,"vision6D", "Render the depth map?", QMessageB
 if reply == QMessageBox.Yes: return_depth_map = True
 else: return_depth_map = False
 """
+
+# focal_length = (self.window_size[1] / 2) / math.tan((self.plotter.camera.view_angle / 2) * math.pi / 180) # (height / 2) / tan((view_angle / 2) * pi / 180)
+# cx = self.window_size[0] / 2
+# cy = self.window_size[1] / 2

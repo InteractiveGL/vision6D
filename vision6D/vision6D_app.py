@@ -7,6 +7,8 @@ import math
 import trimesh
 import functools
 import numpy as np
+import matplotlib.pyplot as plt
+import cv2
 import PIL
 
 # Setting the Qt bindings for QtPy
@@ -105,6 +107,9 @@ class MyMainWindow(MainWindow):
         set_latlon_color = functools.partial(self.set_color, False)
         RegisterMenu.addAction('LatLon', set_latlon_color)
 
+        PnPMenu = mainMenu.addMenu('PnP')
+        PnPMenu.addAction('EPnP', self.epnp)
+
         if show:
             self.plotter.set_background('black'); assert self.plotter.background_color == "black", "plotter's background need to be black"
             self.plotter.enable_joystick_actor_style()
@@ -202,7 +207,7 @@ class MyMainWindow(MainWindow):
         self.mesh_actors = {}
         self.undo_poses = []
 
-    def export_mesh_plot(self):
+    def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True):
 
         if self.reference is not None: 
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
@@ -210,18 +215,18 @@ class MyMainWindow(MainWindow):
             QMessageBox.warning(self, 'vision6D', "Need to set a reference first!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
-        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes: camera = self.camera.copy()
+        if reply_reset_camera is None and reply_render_mesh is None and reply_export_surface is None:
+            reply_reset_camera = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
+            reply_render_mesh = QMessageBox.question(self,"vision6D", "Only render the reference mesh?", QMessageBox.Yes, QMessageBox.No)
+            reply_export_surface = QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QMessageBox.Yes, QMessageBox.No)
+            
+        if reply_reset_camera == QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
-
-        reply = QMessageBox.question(self,"vision6D", "Only render the reference mesh?", QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.No: render_all_meshes = True
+        if reply_render_mesh == QMessageBox.No: render_all_meshes = True
         else: render_all_meshes = False
-
-        reply = QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.No: point_clouds = True
+        if reply_export_surface == QMessageBox.No: point_clouds = True
         else: point_clouds = False
-        
+            
         render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
         
         # background set to black
@@ -252,7 +257,7 @@ class MyMainWindow(MainWindow):
             output_path = vis.config.GITROOT / "output" / "mesh" / name
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
-            QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+            if msg: QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
         else:
             mesh_name = self.reference
             mesh_data = self.mesh_polydata[mesh_name]
@@ -269,7 +274,9 @@ class MyMainWindow(MainWindow):
             output_path = vis.config.GITROOT / "output" / "mesh" / name
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
-            QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+            if msg: QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+
+            return image
 
     def export_image_plot(self):
 
@@ -496,6 +503,26 @@ class App(MyMainWindow):
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
             assert actor.name == mesh_name, "actor's name should equal to mesh_name"
             self.mesh_actors[mesh_name] = actor
+
+    def epnp(self):
+        if self.reference is not None:
+            colors = self.mesh_polydata[self.reference].point_data.active_scalars
+            if colors is None or (np.all(colors == colors[0])):
+                QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
+                return 0
+
+            color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False)
+            gt_pose = self.mesh_actors[self.reference].user_matrix
+            pts3d, pts2d = vis.utils.create_2d_3d_pairs(color_mask, self.mesh_polydata[self.reference].points)
+            pts2d = pts2d.astype('float32')
+            pts3d = pts3d.astype('float32')
+            camera_intrinsics = self.camera_intrinsics.astype('float32')
+            predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+            error = np.sum(np.abs(predicted_pose - gt_pose))
+            QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+
+        else:
+            QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded!", QMessageBox.Ok, QMessageBox.Ok)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
