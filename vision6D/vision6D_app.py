@@ -1,5 +1,5 @@
 import sys
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import pathlib
 import logging
 import numpy as np
@@ -21,6 +21,15 @@ import vision6D as vis
 
 np.set_printoptions(suppress=True)
 
+def try_except(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except:
+            if isinstance(args[0], MainWindow): QMessageBox.warning(args[0], 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
+
+    return wrapper
+    
 class MyMainWindow(MainWindow):
 
     def __init__(self, parent=None, show=True):
@@ -241,12 +250,7 @@ class App(MyMainWindow):
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
         except KeyError:
             pass
-
-    def set_mesh_info(self, name:str, mesh: trimesh.Trimesh()):
-        assert mesh.vertices.shape[1] == 3, "it should be N by 3 matrix"
-        assert mesh.faces.shape[1] == 3, "it should be N by 3 matrix"
-        setattr(self, f"{name}_mesh", mesh)
-    
+     
     def set_camera_extrinsics(self, cam_position, cam_viewup):
         self.camera.SetPosition((0,0,cam_position))
         self.camera.SetFocalPoint((0,0,0))
@@ -296,8 +300,9 @@ class App(MyMainWindow):
             # Load the '.mesh' file
             if '.mesh' in str(mesh_source): 
                 mesh_source = vis.utils.load_trimesh(mesh_source)
+                assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
                 # Set vertices and faces attribute
-                self.set_mesh_info(mesh_name, mesh_source)
+                setattr(self, f"{mesh_name}_mesh", mesh_source)
                 colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
                 if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
                 assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
@@ -317,6 +322,7 @@ class App(MyMainWindow):
             mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
 
         mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+        self.initial_pose = mesh.user_matrix
                 
         # Add and save the actor
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
@@ -334,6 +340,11 @@ class App(MyMainWindow):
     def zoom_out(self, *args):
         self.plotter.camera.zoom(0.5)
 
+    def track_click_callback(self, *args):
+        if len(self.undo_poses) > 20: self.undo_poses.pop(0)
+        if self.reference is not None: self.undo_poses.append(self.mesh_actors[self.reference].user_matrix)
+
+    @try_except
     def reset_gt_pose(self, *args):
         print(f"\nRT: \n{self.initial_pose}\n")
         for actor_name, actor in self.mesh_actors.items():
@@ -341,25 +352,23 @@ class App(MyMainWindow):
             self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def update_gt_pose(self, *args):
-        self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        self.initial_pose = self.transformation_matrix
-        print(f"\nRT: \n{self.initial_pose}\n")
-        for actor_name, actor in self.mesh_actors.items():
-            # update the the actor's user matrix
-            self.transformation_matrix = self.transformation_matrix if not '_mirror' in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-            actor.user_matrix = self.transformation_matrix
-            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        if self.reference is not None:
+            self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            self.initial_pose = self.transformation_matrix
+            print(f"\nRT: \n{self.initial_pose}\n")
+            for actor_name, actor in self.mesh_actors.items():
+                # update the the actor's user matrix
+                self.transformation_matrix = self.transformation_matrix if not '_mirror' in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+                actor.user_matrix = self.transformation_matrix
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def current_pose(self, *args):
-        transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        print(f"\nRT: \n{transformation_matrix}\n")
-        for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            self.plotter.add_actor(actor, pickable=True, name=actor_name)
-
-    def track_click_callback(self, *args):
-        if len(self.undo_poses) > 20: self.undo_poses.pop(0)
-        self.undo_poses.append(self.mesh_actors[self.reference].user_matrix)
+        if self.reference is not None:
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            print(f"\nRT: \n{transformation_matrix}\n")
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def undo_pose(self, *args):
         if len(self.undo_poses) != 0: 
