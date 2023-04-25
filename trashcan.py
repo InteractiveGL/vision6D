@@ -1735,3 +1735,20 @@ CameraMenu = mainMenu.addMenu('Camera')
 self.add_reset_camera_action = QtWidgets.QAction('Reset Camera (c)', self)
 self.add_reset_camera_action.triggered.connect(self.reset_camera)
 CameraMenu.addAction(self.add_reset_camera_action)
+
+
+# coloring
+colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
+if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
+assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
+
+colors = vis.utils.color_mesh(mesh_data.points, self.nocs_color)
+if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+
+
+if self.nocs_color: # color array is(2454, 3)
+    mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+else: # color array is (2454, )
+    if mesh_name == "ossicles": self.latlon = colors
+    mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)

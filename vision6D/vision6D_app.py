@@ -90,6 +90,18 @@ class MyMainWindow(MainWindow):
         RegisterMenu.addAction('Current Pose (t)', self.current_pose)
         RegisterMenu.addAction('Undo Pose (s)', self.undo_pose)
 
+        # Add coloring related actions
+        RegisterMenu = mainMenu.addMenu('Color')
+        set_nocs_color = functools.partial(self.set_color, True)
+        RegisterMenu.addAction('NOCS', set_nocs_color)
+        set_latlon_color = functools.partial(self.set_color, False)
+        RegisterMenu.addAction('LatLon', set_latlon_color)
+
+        # Add Surface related actions
+        # RegisterMenu = mainMenu.addMenu('Surface')
+        # RegisterMenu.addAction('Mesh', self.set_mesh_surface)
+        # RegisterMenu.addAction('Point Clouds', self.set_point_clouds)
+
         if show:
             self.plotter.enable_joystick_actor_style()
             self.plotter.enable_trackball_actor_style()
@@ -147,12 +159,18 @@ class MyMainWindow(MainWindow):
     
     def remove_actor(self, name):
         if self.reference == name: self.reference = None
-        if name == 'image': actor = self.image_actor
+        if name == 'image': 
+            actor = self.image_actor
+            self.image_actor = None
         else: actor = self.mesh_actors[name]
         self.plotter.remove_actor(actor)
         actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
         assert len(actions_to_remove) == 1, "the actions to remove should always be 1"
         self.removeMenu.removeAction(actions_to_remove[0])
+        # remove the item from the dictionary
+        del self.mesh_polydata[name]
+        del self.mesh_actors[name]
+        if len(self.mesh_actors) == 0: self.undo_poses = []
 
     def clear_plot(self):
         
@@ -166,6 +184,8 @@ class MyMainWindow(MainWindow):
 
         # Re-initial the dictionaries
         self.reference = None
+        self.image_actor = None
+        self.mesh_polydata = {}
         self.mesh_actors = {}
         self.undo_poses = []
 
@@ -183,6 +203,8 @@ class App(MyMainWindow):
         self.transformation_matrix = np.eye(4)
 
         # initial the dictionaries
+        self.image_actor = None
+        self.mesh_polydata = {}
         self.mesh_actors = {}
         self.undo_poses = []
         
@@ -214,24 +236,18 @@ class App(MyMainWindow):
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
         self.image_opacity = image_opacity
-        try:
+        if self.image_actor is not None:
             self.image_actor.GetProperty().opacity = self.image_opacity
             self.plotter.add_actor(self.image_actor, pickable=False, name="image")
-        except AttributeError:
-            pass
 
     def set_mesh_opacity(self, surface_opacity: float):
         assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
         self.surface_opacity = surface_opacity
-        try:
-            transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                actor.GetProperty().opacity = self.surface_opacity
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
-        except KeyError:
-            pass
-     
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
+            actor.GetProperty().opacity = self.surface_opacity
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+    
     def set_camera_extrinsics(self, cam_position, cam_viewup):
         self.camera.SetPosition((0,0,cam_position))
         self.camera.SetFocalPoint((0,0,0))
@@ -288,23 +304,14 @@ class App(MyMainWindow):
                 assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
                 # Set vertices and faces attribute
                 setattr(self, f"{mesh_name}_mesh", mesh_source)
-                colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
-                if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
-                assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
                 mesh_data = pv.wrap(mesh_source)
 
             # Load the '.ply' file
-            elif '.ply' in str(mesh_source): 
-                mesh_data = pv.read(mesh_source)
-                colors = vis.utils.color_mesh(mesh_data.points, self.nocs_color)
-                if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
-                assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+            elif '.ply' in str(mesh_source): mesh_data = pv.read(mesh_source)
 
-        if self.nocs_color: # color array is(2454, 3)
-            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
-        else: # color array is (2454, )
-            if mesh_name == "ossicles": self.latlon = colors
-            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+        self.mesh_polydata[mesh_name] = mesh_data
+
+        mesh = self.plotter.add_mesh(mesh_data, opacity=self.surface_opacity, name=mesh_name)
 
         mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
         self.initial_pose = mesh.user_matrix
@@ -367,6 +374,21 @@ class App(MyMainWindow):
             for actor_name, actor in self.mesh_actors.items():
                 actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+    def set_color(self, nocs_color):
+        for mesh_name, mesh_data in self.mesh_polydata.items():
+            # get the corresponding color
+            colors = vis.utils.color_mesh(mesh_data.points, nocs=nocs_color)
+            if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+            assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+            
+            # color the mesh and actor
+            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
+            transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
+            mesh.user_matrix = transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+            assert actor.name == mesh_name, "actor's name should equal to mesh_name"
+            self.mesh_actors[mesh_name] = actor
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
