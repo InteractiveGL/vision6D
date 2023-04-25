@@ -314,8 +314,8 @@ class App(MyMainWindow):
         self.mesh_actors[mesh_name] = actor
 
         # add remove current mesh to removeMenu
-        remove_actor = functools.partial(self.remove_actor, actor.name)
-        self.removeMenu.addAction(actor.name, remove_actor)
+        remove_actor_menu = functools.partial(self.remove_actor, mesh_name)
+        self.removeMenu.addAction(mesh_name, remove_actor_menu)
 
     def reset_camera(self, *args):
         self.plotter.camera = self.camera.copy()
