@@ -59,7 +59,11 @@ class MyMainWindow(MainWindow):
         
         self.initial_dir = pathlib.Path('E:\GitHub\ossicles_6D_pose_estimation\data')
         self.meshdict = {}
-                
+
+        os.makedirs(vis.config.GITROOT / "output", exist_ok=True)
+        os.makedirs(vis.config.GITROOT / "output" / "mesh", exist_ok=True)
+        os.makedirs(vis.config.GITROOT / "output" / "image", exist_ok=True)
+            
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
         fileMenu.addAction('Add Image', self.add_image_file)
@@ -67,7 +71,8 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Pose', self.add_pose_file)
         self.removeMenu = fileMenu.addMenu("Remove")
         fileMenu.addAction('Clear', self.clear_plot)
-        fileMenu.addAction('Export', self.export_plot)
+        fileMenu.addAction('Export Mesh', self.export_mesh_plot)
+        fileMenu.addAction('Export Image', self.export_image_plot)
 
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
@@ -135,8 +140,8 @@ class MyMainWindow(MainWindow):
                 except AssertionError: QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
 
     def add_image_file(self):
-        image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "frames"), "Files (*.png *.jpg)")
-        if image_path != '': self.add_image(image_path)
+        self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "frames"), "Files (*.png *.jpg)")
+        if self.image_path != '': self.add_image(self.image_path)
 
     def add_mesh_file(self):
         self.mesh_source, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "surgical_planning"), "Files (*.mesh *.ply)")
@@ -186,7 +191,7 @@ class MyMainWindow(MainWindow):
         self.mesh_actors = {}
         self.undo_poses = []
 
-    def export_plot(self):
+    def export_mesh_plot(self):
 
         if self.reference is not None: 
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
@@ -207,6 +212,14 @@ class MyMainWindow(MainWindow):
         # background set to black
         render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
             
+        pathname = pathlib.Path(self.mesh_source).stem
+
+        if self.image_actor is not None: 
+            id = path.Path(self.image_path).stem.split('_')[-1]
+            name = pathlib.Path(self.mesh_source).stem + f'_render_{id}.png'
+        else:
+            name = pathlib.Path(self.mesh_source).stem + '_render.png'
+            
         if render_all_meshes:
             # Render the targeting objects
             for mesh_name, mesh_data in self.mesh_polydata.items():
@@ -221,7 +234,6 @@ class MyMainWindow(MainWindow):
 
             # obtain the rendered image
             image = render.last_image
-            name = pathlib.Path(self.mesh_source).stem + '_whole_render.png'
             output_path = vis.config.GITROOT / "output" / name
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
@@ -239,13 +251,33 @@ class MyMainWindow(MainWindow):
 
             # obtain the rendered image
             image = render.last_image
-            name = pathlib.Path(self.mesh_source).stem + '_render.png'
-            output_path = vis.config.GITROOT / "output" / name
+            output_path = vis.config.GITROOT / "output" / "mesh" / name
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
-        
-        
+
+    def export_image_plot(self):
+
+        if self.image_actor == None:
+            QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+
+        render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        render.add_actor(self.image_actor, pickable=False, name="image")
+        render.camera = self.camera.copy()
+        render.disable()
+        render.show()
+
+        # obtain the rendered image
+        image = render.last_image
+        name = pathlib.Path(self.image_path).stem + '.png'
+
+        output_path = vis.config.GITROOT / "output" / "image" / name
+        rendered_image = PIL.Image.fromarray(image)
+        rendered_image.save(output_path)
+        QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+
+
 class App(MyMainWindow):
     def __init__(self):
         super().__init__()
