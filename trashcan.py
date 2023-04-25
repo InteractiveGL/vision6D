@@ -1752,3 +1752,9 @@ if self.nocs_color: # color array is(2454, 3)
 else: # color array is (2454, )
     if mesh_name == "ossicles": self.latlon = colors
     mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+
+"""
+reply = QMessageBox.question(self,"vision6D", "Render the depth map?", QMessageBox.Yes, QMessageBox.No)
+if reply == QMessageBox.Yes: return_depth_map = True
+else: return_depth_map = False
+"""

@@ -67,14 +67,15 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Pose', self.add_pose_file)
         self.removeMenu = fileMenu.addMenu("Remove")
         fileMenu.addAction('Clear', self.clear_plot)
+        fileMenu.addAction('Export', self.export_plot)
 
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
-        set_reference_name_menu = functools.partial(self.set_menu, info="Set Reference Mesh Name", hints='ossicles')
+        set_reference_name_menu = functools.partial(self.set_attr, info="Set Reference Mesh Name", hints='ossicles')
         setAttrMenu.addAction('Set Reference', set_reference_name_menu)
-        set_image_opacity_menu = functools.partial(self.set_menu, info="Set Image Opacity (range from 0 to 1)", hints='0.99')
+        set_image_opacity_menu = functools.partial(self.set_attr, info="Set Image Opacity (range from 0 to 1)", hints='0.99')
         setAttrMenu.addAction('Set Image Opacity', set_image_opacity_menu)
-        set_mesh_opacity_menu = functools.partial(self.set_menu, info="Set Mesh Opacity (range from 0 to 1)", hints='0.8')
+        set_mesh_opacity_menu = functools.partial(self.set_attr, info="Set Mesh Opacity (range from 0 to 1)", hints='0.8')
         setAttrMenu.addAction('Set Mesh Opacity', set_mesh_opacity_menu)
 
         # Add camera related actions
@@ -119,7 +120,7 @@ class MyMainWindow(MainWindow):
             self.plotter.show()
             self.show()
 
-    def set_menu(self, info, hints):
+    def set_attr(self, info, hints):
         output, ok = self.input_dialog.getText(self, 'Input', info, text=hints)
         info = info.upper()
         if ok: 
@@ -138,15 +139,15 @@ class MyMainWindow(MainWindow):
         if image_path != '': self.add_image(image_path)
 
     def add_mesh_file(self):
-        mesh_source, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "surgical_planning"), "Files (*.mesh *.ply)")
-        if mesh_source != '':
+        self.mesh_source, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "surgical_planning"), "Files (*.mesh *.ply)")
+        if self.mesh_source != '':
             mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name', text='ossicles')
             if ok: 
-                self.meshdict[mesh_name] = mesh_source
-                self.add_mesh(mesh_name, mesh_source)
-            if self.reference is None: 
-                reply = QMessageBox.question(self,"vision6D", "Do you want to make this mesh as a reference?", QMessageBox.Yes, QMessageBox.No)
-                if reply == QMessageBox.Yes: self.reference = mesh_name
+                self.meshdict[mesh_name] = self.mesh_source
+                self.add_mesh(mesh_name, self.mesh_source)
+                if self.reference is None: 
+                    reply = QMessageBox.question(self,"vision6D", "Do you want to make this mesh as a reference?", QMessageBox.Yes, QMessageBox.No)
+                    if reply == QMessageBox.Yes: self.reference = mesh_name
       
     def add_pose_file(self):
         pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.initial_dir / "gt_poses"), "Files (*.npy)")
@@ -179,11 +180,72 @@ class MyMainWindow(MainWindow):
 
         # Re-initial the dictionaries
         self.reference = None
+        self.transformation_matrix = np.eye(4)
         self.image_actor = None
         self.mesh_polydata = {}
         self.mesh_actors = {}
         self.undo_poses = []
 
+    def export_plot(self):
+
+        if self.reference is not None: 
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        else:
+            QMessageBox.warning(self, 'vision6D', "Need to set a reference first!", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+
+        reply = QMessageBox.question(self,"vision6D", "Only render the reference mesh?", QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No: render_all_meshes = True
+        else: render_all_meshes = False
+
+        reply = QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.No: point_clouds = True
+        else: point_clouds = False
+        
+        render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        
+        # background set to black
+        render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
+            
+        if render_all_meshes:
+            # Render the targeting objects
+            for mesh_name, mesh_data in self.mesh_polydata.items():
+                colors = mesh_data.point_data.active_scalars
+                if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+                assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+                mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name)
+                mesh.user_matrix = transformation_matrix
+
+            render.camera = self.camera.copy()
+            render.disable(); render.show()
+
+            # obtain the rendered image
+            image = render.last_image
+            name = pathlib.Path(self.mesh_source).stem + '_whole_render.png'
+            output_path = vis.config.GITROOT / "output" / name
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(output_path)
+            QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+        else:
+            mesh_name = self.reference
+            mesh_data = self.mesh_polydata[mesh_name]
+            colors = mesh_data.point_data.active_scalars
+            if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+            assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+            mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name)
+            mesh.user_matrix = transformation_matrix
+            render.camera = self.camera.copy()
+            render.disable(); render.show()
+
+            # obtain the rendered image
+            image = render.last_image
+            name = pathlib.Path(self.mesh_source).stem + '_render.png'
+            output_path = vis.config.GITROOT / "output" / name
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(output_path)
+            QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+        
+        
 class App(MyMainWindow):
     def __init__(self):
         super().__init__()
