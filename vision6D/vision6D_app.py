@@ -69,9 +69,10 @@ class MyMainWindow(MainWindow):
         self.meshdict = {}
         
         os.makedirs(vis.config.GITROOT / "output", exist_ok=True)
-        os.makedirs(vis.config.GITROOT / "output" / "mesh", exist_ok=True)
         os.makedirs(vis.config.GITROOT / "output" / "image", exist_ok=True)
         os.makedirs(vis.config.GITROOT / "output" / "mask", exist_ok=True)
+        os.makedirs(vis.config.GITROOT / "output" / "mesh", exist_ok=True)
+        os.makedirs(vis.config.GITROOT / "output" / "gt_poses", exist_ok=True)
             
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
@@ -83,12 +84,15 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Pose', self.add_pose_file)
         self.removeMenu = fileMenu.addMenu("Remove")
         fileMenu.addAction('Clear', self.clear_plot)
-        fileMenu.addAction('Export Mesh', self.export_mesh_plot)
 
+        # allow to export files
+        exportMenu = mainMenu.addMenu('Export')
         export_image_plot = functools.partial(self.export_image_plot, 'image')
-        fileMenu.addAction('Export Image', export_image_plot)
+        exportMenu.addAction('Export Image', export_image_plot)
         export_mask_plot = functools.partial(self.export_image_plot, 'mask')
-        fileMenu.addAction('Export Mask', export_mask_plot)
+        exportMenu.addAction('Export Mask', export_mask_plot)
+        exportMenu.addAction('Export Mesh', self.export_mesh_plot)
+        exportMenu.addAction('Export Pose', self.export_pose)
 
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
@@ -243,6 +247,34 @@ class MyMainWindow(MainWindow):
         self.undo_poses = []
         self.remove_actors_names = []
 
+    def export_image_plot(self, image_name):
+
+        if self.image_actors[image_name] is None:
+            QMessageBox.warning(self, 'vision6D', "Need to load an image/mask first!", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+        
+        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes: camera = self.camera.copy()
+        else: camera = self.plotter.camera.copy()
+
+        render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
+        render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
+        image_actor = self.image_actors[image_name].copy(deep=True)
+        image_actor.GetProperty().opacity = 1
+        render.add_actor(image_actor, pickable=False, name="image")
+        render.camera = camera
+        render.disable()
+        render.show()
+
+        # obtain the rendered image
+        image = render.last_image
+        output_name = pathlib.Path(self.image_path).stem + '.png'
+
+        output_path = vis.config.GITROOT / "output" / f"{image_name}" / output_name
+        rendered_image = PIL.Image.fromarray(image)
+        rendered_image.save(output_path)
+        QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
+
     def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True):
 
         if self.reference is not None: 
@@ -268,11 +300,15 @@ class MyMainWindow(MainWindow):
         # background set to black
         render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
 
+        mesh_path_name = pathlib.Path(self.mesh_path).stem.split('_')
+
+        reference_name = mesh_path_name[0] + "_" + mesh_path_name[1] + "_" + self.reference + '_processed'
+
         if self.image_actors['image'] is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = pathlib.Path(self.mesh_path).stem + f'_render_{id}.png'
+            output_name = reference_name + f'_render_{id}.png'
         else:
-            output_name = pathlib.Path(self.mesh_path).stem + '_render.png'
+            output_name = reference_name + '_render.png'
             
         if render_all_meshes:
             # Render the targeting objects
@@ -312,33 +348,25 @@ class MyMainWindow(MainWindow):
 
             return image
 
-    def export_image_plot(self, image_name):
-
-        if self.image_actors[image_name] is None:
-            QMessageBox.warning(self, 'vision6D', "Need to load an image/mask first!", QMessageBox.Ok, QMessageBox.Ok)
+    def export_pose(self):
+        if self.reference is None: 
+            QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
         
-        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes: camera = self.camera.copy()
-        else: camera = self.plotter.camera.copy()
+        self.update_gt_pose()
 
-        render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
-        render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
-        image_actor = self.image_actors[image_name].copy(deep=True)
-        image_actor.GetProperty().opacity = 1
-        render.add_actor(image_actor, pickable=False, name="image")
-        render.camera = camera
-        render.disable()
-        render.show()
+        mesh_path_name = pathlib.Path(self.mesh_path).stem.split('_')
+        reference_name = mesh_path_name[0] + "_" + mesh_path_name[1] + "_" + self.reference + '_processed'
 
-        # obtain the rendered image
-        image = render.last_image
-        output_name = pathlib.Path(self.image_path).stem + '.png'
+        if self.image_actors['image'] is not None: 
+            id = pathlib.Path(self.image_path).stem.split('_')[-1]
+            output_name = reference_name + f'_gt_pose_{id}.npy'
+        else: output_name = reference_name + '_gt_pose.npy'
 
-        output_path = vis.config.GITROOT / "output" / f"{image_name}" / output_name
-        rendered_image = PIL.Image.fromarray(image)
-        rendered_image.save(output_path)
-        QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
+        output_path = vis.config.GITROOT / "output" / "gt_poses" / output_name
+        np.save(output_path, self.transformation_matrix)
+        QMessageBox.about(self,"vision6D", f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
+
 class App(MyMainWindow):
     def __init__(self):
         super().__init__()
@@ -518,13 +546,9 @@ class App(MyMainWindow):
     def update_gt_pose(self, *args):
         if self.reference is not None:
             self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            self.transformation_matrix = self.transformation_matrix if not '_mirror' in self.reference else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
             self.initial_pose = self.transformation_matrix
-            print(f"\nRT: \n{self.initial_pose}\n")
-            for actor_name, actor in self.mesh_actors.items():
-                # update the the actor's user matrix
-                self.transformation_matrix = self.transformation_matrix if not '_mirror' in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-                actor.user_matrix = self.transformation_matrix
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+            self.reset_gt_pose()
 
     def current_pose(self, *args):
         if self.reference is not None:
