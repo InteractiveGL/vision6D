@@ -587,7 +587,7 @@ class App(MyMainWindow):
                 QMessageBox.about(self,"vision6D", "Pending Implementation...")
 
         else:
-            QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded!", QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference needed to be set", QMessageBox.Ok, QMessageBox.Ok)
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
