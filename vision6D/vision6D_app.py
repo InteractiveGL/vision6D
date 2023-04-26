@@ -88,11 +88,11 @@ class MyMainWindow(MainWindow):
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
         export_image_plot = functools.partial(self.export_image_plot, 'image')
-        exportMenu.addAction('Export Image', export_image_plot)
+        exportMenu.addAction('Image Render', export_image_plot)
         export_mask_plot = functools.partial(self.export_image_plot, 'mask')
-        exportMenu.addAction('Export Mask', export_mask_plot)
-        exportMenu.addAction('Export Mesh', self.export_mesh_plot)
-        exportMenu.addAction('Export Pose', self.export_pose)
+        exportMenu.addAction('Mask Render', export_mask_plot)
+        exportMenu.addAction('Mesh Render', self.export_mesh_plot)
+        exportMenu.addAction('Pose', self.export_pose)
 
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
@@ -100,7 +100,7 @@ class MyMainWindow(MainWindow):
         setAttrMenu.addAction('Set Reference', set_reference_name_menu)
         set_image_opacity_menu = functools.partial(self.set_attr, info="Set Image Opacity (range from 0 to 1)", hints='0.99')
         setAttrMenu.addAction('Set Image Opacity', set_image_opacity_menu)
-        set_mask_opacity_menu = functools.partial(self.set_attr, info="Set Mask Opacity (range from 0 to 1)", hints='0.99')
+        set_mask_opacity_menu = functools.partial(self.set_attr, info="Set Mask Opacity (range from 0 to 1)", hints='0.5')
         setAttrMenu.addAction('Set Mask Opacity', set_mask_opacity_menu)
         set_mesh_opacity_menu = functools.partial(self.set_attr, info="Set Mesh Opacity (range from 0 to 1)", hints='0.8')
         setAttrMenu.addAction('Set Mesh Opacity', set_mesh_opacity_menu)
@@ -126,7 +126,7 @@ class MyMainWindow(MainWindow):
         RegisterMenu.addAction('LatLon', set_latlon_color)
 
         # Add pnp algorithm related actions
-        PnPMenu = mainMenu.addMenu('PnP')
+        PnPMenu = mainMenu.addMenu('Run')
         PnPMenu.addAction('EPnP', self.epnp)
 
         if show:
@@ -210,13 +210,22 @@ class MyMainWindow(MainWindow):
         if name == 'image' or name == 'mask': 
             actor = self.image_actors[name]
             self.image_actors[name] = None
-            if name == 'mask': self.mask_data = None
+            self.image_path = None
+            if name == 'mask': 
+                self.mask_data = None
+                self.mask_path = None
         else: 
             actor = self.mesh_actors[name]
              # remove the item from the mesh dictionary
             del self.mesh_polydata[name]
             del self.mesh_actors[name]
-            if len(self.mesh_actors) == 0: self.undo_poses = []
+            if len(self.mesh_actors) == 0:
+                assert len(self.mesh_polydata) == 0, "self.mesh_polydata should be empty when self.mesh_actors are empty"
+                self.mesh_path = None
+                self.meshdict = {}
+                self.reference = None
+                self.transformation_matrix = np.eye(4)
+                self.undo_poses = []
 
         self.plotter.remove_actor(actor)
         actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
@@ -236,6 +245,11 @@ class MyMainWindow(MainWindow):
             self.removeMenu.removeAction(action)
 
         # Re-initial the dictionaries
+        self.image_path = None
+        self.mask_path = None
+        self.mesh_path = None
+        self.meshdict = {}
+
         self.reference = None
         self.transformation_matrix = np.eye(4)
         self.image_actors = {'image': None, 'mask':None}
@@ -267,7 +281,6 @@ class MyMainWindow(MainWindow):
         # obtain the rendered image
         image = render.last_image
         output_name = pathlib.Path(self.image_path).stem + '.png'
-
         output_path = vis.config.GITROOT / "output" / f"{image_name}" / output_name
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
@@ -298,9 +311,7 @@ class MyMainWindow(MainWindow):
         # background set to black
         render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
 
-        mesh_path_name = pathlib.Path(self.mesh_path).stem.split('_')
-
-        reference_name = mesh_path_name[0] + "_" + mesh_path_name[1] + "_" + self.reference + '_processed'
+        reference_name = pathlib.Path(self.meshdict[self.reference]).stem
 
         if self.image_actors['image'] is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
