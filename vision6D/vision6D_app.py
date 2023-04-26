@@ -98,13 +98,10 @@ class MyMainWindow(MainWindow):
         setAttrMenu = mainMenu.addMenu('Set')
         set_reference_name_menu = functools.partial(self.set_attr, info="Set Reference Mesh Name", hints='ossicles')
         setAttrMenu.addAction('Set Reference', set_reference_name_menu)
-        
         set_image_opacity_menu = functools.partial(self.set_attr, info="Set Image Opacity (range from 0 to 1)", hints='0.99')
         setAttrMenu.addAction('Set Image Opacity', set_image_opacity_menu)
-        
         set_mask_opacity_menu = functools.partial(self.set_attr, info="Set Mask Opacity (range from 0 to 1)", hints='0.99')
         setAttrMenu.addAction('Set Mask Opacity', set_mask_opacity_menu)
-        
         set_mesh_opacity_menu = functools.partial(self.set_attr, info="Set Mesh Opacity (range from 0 to 1)", hints='0.8')
         setAttrMenu.addAction('Set Mesh Opacity', set_mesh_opacity_menu)
 
@@ -128,6 +125,7 @@ class MyMainWindow(MainWindow):
         set_latlon_color = functools.partial(self.set_color, False)
         RegisterMenu.addAction('LatLon', set_latlon_color)
 
+        # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('PnP')
         PnPMenu.addAction('EPnP', self.epnp)
 
@@ -595,7 +593,7 @@ class App(MyMainWindow):
                 seg_mask = np.expand_dims(self.mask_data, axis=-1)
                 color_mask = (color_mask * seg_mask).astype(np.uint8)
                 if np.sum(color_mask) == 0:
-                    QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference wrong)", QMessageBox.Ok, QMessageBox.Ok)
+                    QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QMessageBox.Ok, QMessageBox.Ok)
                     return 0
                 
             gt_pose = self.mesh_actors[self.reference].user_matrix
