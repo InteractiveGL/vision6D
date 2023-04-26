@@ -280,7 +280,7 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = render.last_image
-        output_name = pathlib.Path(self.image_path).stem + '.png'
+        output_name = (pathlib.Path(self.image_path).stem + '.png') if image_name == 'image' else (pathlib.Path(self.mask_path).stem + '.png')
         output_path = vis.config.GITROOT / "output" / f"{image_name}" / output_name
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
@@ -482,7 +482,7 @@ class App(MyMainWindow):
 
         # Then add it to the plotter
         if channel == 1:
-            image = self.plotter.add_mesh(image, opacity=self.mask_opacity, name=image_name)
+            image = self.plotter.add_mesh(image, cmap='gray', opacity=self.mask_opacity, name=image_name)
         elif channel == 3:
             image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name=image_name)
         actor, _ = self.plotter.add_actor(image, pickable=False, name=image_name)
