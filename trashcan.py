@@ -1762,3 +1762,8 @@ else: return_depth_map = False
 # focal_length = (self.window_size[1] / 2) / math.tan((self.plotter.camera.view_angle / 2) * math.pi / 180) # (height / 2) / tan((view_angle / 2) * pi / 180)
 # cx = self.window_size[0] / 2
 # cy = self.window_size[1] / 2
+
+# self.image_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\frames'
+# self.mask_dir = r'E:\GitHub\yolov8\runs\segment'
+# self.mesh_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\surgical_planning'
+# self.gt_poses_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\gt_poses'

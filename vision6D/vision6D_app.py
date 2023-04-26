@@ -59,10 +59,11 @@ class MyMainWindow(MainWindow):
         self.input_dialog = QInputDialog()
         self.file_dialog = QFileDialog()
         
-        self.image_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\frames'
-        self.mask_dir = r'E:\GitHub\yolov8\runs\segment'
-        self.mesh_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\surgical_planning'
-        self.gt_poses_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\gt_poses'
+        self.image_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\frames')
+        self.mask_dir = pathlib.Path('E:\\GitHub\\yolov8\\runs\\segment')
+        self.mesh_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\surgical_planning')
+        self.gt_poses_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\gt_poses')
+
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
@@ -175,20 +176,20 @@ class MyMainWindow(MainWindow):
 
         if name == 'image':
             if self.image_path == None or self.image_path == '':
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", self.image_dir, "Files (*.png *.jpg)")
+                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
             else:
                 self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
             if self.image_path != '': self.add_image(self.image_path, name)
         elif name == 'mask': 
             if self.mask_path == None or self.mask_path == '':
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", self.mask_dir, "Files (*.png *.jpg)")
+                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mask_dir), "Files (*.png *.jpg)")
             else:
                 self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
             if self.mask_path != '': self.add_image(self.mask_path, name)
 
     def add_mesh_file(self):
         if self.mesh_path == None or self.mesh_path == '':
-            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", self.mesh_dir, "Files (*.mesh *.ply)")
+            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mesh_dir), "Files (*.mesh *.ply)")
         else:
             self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
 
@@ -202,7 +203,7 @@ class MyMainWindow(MainWindow):
                     if reply == QMessageBox.Yes: self.reference = mesh_name
       
     def add_pose_file(self):
-        pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", self.gt_poses_dir, "Files (*.npy)")
+        pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
         if pose_path != '': self.set_transformation_matrix(matrix=np.load(pose_path))
     
     def remove_actor(self, name):
@@ -210,8 +211,9 @@ class MyMainWindow(MainWindow):
         if name == 'image' or name == 'mask': 
             actor = self.image_actors[name]
             self.image_actors[name] = None
-            self.image_path = None
-            if name == 'mask': 
+            if name == 'image': 
+                self.image_path = None
+            elif name == 'mask': 
                 self.mask_data = None
                 self.mask_path = None
         else: 
