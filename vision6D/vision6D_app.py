@@ -40,6 +40,7 @@ class MyMainWindow(MainWindow):
         # setting title
         self.setWindowTitle("Vision6D")
         self.showMaximized()
+        self.window_size = (1920, 1080)
         
         # create the frame
         self.frame = QtWidgets.QFrame()
@@ -47,6 +48,11 @@ class MyMainWindow(MainWindow):
 
         # add the pyvista interactor object
         self.plotter = QtInteractor(self.frame)
+        # self.plotter.setFixedSize(*self.window_size) # but camera locate in the center instead of top left
+        self.render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True) 
+        self.render.set_background('black'); 
+        assert self.render.background_color == "black", "render's background need to be black"
+
         vlayout.addWidget(self.plotter.interactor)
         self.signal_close.connect(self.plotter.close)
 
@@ -73,6 +79,7 @@ class MyMainWindow(MainWindow):
         os.makedirs(vis.config.GITROOT / "output" / "image", exist_ok=True)
         os.makedirs(vis.config.GITROOT / "output" / "mask", exist_ok=True)
         os.makedirs(vis.config.GITROOT / "output" / "mesh", exist_ok=True)
+        os.makedirs(vis.config.GITROOT / "output" / "segmesh", exist_ok=True)
         os.makedirs(vis.config.GITROOT / "output" / "gt_poses", exist_ok=True)
             
         # allow to add files
@@ -93,8 +100,9 @@ class MyMainWindow(MainWindow):
         export_mask_plot = functools.partial(self.export_image_plot, 'mask')
         exportMenu.addAction('Mask Render', export_mask_plot)
         exportMenu.addAction('Mesh Render', self.export_mesh_plot)
+        exportMenu.addAction('SegMesh Render', self.export_segmesh_plot)
         exportMenu.addAction('Pose', self.export_pose)
-
+        
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
         set_reference_name_menu = functools.partial(self.set_attr, info="Set Reference Mesh Name", hints='ossicles')
@@ -131,7 +139,7 @@ class MyMainWindow(MainWindow):
         PnPMenu.addAction('EPnP', self.epnp)
 
         if show:
-            self.plotter.set_background('black'); assert self.plotter.background_color == "black", "plotter's background need to be black"
+            self.plotter.set_background('#CAEFD1'); # light green shade: https://www.schemecolor.com/eye-comfort.php
             self.plotter.enable_joystick_actor_style()
             self.plotter.enable_trackball_actor_style()
             self.plotter.track_click_position(callback=self.track_click_callback, side='l')
@@ -264,24 +272,24 @@ class MyMainWindow(MainWindow):
     def export_image_plot(self, image_name):
 
         if self.image_actors[image_name] is None:
-            QMessageBox.warning(self, 'vision6D', "Need to load an image/mask first!", QMessageBox.Ok, QMessageBox.Ok)
+            if image_name == 'image': QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
+            elif image_name == 'mask': QMessageBox.warning(self, 'vision6D', "Need to load a mask first!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
         
         reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
 
-        render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
-        render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
+        self.render.clear()
         image_actor = self.image_actors[image_name].copy(deep=True)
         image_actor.GetProperty().opacity = 1
-        render.add_actor(image_actor, pickable=False, name="image")
-        render.camera = camera
-        render.disable()
-        render.show()
+        self.render.add_actor(image_actor, pickable=False, name="image")
+        self.render.camera = camera
+        self.render.disable()
+        self.render.show(auto_close=False)
 
         # obtain the rendered image
-        image = render.last_image
+        image = self.render.last_image
         output_name = (pathlib.Path(self.image_path).stem + '.png') if image_name == 'image' else (pathlib.Path(self.mask_path).stem + '.png')
         output_path = vis.config.GITROOT / "output" / f"{image_name}" / output_name
         rendered_image = PIL.Image.fromarray(image)
@@ -307,12 +315,8 @@ class MyMainWindow(MainWindow):
         else: render_all_meshes = False
         if reply_export_surface == QMessageBox.No: point_clouds = True
         else: point_clouds = False
-            
-        render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True)
         
-        # background set to black
-        render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
-
+        self.render.clear()
         reference_name = pathlib.Path(self.meshdict[self.reference]).stem
 
         if self.image_actors['image'] is not None: 
@@ -327,14 +331,14 @@ class MyMainWindow(MainWindow):
                 colors = mesh_data.point_data.active_scalars
                 if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
                 assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
-                mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
                 mesh.user_matrix = transformation_matrix
 
-            render.camera = camera
-            render.disable(); render.show()
+            self.render.camera = camera
+            self.render.disable(); self.render.show(auto_close=False)
 
             # obtain the rendered image
-            image = render.last_image
+            image = self.render.last_image
             output_path = vis.config.GITROOT / "output" / "mesh" / output_name
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
@@ -345,19 +349,79 @@ class MyMainWindow(MainWindow):
             colors = mesh_data.point_data.active_scalars
             if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
             assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
-            mesh = render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+            mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             mesh.user_matrix = transformation_matrix
-            render.camera = camera
-            render.disable(); render.show()
+            self.render.camera = camera
+            self.render.disable(); self.render.show(auto_close=False)
 
             # obtain the rendered image
-            image = render.last_image
+            image = self.render.last_image
             output_path = vis.config.GITROOT / "output" / "mesh" / output_name
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             if msg: QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
 
             return image
+
+    def export_segmesh_plot(self):
+
+        if self.reference is not None: 
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        else:
+            QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+        
+        if self.mask_data is None: 
+            QMessageBox.warning(self, 'vision6D', "Need to load a segmentation mask first", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+
+        reply_reset_camera = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
+        reply_export_surface = QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QMessageBox.Yes, QMessageBox.No)
+
+        if reply_reset_camera == QMessageBox.Yes: camera = self.camera.copy()
+        else: camera = self.plotter.camera.copy()
+        if reply_export_surface == QMessageBox.No: point_clouds = True
+        else: point_clouds = False
+
+        self.render.clear()
+        mask_actor = self.image_actors['mask'].copy(deep=True)
+        mask_actor.GetProperty().opacity = 1
+        self.render.add_actor(mask_actor, pickable=False, name="mask")
+        self.render.camera = camera
+        self.render.disable()
+        self.render.show(auto_close=False)
+        segmask = self.render.last_image
+        if np.max(segmask) > 1: segmask = segmask / 255
+
+        self.render.clear()
+        reference_name = pathlib.Path(self.meshdict[self.reference]).stem
+
+        if self.image_actors['image'] is not None: 
+            id = pathlib.Path(self.image_path).stem.split('_')[-1]
+            output_name = reference_name + f'_render_{id}.png'
+        else:
+            output_name = reference_name + '_render.png'
+        
+        # Render the targeting objects
+        for mesh_name, mesh_data in self.mesh_polydata.items():
+            colors = mesh_data.point_data.active_scalars
+            if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+            assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+            mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+            mesh.user_matrix = transformation_matrix
+
+        self.render.camera = camera
+        self.render.disable(); self.render.show(auto_close=False)
+
+        # obtain the rendered image
+        image = self.render.last_image
+        image = (image * segmask).astype(np.uint8)
+        output_path = vis.config.GITROOT / "output" / "segmesh" / output_name
+        rendered_image = PIL.Image.fromarray(image)
+        rendered_image.save(output_path)
+        QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+        
+        return image
 
     def export_pose(self):
         if self.reference is None: 
@@ -382,7 +446,6 @@ class App(MyMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.window_size = (1920, 1080)
         self.mirror_objects = False
 
         # initialize
@@ -475,11 +538,12 @@ class App(MyMainWindow):
         if image_name == 'mask': self.mask_data = image_source
 
         dim = image_source.shape
+        h, w = dim[0], dim[1]
         if len(dim) == 2: channel = 1
         elif len(dim) == 3: channel = 3
 
-        image = pv.UniformGrid(dimensions=(1920, 1080, 1), spacing=[0.01,0.01,1], origin=(0.0, 0.0, 0.0))
-        image.point_data["values"] = image_source.reshape((1920*1080, channel)) # order = 'C
+        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01,0.01,1], origin=(0.0, 0.0, 0.0))
+        image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)
 
         # Then add it to the plotter
@@ -497,7 +561,8 @@ class App(MyMainWindow):
             remove_actor = functools.partial(self.remove_actor, image_name)
             self.removeMenu.addAction(image_name, remove_actor)
 
-        # self.reset_camera()
+        # reset the camera
+        self.reset_camera()
 
     def add_mesh(self, mesh_name, mesh_path):
         """ add a mesh to the pyqt frame """
