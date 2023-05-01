@@ -186,6 +186,8 @@ class Interface(MyMainWindow):
         
         self.mesh_actors[mesh_name] = actor
 
+        self.reset_camera()
+
         # add remove current mesh to removeMenu
         if mesh_name not in self.remove_actors_names:
             self.remove_actors_names.append(mesh_name)

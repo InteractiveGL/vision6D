@@ -226,7 +226,6 @@ class MyMainWindow(MainWindow):
                 self.reference = None
                 self.transformation_matrix = np.eye(4)
                 self.undo_poses = []
-                self.reset_camera()
 
         self.plotter.remove_actor(actor)
         actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
@@ -260,7 +259,6 @@ class MyMainWindow(MainWindow):
         self.mesh_actors = {}
         self.undo_poses = []
         self.remove_actors_names = []
-        self.reset_camera()
 
     def export_image_plot(self, image_name):
 
