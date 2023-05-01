@@ -321,7 +321,7 @@ def test_pnp_from_dataset_with_whole_mask(ossicles_path, RT, resize, mirror_obje
 )
 def test_pnp_from_dataset_with_seg_mask(seg_mask_path, ossicles_path, RT, resize, mirror_objects):
 
-    app = vis.App(off_screen=True, nocs_color=True, point_clouds=False, mirror_objects=mirror_objects)
+    app = vis.App(off_screen=True, nocs_color=False, point_clouds=False, mirror_objects=mirror_objects)
 
     # Use the hand segmented mask
     seg_mask = np.array(PIL.Image.open(seg_mask_path)).astype("bool")
@@ -340,11 +340,11 @@ def test_pnp_from_dataset_with_seg_mask(seg_mask_path, ossicles_path, RT, resize
     # generate the color mask based on the segmentation mask
     color_mask = (color_mask_whole * seg_mask).astype(np.uint8)
     
-    # Downscale color_mask
-    downscale_color_mask = cv2.resize(color_mask, (int(color_mask.shape[1] * resize), int(color_mask.shape[0] * resize)), interpolation=cv2.INTER_LINEAR)
-            
-    # Upscale color_mask
-    color_mask = cv2.resize(downscale_color_mask, (int(downscale_color_mask.shape[1] / resize), int(downscale_color_mask.shape[0] / resize)), interpolation=cv2.INTER_LINEAR)
+    if resize != 1:
+        # Downscale color_mask
+        downscale_color_mask = cv2.resize(color_mask, (int(color_mask.shape[1] * resize), int(color_mask.shape[0] * resize)), interpolation=cv2.INTER_LINEAR)
+        # Upscale color_mask
+        color_mask = cv2.resize(downscale_color_mask, (int(downscale_color_mask.shape[1] / resize), int(downscale_color_mask.shape[0] / resize)), interpolation=cv2.INTER_LINEAR)
 
     plt.subplot(211)
     plt.imshow(color_mask_whole)
@@ -362,12 +362,9 @@ def test_pnp_from_dataset_with_seg_mask(seg_mask_path, ossicles_path, RT, resize
         assert np.isclose(predicted_pose, RT, atol=20).all()
     else:
         binary_mask = vis.utils.color2binary_mask(color_mask)
-        
         idx = np.where(binary_mask == 1)
-    
         # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
         idx = idx[:2][::-1]
-
         pts2d = np.stack((idx[0], idx[1]), axis=1)
         pts3d = []
         
@@ -377,19 +374,20 @@ def test_pnp_from_dataset_with_seg_mask(seg_mask_path, ossicles_path, RT, resize
         gx = color[:, 0]
         gy = color[:, 1]
 
-        lst = []
+        # lst = []
+        lat = np.array(app.latlon[..., 0])
+        lon = np.array(app.latlon[..., 1])
+        lonf = lon[mesh.faces]
+        msk = (np.sum(lonf>=0, axis=1)==3) & (np.sum(lat[mesh.faces]>=0, axis=1)==3)
         for i in range(len(pts2d)):
-            pt = vis.utils.latLon2xyz(mesh, app.latlon[..., 0], app.latlon[..., 1], gx[i], gy[i])
-            # pt = vis.utils.latLon2xyz_vectorized(mesh, app.latlon[..., 0], app.latlon[..., 1], gx[i], gy[i])
-            if (pt != [0, 0, 0]).all():
-                lst.append(i)
-                pts3d.append(pt)
+            pt = vis.utils.latLon2xyz(mesh, lat, lonf, msk, gx[i], gy[i])
+            pts3d.append(pt)
+        #     if (pt != [0, 0, 0]).all():
+        #         lst.append(i)
+        #         pts3d.append(pt)
 
-        pts2d = pts2d[lst]
+        # pts2d = pts2d[lst]
         pts3d = np.array(pts3d).reshape((len(pts3d), 3))
-
-        # pts2d = pts2d[[0, 300, 800, 1300]]
-        # pts3d = pts3d[[0, 300, 800, 1300]]
 
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
@@ -407,4 +405,4 @@ def test_pnp_from_dataset_with_seg_mask(seg_mask_path, ossicles_path, RT, resize
         #     predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
         #     predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.cam_position)
 
-        print('jjj')
+        print('hhh')

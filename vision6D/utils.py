@@ -293,7 +293,7 @@ def load_latitude_longitude():
     latlon = np.hstack((latitude, longitude, placeholder))
     return latlon
 
-def latLon2xyz(m,lat,lon,gx,gy):
+def latLon2xyzv1(m,lat,lon,gx,gy):
     vert = np.array([0, 0, 0])
     for f in m.faces:
         lonf = lon[f]
@@ -308,21 +308,49 @@ def latLon2xyz(m,lat,lon,gx,gy):
             break
     return vert
 
-# def latLon2xyz_vectorized(m, lat, lon, gx, gy):
-#     vert = np.array([0, 0, 0])
-#     f = m.faces
-#     lonf = lon[f]
-#     lonf[lonf == 0] = 1
-#     V = [[lat[f[:, 1]] - lat[f[:, 0]], lat[f[:, 2]] - lat[f[:, 0]]], [lonf[:, 1] - lonf[:, 0], lonf[:, 2] - lonf[:, 0]]]
-#     ab = np.linalg.pinv(V) @ (np.array([gx,gy])) - np.vstack((lat[f[:, 0]], lonf[:, 0]))
-#     a = ab[0]
-#     b = ab[1]
-#     mask = (a >= 0) & (b >= 0) & (a + b <= 1)
-#     idx = np.where(mask)[0]
-#     if len(idx) != 0: 
-#         vert = m.vertices[m.faces[idx, 0]] + \
-#             a[idx, np.newaxis] * (m.vertices[m.faces[idx, 1]] - \
-#             m.vertices[m.faces[idx, 0]]) + b[idx, np.newaxis] * (m.vertices[m.faces[idx, 2]] - \
-#             m.vertices[m.faces[idx, 0]])
-    
-#     return vert
+def latLon2xyz(m,lat,lonf,msk,gx,gy):
+    xyz = []
+    class xyznode:
+        def __init__(self, pnt, d):
+            self.pnt=pnt
+            self.d=d
+        def __le__(self, rhs):
+            return self.d <= rhs.d
+
+    indx = np.where(
+        (np.sum(lat[m.faces]>=gx,axis=1)>0)&(np.sum(lat[m.faces]<=gx,axis=1)>0)&msk&
+        (np.sum(lonf>=gy,axis=1)>0)&(np.sum(lonf<=gy,axis=1)>0))[0]
+    if len(indx)==0:
+        indx = [np.argmin(np.min((lat[m.faces]-gx)*(lat[m.faces]-gx) + (lonf-gy)*(lonf-gy), axis=1))]
+
+    for ind in indx:
+        f = m.faces[ind]
+        V = np.array([[lat[f[1]] - lat[f[0]],lat[f[2]] - lat[f[0]]],
+                        [lonf[ind,1] - lonf[ind,0],lonf[ind,2] - lonf[ind,0]]])##T?
+        ab = np.linalg.pinv(V) @ (np.array([gx,gy]) - np.array([lat[f[0]],lonf[ind,0]]))
+        a = ab[0]
+        b = ab[1]
+        if a>=0 and b>=0 and a + b<=1:
+            xyz.append(xyznode(m.vertices[f[0]] + a * (m.vertices[f[1]] - m.vertices[f[0]]) + b * (m.vertices[f[2]] - m.vertices[f[0]]),
+                        np.sum((np.array([lat[f[0]], lonf[ind,0]]) + V@ab - np.array([gx,gy]))**2)))
+        else:
+            c = V[:,0] @ (np.array([gx,gy]) - np.array([lat[f[0]],lonf[ind,0]]))/(np.linalg.norm(V[:,0])**2)
+            d = V[:,1] @ (np.array([gx,gy]) - np.array([lat[f[0]],lonf[ind,0]])) / (np.linalg.norm(V[:,1])**2)
+            v2 = np.array([lat[f[2]] - lat[f[1]], lonf[ind,2] - lonf[ind,1]])
+            e = v2 @ (np.array([gx,gy]) - np.array([lat[f[1]],lonf[ind,1]])) / (np.linalg.norm(v2)**2)
+            c = np.clip(c,0,1)
+            d = np.clip(d,0,1)
+            e = np.clip(e,0,1)
+            p1 = c*V[:,0] + np.array([lat[f[0]],lonf[ind,0]])
+            p2 = d*V[:,1] + np.array([lat[f[0]],lonf[ind,0]])
+            p3 = e*v2     + np.array([lat[f[1]],lonf[ind,1]])
+            d1 = np.sum((p1 - np.array([gx,gy]))**2)
+            d2 = np.sum((p2 - np.array([gx,gy]))**2)
+            d3 = np.sum((p3 - np.array([gx,gy]))**2)
+            if d1 < d2 and d1<d3:
+                xyz.append(xyznode(m.vertices[f[0]] + c * (m.vertices[f[1]] - m.vertices[f[0]]),d1))
+            elif d2 < d3:
+                xyz.append(xyznode(m.vertices[f[0]] + d * (m.vertices[f[2]] - m.vertices[f[0]]),d2))
+            else:
+                xyz.append(xyznode(m.vertices[f[1]] + e * (m.vertices[f[2]] - m.vertices[f[1]]),d3))
+    return np.min(xyz).pnt
