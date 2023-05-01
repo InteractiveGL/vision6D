@@ -15,12 +15,11 @@ import PIL
 import os
 os.environ["QT_API"] = "pyqt5"
 
-from qtpy import QtWidgets
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QFileDialog 
 import pyvista as pv
 from pyvistaqt import QtInteractor, MainWindow
 import vision6D as vis
-from mainwindow import MyMainWindow
+from .mainwindow import MyMainWindow
 
 np.set_printoptions(suppress=True)
 
@@ -33,7 +32,7 @@ def try_except(func):
 
     return wrapper
 
-class App(MyMainWindow):
+class Interface(MyMainWindow):
     def __init__(self):
         super().__init__()
 
@@ -368,8 +367,3 @@ class App(MyMainWindow):
                     QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
         else:
             QMessageBox.about(self,"vision6D", "please load a mask first")
-
-if __name__ == '__main__':
-    app = QtWidgets.QApplication(sys.argv)
-    window = App()
-    sys.exit(app.exec_())
