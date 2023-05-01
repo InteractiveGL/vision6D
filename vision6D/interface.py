@@ -15,7 +15,7 @@ import PIL
 import os
 os.environ["QT_API"] = "pyqt5"
 
-from PyQt5.QtWidgets import QMessageBox, QInputDialog, QFileDialog 
+from PyQt5.QtWidgets import QMessageBox
 import pyvista as pv
 from pyvistaqt import QtInteractor, MainWindow
 import vision6D as vis
@@ -41,30 +41,25 @@ class Interface(MyMainWindow):
         # initialize
         self.reference = None
         self.transformation_matrix = np.eye(4)
-        self.image_actors = {'image': None, 'mask':None}
+
         self.mask_data = None
+
+        self.image_actor = None
+        self.mask_actor = None
+        self.mesh_actors = {}
         self.mesh_raw = {}
         self.mesh_polydata = {}
-        self.mesh_actors = {}
+        
         self.remove_actors_names = []
         self.undo_poses = []
         self.latlon = vis.utils.load_latitude_longitude()
         
         # default opacity for image and surface
-        self.set_image_opacity(0.99, 'image')
-        self.set_image_opacity(0.5, 'mask')
+        self.set_image_opacity(0.99)
+        self.set_mask_opacity(0.5)
         self.set_mesh_opacity(0.8) # self.surface_opacity = 1
-
-        # Set up the camera
-        self.camera = pv.Camera()
-        self.cam_focal_length = 50000
-        self.cam_viewup = (0, -1, 0)
-        self.cam_position = -500 # -500mm
-        self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.cam_focal_length)
-        self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
-
-        self.plotter.camera = self.camera.copy()
-
+        self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
+        
     def set_reference(self, name:str):     
         assert name in self.meshdict.keys(), "reference name is not in the path!"
         self.reference = name
@@ -76,17 +71,23 @@ class Interface(MyMainWindow):
         self.reset_gt_pose()
         self.reset_camera()
 
-    def set_image_opacity(self, image_opacity: float, image_name: str):
+    def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
 
-        if image_name == 'image':
-            self.image_opacity = image_opacity
-        elif image_name == 'mask':
-            self.mask_opacity = image_opacity
+        self.image_opacity = image_opacity
 
-        if self.image_actors[image_name] is not None:
-            self.image_actors[image_name].GetProperty().opacity = image_opacity
-            self.plotter.add_actor(self.image_actors[image_name], pickable=False, name=image_name)
+        if self.image_actor is not None:
+            self.image_actor.GetProperty().opacity = image_opacity
+            self.plotter.add_actor(self.image_actor, pickable=False, name='image')
+
+    def set_mask_opacity(self, mask_opacity: float):
+        assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
+
+        self.mask_opacity = mask_opacity
+
+        if self.mask_actor is not None:
+            self.mask_actor.GetProperty().opacity = mask_opacity
+            self.plotter.add_actor(self.mask_actor, pickable=False, name='mask')
 
     def set_mesh_opacity(self, surface_opacity: float):
         assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
@@ -122,13 +123,22 @@ class Interface(MyMainWindow):
         # Setting the view angle in degrees
         view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f))
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
+ 
+    def set_camera_props(self, focal_length, cam_viewup, cam_position):
+        # Set up the camera
+        self.camera = pv.Camera()
+        self.focal_length = focal_length
+        self.cam_viewup = cam_viewup
+        self.cam_position = cam_position
+        self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.focal_length)
+        self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
+        self.plotter.camera = self.camera.copy()
 
-    def add_image(self, image_path, image_name):
+    def add_image(self, image_path):
 
         """ add a image to the pyqt frame """
         image_source = np.array(PIL.Image.open(image_path))
-        if image_name == 'mask': self.mask_data = image_source
-
+        
         dim = image_source.shape
         h, w = dim[0], dim[1]
         if len(dim) == 2: channel = 1
@@ -140,18 +150,46 @@ class Interface(MyMainWindow):
 
         # Then add it to the plotter
         if channel == 1:
-            image = self.plotter.add_mesh(image, cmap='gray', opacity=self.mask_opacity, name=image_name)
+            image = self.plotter.add_mesh(image, cmap='gray', opacity=self.mask_opacity, name='image')
         elif channel == 3:
-            image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name=image_name)
-        actor, _ = self.plotter.add_actor(image, pickable=False, name=image_name)
+            image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name='image')
+        actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
         # Save actor for later
-        self.image_actors[image_name] = actor
+        self.image_actor = actor
 
         # add remove current image to removeMenu
-        if image_name not in self.remove_actors_names:
-            self.remove_actors_names.append(image_name)
-            remove_actor = functools.partial(self.remove_actor, image_name)
-            self.removeMenu.addAction(image_name, remove_actor)
+        if 'image' not in self.remove_actors_names:
+            self.remove_actors_names.append('image')
+            remove_actor = functools.partial(self.remove_actor, 'image')
+            self.removeMenu.addAction('image', remove_actor)
+
+        # reset the camera
+        self.reset_camera()
+
+    def add_mask(self, mask_path):
+
+        """ add a mask to the pyqt frame """
+        mask_source = np.array(PIL.Image.open(mask_path))
+        self.mask_data = mask_source
+
+        dim = mask_source.shape
+        h, w = dim[0], dim[1]
+        
+        mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01,0.01,1], origin=(0.0, 0.0, 0.0))
+        mask.point_data["values"] = mask_source.reshape((w * h, 1)) # order = 'C
+        mask = mask.translate(-1 * np.array(mask.center), inplace=False)
+
+        # Then add it to the plotter
+        mask = self.plotter.add_mesh(mask, cmap='gray', opacity=self.mask_opacity, name='mask')
+        actor, _ = self.plotter.add_actor(mask, pickable=False, name='mask')
+        # Save actor for later
+        self.mask_actor = actor
+
+        # add remove current image to removeMenu
+        if 'mask' not in self.remove_actors_names:
+            self.remove_actors_names.append('mask')
+            remove_actor = functools.partial(self.remove_actor, 'mask')
+            self.removeMenu.addAction('mask', remove_actor)
 
         # reset the camera
         self.reset_camera()

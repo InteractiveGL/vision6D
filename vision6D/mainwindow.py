@@ -4,18 +4,46 @@ import numpy as np
 import functools
 import numpy as np
 import PIL
+import ast
 
 # Setting the Qt bindings for QtPy
 import os
 os.environ["QT_API"] = "pyqt5"
 
 from qtpy import QtWidgets
-from PyQt5.QtWidgets import QMessageBox, QInputDialog, QFileDialog 
+from PyQt5.QtWidgets import QMessageBox, QInputDialog, QFileDialog, QLineEdit, QDialogButtonBox, QFormLayout, QDialog
 import pyvista as pv
 from pyvistaqt import QtInteractor, MainWindow
 import vision6D as vis
 
 np.set_printoptions(suppress=True)
+
+class MultiInputDialog(QDialog):
+    def __init__(self, parent=None, placeholder=True, line1=(None, None), line2=(None, None), line3=(None, None)):
+        super().__init__(parent)
+
+        if placeholder:
+            self.args1 = QLineEdit(self, placeholderText=str(line1[1]))
+            self.args2 = QLineEdit(self, placeholderText=str(line2[1]))
+            self.args3 = QLineEdit(self, placeholderText=str(line3[1]))
+        else:
+            self.args1 = QLineEdit(self, text=str(line1[1]))
+            self.args2 = QLineEdit(self, text=str(line2[1]))
+            self.args3 = QLineEdit(self, text=str(line3[1]))
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+
+        layout = QFormLayout(self)
+        layout.addRow(f"{line1[0]}", self.args1)
+        layout.addRow(f"{line2[0]}", self.args2)
+        layout.addRow(f"{line3[0]}", self.args3)
+        layout.addWidget(buttonBox)
+
+        buttonBox.accepted.connect(self.accept)
+        buttonBox.rejected.connect(self.reject)
+
+    def getInputs(self):
+        return (self.args1.text(), self.args2.text(), self.args3.text())
 
 class MyMainWindow(MainWindow):
 
@@ -69,10 +97,8 @@ class MyMainWindow(MainWindow):
             
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
-        add_image_file = functools.partial(self.add_image_file, 'image')
-        fileMenu.addAction('Add Image', add_image_file)
-        add_mask_file = functools.partial(self.add_image_file, 'mask')
-        fileMenu.addAction('Add Mask', add_mask_file)
+        fileMenu.addAction('Add Image', self.add_image_file)
+        fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
         fileMenu.addAction('Add Pose', self.add_pose_file)
         self.removeMenu = fileMenu.addMenu("Remove")
@@ -80,25 +106,18 @@ class MyMainWindow(MainWindow):
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
-        export_image_plot = functools.partial(self.export_image_plot, 'image')
-        exportMenu.addAction('Image Render', export_image_plot)
-        export_mask_plot = functools.partial(self.export_image_plot, 'mask')
-        exportMenu.addAction('Mask Render', export_mask_plot)
+        exportMenu.addAction('Image Render', self.export_image_plot)
+        exportMenu.addAction('Mask Render', self.export_mask_plot)
         exportMenu.addAction('Mesh Render', self.export_mesh_plot)
         exportMenu.addAction('SegMesh Render', self.export_segmesh_plot)
         exportMenu.addAction('Pose', self.export_pose)
         
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
-        set_reference_name_menu = functools.partial(self.set_attr, info="Set Reference Mesh Name", hints='ossicles')
-        setAttrMenu.addAction('Set Reference', set_reference_name_menu)
-        set_image_opacity_menu = functools.partial(self.set_attr, info="Set Image Opacity (range from 0 to 1)", hints='0.99')
-        setAttrMenu.addAction('Set Image Opacity', set_image_opacity_menu)
-        set_mask_opacity_menu = functools.partial(self.set_attr, info="Set Mask Opacity (range from 0 to 1)", hints='0.5')
-        setAttrMenu.addAction('Set Mask Opacity', set_mask_opacity_menu)
-        set_mesh_opacity_menu = functools.partial(self.set_attr, info="Set Mesh Opacity (range from 0 to 1)", hints='0.8')
-        setAttrMenu.addAction('Set Mesh Opacity', set_mesh_opacity_menu)
-
+        setAttrMenu.addAction('Set Camera', self.set_camera_attr)
+        setAttrMenu.addAction('Set Reference', self.set_reference_attr)
+        setAttrMenu.addAction('Set Opacity', self.set_opacity_attr)
+        
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
         CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
@@ -150,39 +169,65 @@ class MyMainWindow(MainWindow):
             self.plotter.show()
             self.show()
 
-    def set_attr(self, info, hints):
-        output, ok = self.input_dialog.getText(self, 'Input', info, text=hints)
-        info = info.upper()
+    def set_camera_attr(self):
+        dialog = MultiInputDialog(line1=("Focal Length", self.focal_length), line2=("View Up", self.cam_viewup), line3=("Cam Position", self.cam_position))
+        if dialog.exec():
+            focal_length, cam_viewup, cam_position = dialog.getInputs()
+            pre_focal_length, pre_cam_viewup, pre_cam_position = self.focal_length, self.cam_viewup, self.cam_position
+            if not (focal_length == '' or cam_viewup == '' or cam_position == ''):
+                try:
+                    self.focal_length, self.cam_viewup, self.cam_position = ast.literal_eval(focal_length), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
+                    self.set_camera_props(self.focal_length, self.cam_viewup, self.cam_position)
+                except:
+                    self.focal_length, self.cam_viewup, self.cam_position = pre_focal_length, pre_cam_viewup, pre_cam_position
+                    QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
+
+    def set_opacity_attr(self):
+        dialog = MultiInputDialog(placeholder=False, line1=("Image Opacity", self.image_opacity), line2=("Mask Opacity", self.mask_opacity), line3=("Mesh Opacity", self.surface_opacity))
+        if dialog.exec():
+            image_opacity, mask_opacity, surface_opacity = dialog.getInputs()
+            pre_image_opacity, pre_mask_opacity, pre_surface_opacity = self.image_opacity, self.mask_opacity, self.surface_opacity
+            if not (image_opacity == '' or mask_opacity == '' or surface_opacity == ''):
+                try:
+                    self.image_opacity, self.mask_opacity, self.surface_opacity = ast.literal_eval(image_opacity), ast.literal_eval(mask_opacity), ast.literal_eval(surface_opacity)
+                    try:
+                        self.set_image_opacity(self.image_opacity)
+                    except AssertionError:
+                        self.image_opacity = pre_image_opacity
+                        QMessageBox.warning(self, 'vision6D', "Image opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                    try: 
+                        self.set_mask_opacity(self.mask_opacity)
+                    except AssertionError: 
+                        self.mask_opacity = pre_mask_opacity
+                        QMessageBox.warning(self, 'vision6D', "Mask opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                    try: 
+                        self.set_mesh_opacity(self.surface_opacity)
+                    except AssertionError: 
+                        self.surface_opacity = pre_surface_opacity
+                        QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                except:
+                    self.image_opacity, self.mask_opacity, self.surface_opacity = pre_image_opacity, pre_mask_opacity, pre_surface_opacity
+                    QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
+
+    def set_reference_attr(self):
+        output, ok = self.input_dialog.getText(self, 'Input', "Set Reference Mesh Name", text='ossicles')
         if ok: 
-            if 'reference'.upper() in info:
-                try: self.set_reference(output)
-                except AssertionError: QMessageBox.warning(self, 'vision6D', "Reference name does not exist in the paths", QMessageBox.Ok, QMessageBox.Ok)
-            elif 'image opacity'.upper() in info:
-                try: self.set_image_opacity(float(output), 'image')
-                except AssertionError: QMessageBox.warning(self, 'vision6D', "Image opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+            try: self.set_reference(output)
+            except AssertionError: QMessageBox.warning(self, 'vision6D', "Reference name does not exist in the paths", QMessageBox.Ok, QMessageBox.Ok)
+           
+    def add_image_file(self):
+        if self.image_path == None or self.image_path == '':
+            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
+        else:
+            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
+        if self.image_path != '': self.add_image(self.image_path)
             
-            elif 'mask opacity'.upper() in info:
-                try: self.set_image_opacity(float(output), 'mask')
-                except AssertionError: QMessageBox.warning(self, 'vision6D', "Mask opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
-
-            elif 'mesh opacity'.upper() in info:
-                try: self.set_mesh_opacity(float(output))
-                except AssertionError: QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
-
-    def add_image_file(self, name):
-
-        if name == 'image':
-            if self.image_path == None or self.image_path == '':
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
-            else:
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
-            if self.image_path != '': self.add_image(self.image_path, name)
-        elif name == 'mask': 
-            if self.mask_path == None or self.mask_path == '':
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mask_dir), "Files (*.png *.jpg)")
-            else:
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
-            if self.mask_path != '': self.add_image(self.mask_path, name)
+    def add_mask_file(self):
+        if self.mask_path == None or self.mask_path == '':
+            self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mask_dir), "Files (*.png *.jpg)")
+        else:
+            self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
+        if self.mask_path != '': self.add_mask(self.mask_path)
 
     def add_mesh_file(self):
         if self.mesh_path == None or self.mesh_path == '':
@@ -205,14 +250,15 @@ class MyMainWindow(MainWindow):
     
     def remove_actor(self, name):
         if self.reference == name: self.reference = None
-        if name == 'image' or name == 'mask': 
-            actor = self.image_actors[name]
-            self.image_actors[name] = None
-            if name == 'image': 
-                self.image_path = None
-            elif name == 'mask': 
-                self.mask_data = None
-                self.mask_path = None
+        if name == 'image': 
+            actor = self.image_actor
+            self.image_actor = None
+            self.image_path = None
+        elif name == 'mask':
+            actor = self.mask_actor
+            self.mask_actor = None
+            self.mask_data = None
+            self.mask_path = None
         else: 
             actor = self.mesh_actors[name]
              # remove the item from the mesh dictionary
@@ -238,8 +284,8 @@ class MyMainWindow(MainWindow):
         # Clear out everything in the menu
         for action in self.removeMenu.actions():
             name = action.text()
-            if name == 'image' or name == 'mask': 
-                actor = self.image_actors[name]
+            if name == 'image': actor = self.image_actor
+            elif name == 'mask': actor = self.mask_actor
             else: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
             self.removeMenu.removeAction(action)
@@ -252,19 +298,19 @@ class MyMainWindow(MainWindow):
 
         self.reference = None
         self.transformation_matrix = np.eye(4)
-        self.image_actors = {'image': None, 'mask':None}
         self.mask_data = None
+        self.image_actor = None
+        self.mask_actor = None
+        self.mesh_actors = {}
         self.mesh_raw = {}
         self.mesh_polydata = {}
-        self.mesh_actors = {}
         self.undo_poses = []
         self.remove_actors_names = []
 
-    def export_image_plot(self, image_name):
+    def export_image_plot(self):
 
-        if self.image_actors[image_name] is None:
-            if image_name == 'image': QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
-            elif image_name == 'mask': QMessageBox.warning(self, 'vision6D', "Need to load a mask first!", QMessageBox.Ok, QMessageBox.Ok)
+        if self.image_actor is None:
+            QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
         
         reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
@@ -272,7 +318,7 @@ class MyMainWindow(MainWindow):
         else: camera = self.plotter.camera.copy()
 
         self.render.clear()
-        image_actor = self.image_actors[image_name].copy(deep=True)
+        image_actor = self.image_actor.copy(deep=True)
         image_actor.GetProperty().opacity = 1
         self.render.add_actor(image_actor, pickable=False, name="image")
         self.render.camera = camera
@@ -281,8 +327,33 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = self.render.last_image
-        output_name = (pathlib.Path(self.image_path).stem + '.png') if image_name == 'image' else (pathlib.Path(self.mask_path).stem + '.png')
-        output_path = vis.config.GITROOT / "output" / f"{image_name}" / output_name
+        output_name = (pathlib.Path(self.image_path).stem + '.png')
+        output_path = vis.config.GITROOT / "output" / "image" / output_name
+        rendered_image = PIL.Image.fromarray(image)
+        rendered_image.save(output_path)
+        QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
+
+    def export_mask_plot(self):
+        if self.mask_actor is None:
+            QMessageBox.warning(self, 'vision6D', "Need to load a mask first!", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+        
+        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes: camera = self.camera.copy()
+        else: camera = self.plotter.camera.copy()
+
+        self.render.clear()
+        mask_actor = self.mask_actor.copy(deep=True)
+        mask_actor.GetProperty().opacity = 1
+        self.render.add_actor(mask_actor, pickable=False, name="mask")
+        self.render.camera = camera
+        self.render.disable()
+        self.render.show(auto_close=False)
+
+        # obtain the rendered image
+        image = self.render.last_image
+        output_name = (pathlib.Path(self.mask_path).stem + '.png')
+        output_path = vis.config.GITROOT / "output" / "mask" / output_name
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
         QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
@@ -310,7 +381,7 @@ class MyMainWindow(MainWindow):
         self.render.clear()
         reference_name = pathlib.Path(self.meshdict[self.reference]).stem
 
-        if self.image_actors['image'] is not None: 
+        if self.image_actor is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
             output_name = reference_name + f'_render_{id}.png'
         else:
@@ -375,7 +446,7 @@ class MyMainWindow(MainWindow):
         else: point_clouds = False
 
         self.render.clear()
-        mask_actor = self.image_actors['mask'].copy(deep=True)
+        mask_actor = self.mask_actor.copy(deep=True)
         mask_actor.GetProperty().opacity = 1
         self.render.add_actor(mask_actor, pickable=False, name="mask")
         self.render.camera = camera
@@ -387,7 +458,7 @@ class MyMainWindow(MainWindow):
         self.render.clear()
         reference_name = pathlib.Path(self.meshdict[self.reference]).stem
 
-        if self.image_actors['image'] is not None: 
+        if self.image_actor is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
             output_name = reference_name + f'_render_{id}.png'
         else:
@@ -424,7 +495,7 @@ class MyMainWindow(MainWindow):
         mesh_path_name = pathlib.Path(self.mesh_path).stem.split('_')
         reference_name = mesh_path_name[0] + "_" + mesh_path_name[1] + "_" + self.reference + '_processed'
 
-        if self.image_actors['image'] is not None: 
+        if self.image_actor is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
             output_name = reference_name + f'_gt_pose_{id}.npy'
         else: output_name = reference_name + '_gt_pose.npy'
