@@ -168,15 +168,18 @@ def test_get_depth_map(mesh_path, gt_pose, mirror_objects):
     assert np.isclose(z, app.transformation_matrix[2,3], atol=2)
 
 def test_plot_mesh_off_screen():
-    app = vis.App(off_screen=True, nocs_color=True)
-    app.set_transformation_matrix(np.eye(4))
-    # image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
-    # app.load_image(image_numpy)
+    app = vis.App(off_screen=True, nocs_color=False)
+    app.set_transformation_matrix(vis.config.gt_pose_5997_right)
+    image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
+    app.load_image(image_numpy)
     app.load_meshes({'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 'chorda': vis.config.CHORDA_MESH_PATH_5997_right})
     app.set_reference("ossicles")
+    app.set_image_opacity(0.99)
+    app.set_mesh_opacity(0.8)
     image_np = app.plot()
     plt.imshow(image_np)
     plt.show() 
+    print("kkk")
 
 def test_render_surgery_image(app):
     # image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)

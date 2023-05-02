@@ -74,18 +74,14 @@ class Interface(MyMainWindow):
 
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
-
         self.image_opacity = image_opacity
-
         if self.image_actor is not None:
             self.image_actor.GetProperty().opacity = image_opacity
             self.plotter.add_actor(self.image_actor, pickable=False, name='image')
 
     def set_mask_opacity(self, mask_opacity: float):
         assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
-
         self.mask_opacity = mask_opacity
-
         if self.mask_actor is not None:
             self.mask_actor.GetProperty().opacity = mask_opacity
             self.plotter.add_actor(self.mask_actor, pickable=False, name='mask')
@@ -93,10 +89,11 @@ class Interface(MyMainWindow):
     def set_mesh_opacity(self, surface_opacity: float):
         assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
         self.surface_opacity = surface_opacity
-        for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
-            actor.GetProperty().opacity = self.surface_opacity
-            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        if len(self.mesh_actors) != 0:
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
+                actor.GetProperty().opacity = self.surface_opacity
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
     
     def set_camera_extrinsics(self, cam_position, cam_viewup):
         self.camera.SetPosition((0,0,cam_position))
