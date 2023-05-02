@@ -117,6 +117,7 @@ class MyMainWindow(MainWindow):
         setAttrMenu.addAction('Set Camera', self.set_camera_attr)
         setAttrMenu.addAction('Set Reference', self.set_reference_attr)
         setAttrMenu.addAction('Set Opacity', self.set_opacity_attr)
+        setAttrMenu.addAction('Set Image/Mask Spacing', self.set_image_spacing_attr)
         
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
@@ -125,7 +126,7 @@ class MyMainWindow(MainWindow):
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
 
         # Add register related actions
-        RegisterMenu = mainMenu.addMenu('Regiter')
+        RegisterMenu = mainMenu.addMenu('Register')
         RegisterMenu.addAction('Reset GT Pose (k)', self.reset_gt_pose)
         RegisterMenu.addAction('Update GT Pose (l)', self.update_gt_pose)
         RegisterMenu.addAction('Current Pose (t)', self.current_pose)
@@ -182,6 +183,12 @@ class MyMainWindow(MainWindow):
                     self.focal_length, self.cam_viewup, self.cam_position = pre_focal_length, pre_cam_viewup, pre_cam_position
                     QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
 
+    def set_reference_attr(self):
+        output, ok = self.input_dialog.getText(self, 'Input', "Set Reference Mesh Name", text='ossicles')
+        if ok: 
+            try: self.set_reference(output)
+            except AssertionError: QMessageBox.warning(self, 'vision6D', "Reference name does not exist in the paths", QMessageBox.Ok, QMessageBox.Ok)
+
     def set_opacity_attr(self):
         dialog = MultiInputDialog(placeholder=False, line1=("Image Opacity", self.image_opacity), line2=("Mask Opacity", self.mask_opacity), line3=("Mesh Opacity", self.surface_opacity))
         if dialog.exec():
@@ -208,13 +215,17 @@ class MyMainWindow(MainWindow):
                 except:
                     self.image_opacity, self.mask_opacity, self.surface_opacity = pre_image_opacity, pre_mask_opacity, pre_surface_opacity
                     QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
-
-    def set_reference_attr(self):
-        output, ok = self.input_dialog.getText(self, 'Input', "Set Reference Mesh Name", text='ossicles')
-        if ok: 
-            try: self.set_reference(output)
-            except AssertionError: QMessageBox.warning(self, 'vision6D', "Reference name does not exist in the paths", QMessageBox.Ok, QMessageBox.Ok)
            
+    def set_image_spacing_attr(self):
+        spacing, ok = self.input_dialog.getText(self, 'Input', "Set Image/Mask Spacing", text=str(self.spacing))
+        if ok: 
+            try: 
+                self.spacing = ast.literal_eval(spacing)
+                if self.image_path: self.add_image(self.image_path)
+                if self.mask_path: self.add_mask(self.mask_path)
+            except: 
+                QMessageBox.warning(self, 'vision6D', "Spacing format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+
     def add_image_file(self):
         if self.image_path == None or self.image_path == '':
             self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")

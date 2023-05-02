@@ -58,6 +58,7 @@ class Interface(MyMainWindow):
         self.set_image_opacity(0.99)
         self.set_mask_opacity(0.5)
         self.set_mesh_opacity(0.8) # self.surface_opacity = 1
+        self.spacing = [0.01, 0.01, 1]
         self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
         
     def set_reference(self, name:str):     
@@ -121,7 +122,7 @@ class Interface(MyMainWindow):
         self.camera.SetWindowCenter(wcx, wcy) # (0,0)
         
         # Setting the view angle in degrees
-        view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f))
+        view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
  
     def set_camera_props(self, focal_length, cam_viewup, cam_position):
@@ -137,13 +138,13 @@ class Interface(MyMainWindow):
     def add_image(self, image_path):
 
         """ add a image to the pyqt frame """
-        image_source = np.array(PIL.Image.open(image_path))#[..., :3] # get first 3 channels if there is a 4th channel
+        image_source = np.array(PIL.Image.open(image_path))
         
         dim = image_source.shape
         h, w = dim[0], dim[1]
         channel = 1 if len(dim) == 2 else dim[2]
 
-        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01,0.01,1], origin=(0.0, 0.0, 0.0))
+        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.spacing, origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)
 
@@ -171,7 +172,7 @@ class Interface(MyMainWindow):
         dim = mask_source.shape
         h, w = dim[0], dim[1]
         
-        mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01,0.01,1], origin=(0.0, 0.0, 0.0))
+        mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.spacing, origin=(0.0, 0.0, 0.0))
         mask.point_data["values"] = mask_source.reshape((w * h, 1)) # order = 'C
         mask = mask.translate(-1 * np.array(mask.center), inplace=False)
 
