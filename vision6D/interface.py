@@ -229,6 +229,45 @@ class Interface(MyMainWindow):
             remove_actor_menu = functools.partial(self.remove_actor, mesh_name)
             self.removeMenu.addAction(mesh_name, remove_actor_menu)
 
+    def toggle_image_opacity(self, *args, up):
+        if up:
+            self.image_opacity += 0.2
+            if self.image_opacity >= 1: self.image_opacity = 1
+        else:
+            self.image_opacity -= 0.2
+            if self.image_opacity <= 0: self.image_opacity = 0
+        
+        if self.image_actor is not None:
+            self.image_actor.GetProperty().opacity = self.image_opacity
+            self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+    def toggle_mask_opacity(self, *args, up):
+        if up:
+            self.mask_opacity += 0.2
+            if self.mask_opacity >= 1: self.mask_opacity = 1
+        else:
+            self.mask_opacity -= 0.2
+            if self.mask_opacity <= 0: self.mask_opacity = 0
+        
+        if self.mask_actor is not None:
+            self.mask_actor.GetProperty().opacity = self.mask_opacity
+            self.plotter.add_actor(self.mask_actor, pickable=False, name="mask")
+
+    def toggle_surface_opacity(self, *args, up):    
+        if up:
+            self.surface_opacity += 0.2
+            if self.surface_opacity > 1: self.surface_opacity = 1
+        else:
+            self.surface_opacity -= 0.2
+            if self.surface_opacity < 0: self.surface_opacity = 0
+                
+        if len(self.mesh_actors) != 0:
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                actor.GetProperty().opacity = self.surface_opacity
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
     def reset_camera(self, *args):
         self.plotter.camera = self.camera.copy()
 

@@ -36,6 +36,7 @@ class App:
         self.mirror_objects = mirror_objects
         self.transformation_matrix = None
         self.reference = None
+        self.latlon = vis.utils.load_latitude_longitude()
         
         # initial the dictionaries
         self.mesh_actors = {}
@@ -104,10 +105,6 @@ class App:
                 colors = vis.utils.color_mesh(mesh_source.points, self.nocs_color)
                 if colors.shape != mesh_source.points.shape: colors = np.ones((len(mesh_source.points), 3)) * 0.5
                 assert colors.shape == mesh_source.points.shape, "colors shape should be the same as mesh_source.points shape"
-
-            # Save the ossicles latlon color if it is not nocs_color
-            if not self.nocs_color: 
-                if mesh_name == "ossicles": self.latlon = colors
 
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = (mesh_data, colors)
@@ -347,8 +344,8 @@ class App:
             
             event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=True)
             self.pv_plotter.add_key_event('y', event_toggle_surface_opacity_up_func)
-            event_toggle_surface_opacity_up_func = functools.partial(self.event_toggle_surface_opacity, up=False)
-            self.pv_plotter.add_key_event('u', event_toggle_surface_opacity_up_func)
+            event_toggle_surface_opacity_down_func = functools.partial(self.event_toggle_surface_opacity, up=False)
+            self.pv_plotter.add_key_event('u', event_toggle_surface_opacity_down_func)
             
             self.pv_plotter.add_axes()
             self.pv_plotter.add_camera_orientation_widget()

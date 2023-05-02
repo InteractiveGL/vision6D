@@ -116,9 +116,9 @@ class MyMainWindow(MainWindow):
         setAttrMenu = mainMenu.addMenu('Set')
         setAttrMenu.addAction('Set Camera', self.set_camera_attr)
         setAttrMenu.addAction('Set Reference', self.set_reference_attr)
-        setAttrMenu.addAction('Set Opacity', self.set_opacity_attr)
         setAttrMenu.addAction('Set Image/Mask Spacing', self.set_image_spacing_attr)
-        
+        setAttrMenu.addAction('Set Opacity (bn, hj, yu)', self.set_opacity_attr)
+                
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
         CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
@@ -164,6 +164,22 @@ class MyMainWindow(MainWindow):
             self.plotter.add_key_event('t', self.current_pose)
             self.plotter.add_key_event('s', self.undo_pose)
 
+            # opacity related key bindings
+            toggle_image_opacity_up = functools.partial(self.toggle_image_opacity, up=True)
+            self.plotter.add_key_event('b', toggle_image_opacity_up)
+            toggle_image_opacity_down = functools.partial(self.toggle_image_opacity, up=False)
+            self.plotter.add_key_event('n', toggle_image_opacity_down)
+
+            toggle_mask_opacity_up = functools.partial(self.toggle_mask_opacity, up=True)
+            self.plotter.add_key_event('h', toggle_mask_opacity_up)
+            toggle_mask_opacity_down = functools.partial(self.toggle_mask_opacity, up=False)
+            self.plotter.add_key_event('j', toggle_mask_opacity_down)
+            
+            toggle_surface_opacity_up = functools.partial(self.toggle_surface_opacity, up=True)
+            self.plotter.add_key_event('y', toggle_surface_opacity_up)
+            toggle_surface_opacity_down = functools.partial(self.toggle_surface_opacity, up=False)
+            self.plotter.add_key_event('u', toggle_surface_opacity_down)
+ 
             self.plotter.add_axes()
             self.plotter.add_camera_orientation_widget()
 

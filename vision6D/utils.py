@@ -283,7 +283,7 @@ def rigid_transform_3D(A, B):
 
 def load_latitude_longitude():
     # get the latitude and longitude
-    with open(CWD.parent / "data" / "ossiclesCoordinateMapping.json", "r") as f: data = json.load(f)
+    with open(CWD / "data" / "ossiclesCoordinateMapping.json", "r") as f: data = json.load(f)
     
     latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
     longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
