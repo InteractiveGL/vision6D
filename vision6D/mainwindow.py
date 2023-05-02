@@ -520,12 +520,11 @@ class MyMainWindow(MainWindow):
         self.update_gt_pose()
 
         mesh_path_name = pathlib.Path(self.mesh_path).stem.split('_')
-        reference_name = mesh_path_name[0] + "_" + mesh_path_name[1] + "_" + self.reference + '_processed'
-
+        
         if self.image_actor is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = reference_name + f'_gt_pose_{id}.npy'
-        else: output_name = reference_name + '_gt_pose.npy'
+            output_name = "_".join(mesh_path_name[:2]) + f'_gt_pose_{id}.npy'
+        else: output_name = "_".join(mesh_path_name[:2]) + '_gt_pose.npy'
 
         output_path = vis.config.GITROOT / "output" / "gt_poses" / output_name
         np.save(output_path, self.transformation_matrix)
