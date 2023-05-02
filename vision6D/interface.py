@@ -137,20 +137,18 @@ class Interface(MyMainWindow):
     def add_image(self, image_path):
 
         """ add a image to the pyqt frame """
-        image_source = np.array(PIL.Image.open(image_path))[..., :3] # get first 3 channels if there is a 4th channel
+        image_source = np.array(PIL.Image.open(image_path))#[..., :3] # get first 3 channels if there is a 4th channel
         
         dim = image_source.shape
         h, w = dim[0], dim[1]
-        if len(dim) == 2: channel = 1
-        elif len(dim) == 3: channel = 3
+        channel = 1 if len(dim) == 2 else dim[2]
 
         image = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01,0.01,1], origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)
 
         # Then add it to the plotter
-        if channel == 1: image = self.plotter.add_mesh(image, cmap='gray', opacity=self.mask_opacity, name='image')
-        elif channel == 3: image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name='image')
+        image = self.plotter.add_mesh(image, cmap='gray', opacity=self.mask_opacity, name='image') if channel == 1 else self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name='image')
         actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
         # Save actor for later
         self.image_actor = actor
