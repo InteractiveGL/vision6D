@@ -82,30 +82,33 @@ class App:
         for mesh_name, mesh_source in paths.items():
             
             reference_name = mesh_name
+            flag = False
 
             if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
                 # Load the '.mesh' file
-                if '.mesh' in str(mesh_source): 
-                    mesh_source = vis.utils.load_trimesh(mesh_source)
-                    # Set vertices and faces attribute
-                    self.set_mesh_info(mesh_name, mesh_source)
-                    colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
-                    if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
-                    assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
-                    mesh_data = pv.wrap(mesh_source)
-
+                if '.mesh' in str(mesh_source): mesh_source = vis.utils.load_trimesh(mesh_source)
                 # Load the '.ply' file
-                elif '.ply' in str(mesh_source): 
-                    mesh_data = pv.read(mesh_source)
-                    colors = vis.utils.color_mesh(mesh_data.points, self.nocs_color)
-                    if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
-                    assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+                elif '.ply' in str(mesh_source): mesh_source = pv.read(mesh_source)
 
-            elif isinstance(mesh_source, pv.PolyData):
-                mesh_data = mesh_source
+            if isinstance(mesh_source, trimesh.Trimesh):
+                # Set vertices and faces attribute
+                self.set_mesh_info(mesh_name, mesh_source)
+                colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
+                if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
+                assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
+                mesh_data = pv.wrap(mesh_source)
+                flag = True
+                 
+            if isinstance(mesh_source, pv.PolyData):
+                self.set_mesh_info(mesh_name, mesh_source)
                 colors = vis.utils.color_mesh(mesh_source.points, self.nocs_color)
                 if colors.shape != mesh_source.points.shape: colors = np.ones((len(mesh_source.points), 3)) * 0.5
                 assert colors.shape == mesh_source.points.shape, "colors shape should be the same as mesh_source.points shape"
+                mesh_data = mesh_source
+                flag = True
+
+            if not flag:
+                raise RuntimeError("Do not support the current format!")
 
             # Save the mesh data to dictionary
             self.mesh_polydata[mesh_name] = (mesh_data, colors)

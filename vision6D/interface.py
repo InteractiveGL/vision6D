@@ -189,21 +189,33 @@ class Interface(MyMainWindow):
         # reset the camera
         self.reset_camera()
 
-    def add_mesh(self, mesh_name, mesh_path):
+    def add_mesh(self, mesh_name, mesh_source):
         """ add a mesh to the pyqt frame """
-                              
-        if isinstance(mesh_path, pathlib.WindowsPath) or isinstance(mesh_path, str):
-            # Load the '.mesh' file
-            if '.mesh' in str(mesh_path): 
-                mesh_data = vis.utils.load_trimesh(mesh_path)
-                self.mesh_raw[mesh_name] = mesh_data
-                assert (mesh_data.vertices.shape[1] == 3 and mesh_data.faces.shape[1] == 3), "it should be N by 3 matrix"
-                # Set vertices and faces attribute
-                setattr(self, f"{mesh_name}_mesh", mesh_data)
-                mesh_data = pv.wrap(mesh_data)
 
+        flag = False
+                              
+        if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
+            # Load the '.mesh' file
+            if '.mesh' in str(mesh_source): mesh_source = vis.utils.load_trimesh(mesh_source)
             # Load the '.ply' file
-            elif '.ply' in str(mesh_path): mesh_data = pv.read(mesh_path)
+            elif '.ply' in str(mesh_source): mesh_source = pv.read(mesh_source)
+
+        if isinstance(mesh_source, trimesh.Trimesh):
+            self.mesh_raw[mesh_name] = mesh_source
+            assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
+            # setattr(self, f"{mesh_name}_mesh", mesh_source)
+            mesh_data = pv.wrap(mesh_source)
+            flag = True
+
+        if isinstance(mesh_source, pv.PolyData):
+            self.mesh_raw[mesh_name] = mesh_source
+            # setattr(self, f"{mesh_name}_mesh", mesh_source)
+            mesh_data = mesh_source
+            flag = True
+
+        if not flag:
+            QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
 
         self.mesh_polydata[mesh_name] = mesh_data
 
@@ -388,10 +400,10 @@ class Interface(MyMainWindow):
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
             else:
-                QMessageBox.warning(self, 'vision6D', "Only works with EPnP with latlon mask", QMessageBox.Ok, QMessageBox.Ok)
+                QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QMessageBox.Ok, QMessageBox.Ok)
 
         else:
-            QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference needed to be set", QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
     def epnp_mask(self, nocs_method):
@@ -406,27 +418,28 @@ class Interface(MyMainWindow):
                     gt_pose = self.mesh_actors[self.reference].user_matrix
                     mesh = self.mesh_raw[self.reference]
                 else:        
-                    QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference needed to be set", QMessageBox.Ok, QMessageBox.Ok)
+                    QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok)
                     return 0
                 seg_mask = np.expand_dims(self.mask_data, axis=-1)
                 color_mask = (color_mask * seg_mask).astype(np.uint8)
             else:
-                unique, counts = np.unique(self.mask_data, return_counts=True)
-                digit_counts = dict(zip(unique, counts))
-                if digit_counts[0] == np.max(counts): 
-                    color_mask = self.mask_data
-                    nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
-                    gt_pose_dir = pathlib.Path(self.mask_path).parent.parent.parent/ 'labels' / 'info.json'
-                    with open(gt_pose_dir) as f: data = json.load(f)
-                    gt_pose = np.array(data[pathlib.Path(self.mask_path).stem]['gt_pose'])
-                    id = pathlib.Path(self.mask_path).stem.split('_')[0].split('.')[1]
-                    #TODO: hard coded, and needed to be updated in the future
-                    mesh_path = pathlib.Path(self.mask_path).stem.split('_')[0] + '_video_trim' 
-                    mesh = vis.utils.load_trimesh(pathlib.Path(self.mesh_dir / mesh_path / "mesh" / f"{id}_right_ossicles_processed.mesh"))
-                else:
-                    QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QMessageBox.Ok, QMessageBox.Ok)
-                    return 0
-            
+                color_mask = self.mask_data
+                if np.sum(color_mask) != 0:
+                    unique, counts = np.unique(color_mask, return_counts=True)
+                    digit_counts = dict(zip(unique, counts))
+                    if digit_counts[0] == np.max(counts): 
+                        nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
+                        gt_pose_dir = pathlib.Path(self.mask_path).parent.parent.parent/ 'labels' / 'info.json'
+                        with open(gt_pose_dir) as f: data = json.load(f)
+                        gt_pose = np.array(data[pathlib.Path(self.mask_path).stem]['gt_pose'])
+                        id = pathlib.Path(self.mask_path).stem.split('_')[0].split('.')[1]
+                        #TODO: hard coded, and needed to be updated in the future
+                        mesh_path = pathlib.Path(self.mask_path).stem.split('_')[0] + '_video_trim' 
+                        mesh = vis.utils.load_trimesh(pathlib.Path(self.mesh_dir / mesh_path / "mesh" / f"{id}_right_ossicles_processed.mesh"))
+                    else:
+                        QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QMessageBox.Ok, QMessageBox.Ok)
+                        return 0
+        
             if np.sum(color_mask) == 0:
                 QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QMessageBox.Ok, QMessageBox.Ok)
                 return 0
