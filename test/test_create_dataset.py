@@ -181,6 +181,19 @@ def test_plot_mesh_off_screen():
     plt.show() 
     print("kkk")
 
+def test_load_trimesh_obj():
+    app = vis.App(off_screen=True, nocs_color=True)
+    app.set_transformation_matrix(vis.config.gt_pose_5997_right)
+    ossicles_mesh = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
+    app.load_meshes({'ossicles': ossicles_mesh})
+    app.set_reference("ossicles")
+    app.set_image_opacity(0.99)
+    app.set_mesh_opacity(0.8)
+    image_np = app.plot()
+    plt.imshow(image_np)
+    plt.show() 
+    print("kkk")
+
 def test_render_surgery_image(app):
     # image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     # image_np = app.render_scene(render_image=True, image_source=image_numpy)
