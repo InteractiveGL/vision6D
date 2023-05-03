@@ -168,13 +168,14 @@ class Interface(MyMainWindow):
 
         dim = mask_source.shape
         h, w = dim[0], dim[1]
+        channel = 1 if len(dim) == 2 else dim[2]
         
         mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.spacing, origin=(0.0, 0.0, 0.0))
-        mask.point_data["values"] = mask_source.reshape((w * h, 1)) # order = 'C
+        mask.point_data["values"] = mask_source.reshape((w * h, channel)) # order = 'C
         mask = mask.translate(-1 * np.array(mask.center), inplace=False)
 
         # Then add it to the plotter
-        mask = self.plotter.add_mesh(mask, cmap='gray', opacity=self.mask_opacity, name='mask')
+        mask = self.plotter.add_mesh(mask, cmap='gray', opacity=self.mask_opacity, name='mask') if channel == 1 else self.plotter.add_mesh(mask, rgb=True, opacity=self.mask_opacity, name='mask')
         actor, _ = self.plotter.add_actor(mask, pickable=False, name='mask')
         # Save actor for later
         self.mask_actor = actor
@@ -311,19 +312,22 @@ class Interface(MyMainWindow):
 
     def set_color(self, nocs_color):
         self.nocs_color = nocs_color
-        for mesh_name, mesh_data in self.mesh_polydata.items():
-            # get the corresponding color
-            colors = vis.utils.color_mesh(mesh_data.points, nocs=self.nocs_color)
-            if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
-            assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
-            
-            # color the mesh and actor
-            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
-            transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
-            mesh.user_matrix = transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-            assert actor.name == mesh_name, "actor's name should equal to mesh_name"
-            self.mesh_actors[mesh_name] = actor
+        if len(self.mesh_polydata) != 0:
+            for mesh_name, mesh_data in self.mesh_polydata.items():
+                # get the corresponding color
+                colors = vis.utils.color_mesh(mesh_data.points, nocs=self.nocs_color)
+                if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+                assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+                
+                # color the mesh and actor
+                mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
+                transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
+                mesh.user_matrix = transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+                assert actor.name == mesh_name, "actor's name should equal to mesh_name"
+                self.mesh_actors[mesh_name] = actor
+        else:
+            QMessageBox.warning(self, 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
 
     def nocs_epnp(self, color_mask, mesh):
         vertices = mesh.vertices
@@ -390,7 +394,7 @@ class Interface(MyMainWindow):
             QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference needed to be set", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
-    def epnp_mask(self, nocs):
+    def epnp_mask(self, nocs_method):
         if self.mask_data is not None:
             if len(self.mask_data.shape) == 2:
                 if self.reference is not None:
@@ -411,6 +415,7 @@ class Interface(MyMainWindow):
                 digit_counts = dict(zip(unique, counts))
                 if digit_counts[0] == np.max(counts): 
                     color_mask = self.mask_data
+                    nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     gt_pose_dir = pathlib.Path(self.mask_path).parent.parent.parent/ 'labels' / 'info.json'
                     with open(gt_pose_dir) as f: data = json.load(f)
                     gt_pose = np.array(data[pathlib.Path(self.mask_path).stem]['gt_pose'])
@@ -418,7 +423,6 @@ class Interface(MyMainWindow):
                     #TODO: hard coded, and needed to be updated in the future
                     mesh_path = pathlib.Path(self.mask_path).stem.split('_')[0] + '_video_trim' 
                     mesh = vis.utils.load_trimesh(pathlib.Path(self.mesh_dir / mesh_path / "mesh" / f"{id}_right_ossicles_processed.mesh"))
-                    self.nocs_color = True
                 else:
                     QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QMessageBox.Ok, QMessageBox.Ok)
                     return 0
@@ -427,16 +431,12 @@ class Interface(MyMainWindow):
                 QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QMessageBox.Ok, QMessageBox.Ok)
                 return 0
                 
-            if nocs * self.nocs_color:
-                predicted_pose = self.nocs_epnp(color_mask, mesh)
+            if nocs_method == nocs_color:
+                if nocs_method: predicted_pose = self.nocs_epnp(color_mask, mesh)
+                else: predicted_pose = self.latlon_epnp(color_mask, mesh)
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
             else:
-                if (nocs == True and self.nocs_color == False) or (nocs == False and self.nocs_color == True):
-                    QMessageBox.about(self,"vision6D", "Clicked the wrong method")
-                else:
-                    predicted_pose = self.latlon_epnp(color_mask, self.mesh_raw[self.reference])
-                    error = np.sum(np.abs(predicted_pose - gt_pose))
-                    QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+                QMessageBox.about(self,"vision6D", "Clicked the wrong method")
         else:
             QMessageBox.about(self,"vision6D", "please load a mask first")
