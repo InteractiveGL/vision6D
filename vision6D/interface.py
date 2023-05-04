@@ -36,8 +36,6 @@ class Interface(MyMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.mirror_objects = False
-
         # initialize
         self.reference = None
         self.transformation_matrix = np.eye(4)
@@ -50,7 +48,7 @@ class Interface(MyMainWindow):
         self.mesh_raw = {}
         self.mesh_polydata = {}
         
-        self.remove_actors_names = []
+        self.track_actors_names = []
         self.undo_poses = []
         self.latlon = vis.utils.load_latitude_longitude()
         
@@ -151,11 +149,13 @@ class Interface(MyMainWindow):
         # Save actor for later
         self.image_actor = actor
 
-        # add remove current image to removeMenu
-        if 'image' not in self.remove_actors_names:
-            self.remove_actors_names.append('image')
+        # add remove current image to removeMenu and mirrorMenu
+        if 'image' not in self.track_actors_names:
+            self.track_actors_names.append('image')
             remove_actor = functools.partial(self.remove_actor, 'image')
             self.removeMenu.addAction('image', remove_actor)
+            mirror_actor = functools.partial(self.mirror_actor, 'image')
+            self.mirrorMenu.addAction('image', mirror_actor)
 
         # reset the camera
         self.reset_camera()
@@ -180,11 +180,13 @@ class Interface(MyMainWindow):
         # Save actor for later
         self.mask_actor = actor
 
-        # add remove current image to removeMenu
-        if 'mask' not in self.remove_actors_names:
-            self.remove_actors_names.append('mask')
+        # add remove current image to removeMenu and mirrorMenu
+        if 'mask' not in self.track_actors_names:
+            self.track_actors_names.append('mask')
             remove_actor = functools.partial(self.remove_actor, 'mask')
             self.removeMenu.addAction('mask', remove_actor)
+            mirror_actor = functools.partial(self.mirror_actor, 'mask')
+            self.mirrorMenu.addAction('mask', mirror_actor)
 
         # reset the camera
         self.reset_camera()
@@ -221,7 +223,7 @@ class Interface(MyMainWindow):
 
         mesh = self.plotter.add_mesh(mesh_data, opacity=self.surface_opacity, name=mesh_name)
 
-        mesh.user_matrix = self.transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+        mesh.user_matrix = self.transformation_matrix
         self.initial_pose = mesh.user_matrix
                 
         # Add and save the actor
@@ -233,11 +235,13 @@ class Interface(MyMainWindow):
 
         self.reset_camera()
 
-        # add remove current mesh to removeMenu
-        if mesh_name not in self.remove_actors_names:
-            self.remove_actors_names.append(mesh_name)
-            remove_actor_menu = functools.partial(self.remove_actor, mesh_name)
-            self.removeMenu.addAction(mesh_name, remove_actor_menu)
+        # add remove current mesh to removeMenu and mirrorMenu
+        if mesh_name not in self.track_actors_names:
+            self.track_actors_names.append(mesh_name)
+            remove_actor = functools.partial(self.remove_actor, mesh_name)
+            self.removeMenu.addAction(mesh_name, remove_actor)
+            mirror_actor = functools.partial(self.mirror_actor, mesh_name)
+            self.mirrorMenu.addAction(mesh_name, mirror_actor)
 
     def toggle_image_opacity(self, *args, up):
         if up:
@@ -274,7 +278,7 @@ class Interface(MyMainWindow):
         if len(self.mesh_actors) != 0:
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
             for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                actor.user_matrix = transformation_matrix
                 actor.GetProperty().opacity = self.surface_opacity
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
@@ -301,7 +305,7 @@ class Interface(MyMainWindow):
     def update_gt_pose(self, *args):
         if self.reference is not None:
             self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            self.transformation_matrix = self.transformation_matrix if not '_mirror' in self.reference else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+            self.transformation_matrix = self.transformation_matrix
             self.initial_pose = self.transformation_matrix
             self.reset_gt_pose()
 
@@ -310,7 +314,7 @@ class Interface(MyMainWindow):
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
             print(f"\nRT: \n{transformation_matrix}\n")
             for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                actor.user_matrix = transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def undo_pose(self, *args):
@@ -319,7 +323,7 @@ class Interface(MyMainWindow):
             if (transformation_matrix == self.mesh_actors[self.reference].user_matrix).all():
                 if len(self.undo_poses) != 0: transformation_matrix = self.undo_poses.pop()
             for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                actor.user_matrix = transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def set_color(self, nocs_color):
@@ -334,7 +338,7 @@ class Interface(MyMainWindow):
                 # color the mesh and actor
                 mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
                 transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
-                mesh.user_matrix = transformation_matrix if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                mesh.user_matrix = transformation_matrix
                 actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
                 assert actor.name == mesh_name, "actor's name should equal to mesh_name"
                 self.mesh_actors[mesh_name] = actor

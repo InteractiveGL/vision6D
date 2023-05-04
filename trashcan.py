@@ -1775,3 +1775,11 @@ CHORDA_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.83815
 # average ossicles
 AVERAGE_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "average_mesh.ply"
 ATLAS_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "ref_atlas_ossicles.mesh"
+
+if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+
+ if not '_mirror' in self.reference else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+
+
+ 

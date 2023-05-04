@@ -101,6 +101,7 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
         fileMenu.addAction('Add Pose', self.add_pose_file)
+        self.mirrorMenu = fileMenu.addMenu("Mirror")
         self.removeMenu = fileMenu.addMenu("Remove")
         fileMenu.addAction('Clear', self.clear_plot)
 
@@ -275,6 +276,9 @@ class MyMainWindow(MainWindow):
         pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
         if pose_path != '': self.set_transformation_matrix(matrix=np.load(pose_path))
     
+    def mirror_actor(self, name):
+        QMessageBox.about(self,"vision6D", f"Pending implementation")
+
     def remove_actor(self, name):
         if self.reference == name: self.reference = None
         if name == 'image': 
@@ -302,20 +306,27 @@ class MyMainWindow(MainWindow):
 
         self.plotter.remove_actor(actor)
         actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
-        assert len(actions_to_remove) == 1, "the actions to remove should always be 1"
+        actions_to_remove_mirror = [action for action in self.mirrorMenu.actions() if action.text() == name]
+
+        if (len(actions_to_remove) != 1) or (len(actions_to_remove_mirror) != 1):
+            QMessageBox.warning(self, 'vision6D', "The actions to remove should always be 1", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+        
         self.removeMenu.removeAction(actions_to_remove[0])
-        self.remove_actors_names.remove(name)
+        self.mirrorMenu.removeAction(actions_to_remove_mirror[0])
+        self.track_actors_names.remove(name)
    
     def clear_plot(self):
         
-        # Clear out everything in the menu
-        for action in self.removeMenu.actions():
-            name = action.text()
+        # Clear out everything in the remove menu
+        for remove_action, mirror_action in zip(self.removeMenu.actions(), self.mirrorMenu.actions()):
+            name = remove_action.text()
             if name == 'image': actor = self.image_actor
             elif name == 'mask': actor = self.mask_actor
             else: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
-            self.removeMenu.removeAction(action)
+            self.removeMenu.removeAction(remove_action)
+            self.mirrorMenu.removeAction(mirror_action)
 
         # Re-initial the dictionaries
         self.image_path = None
@@ -332,7 +343,7 @@ class MyMainWindow(MainWindow):
         self.mesh_raw = {}
         self.mesh_polydata = {}
         self.undo_poses = []
-        self.remove_actors_names = []
+        self.track_actors_names = []
 
     def export_image_plot(self):
 
