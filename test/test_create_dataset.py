@@ -1,25 +1,11 @@
 import logging
-import pathlib
-import os
-
 import pytest
-from pytest_lazyfixture import lazy_fixture
-import pyvista as pv
-from PIL import Image
+import PIL
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 from scipy.spatial.transform import Rotation as R
-from pytest_lazyfixture  import lazy_fixture
-import skimage.transform
-import torch
-import trimesh
-import torchvision
 import vision6D as vis
-from scipy.spatial import distance_matrix
-
-import logging
-import PIL
 
 logger = logging.getLogger("vision6D")
 np.set_printoptions(suppress=True)
@@ -36,7 +22,7 @@ def app():
     
 def test_load_image(app):
     app = vis.App(off_screen=True)
-    image_source = np.array(Image.open(vis.config.IMAGE_PATH_5997))
+    image_source = np.array(PIL.Image.open(vis.config.IMAGE_PATH_5997))
     app.set_image_opacity(1)
     app.load_image(image_source, scale_factor=[0.01, 0.01, 1])
     app.set_reference("image")
@@ -64,11 +50,12 @@ def test_load_image(app):
 )  
 def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_path, gt_pose):
     # save the GT pose to .npy file
+    # np.save(vis.config.GITROOT / "6329_right_gt_pose", gt_pose)
     path = ossicles_path.stem.split('_')
     gt_pose_name = f"{path[0]}_{path[1]}_gt_pose.npy" # path[0] -> name; path[1] -> side
     np.save(vis.config.OP_DATA_DIR / "gt_poses" / gt_pose_name, gt_pose)
 
-    image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
+    image_numpy = np.array(PIL.Image.open(image_path)) # (H, W, 3)
     app.load_image(image_numpy)
     app.set_reference('ossicles')
     app.set_transformation_matrix(gt_pose)
@@ -79,7 +66,7 @@ def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_pat
     app.plot()
 
     # check the clipping range
-    print(app.pv_plotter.camera.clipping_range)
+    print(app.plotter.camera.clipping_range)
 
 @pytest.mark.parametrize(
     "image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image",
@@ -91,7 +78,7 @@ def test_load_mesh(app, image_path, ossicles_path, facial_nerve_path, chorda_pat
 )  
 def test_load_mesh_mirror_ossicles(app, image_path, ossicles_path, facial_nerve_path, chorda_path, RT, mirror_objects, mirror_image):
     app.set_mirror_objects(mirror_objects)
-    image_numpy = np.array(Image.open(image_path)) # (H, W, 3)
+    image_numpy = np.array(PIL.Image.open(image_path)) # (H, W, 3)
     if mirror_image:
         image_numpy = image_numpy[:, ::-1, ...]
     app.load_image(image_numpy)
@@ -170,7 +157,7 @@ def test_get_depth_map(mesh_path, gt_pose, mirror_objects):
 def test_plot_mesh_off_screen():
     app = vis.App(off_screen=True, nocs_color=False)
     app.set_transformation_matrix(vis.config.gt_pose_5997_right)
-    image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
+    image_numpy = np.array(PIL.Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     app.load_image(image_numpy)
     app.load_meshes({'ossicles': vis.config.OSSICLES_MESH_PATH_5997_right, 'facial_nerve': vis.config.FACIAL_NERVE_MESH_PATH_5997_right, 'chorda': vis.config.CHORDA_MESH_PATH_5997_right})
     app.set_reference("ossicles")
@@ -195,12 +182,12 @@ def test_load_trimesh_obj():
     print("kkk")
 
 def test_render_surgery_image(app):
-    # image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
+    # image_numpy = np.array(PIL.Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     # image_np = app.render_scene(render_image=True, image_source=image_numpy)
     # plt.imshow(image_np); plt.show()
     app = vis.App(off_screen=True)
     app.set_image_opacity(1)
-    image_numpy = np.array(Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
+    image_numpy = np.array(PIL.Image.open(vis.config.IMAGE_PATH_5997)) # (H, W, 3)
     app.load_image(image_numpy)
     image_np = app.plot()
     plt.imshow(image_np)

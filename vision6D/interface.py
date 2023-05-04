@@ -415,6 +415,7 @@ class Interface(MyMainWindow):
                         QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
                         return 0
                     color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False)
+                    nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     gt_pose = self.mesh_actors[self.reference].user_matrix
                     mesh = self.mesh_raw[self.reference]
                 else:        

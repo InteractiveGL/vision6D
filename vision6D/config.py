@@ -6,6 +6,7 @@ CWD = pathlib.Path(os.path.abspath(__file__)).parent
 GITROOT = CWD.parent
 OP_DATA_DIR = GITROOT.parent / 'ossicles_6D_pose_estimation' / 'data'
 YOLOV8_DATA_DIR = GITROOT.parent / 'yolov8'
+GT_POSES_DIR = OP_DATA_DIR / "gt_poses"
 
 # average ossicles
 AVERAGE_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "average_mesh.ply"
@@ -86,43 +87,16 @@ CHORDA_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning"/ "CIP.6087.841586
 
 # right ossicles
 # actual pose for the 455 mesh
-gt_pose_455_right = np.array([[  0.28494291,  -0.03581576,  -0.95787513,  -9.04559663],
-                            [  0.44218641,   0.89153081,   0.09820385,  -5.80067862],
-                            [  0.85045795,  -0.45154186,   0.26987263, 361.11646935],
-                            [  0.,           0.,           0.,           1.        ]])
-gt_pose_5997_right = np.array([[  0.04529969,  -0.38558351,  -0.92156026,  -3.4936826 ],
-                                [  0.38383116,   0.85841298,  -0.34029511,  -1.94227102],
-                                [  0.92229148,  -0.3383083,    0.1868848,  -74.8381533 ],
-                                [  0.,           0.,           0.,           1.        ]])
-gt_pose_6088_right = np.array([[  0.33489877,  -0.1105461,   -0.94711579,  -3.97480862],
-                                [  0.50463018,   0.87228607,   0.07662444,  -1.85122892],
-                                [  0.80907175,  -0.49829961,   0.34424747, -11.14225412],
-                                [  0.,           0.,           0.,           1.        ]])
-gt_pose_6108_right = np.array([[ -0.0574247,   -0.2138052,   -0.97518703,  -1.54899177],
-                            [  0.33897252,   0.91459581,  -0.22048151,  -5.36405508],
-                            [  0.93904208,  -0.3432227,    0.01995368, 226.94335282],
-                            [  0.,           0.,           0.,           1.        ]])
-gt_pose_632_right = np.array([[  0.16003307,  -0.325798,    -0.93179669,  -4.0055508 ],
-                            [  0.44727701,   0.86542995,  -0.22577483,  -0.92050163],
-                            [  0.87996175,  -0.3806398,    0.28421936, 918.90966334],
-                            [  0.,           0.,           0.,           1.        ]])
+gt_pose_455_right = np.load(GT_POSES_DIR / "455_right_gt_pose.npy")
+gt_pose_5997_right = np.load(GT_POSES_DIR / "5997_right_gt_pose.npy")
+gt_pose_6088_right = np.load(GT_POSES_DIR / "6088_right_gt_pose.npy")
+gt_pose_6108_right = np.load(GT_POSES_DIR / "6108_right_gt_pose.npy")
+gt_pose_632_right = np.load(GT_POSES_DIR / "632_right_gt_pose.npy")
 
-gt_pose_6320_right = np.array([[  0.06985898,  -0.09355006,  -0.99316067,  -8.93830145],
-                            [  0.66925667,   0.74267893,  -0.02288056,  -3.32262194],
-                            [  0.73973997,  -0.663081,     0.11449178, 454.62081293],
-                            [  0.,           0.,           0.,           1.        ]])
-gt_pose_6329_right = np.array([[ -0.01477684,   0.0530045,   -0.99848494,  -4.49119053],
-                                [  0.4105838,    0.91084231,   0.04227566,  -6.99620193],
-                                [  0.91170312,  -0.40933703,  -0.03522216, 256.55591363],
-                                [  0.,           0.,           0.,           1.        ]])
-gt_pose_6602_right = np.array([[  0.21515756,   0.06148525,  -0.97464188,  -6.29202817],
-                            [  0.41045512,   0.89989208,   0.14737989,  -3.14477412],
-                            [  0.8861342,   -0.43175665,   0.16838165, 321.69488304],
-                            [  0.,           0.,           0.,           1.        ]])
-gt_pose_6751_right = np.array([[  0.20413225,  -0.24419054,  -0.94799842,  -4.80912376],
-                            [  0.38805066,   0.90924235,  -0.1506487,   -4.34837084],
-                            [  0.8987473,   -0.33711915,   0.28036399, 215.39152615],
-                            [  0.,           0.,           0.,           1.        ]])
+gt_pose_6320_right = np.load(GT_POSES_DIR / "6320_right_gt_pose.npy")
+gt_pose_6329_right = np.load(GT_POSES_DIR / "6329_right_gt_pose.npy")
+gt_pose_6602_right = np.load(GT_POSES_DIR / "6602_right_gt_pose.npy")
+gt_pose_6751_right = np.load(GT_POSES_DIR / "6751_right_gt_pose.npy")
 
 # left ossicles
 gt_pose_6742_left = np.array([[ -0.34036243,   0.07007941,   0.93767921,  -1.4661713 ],
