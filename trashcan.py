@@ -1767,3 +1767,11 @@ else: return_depth_map = False
 # self.mask_dir = r'E:\GitHub\yolov8\runs\segment'
 # self.mesh_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\surgical_planning'
 # self.gt_poses_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\gt_poses'
+
+OSSICLES_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "processed_meshes" / "6742_right_ossicles_processed.mesh"
+FACIAL_NERVE_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "processed_meshes" / "6742_right_facial_nerve_processed.mesh"
+CHORDA_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "processed_meshes" / "6742_right_chorda_processed.mesh"
+
+# average ossicles
+AVERAGE_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "average_mesh.ply"
+ATLAS_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "ref_atlas_ossicles.mesh"

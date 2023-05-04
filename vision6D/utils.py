@@ -117,7 +117,7 @@ def load_trimesh(meshpath):
     assert mesh.faces.shape == meshobj.triangles.T.shape
     return mesh
 
-def writemesh(meshpath, mesh, mirror=False, suffix=''):
+def writemesh(meshpath, output_path, mesh, mirror=False, suffix=''):
     """
     write mesh object to improvise, and keep the original meshobj.sz
     """
@@ -126,9 +126,9 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
     meshobj.vertices = mesh.vertices.T / meshobj.sz.reshape((-1, 1)) if mesh.vertices.shape[1]==3 else mesh.vertices / meshobj.sz.reshape((-1, 1))
     meshobj.orient = np.array((1, 2, 3), dtype="int32")
 
-    name = meshpath.stem
-
-    if "centered" in name: name = '_'.join(name.split("_")[:-1])
+    name = output_path.stem
+    if "centered" in name: 
+        name = '_'.join(name.split("_")[:-1])
     name += suffix
     
     if mirror:
@@ -136,7 +136,7 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
         elif "right" in name: side = "left"
         name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:-1])
 
-    with open(meshpath.parent / (name + ".mesh"), "wb") as f:
+    with open(output_path.parent / (name + ".mesh"), "wb") as f:
         f.write(meshobj.id.astype('int32'))
         f.write(meshobj.numverts.astype('int32'))
         f.write(meshobj.numtris.astype('int32'))
@@ -157,7 +157,6 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
         #         f.write(mesh.colormap.cols.T)
         #         f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
         """
-    print("finish writing to a mesh file")
         
 def color2binary_mask(color_mask):
     binary_mask = np.zeros(color_mask[...,:1].shape, dtype=np.uint8)
