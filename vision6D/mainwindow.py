@@ -101,7 +101,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
         fileMenu.addAction('Add Pose', self.add_pose_file)
-        self.mirrorMenu = fileMenu.addMenu("Mirror")
         self.removeMenu = fileMenu.addMenu("Remove")
         fileMenu.addAction('Clear', self.clear_plot)
 
@@ -126,6 +125,15 @@ class MyMainWindow(MainWindow):
         CameraMenu.addAction('Zoom In (x)', self.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
 
+        # add mirror related actions
+        mirrorMenu = mainMenu.addMenu('Mirror')
+        mirror_x = functools.partial(self.mirror, direction='x')
+        mirrorMenu.addAction('Mirror X axis', mirror_x)
+        mirror_y = functools.partial(self.mirror, direction='y')
+        mirrorMenu.addAction('Mirror Y axis', mirror_y)
+        mirror_reset = functools.partial(self.mirror, reset=True)
+        mirrorMenu.addAction('Reset Mirror', mirror_reset)
+        
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Register')
         RegisterMenu.addAction('Reset GT Pose (k)', self.reset_gt_pose)
@@ -248,14 +256,20 @@ class MyMainWindow(MainWindow):
             self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
         else:
             self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
-        if self.image_path != '': self.add_image(self.image_path)
+        if self.image_path != '': 
+            image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+            if len(image_source.shape) == 2: image_source = image_source[..., None]
+            self.add_image(image_source)
             
     def add_mask_file(self):
         if self.mask_path == None or self.mask_path == '':
             self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mask_dir), "Files (*.png *.jpg)")
         else:
             self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
-        if self.mask_path != '': self.add_mask(self.mask_path)
+        if self.mask_path != '':
+            mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
+            if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
+            self.add_mask(mask_source)
 
     def add_mesh_file(self):
         if self.mesh_path == None or self.mesh_path == '':
@@ -276,8 +290,21 @@ class MyMainWindow(MainWindow):
         pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
         if pose_path != '': self.set_transformation_matrix(matrix=np.load(pose_path))
     
-    def mirror_actor(self, name):
-        QMessageBox.about(self,"vision6D", f"Pending implementation")
+    def mirror(self, direction=None, reset=False):
+        if self.image_actor is not None:
+            image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+            if len(image_data.shape) == 2: image_data = image_data[..., None]
+            if not reset:
+                if direction == 'x': image_data = image_data[:, ::-1, :]  
+                elif direction == 'y': image_data = image_data[::-1, :, :]
+            self.add_image(image_data)
+        if self.mask_actor is not None:
+            mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
+            if len(mask_data.shape) == 2: mask_data = mask_data[..., None]
+            if not reset:
+                if direction == 'x': mask_data = mask_data[:, ::-1, :]
+                elif direction == 'y': mask_data = mask_data[::-1, :, :]
+            self.add_mask(mask_data)
 
     def remove_actor(self, name):
         if self.reference == name: self.reference = None
@@ -288,7 +315,6 @@ class MyMainWindow(MainWindow):
         elif name == 'mask':
             actor = self.mask_actor
             self.mask_actor = None
-            self.mask_data = None
             self.mask_path = None
         else: 
             actor = self.mesh_actors[name]
@@ -306,27 +332,24 @@ class MyMainWindow(MainWindow):
 
         self.plotter.remove_actor(actor)
         actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
-        actions_to_remove_mirror = [action for action in self.mirrorMenu.actions() if action.text() == name]
 
-        if (len(actions_to_remove) != 1) or (len(actions_to_remove_mirror) != 1):
+        if (len(actions_to_remove) != 1):
             QMessageBox.warning(self, 'vision6D', "The actions to remove should always be 1", QMessageBox.Ok, QMessageBox.Ok)
             return 0
         
         self.removeMenu.removeAction(actions_to_remove[0])
-        self.mirrorMenu.removeAction(actions_to_remove_mirror[0])
         self.track_actors_names.remove(name)
    
     def clear_plot(self):
         
         # Clear out everything in the remove menu
-        for remove_action, mirror_action in zip(self.removeMenu.actions(), self.mirrorMenu.actions()):
+        for remove_action in self.removeMenu.actions():
             name = remove_action.text()
             if name == 'image': actor = self.image_actor
             elif name == 'mask': actor = self.mask_actor
             else: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
             self.removeMenu.removeAction(remove_action)
-            self.mirrorMenu.removeAction(mirror_action)
 
         # Re-initial the dictionaries
         self.image_path = None
@@ -336,7 +359,6 @@ class MyMainWindow(MainWindow):
 
         self.reference = None
         self.transformation_matrix = np.eye(4)
-        self.mask_data = None
         self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
@@ -471,7 +493,7 @@ class MyMainWindow(MainWindow):
             QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
         
-        if self.mask_data is None: 
+        if self.mask_actor is None: 
             QMessageBox.warning(self, 'vision6D', "Need to load a segmentation mask first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 

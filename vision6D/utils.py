@@ -13,6 +13,7 @@ import trimesh
 from PIL import Image
 import cv2
 import pygeodesic.geodesic as geodesic
+import vtk.util.numpy_support as vtknp
 import json
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
@@ -353,3 +354,13 @@ def latLon2xyz(m,lat,lonf,msk,gx,gy):
             else:
                 xyz.append(xyznode(m.vertices[f[1]] + e * (m.vertices[f[2]] - m.vertices[f[1]]),d3))
     return np.min(xyz).pnt
+
+#* interface related functions
+def get_2D_actor_scalars(actor):
+    input = actor.GetMapper().GetInput()
+    shape = input.GetDimensions()[::-1]
+    point_data = input.GetPointData().GetScalars()
+    point_array = vtknp.vtk_to_numpy(point_data)
+    if len(point_array.shape) == 1: point_array = point_array.reshape(*point_array.shape, 1)
+    data = point_array.reshape(*shape[1:], point_array.shape[-1])
+    return data

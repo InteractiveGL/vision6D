@@ -40,8 +40,6 @@ class Interface(MyMainWindow):
         self.reference = None
         self.transformation_matrix = np.eye(4)
 
-        self.mask_data = None
-
         self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
@@ -130,14 +128,9 @@ class Interface(MyMainWindow):
         self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         self.plotter.camera = self.camera.copy()
 
-    def add_image(self, image_path):
-
-        """ add a image to the pyqt frame """
-        image_source = np.array(PIL.Image.open(image_path))
-        
+    def add_image(self, image_source):
         dim = image_source.shape
-        h, w = dim[0], dim[1]
-        channel = 1 if len(dim) == 2 else dim[2]
+        h, w, channel = dim[0], dim[1], dim[2]
 
         image = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.spacing, origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
@@ -148,27 +141,23 @@ class Interface(MyMainWindow):
         actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
         # Save actor for later
         self.image_actor = actor
+        
+        # get the image scalar
+        image_data = vis.utils.get_2D_actor_scalars(self.image_actor)
+        assert (image_data == image_source).all() or (image_data*255 == image_source).all(), "image_data and image_source should be equal"
 
-        # add remove current image to removeMenu and mirrorMenu
+        # add remove current image to removeMenu
         if 'image' not in self.track_actors_names:
             self.track_actors_names.append('image')
             remove_actor = functools.partial(self.remove_actor, 'image')
             self.removeMenu.addAction('image', remove_actor)
-            mirror_actor = functools.partial(self.mirror_actor, 'image')
-            self.mirrorMenu.addAction('image', mirror_actor)
 
         # reset the camera
         self.reset_camera()
 
-    def add_mask(self, mask_path):
-
-        """ add a mask to the pyqt frame """
-        mask_source = np.array(PIL.Image.open(mask_path))
-        self.mask_data = mask_source
-
+    def add_mask(self, mask_source):
         dim = mask_source.shape
-        h, w = dim[0], dim[1]
-        channel = 1 if len(dim) == 2 else dim[2]
+        h, w, channel = dim[0], dim[1], dim[2]
         
         mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.spacing, origin=(0.0, 0.0, 0.0))
         mask.point_data["values"] = mask_source.reshape((w * h, channel)) # order = 'C
@@ -180,13 +169,15 @@ class Interface(MyMainWindow):
         # Save actor for later
         self.mask_actor = actor
 
-        # add remove current image to removeMenu and mirrorMenu
+        # get the image scalar
+        mask_data = vis.utils.get_2D_actor_scalars(self.mask_actor)
+        assert (mask_data == mask_source).all() or (mask_data*255 == mask_source).all(), "mask_data and mask_source should be equal"
+
+        # add remove current image to removeMenu
         if 'mask' not in self.track_actors_names:
             self.track_actors_names.append('mask')
             remove_actor = functools.partial(self.remove_actor, 'mask')
             self.removeMenu.addAction('mask', remove_actor)
-            mirror_actor = functools.partial(self.mirror_actor, 'mask')
-            self.mirrorMenu.addAction('mask', mirror_actor)
 
         # reset the camera
         self.reset_camera()
@@ -235,13 +226,11 @@ class Interface(MyMainWindow):
 
         self.reset_camera()
 
-        # add remove current mesh to removeMenu and mirrorMenu
+        # add remove current mesh to removeMenu
         if mesh_name not in self.track_actors_names:
             self.track_actors_names.append(mesh_name)
             remove_actor = functools.partial(self.remove_actor, mesh_name)
             self.removeMenu.addAction(mesh_name, remove_actor)
-            mirror_actor = functools.partial(self.mirror_actor, mesh_name)
-            self.mirrorMenu.addAction(mesh_name, mirror_actor)
 
     def toggle_image_opacity(self, *args, up):
         if up:
@@ -411,8 +400,12 @@ class Interface(MyMainWindow):
             return 0
 
     def epnp_mask(self, nocs_method):
-        if self.mask_data is not None:
-            if len(self.mask_data.shape) == 2:
+        if self.mask_actor is not None:
+            mask_data = vis.utils.get_2D_actor_scalars(self.mask_actor)
+            if np.max(mask_data) > 1: mask_data = mask_data / 255
+
+            # binary mask
+            if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
                 if self.reference is not None:
                     colors = self.mesh_polydata[self.reference].point_data.active_scalars
                     if colors is None or (np.all(colors == colors[0])):
@@ -422,13 +415,11 @@ class Interface(MyMainWindow):
                     nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     gt_pose = self.mesh_actors[self.reference].user_matrix
                     mesh = self.mesh_raw[self.reference]
-                else:        
-                    QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok)
-                    return 0
-                seg_mask = np.expand_dims(self.mask_data, axis=-1)
-                color_mask = (color_mask * seg_mask).astype(np.uint8)
+                else: QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok); return 0
+                color_mask = (color_mask * mask_data).astype(np.uint8)
+            # color mask
             else:
-                color_mask = self.mask_data
+                color_mask = mask_data
                 if np.sum(color_mask) != 0:
                     unique, counts = np.unique(color_mask, return_counts=True)
                     digit_counts = dict(zip(unique, counts))
@@ -440,7 +431,7 @@ class Interface(MyMainWindow):
                         id = pathlib.Path(self.mask_path).stem.split('_')[0].split('.')[1]
                         #TODO: hard coded, and needed to be updated in the future
                         mesh_path = pathlib.Path(self.mask_path).stem.split('_')[0] + '_video_trim' 
-                        mesh = vis.utils.load_trimesh(pathlib.Path(self.mesh_dir / mesh_path / "mesh" / f"{id}_right_ossicles_processed.mesh"))
+                        mesh = vis.utils.load_trimesh(pathlib.Path(self.mesh_dir / mesh_path / "mesh" / "processed_meshes" / f"{id}_right_ossicles_processed.mesh"))
                     else:
                         QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QMessageBox.Ok, QMessageBox.Ok)
                         return 0
