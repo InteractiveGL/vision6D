@@ -356,17 +356,40 @@ def latLon2xyz(m,lat,lonf,msk,gx,gy):
     return np.min(xyz).pnt
 
 #* interface related functions
-def get_actor_scalars(actor):
+def get_image_mask_actor_scalars(actor):
     input = actor.GetMapper().GetInput()
     shape = input.GetDimensions()[::-1]
     point_data = input.GetPointData().GetScalars()
     point_array = vtknp.vtk_to_numpy(point_data)
     if len(point_array.shape) == 1: point_array = point_array.reshape(*point_array.shape, 1)
-    data = point_array.reshape(*shape[1:], point_array.shape[-1])
-    return data
+    scalars = point_array.reshape(*shape[1:], point_array.shape[-1])
+    return scalars
 
-def get_actor_vertices(actor):
+def get_mesh_actor_vertices_faces(actor):
     input = actor.GetMapper().GetInput()
-    data = input.GetPoints().GetData()
-    vertices = vtknp.vtk_to_numpy(data)
-    return vertices
+    points = input.GetPoints().GetData()
+    cells = input.GetPolys().GetData()
+    vertices = vtknp.vtk_to_numpy(points)
+    """
+    # popular presentation
+    Triangle 1: (0, 1, 2)
+    Triangle 2: (3, 4, 5)
+    Triangle 3: (6, 7, 8)
+    Triangle 4: (9, 10, 11)
+
+    # When PyVista converts this mesh into a vtkPolyData object, the faces are represented as a list of vertex indices and the number of vertices in each face:
+    Face 1: (3, 0, 1, 2)
+    Face 2: (3, 3, 4, 5)
+    Face 3: (3, 6, 7, 8)
+    Face 4: (3, 9, 10, 11)
+    """
+    faces = vtknp.vtk_to_numpy(cells).reshape((-1, 4))
+    faces = faces[:, 1:] # trim the first element in each row
+    return vertices, faces
+
+def get_mesh_actor_scalars(actor):
+    input = actor.GetMapper().GetInput()
+    point_data = input.GetPointData()
+    scalars = point_data.GetScalars()
+    if scalars is not None: scalars = vtknp.vtk_to_numpy(scalars)
+    return scalars

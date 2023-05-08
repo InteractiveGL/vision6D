@@ -1875,3 +1875,6 @@ elif (curr_vertices == vis.utils.transform_vertices(self.original_vertices[actor
 self.mirror_x = True
 self.mirror_y = True
 print("hhh")
+
+self.mesh_polydata[self.reference].point_data.active_scalars
+mesh_data.point_data.active_scalars

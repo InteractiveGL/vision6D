@@ -46,8 +46,6 @@ class Interface(MyMainWindow):
         self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
-        self.mesh_raw = {}
-        self.mesh_polydata = {}
         
         self.track_actors_names = []
         self.undo_poses = []
@@ -139,7 +137,7 @@ class Interface(MyMainWindow):
         self.image_actor = actor
         
         # get the image scalar
-        image_data = vis.utils.get_actor_scalars(self.image_actor)
+        image_data = vis.utils.get_image_mask_actor_scalars(self.image_actor)
         assert (image_data == image_source).all() or (image_data*255 == image_source).all(), "image_data and image_source should be equal"
 
         # add remove current image to removeMenu
@@ -166,7 +164,7 @@ class Interface(MyMainWindow):
         self.mask_actor = actor
 
         # get the image scalar
-        mask_data = vis.utils.get_actor_scalars(self.mask_actor)
+        mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
         assert (mask_data == mask_source).all() or (mask_data*255 == mask_source).all(), "mask_data and mask_source should be equal"
 
         # add remove current image to removeMenu
@@ -196,21 +194,17 @@ class Interface(MyMainWindow):
             elif '.ply' in str(mesh_source): mesh_source = pv.read(mesh_source)
 
         if isinstance(mesh_source, trimesh.Trimesh):
-            self.mesh_raw[mesh_name] = mesh_source
             assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
             mesh_data = pv.wrap(mesh_source)
             flag = True
 
         if isinstance(mesh_source, pv.PolyData):
-            self.mesh_raw[mesh_name] = mesh_source
             mesh_data = mesh_source
             flag = True
 
         if not flag:
             QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
-
-        self.mesh_polydata[mesh_name] = mesh_data
 
         mesh = self.plotter.add_mesh(mesh_data, opacity=self.surface_opacity, name=mesh_name)
 
@@ -219,7 +213,10 @@ class Interface(MyMainWindow):
                 
         # Add and save the actor
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-        
+
+        actor_vertices, actor_faces = vis.utils.get_mesh_actor_vertices_faces(actor)
+        assert (actor_vertices == mesh_source.vertices).all(), "vertices should be the same"
+        assert (actor_faces == mesh_source.faces).all(), "faces should be the same"
         assert actor.name == mesh_name, "actor's name should equal to mesh_name"
         
         self.mesh_actors[mesh_name] = actor
@@ -316,18 +313,26 @@ class Interface(MyMainWindow):
 
     def set_color(self, nocs_color):
         self.nocs_color = nocs_color
-        if len(self.mesh_polydata) != 0:
-            for mesh_name, mesh_data in self.mesh_polydata.items():
+        if len(self.mesh_actors) != 0:
+            for mesh_name, mesh_actor in self.mesh_actors.items():
+
+                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
+
                 # get the corresponding color
-                colors = vis.utils.color_mesh(mesh_data.points, nocs=self.nocs_color)
-                if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
-                assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+                colors = vis.utils.color_mesh(vertices, nocs=self.nocs_color)
+                if colors.shape != vertices.shape: colors = np.ones((len(vertices), 3)) * 0.5
+                assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
                 
                 # color the mesh and actor
+                mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
                 mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
                 transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
                 mesh.user_matrix = transformation_matrix
                 actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+
+                actor_colors = vis.utils.get_mesh_actor_scalars(actor)
+                assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
+
                 assert actor.name == mesh_name, "actor's name should equal to mesh_name"
                 self.mesh_actors[mesh_name] = actor
         else:
@@ -376,11 +381,11 @@ class Interface(MyMainWindow):
 
     def epnp_mesh(self):
         if self.reference is not None:
-            colors = self.mesh_polydata[self.reference].point_data.active_scalars
+            colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
             if colors is None or (np.all(colors == colors[0])):
                 QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
                 return 0
-            color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False)
+            color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
             gt_pose = self.mesh_actors[self.reference].user_matrix
 
             if np.sum(color_mask) == 0:
@@ -388,8 +393,9 @@ class Interface(MyMainWindow):
                 return 0
                 
             if self.nocs_color:
-                
-                predicted_pose = self.nocs_epnp(color_mask, self.mesh_raw[self.reference])
+                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+                mesh = trimesh.Trimesh(vertices, faces, process=False)
+                predicted_pose = self.nocs_epnp(color_mask, mesh)
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
             else:
@@ -401,20 +407,21 @@ class Interface(MyMainWindow):
 
     def epnp_mask(self, nocs_method):
         if self.mask_actor is not None:
-            mask_data = vis.utils.get_actor_scalars(self.mask_actor)
+            mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
             if np.max(mask_data) > 1: mask_data = mask_data / 255
 
             # binary mask
             if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
                 if self.reference is not None:
-                    colors = self.mesh_polydata[self.reference].point_data.active_scalars
+                    colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
                     if colors is None or (np.all(colors == colors[0])):
                         QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
                         return 0
-                    color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False)
+                    color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
                     nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     gt_pose = self.mesh_actors[self.reference].user_matrix
-                    mesh = self.mesh_raw[self.reference]
+                    vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+                    mesh = trimesh.Trimesh(vertices, faces, process=False)
                 else: QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok); return 0
                 color_mask = (color_mask * mask_data).astype(np.uint8)
             # color mask

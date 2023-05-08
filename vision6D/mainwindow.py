@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import functools
 import numpy as np
+import trimesh
 import copy
 import PIL
 import ast
@@ -287,7 +288,7 @@ class MyMainWindow(MainWindow):
             if ok: 
                 self.meshdict[mesh_name] = self.mesh_path
                 mesh_source = vis.utils.load_trimesh(self.mesh_path)
-                
+
                 transformation_matrix = self.transformation_matrix
                 if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
@@ -314,7 +315,7 @@ class MyMainWindow(MainWindow):
         if self.image_actor is not None:
             original_image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(original_image_data.shape) == 2: original_image_data = original_image_data[..., None]
-            curr_image_data = vis.utils.get_actor_scalars(self.image_actor)
+            curr_image_data = vis.utils.get_image_mask_actor_scalars(self.image_actor)
             if mirror_x: curr_image_data = curr_image_data[:, ::-1, :]
             if mirror_y: curr_image_data = curr_image_data[::-1, :, :]
             if (curr_image_data == original_image_data).all(): 
@@ -336,7 +337,7 @@ class MyMainWindow(MainWindow):
 
         if self.mask_actor is not None:
             #^ mirror the mask actor
-            curr_mask_data = vis.utils.get_actor_scalars(self.mask_actor)
+            curr_mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
             if mirror_x: curr_mask_data = curr_mask_data[:, ::-1, :]
             if mirror_y: curr_mask_data = curr_mask_data[::-1, :, :]
             self.add_mask(curr_mask_data)
@@ -363,11 +364,8 @@ class MyMainWindow(MainWindow):
         else: 
             actor = self.mesh_actors[name]
              # remove the item from the mesh dictionary
-            del self.mesh_raw[name]
-            del self.mesh_polydata[name]
             del self.mesh_actors[name]
             if len(self.mesh_actors) == 0:
-                assert (len(self.mesh_polydata) == 0) and (len(self.mesh_raw) == 0), "self.mesh_polydata and self.mesh_raw should be empty when self.mesh_actors are empty"
                 self.mesh_path = None
                 self.pose_path = None
                 self.meshdict = {}
@@ -411,8 +409,6 @@ class MyMainWindow(MainWindow):
         self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
-        self.mesh_raw = {}
-        self.mesh_polydata = {}
         self.undo_poses = []
         self.track_actors_names = []
 
@@ -469,7 +465,7 @@ class MyMainWindow(MainWindow):
         rendered_image.save(output_path)
         QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
 
-    def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True):
+    def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True, save_render=True):
 
         if self.reference is not None: transformation_matrix = self.mesh_actors[self.reference].user_matrix
         else: QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok); return 0
@@ -498,10 +494,13 @@ class MyMainWindow(MainWindow):
             
         if render_all_meshes:
             # Render the targeting objects
-            for mesh_name, mesh_data in self.mesh_polydata.items():
-                colors = mesh_data.point_data.active_scalars
-                if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
-                assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+            for mesh_name, mesh_actor in self.mesh_actors.items():
+                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
+                colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
+                if colors is None: colors = np.ones((len(vertices), 3)) * 0.5
+                assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+                
+                mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
                 mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
                 mesh.user_matrix = transformation_matrix
 
@@ -516,10 +515,14 @@ class MyMainWindow(MainWindow):
             if msg: QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
         else:
             mesh_name = self.reference
-            mesh_data = self.mesh_polydata[mesh_name]
-            colors = mesh_data.point_data.active_scalars
-            if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
-            assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+            mesh_actor = self.mesh_actors[mesh_name]
+
+            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
+            colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
+            if colors is None: colors = np.ones((len(vertices), 3)) * 0.5
+            assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+            
+            mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
             mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             mesh.user_matrix = transformation_matrix
             self.render.camera = camera
@@ -527,9 +530,10 @@ class MyMainWindow(MainWindow):
 
             # obtain the rendered image
             image = self.render.last_image
-            output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
-            rendered_image = PIL.Image.fromarray(image)
-            rendered_image.save(output_path)
+            if save_render:
+                output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
+                rendered_image = PIL.Image.fromarray(image)
+                rendered_image.save(output_path)
             if msg: QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
 
             return image
@@ -575,10 +579,13 @@ class MyMainWindow(MainWindow):
             output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
         
         # Render the targeting objects
-        for mesh_name, mesh_data in self.mesh_polydata.items():
-            colors = mesh_data.point_data.active_scalars
-            if colors is None: colors = np.ones((len(mesh_data.points), 3)) * 0.5
-            assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+        for mesh_name, mesh_actor in self.mesh_actors.items():
+            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
+            colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
+            if colors is None: colors = np.ones((len(vertices), 3)) * 0.5
+            assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+           
+            mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
             mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             mesh.user_matrix = transformation_matrix
 
