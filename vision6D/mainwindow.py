@@ -301,10 +301,11 @@ class MyMainWindow(MainWindow):
     def add_pose_file(self):
         self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
         if self.pose_path != '': 
-            self.transformation_matrix = np.load(self.pose_path)
-            if self.mirror_x: self.transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-            if self.mirror_y: self.transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
-            self.add_pose()
+            transformation_matrix = np.load(self.pose_path)
+            self.transformation_matrix = transformation_matrix
+            if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            self.add_pose(matrix=transformation_matrix)
     
     def mirror_actors(self, direction):
 
