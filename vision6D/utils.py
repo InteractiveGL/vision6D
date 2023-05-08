@@ -17,8 +17,6 @@ import vtk.util.numpy_support as vtknp
 import json
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
-
-# Create logger
 logger = logging.getLogger("vision6D")
 
 def fread(fid, _len, _type):
@@ -355,7 +353,6 @@ def latLon2xyz(m,lat,lonf,msk,gx,gy):
                 xyz.append(xyznode(m.vertices[f[1]] + e * (m.vertices[f[2]] - m.vertices[f[1]]),d3))
     return np.min(xyz).pnt
 
-#* interface related functions
 def get_image_mask_actor_scalars(actor):
     input = actor.GetMapper().GetInput()
     shape = input.GetDimensions()[::-1]
