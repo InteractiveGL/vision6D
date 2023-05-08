@@ -1878,3 +1878,31 @@ print("hhh")
 
 self.mesh_polydata[self.reference].point_data.active_scalars
 mesh_data.point_data.active_scalars
+
+
+"""
+if len(self.mesh_actors) != 0:
+    for mesh_name, mesh_actor in self.mesh_actors.items():
+
+        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
+
+        # get the corresponding color
+        colors = vis.utils.color_mesh(vertices, nocs=self.nocs_color)
+        if colors.shape != vertices.shape: colors = np.ones((len(vertices), 3)) * 0.5
+        assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+        
+        # color the mesh and actor
+        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+        mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
+        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
+        mesh.user_matrix = transformation_matrix
+        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+
+        actor_colors = vis.utils.get_mesh_actor_scalars(actor)
+        assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
+
+        assert actor.name == mesh_name, "actor's name should equal to mesh_name"
+        self.mesh_actors[mesh_name] = actor
+else:
+    QMessageBox.warning(self, 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
+"""

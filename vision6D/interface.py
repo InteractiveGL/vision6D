@@ -50,7 +50,10 @@ class Interface(MyMainWindow):
         self.track_actors_names = []
         self.undo_poses = []
         self.latlon = vis.utils.load_latitude_longitude()
-        
+
+        self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
+        self.used_colors = []
+
         # default opacity for image and surface
         self.set_image_opacity(0.99)
         self.set_mask_opacity(0.5)
@@ -206,7 +209,15 @@ class Interface(MyMainWindow):
             QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
-        mesh = self.plotter.add_mesh(mesh_data, opacity=self.surface_opacity, name=mesh_name)
+        # assign a color to every mesh
+        if len(self.colors) != 0: mesh_color = self.colors.pop(0)
+        else:
+            self.colors = self.used_colors
+            mesh_color = self.colors.pop(0)
+            self.used_colors = []
+
+        self.used_colors.append(mesh_color)
+        mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.surface_opacity, name=mesh_name)
 
         mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
         self.initial_pose = mesh.user_matrix
@@ -313,30 +324,24 @@ class Interface(MyMainWindow):
 
     def set_color(self, nocs_color):
         self.nocs_color = nocs_color
-        if len(self.mesh_actors) != 0:
-            for mesh_name, mesh_actor in self.mesh_actors.items():
-
-                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
-
-                # get the corresponding color
-                colors = vis.utils.color_mesh(vertices, nocs=self.nocs_color)
-                if colors.shape != vertices.shape: colors = np.ones((len(vertices), 3)) * 0.5
-                assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-                
-                # color the mesh and actor
-                mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-                mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
-                transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
-                mesh.user_matrix = transformation_matrix
-                actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-
-                actor_colors = vis.utils.get_mesh_actor_scalars(actor)
-                assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
-
-                assert actor.name == mesh_name, "actor's name should equal to mesh_name"
-                self.mesh_actors[mesh_name] = actor
+        if self.reference is not None:
+            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+            # get the corresponding color
+            colors = vis.utils.color_mesh(vertices, nocs=self.nocs_color)
+            if colors.shape != vertices.shape: QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QMessageBox.Ok, QMessageBox.Ok); return 0
+            assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+            # color the mesh and actor
+            mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=self.reference)
+            transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[self.reference].GetMatrix())
+            mesh.user_matrix = transformation_matrix
+            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=self.reference)
+            actor_colors = vis.utils.get_mesh_actor_scalars(actor)
+            assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
+            assert actor.name == self.reference, "actor's name should equal to self.reference"
+            self.mesh_actors[self.reference] = actor
         else:
-            QMessageBox.warning(self, 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
+            QMessageBox.warning(self, 'vision6D', "Need to set a reference mesh to color first!", QMessageBox.Ok, QMessageBox.Ok)
 
     def nocs_epnp(self, color_mask, mesh):
         vertices = mesh.vertices

@@ -373,6 +373,8 @@ class MyMainWindow(MainWindow):
                 self.reference = None
                 self.transformation_matrix = np.eye(4)
                 self.undo_poses = []
+                self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
+                self.used_colors = []
 
         self.plotter.remove_actor(actor)
         actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
@@ -412,6 +414,9 @@ class MyMainWindow(MainWindow):
         self.mesh_actors = {}
         self.undo_poses = []
         self.track_actors_names = []
+
+        self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
+        self.used_colors = []
 
     def export_image_plot(self):
 
