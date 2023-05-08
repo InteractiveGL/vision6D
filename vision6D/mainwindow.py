@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import functools
 import numpy as np
+import copy
 import PIL
 import ast
 
@@ -86,6 +87,7 @@ class MyMainWindow(MainWindow):
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
+        self.pose_path = None
         self.meshdict = {}
         
         os.makedirs(vis.config.GITROOT / "output", exist_ok=True)
@@ -125,14 +127,13 @@ class MyMainWindow(MainWindow):
         CameraMenu.addAction('Zoom In (x)', self.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
 
-        # add mirror related actions
+        # add mirror actors related actions
         mirrorMenu = mainMenu.addMenu('Mirror')
-        mirror_x = functools.partial(self.mirror, direction='x')
+        mirror_x = functools.partial(self.mirror_actors, direction='x')
         mirrorMenu.addAction('Mirror X axis', mirror_x)
-        mirror_y = functools.partial(self.mirror, direction='y')
+        mirror_y = functools.partial(self.mirror_actors, direction='y')
         mirrorMenu.addAction('Mirror Y axis', mirror_y)
-        mirror_reset = functools.partial(self.mirror, reset=True)
-        mirrorMenu.addAction('Reset Mirror', mirror_reset)
+        # mirrorMenu.addAction('Reset', self.reset_mirror)
         
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Register')
@@ -259,6 +260,8 @@ class MyMainWindow(MainWindow):
         if self.image_path != '': 
             image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(image_source.shape) == 2: image_source = image_source[..., None]
+            if self.mirror_x: image_source = image_source[:, ::-1, :]
+            if self.mirror_y: image_source = image_source[::-1, :, :]
             self.add_image(image_source)
             
     def add_mask_file(self):
@@ -269,6 +272,8 @@ class MyMainWindow(MainWindow):
         if self.mask_path != '':
             mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
             if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
+            if self.mirror_x: mask_source = mask_source[:, ::-1, :]
+            if self.mirror_y: mask_source = mask_source[::-1, :, :]
             self.add_mask(mask_source)
 
     def add_mesh_file(self):
@@ -281,30 +286,69 @@ class MyMainWindow(MainWindow):
             mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name', text='ossicles')
             if ok: 
                 self.meshdict[mesh_name] = self.mesh_path
-                self.add_mesh(mesh_name, self.mesh_path)
+                mesh_source = vis.utils.load_trimesh(self.mesh_path)
+                
+                transformation_matrix = self.transformation_matrix
+                if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
+                
+                self.add_mesh(mesh_name, mesh_source, transformation_matrix)
                 if self.reference is None: 
                     reply = QMessageBox.question(self,"vision6D", "Do you want to make this mesh as a reference?", QMessageBox.Yes, QMessageBox.No)
                     if reply == QMessageBox.Yes: self.reference = mesh_name
       
     def add_pose_file(self):
-        pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
-        if pose_path != '': self.set_transformation_matrix(matrix=np.load(pose_path))
+        self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
+        if self.pose_path != '': 
+            self.transformation_matrix = np.load(self.pose_path)
+            if self.mirror_x: self.transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+            if self.mirror_y: self.transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+            self.add_pose()
     
-    def mirror(self, direction=None, reset=False):
+    def mirror_actors(self, direction):
+
+        if direction == 'x': mirror_x = True; mirror_y = False
+        elif direction == 'y': mirror_x = False; mirror_y = True
+
+        #^ mirror the image actor
         if self.image_actor is not None:
-            image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
-            if len(image_data.shape) == 2: image_data = image_data[..., None]
-            if not reset:
-                if direction == 'x': image_data = image_data[:, ::-1, :]  
-                elif direction == 'y': image_data = image_data[::-1, :, :]
-            self.add_image(image_data)
+            original_image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+            if len(original_image_data.shape) == 2: original_image_data = original_image_data[..., None]
+            curr_image_data = vis.utils.get_actor_scalars(self.image_actor)
+            if mirror_x: curr_image_data = curr_image_data[:, ::-1, :]
+            if mirror_y: curr_image_data = curr_image_data[::-1, :, :]
+            if (curr_image_data == original_image_data).all(): 
+                self.mirror_x = False
+                self.mirror_y = False
+            elif (curr_image_data == original_image_data[:, ::-1, :]).all(): 
+                self.mirror_x = True
+                self.mirror_y = False
+            elif (curr_image_data == original_image_data[::-1, :, :]).all():
+                self.mirror_x = False
+                self.mirror_y = True
+            elif (curr_image_data == original_image_data[:, ::-1, :][::-1, :, :]).all():
+                self.mirror_x = True
+                self.mirror_y = True
+            self.add_image(curr_image_data)
+        else:
+            QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+
         if self.mask_actor is not None:
-            mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
-            if len(mask_data.shape) == 2: mask_data = mask_data[..., None]
-            if not reset:
-                if direction == 'x': mask_data = mask_data[:, ::-1, :]
-                elif direction == 'y': mask_data = mask_data[::-1, :, :]
-            self.add_mask(mask_data)
+            #^ mirror the mask actor
+            curr_mask_data = vis.utils.get_actor_scalars(self.mask_actor)
+            if mirror_x: curr_mask_data = curr_mask_data[:, ::-1, :]
+            if mirror_y: curr_mask_data = curr_mask_data[::-1, :, :]
+            self.add_mask(curr_mask_data)
+
+        #^ mirror the mesh actors
+        if len(self.mesh_actors) != 0:
+            for actor_name, actor in self.mesh_actors.items():
+                transformation_matrix = self.mesh_actors[actor_name].user_matrix
+                if mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                if mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                actor.user_matrix = transformation_matrix
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def remove_actor(self, name):
         if self.reference == name: self.reference = None
@@ -325,6 +369,7 @@ class MyMainWindow(MainWindow):
             if len(self.mesh_actors) == 0:
                 assert (len(self.mesh_polydata) == 0) and (len(self.mesh_raw) == 0), "self.mesh_polydata and self.mesh_raw should be empty when self.mesh_actors are empty"
                 self.mesh_path = None
+                self.pose_path = None
                 self.meshdict = {}
                 self.reference = None
                 self.transformation_matrix = np.eye(4)
@@ -355,7 +400,11 @@ class MyMainWindow(MainWindow):
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
+        self.pose_path = None
         self.meshdict = {}
+
+        self.mirror_x = False
+        self.mirror_y = False
 
         self.reference = None
         self.transformation_matrix = np.eye(4)
@@ -387,8 +436,9 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = self.render.last_image
-        output_name = (pathlib.Path(self.image_path).stem + '.png')
-        output_path = vis.config.GITROOT / "output" / "image" / output_name
+        mirror = np.any((self.mirror_x, self.mirror_y))
+        output_name = pathlib.Path(self.image_path).stem if not mirror else pathlib.Path(self.image_path).stem + "_mirrored"
+        output_path = vis.config.GITROOT / "output" / "image" / (output_name + '.png')
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
         QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
@@ -412,19 +462,17 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = self.render.last_image
-        output_name = (pathlib.Path(self.mask_path).stem + '.png')
-        output_path = vis.config.GITROOT / "output" / "mask" / output_name
+        mirror = np.any((self.mirror_x, self.mirror_y))
+        output_name = pathlib.Path(self.mask_path).stem if not mirror else pathlib.Path(self.mask_path).stem + "_mirrored"
+        output_path = vis.config.GITROOT / "output" / "mask" / (output_name + '.png')
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
         QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
 
     def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True):
 
-        if self.reference is not None: 
-            transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        else:
-            QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
-            return 0
+        if self.reference is not None: transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        else: QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok); return 0
 
         if reply_reset_camera is None and reply_render_mesh is None and reply_export_surface is None:
             reply_reset_camera = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
@@ -441,11 +489,12 @@ class MyMainWindow(MainWindow):
         self.render.clear()
         reference_name = pathlib.Path(self.meshdict[self.reference]).stem
 
+        mirror = np.any((self.mirror_x, self.mirror_y))
         if self.image_actor is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = reference_name + f'_render_{id}.png'
+            output_name = reference_name + f'_render_{id}' if not mirror else reference_name + f'_mirrored_render_{id}'
         else:
-            output_name = reference_name + '_render.png'
+            output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
             
         if render_all_meshes:
             # Render the targeting objects
@@ -461,7 +510,7 @@ class MyMainWindow(MainWindow):
 
             # obtain the rendered image
             image = self.render.last_image
-            output_path = vis.config.GITROOT / "output" / "mesh" / output_name
+            output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             if msg: QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
@@ -478,7 +527,7 @@ class MyMainWindow(MainWindow):
 
             # obtain the rendered image
             image = self.render.last_image
-            output_path = vis.config.GITROOT / "output" / "mesh" / output_name
+            output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             if msg: QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
@@ -518,11 +567,12 @@ class MyMainWindow(MainWindow):
         self.render.clear()
         reference_name = pathlib.Path(self.meshdict[self.reference]).stem
 
+        mirror = np.any((self.mirror_x, self.mirror_y))
         if self.image_actor is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = reference_name + f'_render_{id}.png'
+            output_name = reference_name + f'_render_{id}' if not mirror else reference_name + f'_mirrored_render_{id}'
         else:
-            output_name = reference_name + '_render.png'
+            output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
         
         # Render the targeting objects
         for mesh_name, mesh_data in self.mesh_polydata.items():
@@ -538,7 +588,7 @@ class MyMainWindow(MainWindow):
         # obtain the rendered image
         image = self.render.last_image
         image = (image * segmask).astype(np.uint8)
-        output_path = vis.config.GITROOT / "output" / "segmesh" / output_name
+        output_path = vis.config.GITROOT / "output" / "segmesh" / (output_name + ".png")
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
         QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
@@ -554,11 +604,12 @@ class MyMainWindow(MainWindow):
 
         mesh_path_name = pathlib.Path(self.mesh_path).stem.split('_')
         
+        mirror = np.any((self.mirror_x, self.mirror_y))
         if self.image_actor is not None: 
             id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = "_".join(mesh_path_name[:2]) + f'_gt_pose_{id}.npy'
-        else: output_name = "_".join(mesh_path_name[:2]) + '_gt_pose.npy'
+            output_name = "_".join(mesh_path_name[:2]) + f'_gt_pose_{id}' if not mirror else "_".join(mesh_path_name[:2]) + f'_mirrored_gt_pose_{id}'
+        else: output_name = "_".join(mesh_path_name[:2]) + '_gt_pose' if not mirror else "_".join(mesh_path_name[:2]) + f'_mirrored_gt_pose'
 
-        output_path = vis.config.GITROOT / "output" / "gt_poses" / output_name
+        output_path = vis.config.GITROOT / "output" / "gt_poses" / (output_name + ".npy")
         np.save(output_path, self.transformation_matrix)
         QMessageBox.about(self,"vision6D", f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")

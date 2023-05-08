@@ -1784,3 +1784,94 @@ if not '_mirror' in self.reference else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [
 
 if len(point_array.shape) == 1: 
     point_array = point_array.reshape(*point_array.shape, 1)
+
+# setattr(self, f"{mesh_name}_mesh", mesh_source)
+            
+# if self.mask_actor is not None:
+    
+# elif self.mask_actor is not None:
+#     if direction == 'x': self.mirror_x = True
+#     elif direction == 'y': self.mirror_y = True
+# elif len(self.mesh_actors) != 0:
+#     if direction == 'x': self.mirror_x = True
+#     elif direction == 'y': self.mirror_y = True
+
+
+# if len(self.mesh_actors) != 0:
+#     # if self.reference is not None:
+#     #     transformation_matrix = self.mesh_actors[self.reference].user_matrix
+#     #     if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#     #     if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#     for actor_name, actor in self.mesh_actors.items():
+#         original_vertices = vis.utils.load_trimesh(self.meshdict[actor_name]).vertices
+#         transformation_matrix = self.mesh_actors[actor_name].user_matrix
+#         if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#         if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#         actor.user_matrix = transformation_matrix
+#         self.plotter.add_actor(actor, pickable=True, name=actor_name)
+#         mirrored_vertices = vis.utils.transform_vertices(vis.utils.get_actor_vertices(actor), actor.user_matrix)
+#         if (mirrored_vertices == original_vertices).all():
+#             self.mirror_x = False
+#             self.mirror_y = False
+
+#     print("hhh")
+    # else:
+    #     QMessageBox.warning(self, 'vision6D', "Need to set a reference first!", QMessageBox.Ok, QMessageBox.Ok)
+    #     return 0
+
+
+    # if self.reference is not None:
+    #     transformation_matrix = self.mesh_actors[self.reference].user_matrix
+    #     if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+    #     if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+    #     for actor_name, actor in self.mesh_actors.items():
+    #         actor.user_matrix = transformation_matrix
+    #         self.plotter.add_actor(actor, pickable=True, name=actor_name)
+    
+
+# self.reset_camera()
+
+"""
+def reset_mirror(self):
+    self.mirror_x = False
+    self.mirror_y = False
+
+    if self.image_actor is not None:
+        image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+        if len(image_data.shape) == 2: image_data = image_data[..., None]
+        self.add_image(image_data)
+    if self.mask_actor is not None:
+        mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
+        if len(mask_data.shape) == 2: mask_data = mask_data[..., None]
+        self.add_mask(mask_data)
+
+    if len(self.mesh_actors) != 0:
+        matrix = np.load(self.pose_path)
+        self.add_pose(matrix)
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = self.transformation_matrix
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+"""
+
+# mirror = np.any((self.mirror_x, self.mirror_y))
+# if mirror:
+#     if len(self.mesh_actors) != 0:
+
+# mirror = np.any((self.mirror_x, self.mirror_y))
+# if mirror:
+
+actor_vertices = vis.utils.get_actor_vertices(actor)
+curr_vertices = vis.utils.transform_vertices(actor_vertices, actor.user_matrix)
+if (curr_vertices == self.original_vertices[actor_name]).all():
+self.mirror_x = False
+self.mirror_y = False
+elif (curr_vertices == vis.utils.transform_vertices(self.original_vertices[actor_name], np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))).all():
+self.mirror_x = True
+self.mirror_y = False
+elif (curr_vertices == vis.utils.transform_vertices(self.original_vertices[actor_name], np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))).all():
+self.mirror_x = False
+self.mirror_y = True
+elif (curr_vertices == vis.utils.transform_vertices(self.original_vertices[actor_name], np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))).all():
+self.mirror_x = True
+self.mirror_y = True
+print("hhh")

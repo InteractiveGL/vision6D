@@ -40,6 +40,9 @@ class Interface(MyMainWindow):
         self.reference = None
         self.transformation_matrix = np.eye(4)
 
+        self.mirror_x = False
+        self.mirror_y = False
+
         self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
@@ -60,13 +63,6 @@ class Interface(MyMainWindow):
     def set_reference(self, name:str):     
         assert name in self.meshdict.keys(), "reference name is not in the path!"
         self.reference = name
-  
-    def set_transformation_matrix(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
-        if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-        self.transformation_matrix = matrix
-        self.initial_pose = self.transformation_matrix
-        self.reset_gt_pose()
-        self.reset_camera()
 
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
@@ -143,7 +139,7 @@ class Interface(MyMainWindow):
         self.image_actor = actor
         
         # get the image scalar
-        image_data = vis.utils.get_2D_actor_scalars(self.image_actor)
+        image_data = vis.utils.get_actor_scalars(self.image_actor)
         assert (image_data == image_source).all() or (image_data*255 == image_source).all(), "image_data and image_source should be equal"
 
         # add remove current image to removeMenu
@@ -170,7 +166,7 @@ class Interface(MyMainWindow):
         self.mask_actor = actor
 
         # get the image scalar
-        mask_data = vis.utils.get_2D_actor_scalars(self.mask_actor)
+        mask_data = vis.utils.get_actor_scalars(self.mask_actor)
         assert (mask_data == mask_source).all() or (mask_data*255 == mask_source).all(), "mask_data and mask_source should be equal"
 
         # add remove current image to removeMenu
@@ -181,8 +177,14 @@ class Interface(MyMainWindow):
 
         # reset the camera
         self.reset_camera()
+  
+    def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
+        if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1])) if (rot is not None and trans is not None) else None
+        self.initial_pose = matrix if matrix is not None else self.transformation_matrix
+        self.reset_gt_pose()
+        self.reset_camera()
 
-    def add_mesh(self, mesh_name, mesh_source):
+    def add_mesh(self, mesh_name, mesh_source, transformation_matrix = None):
         """ add a mesh to the pyqt frame """
 
         flag = False
@@ -196,13 +198,11 @@ class Interface(MyMainWindow):
         if isinstance(mesh_source, trimesh.Trimesh):
             self.mesh_raw[mesh_name] = mesh_source
             assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
-            # setattr(self, f"{mesh_name}_mesh", mesh_source)
             mesh_data = pv.wrap(mesh_source)
             flag = True
 
         if isinstance(mesh_source, pv.PolyData):
             self.mesh_raw[mesh_name] = mesh_source
-            # setattr(self, f"{mesh_name}_mesh", mesh_source)
             mesh_data = mesh_source
             flag = True
 
@@ -214,7 +214,7 @@ class Interface(MyMainWindow):
 
         mesh = self.plotter.add_mesh(mesh_data, opacity=self.surface_opacity, name=mesh_name)
 
-        mesh.user_matrix = self.transformation_matrix
+        mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
         self.initial_pose = mesh.user_matrix
                 
         # Add and save the actor
@@ -294,7 +294,6 @@ class Interface(MyMainWindow):
     def update_gt_pose(self, *args):
         if self.reference is not None:
             self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            self.transformation_matrix = self.transformation_matrix
             self.initial_pose = self.transformation_matrix
             self.reset_gt_pose()
 
@@ -389,6 +388,7 @@ class Interface(MyMainWindow):
                 return 0
                 
             if self.nocs_color:
+                
                 predicted_pose = self.nocs_epnp(color_mask, self.mesh_raw[self.reference])
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
@@ -401,7 +401,7 @@ class Interface(MyMainWindow):
 
     def epnp_mask(self, nocs_method):
         if self.mask_actor is not None:
-            mask_data = vis.utils.get_2D_actor_scalars(self.mask_actor)
+            mask_data = vis.utils.get_actor_scalars(self.mask_actor)
             if np.max(mask_data) > 1: mask_data = mask_data / 255
 
             # binary mask

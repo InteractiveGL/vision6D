@@ -356,7 +356,7 @@ def latLon2xyz(m,lat,lonf,msk,gx,gy):
     return np.min(xyz).pnt
 
 #* interface related functions
-def get_2D_actor_scalars(actor):
+def get_actor_scalars(actor):
     input = actor.GetMapper().GetInput()
     shape = input.GetDimensions()[::-1]
     point_data = input.GetPointData().GetScalars()
@@ -364,3 +364,9 @@ def get_2D_actor_scalars(actor):
     if len(point_array.shape) == 1: point_array = point_array.reshape(*point_array.shape, 1)
     data = point_array.reshape(*shape[1:], point_array.shape[-1])
     return data
+
+def get_actor_vertices(actor):
+    input = actor.GetMapper().GetInput()
+    data = input.GetPoints().GetData()
+    vertices = vtknp.vtk_to_numpy(data)
+    return vertices
