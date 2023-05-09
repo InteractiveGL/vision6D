@@ -18,31 +18,31 @@ class GUI(MainWindow):
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
 
-        # Create a left menu layout
-        self.menu_widget = QtWidgets.QWidget()
-        self.menu_layout = QtWidgets.QVBoxLayout(self.menu_widget)
+        # Create a left panel layout
+        self.panel_widget = QtWidgets.QWidget()
+        self.panel_layout = QtWidgets.QVBoxLayout(self.panel_widget)
 
-        # Create a top menu bar with a toggle button
-        self.menu_bar = QtWidgets.QMenuBar()
+        # Create a top panel bar with a toggle button
+        self.panel_bar = QtWidgets.QMenuBar()
         self.toggle_action = QtWidgets.QAction("Panel", self)
-        self.toggle_action.triggered.connect(self.toggle_menu)
-        self.menu_bar.addAction(self.toggle_action)
-        self.setMenuBar(self.menu_bar)
+        self.toggle_action.triggered.connect(self.toggle_panel)
+        self.panel_bar.addAction(self.toggle_action)
+        self.setMenuBar(self.panel_bar)
 
-        self.menu_display()
-        self.menu_output()
+        self.panel_display()
+        self.panel_output()
         
         # Set the stretch factor for each section to be equal
-        self.menu_layout.setStretchFactor(self.display, 1)
-        self.menu_layout.setStretchFactor(self.output, 1)
+        self.panel_layout.setStretchFactor(self.display, 1)
+        self.panel_layout.setStretchFactor(self.output, 1)
 
         # Create the plotter
         self.create_plotter()
 
-        # Set up the main layout with the left menu and the render window using QSplitter
+        # Set up the main layout with the left panel and the render window using QSplitter
         self.main_layout = QtWidgets.QHBoxLayout(self.main_widget)
         self.splitter = QtWidgets.QSplitter()
-        self.splitter.addWidget(self.menu_widget)
+        self.splitter.addWidget(self.panel_widget)
         self.splitter.addWidget(self.plotter)
         self.main_layout.addWidget(self.splitter)
 
@@ -56,13 +56,13 @@ class GUI(MainWindow):
             self.plotter.show()
             self.show()
 
-    def toggle_menu(self):
-        if self.menu_widget.isVisible():
-            self.menu_widget.hide()
+    def toggle_panel(self):
+        if self.panel_widget.isVisible():
+            self.panel_widget.hide()
         else:
-            self.menu_widget.show()
+            self.panel_widget.show()
         
-    def menu_display(self):
+    def panel_display(self):
         self.display = QtWidgets.QGroupBox("Actors")
         display_layout = QtWidgets.QVBoxLayout()
         display_layout.setContentsMargins(10, 20, 10, 10)
@@ -137,9 +137,9 @@ class GUI(MainWindow):
         scroll_area.setWidget(button_container)
 
         self.display.setLayout(display_layout)
-        self.menu_layout.addWidget(self.display)
+        self.panel_layout.addWidget(self.display)
 
-    def menu_output(self):
+    def panel_output(self):
         # Add a spacer to the top of the main layout
         
         self.output = QtWidgets.QGroupBox("Logs")
@@ -150,7 +150,7 @@ class GUI(MainWindow):
         self.output_display.setReadOnly(True)
         output_layout.addWidget(self.output_display)
         self.output.setLayout(output_layout)
-        self.menu_layout.addWidget(self.output)
+        self.panel_layout.addWidget(self.output)
         self.output_display.append("This is the new content of the output display.")
 
     def button_clicked(self, text):
