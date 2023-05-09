@@ -15,12 +15,35 @@ import ast
 from PyQt5 import QtWidgets, QtGui
 from pyvistaqt import QtInteractor, MainWindow
 from PyQt5.QtWidgets import QMessageBox, QInputDialog, QFileDialog, QLineEdit, QDialogButtonBox, QFormLayout, QDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPoint
 
 # self defined package import
 import vision6D as vis
 
 np.set_printoptions(suppress=True)
+
+class CustomDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None, on_button_click=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Vision6D - Colors")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint) # Disable the question mark
+
+        button_grid = QtWidgets.QGridLayout()
+        colors = ["nocs", "cyan", "magenta", 
+                "yellow", "lime", "deepskyblue", "latlon", "salmon", 
+                "silver", "aquamarine", "plum", "blueviolet"]
+
+        button_count = 0
+        for i in range(2):
+            for j in range(6):
+                name = f"{colors[button_count]}"
+                button = QtWidgets.QPushButton(name)
+                button.clicked.connect(lambda _, idx=name: on_button_click(str(idx)))
+                button_grid.addWidget(button, j, i)
+                button_count += 1
+
+        self.setLayout(button_grid)
 
 class MultiInputDialog(QDialog):
     def __init__(self, parent=None, placeholder=True, line1=(None, None), line2=(None, None), line3=(None, None)):
@@ -630,10 +653,50 @@ class MyMainWindow(MainWindow):
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_track_actors_names.addButton(button)
 
+    def update_color_button_text(self, text):
+        self.color_button.setText(text)
+
+    def show_color_popup(self):
+        popup = CustomDialog(self, on_button_click=self.update_color_button_text)
+        button_position = self.color_button.mapToGlobal(QPoint(0, 0))
+        popup.move(button_position + QPoint(self.color_button.width(), 0))
+        popup.exec_()
+
     def panel_display(self):
-        self.display = QtWidgets.QGroupBox("Actors")
+        self.display = QtWidgets.QGroupBox("Control Panel")
         display_layout = QtWidgets.QVBoxLayout()
         display_layout.setContentsMargins(10, 20, 10, 10)
+
+        #* Create the top widgets (layout)
+        top_layout = QtWidgets.QHBoxLayout()
+        top_layout.setContentsMargins(0, 10, 0, 10)
+
+        # Create the color dropdown menu (comboBox)
+        self.color_button = QtWidgets.QPushButton("Select Color")
+        self.color_button.clicked.connect(self.show_color_popup)
+        top_layout.addWidget(self.color_button)
+
+        # Create the slider
+        slider = QtWidgets.QSlider(Qt.Horizontal)
+        slider.setMinimum(0.01)
+        slider.setMaximum(9.99)
+        slider.setValue(8)
+        slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        slider.setTickInterval(1)
+        top_layout.addWidget(slider)
+
+        # Create the second button
+        remove_button = QtWidgets.QPushButton("Remove")
+        top_layout.addWidget(remove_button)
+
+        display_layout.addLayout(top_layout)
+
+        #* Create the bottom widgets
+        actor_widget = QtWidgets.QLabel("Actors")
+        display_layout.addWidget(actor_widget)
+
+        # remove_button = QtWidgets.QPushButton("Remove")
+        # display_layout.addWidget(remove_button)
 
         # Create a scroll area for the buttons
         scroll_area = QtWidgets.QScrollArea()
@@ -643,7 +706,7 @@ class MyMainWindow(MainWindow):
         # Create a container widget for the buttons
         button_container = QtWidgets.QWidget()
         self.button_layout = QtWidgets.QVBoxLayout()
-        self.button_layout.setSpacing(0)  # Remove spacing between buttons # button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        self.button_layout.setSpacing(0)  # Remove spacing between buttons
         button_container.setLayout(self.button_layout)
 
         self.button_layout.addStretch()
@@ -656,7 +719,7 @@ class MyMainWindow(MainWindow):
 
     def panel_output(self):
         # Add a spacer to the top of the main layout
-        self.output = QtWidgets.QGroupBox("Logs")
+        self.output = QtWidgets.QGroupBox("Display Panel")
         output_layout = QtWidgets.QVBoxLayout()
         output_layout.setContentsMargins(10, 20, 10, 10)
 
