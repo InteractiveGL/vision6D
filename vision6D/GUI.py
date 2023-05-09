@@ -164,7 +164,6 @@ class MyMainWindow(MainWindow):
         mirrorMenu.addAction('Mirror X axis', mirror_x)
         mirror_y = functools.partial(self.mirror_actors, direction='y')
         mirrorMenu.addAction('Mirror Y axis', mirror_y)
-        # mirrorMenu.addAction('Reset', self.reset_mirror)
         
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Register')
@@ -172,13 +171,6 @@ class MyMainWindow(MainWindow):
         RegisterMenu.addAction('Update GT Pose (l)', self.update_gt_pose)
         RegisterMenu.addAction('Current Pose (t)', self.current_pose)
         RegisterMenu.addAction('Undo Pose (s)', self.undo_pose)
-
-        # Add coloring related actions
-        RegisterMenu = mainMenu.addMenu('Color')
-        set_nocs_color = functools.partial(self.set_color, True)
-        RegisterMenu.addAction('NOCS', set_nocs_color)
-        set_latlon_color = functools.partial(self.set_color, False)
-        RegisterMenu.addAction('LatLon', set_latlon_color)
 
         # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('Run')
@@ -657,20 +649,29 @@ class MyMainWindow(MainWindow):
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_track_actors_names.addButton(button)
 
-    def update_color_button_text(self, text):
+    def update_color_button_text(self, text, popup):
         self.color_button.setText(text)
+        popup.close() # automatically close the popup window
 
     def show_color_popup(self):
-        
         checked_button = self.button_group_track_actors_names.checkedButton()
         if checked_button is None:
             QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
             
-        popup = CustomDialog(self, on_button_click=self.update_color_button_text)
+        popup = CustomDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
         button_position = self.color_button.mapToGlobal(QPoint(0, 0))
         popup.move(button_position + QPoint(self.color_button.width(), 0))
         popup.exec_()
+
+        text = self.color_button.text()
+        if checked_button.text() != "image" and checked_button.text() != "mask":
+            if text == 'nocs': self.set_scalar(True, checked_button.text())
+            elif text == 'latlon': self.set_scalar(False, checked_button.text())
+            else: self.set_color(text, checked_button.text())
+        else:
+            QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
 
     def remove_actors_button(self):
         checked_button = self.button_group_track_actors_names.checkedButton()

@@ -1987,3 +1987,10 @@ if (len(actions_to_remove) != 1):
     return 0
 
 self.removeMenu.removeAction(actions_to_remove[0])
+
+# Add coloring related actions
+RegisterMenu = mainMenu.addMenu('Color')
+set_nocs_color = functools.partial(self.set_color, True)
+RegisterMenu.addAction('NOCS', set_nocs_color)
+set_latlon_color = functools.partial(self.set_color, False)
+RegisterMenu.addAction('LatLon', set_latlon_color)
