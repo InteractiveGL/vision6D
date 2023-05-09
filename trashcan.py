@@ -1979,3 +1979,11 @@ def update_plot(self, input_string):
 #     button.setFixedSize(self.display.size().width(), 100)
 #     button_layout.addWidget(button)
 #     button_group.addButton(button)
+
+actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
+
+if (len(actions_to_remove) != 1):
+    QMessageBox.warning(self, 'vision6D', "The actions to remove should always be 1", QMessageBox.Ok, QMessageBox.Ok)
+    return 0
+
+self.removeMenu.removeAction(actions_to_remove[0])

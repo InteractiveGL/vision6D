@@ -135,7 +135,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
         fileMenu.addAction('Add Pose', self.add_pose_file)
-        self.removeMenu = fileMenu.addMenu("Remove")
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -344,7 +343,8 @@ class MyMainWindow(MainWindow):
                 actor.user_matrix = transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
-    def remove_actor(self, name):
+    def remove_actor(self, button):
+        name = button.text()
         if self.reference == name: self.reference = None
         if name == 'image': 
             actor = self.image_actor
@@ -369,25 +369,29 @@ class MyMainWindow(MainWindow):
                 self.used_colors = []
 
         self.plotter.remove_actor(actor)
-        actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
-
-        if (len(actions_to_remove) != 1):
-            QMessageBox.warning(self, 'vision6D', "The actions to remove should always be 1", QMessageBox.Ok, QMessageBox.Ok)
-            return 0
-        
-        self.removeMenu.removeAction(actions_to_remove[0])
         self.track_actors_names.remove(name)
+        # remove the button from the button group
+        self.button_group_track_actors_names.removeButton(button)
+        # remove the button from the self.button_layout widget
+        self.button_layout.removeWidget(button)
+        # offically delete the button
+        button.deleteLater()
    
     def clear_plot(self):
         
         # Clear out everything in the remove menu
-        for remove_action in self.removeMenu.actions():
-            name = remove_action.text()
+        for button in self.button_group_track_actors_names.buttons():
+            name = button.text()
             if name == 'image': actor = self.image_actor
             elif name == 'mask': actor = self.mask_actor
             else: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
-            self.removeMenu.removeAction(remove_action)
+            # remove the button from the button group
+            self.button_group_track_actors_names.removeButton(button)
+            # remove the button from the self.button_layout widget
+            self.button_layout.removeWidget(button)
+            # offically delete the button
+            button.deleteLater()
 
         # Re-initial the dictionaries
         self.image_path = None
@@ -649,7 +653,7 @@ class MyMainWindow(MainWindow):
         button = QtWidgets.QPushButton(actor_name)
         button.setCheckable(True)  # Set the button to be checkable
         button.clicked.connect(lambda checked, text=actor_name: self.get_actor_name(text))
-        button.setFixedSize(self.display.size().width(), 100)
+        button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_track_actors_names.addButton(button)
 
@@ -657,13 +661,25 @@ class MyMainWindow(MainWindow):
         self.color_button.setText(text)
 
     def show_color_popup(self):
+        
+        checked_button = self.button_group_track_actors_names.checkedButton()
+        if checked_button is None:
+            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+            
         popup = CustomDialog(self, on_button_click=self.update_color_button_text)
         button_position = self.color_button.mapToGlobal(QPoint(0, 0))
         popup.move(button_position + QPoint(self.color_button.width(), 0))
         popup.exec_()
 
+    def remove_actors_button(self):
+        checked_button = self.button_group_track_actors_names.checkedButton()
+        if checked_button is None: 
+            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
+        else: self.remove_actor(checked_button)
+
     def panel_display(self):
-        self.display = QtWidgets.QGroupBox("Control Panel")
+        self.display = QtWidgets.QGroupBox("Console")
         display_layout = QtWidgets.QVBoxLayout()
         display_layout.setContentsMargins(10, 20, 10, 10)
 
@@ -687,6 +703,7 @@ class MyMainWindow(MainWindow):
 
         # Create the second button
         remove_button = QtWidgets.QPushButton("Remove")
+        remove_button.clicked.connect(self.remove_actors_button)
         top_layout.addWidget(remove_button)
 
         display_layout.addLayout(top_layout)
@@ -694,9 +711,6 @@ class MyMainWindow(MainWindow):
         #* Create the bottom widgets
         actor_widget = QtWidgets.QLabel("Actors")
         display_layout.addWidget(actor_widget)
-
-        # remove_button = QtWidgets.QPushButton("Remove")
-        # display_layout.addWidget(remove_button)
 
         # Create a scroll area for the buttons
         scroll_area = QtWidgets.QScrollArea()
@@ -719,7 +733,7 @@ class MyMainWindow(MainWindow):
 
     def panel_output(self):
         # Add a spacer to the top of the main layout
-        self.output = QtWidgets.QGroupBox("Display Panel")
+        self.output = QtWidgets.QGroupBox("Output")
         output_layout = QtWidgets.QVBoxLayout()
         output_layout.setContentsMargins(10, 20, 10, 10)
 

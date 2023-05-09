@@ -149,8 +149,6 @@ class Interface_GUI(MyMainWindow):
         if 'image' not in self.track_actors_names:
             self.track_actors_names.append('image')
             self.add_button_actor_name('image')
-            remove_actor = functools.partial(self.remove_actor, 'image')
-            self.removeMenu.addAction('image', remove_actor)
 
         # reset the camera
         self.reset_camera()
@@ -177,8 +175,6 @@ class Interface_GUI(MyMainWindow):
         if 'mask' not in self.track_actors_names:
             self.track_actors_names.append('mask')
             self.add_button_actor_name('mask')
-            remove_actor = functools.partial(self.remove_actor, 'mask')
-            self.removeMenu.addAction('mask', remove_actor)
 
         # reset the camera
         self.reset_camera()
@@ -242,8 +238,6 @@ class Interface_GUI(MyMainWindow):
         if mesh_name not in self.track_actors_names:
             self.track_actors_names.append(mesh_name)
             self.add_button_actor_name(mesh_name)
-            remove_actor = functools.partial(self.remove_actor, mesh_name)
-            self.removeMenu.addAction(mesh_name, remove_actor)
 
     def toggle_image_opacity(self, *args, up):
         if up:
