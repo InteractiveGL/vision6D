@@ -407,7 +407,10 @@ class Interface_GUI(MyMainWindow):
                 mesh = trimesh.Trimesh(vertices, faces, process=False)
                 predicted_pose = self.nocs_epnp(color_mask, mesh)
                 error = np.sum(np.abs(predicted_pose - gt_pose))
-                QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+                self.output_text.clear(); 
+                output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: "
+                  f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
+                self.output_text.append(output_message)
             else:
                 QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QMessageBox.Ok, QMessageBox.Ok)
 
@@ -458,11 +461,14 @@ class Interface_GUI(MyMainWindow):
                 return 0
                 
             if nocs_method == nocs_color:
-                if nocs_method: predicted_pose = self.nocs_epnp(color_mask, mesh)
-                else: predicted_pose = self.latlon_epnp(color_mask, mesh)
+                if nocs_method: predicted_pose = self.nocs_epnp(color_mask, mesh); color_theme = 'NOCS'
+                else: predicted_pose = self.latlon_epnp(color_mask, mesh); color_theme = 'LATLON'
                 error = np.sum(np.abs(predicted_pose - gt_pose))
-                QMessageBox.about(self,"vision6D", f"PREDICTED POSE: \n{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+                self.output_text.clear(); 
+                output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: "
+                  f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
+                self.output_text.append(output_message)
             else:
-                QMessageBox.about(self,"vision6D", "Clicked the wrong method")
+                QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
         else:
-            QMessageBox.about(self,"vision6D", "please load a mask first")
+            QMessageBox.warning(self,"vision6D", "please load a mask first")

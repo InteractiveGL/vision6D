@@ -412,7 +412,7 @@ class MyMainWindow(MainWindow):
         output_path = vis.config.GITROOT / "output" / "image" / (output_name + '.png')
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
-        QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
+        self.output_text.clear(); self.output_text.append(f"Export image render to:\n {str(output_path)}")
 
     def export_mask_plot(self):
         if self.mask_actor is None:
@@ -438,7 +438,7 @@ class MyMainWindow(MainWindow):
         output_path = vis.config.GITROOT / "output" / "mask" / (output_name + '.png')
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
-        QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
+        self.output_text.clear(); self.output_text.append(f"Export mask render to:\n {str(output_path)}")
 
     def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True, save_render=True):
 
@@ -487,7 +487,7 @@ class MyMainWindow(MainWindow):
             output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
-            if msg: QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+            if msg: self.output_text.clear(); self.output_text.append(f"Export all meshes render to:\n {str(output_path)}")
         else:
             mesh_name = self.reference
             mesh_actor = self.mesh_actors[mesh_name]
@@ -509,7 +509,7 @@ class MyMainWindow(MainWindow):
                 output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
-            if msg: QMessageBox.about(self,"vision6D", f"Export to {str(output_path)}")
+            if msg: self.output_text.clear(); self.output_text.append(f"Export reference mesh render to:\n {str(output_path)}")
 
             return image
 
@@ -573,7 +573,7 @@ class MyMainWindow(MainWindow):
         output_path = vis.config.GITROOT / "output" / "segmesh" / (output_name + ".png")
         rendered_image = PIL.Image.fromarray(image)
         rendered_image.save(output_path)
-        QMessageBox.about(self,"vision6D", f"Export the image to {str(output_path)}")
+        self.output_text.clear(); self.output_text.append(f"Export segmask render:\n to {str(output_path)}")
         
         return image
 
@@ -594,7 +594,7 @@ class MyMainWindow(MainWindow):
 
         output_path = vis.config.GITROOT / "output" / "gt_poses" / (output_name + ".npy")
         np.save(output_path, self.transformation_matrix)
-        QMessageBox.about(self,"vision6D", f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
+        self.output_text.clear(); self.output_text.append(f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
 
     # ^Panel
     def set_panel_bar(self):
