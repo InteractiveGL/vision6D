@@ -1,3 +1,4 @@
+# General import
 import os
 import sys
 import logging
@@ -58,9 +59,12 @@ class MyMainWindow(MainWindow):
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
 
+        self.track_actors_names = []
+        self.button_group_track_actors_names = QtWidgets.QButtonGroup(self)
+
         # Set panel bar
         self.set_panel_bar()
-
+        
         # Set menu bar
         self.set_menu_bars()
 
@@ -618,6 +622,14 @@ class MyMainWindow(MainWindow):
         else:
             self.panel_widget.show()
         
+    def add_button_actor_name(self, actor_name):
+        button = QtWidgets.QPushButton(actor_name)
+        button.setCheckable(True)  # Set the button to be checkable
+        button.clicked.connect(lambda checked, text=actor_name: self.get_actor_name(text))
+        button.setFixedSize(self.display.size().width(), 100)
+        self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
+        self.button_group_track_actors_names.addButton(button)
+
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Actors")
         display_layout = QtWidgets.QVBoxLayout()
@@ -630,64 +642,11 @@ class MyMainWindow(MainWindow):
 
         # Create a container widget for the buttons
         button_container = QtWidgets.QWidget()
-        button_layout = QtWidgets.QVBoxLayout()
-        button_layout.setSpacing(0)  # Remove spacing between buttons
-        # button_layout.setContentsMargins(10, 0, 0, 0)  # Remove margins
-        button_container.setLayout(button_layout)
+        self.button_layout = QtWidgets.QVBoxLayout()
+        self.button_layout.setSpacing(0)  # Remove spacing between buttons # button_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins
+        button_container.setLayout(self.button_layout)
 
-        # List of input strings (one for each button)
-        input_strings = [
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            "Input 1",
-            "Input 2",
-            "Input 3",
-            "Input 4",
-            "Input 5",
-            # Add more input strings to see the scrollbar in action
-        ]
-
-        # Create buttons for each input string
-        for input_string in input_strings:
-            button = QtWidgets.QPushButton(input_string)
-            button.clicked.connect(lambda checked, text=input_string: self.button_clicked(text))
-            button.setFixedSize(self.display.size().width(), 100)
-            button_layout.addWidget(button)
-
-        button_layout.addStretch()
+        self.button_layout.addStretch()
 
         # Set the container widget as the scroll area's widget
         scroll_area.setWidget(button_container)
@@ -697,50 +656,17 @@ class MyMainWindow(MainWindow):
 
     def panel_output(self):
         # Add a spacer to the top of the main layout
-        
         self.output = QtWidgets.QGroupBox("Logs")
         output_layout = QtWidgets.QVBoxLayout()
         output_layout.setContentsMargins(10, 20, 10, 10)
 
-        self.output_display = QtWidgets.QTextEdit()
-        self.output_display.setReadOnly(True)
-        output_layout.addWidget(self.output_display)
+        self.output_text = QtWidgets.QTextEdit()
+        self.output_text.setReadOnly(True)
+        output_layout.addWidget(self.output_text)
         self.output.setLayout(output_layout)
         self.panel_layout.addWidget(self.output)
-        self.output_display.append("This is the new content of the output display.")
 
-    def button_clicked(self, text):
-        print(f"Button with text '{text}' clicked.")
-        self.update_plot(text)
-
-    def update_plot(self, input_string):
-        # Clear the existing actors in the plotter
-        # self.plotter.clear()
-
-        # Example: Add a mesh depending on the input string
-        if input_string == "Input 1":
-            mesh = pv.Cube()
-        elif input_string == "Input 2":
-            mesh = pv.Sphere()
-        elif input_string == "Input 3":
-            mesh = pv.Cone()
-        elif input_string == "Input 4":
-            mesh = pv.Cylinder()
-        elif input_string == "Input 5":
-            mesh = pv.Arrow()
-        else:
-            mesh = None
-
-        # Add the new mesh to the plotter and render
-        if mesh is not None:
-            self.plotter.add_mesh(mesh, color='green')
-            self.plotter.reset_camera()
-            self.plotter.show()
-
-    def showMaximized(self):
-        super(MyMainWindow, self).showMaximized()
-        self.splitter.setSizes([int(self.width() * 0.15), int(self.width() * 0.85)])
-
+    #^ Show plot
     def create_plotter(self):
         self.frame = QtWidgets.QFrame()
         self.plotter = QtInteractor(self.frame)
@@ -750,13 +676,44 @@ class MyMainWindow(MainWindow):
         assert self.render.background_color == "black", "render's background need to be black"
         self.signal_close.connect(self.plotter.close)
 
-    #^ Show plot
     def show_plot(self):
         self.plotter.enable_joystick_actor_style()
         self.plotter.enable_trackball_actor_style()
+        self.plotter.track_click_position(callback=self.track_click_callback, side='l')
+
+        # camera related key bindings
+        self.plotter.add_key_event('c', self.reset_camera)
+        self.plotter.add_key_event('z', self.zoom_out)
+        self.plotter.add_key_event('x', self.zoom_in)
+
+        # registration related key bindings
+        self.plotter.add_key_event('k', self.reset_gt_pose)
+        self.plotter.add_key_event('l', self.update_gt_pose)
+        self.plotter.add_key_event('t', self.current_pose)
+        self.plotter.add_key_event('s', self.undo_pose)
+
+        # opacity related key bindings
+        toggle_image_opacity_up = functools.partial(self.toggle_image_opacity, up=True)
+        self.plotter.add_key_event('b', toggle_image_opacity_up)
+        toggle_image_opacity_down = functools.partial(self.toggle_image_opacity, up=False)
+        self.plotter.add_key_event('n', toggle_image_opacity_down)
+
+        toggle_mask_opacity_up = functools.partial(self.toggle_mask_opacity, up=True)
+        self.plotter.add_key_event('h', toggle_mask_opacity_up)
+        toggle_mask_opacity_down = functools.partial(self.toggle_mask_opacity, up=False)
+        self.plotter.add_key_event('j', toggle_mask_opacity_down)
+        
+        toggle_surface_opacity_up = functools.partial(self.toggle_surface_opacity, up=True)
+        self.plotter.add_key_event('y', toggle_surface_opacity_up)
+        toggle_surface_opacity_down = functools.partial(self.toggle_surface_opacity, up=False)
+        self.plotter.add_key_event('u', toggle_surface_opacity_down)
 
         self.plotter.add_axes()
         self.plotter.add_camera_orientation_widget()
 
         self.plotter.show()
         self.show()
+
+    def showMaximized(self):
+        super(MyMainWindow, self).showMaximized()
+        self.splitter.setSizes([int(self.width() * 0.2), int(self.width() * 0.8)])

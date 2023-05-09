@@ -1941,3 +1941,41 @@ def menu_section1(self):
 
 
 self.menu_layout.setStretchFactor(self.section1, 1)
+
+
+def button_clicked(self, text):
+    print(f"Currently seclected actor name is ")
+    self.update_plot(text)
+
+def update_plot(self, input_string):
+    # Clear the existing actors in the plotter
+    # self.plotter.clear()
+
+    # Example: Add a mesh depending on the input string
+    if input_string == "Input 1":
+        mesh = pv.Cube()
+    elif input_string == "Input 2":
+        mesh = pv.Sphere()
+    elif input_string == "Input 3":
+        mesh = pv.Cone()
+    elif input_string == "Input 4":
+        mesh = pv.Cylinder()
+    elif input_string == "Input 5":
+        mesh = pv.Arrow()
+    else:
+        mesh = None
+
+    # Add the new mesh to the plotter and render
+    if mesh is not None:
+        self.plotter.add_mesh(mesh, color='green')
+        self.plotter.reset_camera()
+        self.plotter.show()
+
+# Create buttons for each actor name
+# for actor_name in self.track_actors_names:
+#     button = QtWidgets.QPushButton(actor_name)
+#     button.setCheckable(True)  # Set the button to be checkable
+#     button.clicked.connect(lambda checked, text=actor_name: self.get_actor_name(text))
+#     button.setFixedSize(self.display.size().width(), 100)
+#     button_layout.addWidget(button)
+#     button_group.addButton(button)

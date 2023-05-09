@@ -47,7 +47,6 @@ class Interface_GUI(MyMainWindow):
         self.mask_actor = None
         self.mesh_actors = {}
         
-        self.track_actors_names = []
         self.undo_poses = []
         self.latlon = vis.utils.load_latitude_longitude()
 
@@ -61,6 +60,9 @@ class Interface_GUI(MyMainWindow):
         self.spacing = [0.01, 0.01, 1]
         self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
         
+    def get_actor_name(self, text):
+        self.output_text.clear(); self.output_text.append(f"Button with text '{text}' clicked.")
+
     def set_reference(self, name:str):     
         assert name in self.meshdict.keys(), "reference name is not in the path!"
         self.reference = name
@@ -146,6 +148,7 @@ class Interface_GUI(MyMainWindow):
         # add remove current image to removeMenu
         if 'image' not in self.track_actors_names:
             self.track_actors_names.append('image')
+            self.add_button_actor_name('image')
             remove_actor = functools.partial(self.remove_actor, 'image')
             self.removeMenu.addAction('image', remove_actor)
 
@@ -173,6 +176,7 @@ class Interface_GUI(MyMainWindow):
         # add remove current image to removeMenu
         if 'mask' not in self.track_actors_names:
             self.track_actors_names.append('mask')
+            self.add_button_actor_name('mask')
             remove_actor = functools.partial(self.remove_actor, 'mask')
             self.removeMenu.addAction('mask', remove_actor)
 
@@ -237,6 +241,7 @@ class Interface_GUI(MyMainWindow):
         # add remove current mesh to removeMenu
         if mesh_name not in self.track_actors_names:
             self.track_actors_names.append(mesh_name)
+            self.add_button_actor_name(mesh_name)
             remove_actor = functools.partial(self.remove_actor, mesh_name)
             self.removeMenu.addAction(mesh_name, remove_actor)
 
@@ -294,7 +299,7 @@ class Interface_GUI(MyMainWindow):
 
     @try_except
     def reset_gt_pose(self, *args):
-        print(f"\nRT: \n{self.initial_pose}\n")
+        self.output_text.clear(); self.output_text.append(f"\nReset the GT pose: \n{self.initial_pose}\n")
         for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = self.initial_pose
             self.plotter.add_actor(actor, pickable=True, name=actor_name)
@@ -308,7 +313,7 @@ class Interface_GUI(MyMainWindow):
     def current_pose(self, *args):
         if self.reference is not None:
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            print(f"\nRT: \n{transformation_matrix}\n")
+            self.output_text.clear(); self.output_text.append(f"\nCurrent pose is: \n{transformation_matrix}\n")
             for actor_name, actor in self.mesh_actors.items():
                 actor.user_matrix = transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
