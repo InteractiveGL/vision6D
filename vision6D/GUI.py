@@ -49,7 +49,7 @@ class MultiInputDialog(QDialog):
         return (self.args1.text(), self.args2.text(), self.args3.text())
 
 class MyMainWindow(MainWindow):
-    def __init__(self, parent=None, show=True):
+    def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
 
         # Set up the main window layout
@@ -58,24 +58,10 @@ class MyMainWindow(MainWindow):
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
 
-        # Create a left panel layout
-        self.panel_widget = QtWidgets.QWidget()
-        self.panel_layout = QtWidgets.QVBoxLayout(self.panel_widget)
+        # Set panel bar
+        self.set_panel_bar()
 
-        # Create a top panel bar with a toggle button
-        self.panel_bar = QtWidgets.QMenuBar()
-        self.toggle_action = QtWidgets.QAction("Panel", self)
-        self.toggle_action.triggered.connect(self.toggle_panel)
-        self.panel_bar.addAction(self.toggle_action)
-        self.setMenuBar(self.panel_bar)
-
-        self.panel_display()
-        self.panel_output()
-        
-        # Set the stretch factor for each section to be equal
-        self.panel_layout.setStretchFactor(self.display, 1)
-        self.panel_layout.setStretchFactor(self.output, 1)
-
+        # Set menu bar
         self.set_menu_bars()
 
         # Create the plotter
@@ -88,17 +74,10 @@ class MyMainWindow(MainWindow):
         self.splitter.addWidget(self.plotter)
         self.main_layout.addWidget(self.splitter)
 
-        if show:
-            self.plotter.enable_joystick_actor_style()
-            self.plotter.enable_trackball_actor_style()
-
-            self.plotter.add_axes()
-            self.plotter.add_camera_orientation_widget()
-
-            self.plotter.show()
-            self.show()
-
-    # Main Menu
+        # Show the plotter
+        self.show_plot()
+            
+    # ^Main Menu
     def set_menu_bars(self):
         mainMenu = self.menuBar()
         # simple dialog to record users input info
@@ -613,7 +592,26 @@ class MyMainWindow(MainWindow):
         np.save(output_path, self.transformation_matrix)
         QMessageBox.about(self,"vision6D", f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
 
-    # Panel
+    # ^Panel
+    def set_panel_bar(self):
+        # Create a left panel layout
+        self.panel_widget = QtWidgets.QWidget()
+        self.panel_layout = QtWidgets.QVBoxLayout(self.panel_widget)
+
+        # Create a top panel bar with a toggle button
+        self.panel_bar = QtWidgets.QMenuBar()
+        self.toggle_action = QtWidgets.QAction("Panel", self)
+        self.toggle_action.triggered.connect(self.toggle_panel)
+        self.panel_bar.addAction(self.toggle_action)
+        self.setMenuBar(self.panel_bar)
+
+        self.panel_display()
+        self.panel_output()
+        
+        # Set the stretch factor for each section to be equal
+        self.panel_layout.setStretchFactor(self.display, 1)
+        self.panel_layout.setStretchFactor(self.output, 1)
+
     def toggle_panel(self):
         if self.panel_widget.isVisible():
             self.panel_widget.hide()
@@ -751,3 +749,14 @@ class MyMainWindow(MainWindow):
         self.render.set_background('black'); 
         assert self.render.background_color == "black", "render's background need to be black"
         self.signal_close.connect(self.plotter.close)
+
+    #^ Show plot
+    def show_plot(self):
+        self.plotter.enable_joystick_actor_style()
+        self.plotter.enable_trackball_actor_style()
+
+        self.plotter.add_axes()
+        self.plotter.add_camera_orientation_widget()
+
+        self.plotter.show()
+        self.show()
