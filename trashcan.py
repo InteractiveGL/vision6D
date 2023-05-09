@@ -1906,3 +1906,38 @@ if len(self.mesh_actors) != 0:
 else:
     QMessageBox.warning(self, 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
 """
+
+"""
+# class MyMainWindow(GUI, MainWindow):
+#     def __init__(self, parent=None):
+#         # QtWidgets.QMainWindow.__init__(self, parent)
+#         super().__init__()
+
+#         # self.window_size = (1920, 1080)
+#         # self.render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True) 
+#         # self.render.set_background('black'); 
+#         # assert self.render.background_color == "black", "render's background need to be black"
+
+#         self.signal_close.connect(self.plotter.close)
+#         self.plotter.enable_joystick_actor_style()
+#         self.plotter.enable_trackball_actor_style()
+"""
+
+# class GUI(QtWidgets.QMainWindow):
+# super(GUI, self).__init__(parent)
+
+
+def menu_section1(self):
+    self.section1 = QtWidgets.QGroupBox("Section 1")
+    section1_layout = QtWidgets.QVBoxLayout()
+    section1_layout.setContentsMargins(10, 20, 10, 10)
+
+    button1 = QtWidgets.QPushButton("Button 1")
+    button2 = QtWidgets.QPushButton("Button 2")
+    section1_layout.addWidget(button1)
+    section1_layout.addWidget(button2)
+    self.section1.setLayout(section1_layout)
+    self.menu_layout.addWidget(self.section1)
+
+
+self.menu_layout.setStretchFactor(self.section1, 1)

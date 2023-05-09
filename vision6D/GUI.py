@@ -8,10 +8,8 @@ import vision6D as vis
 
 class Interactor():pass
 
-# class GUI(QtWidgets.QMainWindow):
 class GUI(MainWindow):
     def __init__(self, parent=None, show=True):
-        # super(GUI, self).__init__(parent)
         QtWidgets.QMainWindow.__init__(self, parent)
 
         # Set up the main window layout
@@ -26,19 +24,17 @@ class GUI(MainWindow):
 
         # Create a top menu bar with a toggle button
         self.menu_bar = QtWidgets.QMenuBar()
-        self.toggle_action = QtWidgets.QAction("Menu", self)
+        self.toggle_action = QtWidgets.QAction("Panel", self)
         self.toggle_action.triggered.connect(self.toggle_menu)
         self.menu_bar.addAction(self.toggle_action)
         self.setMenuBar(self.menu_bar)
 
-        self.menu_section1()
-        self.menu_section2()
-        self.menu_section3()
+        self.menu_display()
+        self.menu_output()
         
         # Set the stretch factor for each section to be equal
-        self.menu_layout.setStretchFactor(self.section1, 1)
-        self.menu_layout.setStretchFactor(self.section2, 1)
-        self.menu_layout.setStretchFactor(self.section3, 1)
+        self.menu_layout.setStretchFactor(self.display, 1)
+        self.menu_layout.setStretchFactor(self.output, 1)
 
         # Create the plotter
         self.create_plotter()
@@ -65,32 +61,16 @@ class GUI(MainWindow):
             self.menu_widget.hide()
         else:
             self.menu_widget.show()
-
-    def menu_section1(self):
-        # Create the sections for the left menu
-        # Section 1
-        self.section1 = QtWidgets.QGroupBox("Section 1")
-        section1_layout = QtWidgets.QVBoxLayout()
-        section1_layout.setContentsMargins(10, 20, 10, 10)
-
-        button1 = QtWidgets.QPushButton("Button 1")
-        button2 = QtWidgets.QPushButton("Button 2")
-        section1_layout.addWidget(button1)
-        section1_layout.addWidget(button2)
-        self.section1.setLayout(section1_layout)
-        self.menu_layout.addWidget(self.section1)
         
-
-    def menu_section2(self):
-        # Section 2 (load meshes)
-        self.section2 = QtWidgets.QGroupBox("Loaded meshes")
-        section2_layout = QtWidgets.QVBoxLayout()
-        section2_layout.setContentsMargins(10, 20, 10, 10)
+    def menu_display(self):
+        self.display = QtWidgets.QGroupBox("Actors")
+        display_layout = QtWidgets.QVBoxLayout()
+        display_layout.setContentsMargins(10, 20, 10, 10)
 
         # Create a scroll area for the buttons
         scroll_area = QtWidgets.QScrollArea()
         scroll_area.setWidgetResizable(True)
-        section2_layout.addWidget(scroll_area)
+        display_layout.addWidget(scroll_area)
 
         # Create a container widget for the buttons
         button_container = QtWidgets.QWidget()
@@ -148,7 +128,7 @@ class GUI(MainWindow):
         for input_string in input_strings:
             button = QtWidgets.QPushButton(input_string)
             button.clicked.connect(lambda checked, text=input_string: self.button_clicked(text))
-            button.setFixedSize(self.section2.size().width(), 100)
+            button.setFixedSize(self.display.size().width(), 100)
             button_layout.addWidget(button)
 
         button_layout.addStretch()
@@ -156,21 +136,21 @@ class GUI(MainWindow):
         # Set the container widget as the scroll area's widget
         scroll_area.setWidget(button_container)
 
-        self.section2.setLayout(section2_layout)
-        self.menu_layout.addWidget(self.section2)
+        self.display.setLayout(display_layout)
+        self.menu_layout.addWidget(self.display)
 
-    def menu_section3(self):
+    def menu_output(self):
         # Add a spacer to the top of the main layout
         
-        self.section3 = QtWidgets.QGroupBox("Output Display")
-        section3_layout = QtWidgets.QVBoxLayout()
-        section3_layout.setContentsMargins(10, 20, 10, 10)
+        self.output = QtWidgets.QGroupBox("Logs")
+        output_layout = QtWidgets.QVBoxLayout()
+        output_layout.setContentsMargins(10, 20, 10, 10)
 
         self.output_display = QtWidgets.QTextEdit()
         self.output_display.setReadOnly(True)
-        section3_layout.addWidget(self.output_display)
-        self.section3.setLayout(section3_layout)
-        self.menu_layout.addWidget(self.section3)
+        output_layout.addWidget(self.output_display)
+        self.output.setLayout(output_layout)
+        self.menu_layout.addWidget(self.output)
         self.output_display.append("This is the new content of the output display.")
 
     def button_clicked(self, text):
@@ -213,21 +193,6 @@ class GUI(MainWindow):
         self.render.set_background('black'); 
         assert self.render.background_color == "black", "render's background need to be black"
         self.signal_close.connect(self.plotter.close)
-"""
-# class MyMainWindow(GUI, MainWindow):
-#     def __init__(self, parent=None):
-#         # QtWidgets.QMainWindow.__init__(self, parent)
-#         super().__init__()
-
-#         # self.window_size = (1920, 1080)
-#         # self.render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True) 
-#         # self.render.set_background('black'); 
-#         # assert self.render.background_color == "black", "render's background need to be black"
-
-#         self.signal_close.connect(self.plotter.close)
-#         self.plotter.enable_joystick_actor_style()
-#         self.plotter.enable_trackball_actor_style()
-"""
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
