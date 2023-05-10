@@ -143,10 +143,6 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Mesh Render', self.export_mesh_plot)
         exportMenu.addAction('SegMesh Render', self.export_segmesh_plot)
         exportMenu.addAction('Pose', self.export_pose)
-        
-        # Add set attribute menu
-        setAttrMenu = mainMenu.addMenu('Set')
-        setAttrMenu.addAction('Set Opacity (bn, hj, yu)', self.set_opacity_attr)
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
@@ -188,33 +184,6 @@ class MyMainWindow(MainWindow):
                     self.set_camera_props(self.focal_length, self.cam_viewup, self.cam_position)
                 except:
                     self.focal_length, self.cam_viewup, self.cam_position = pre_focal_length, pre_cam_viewup, pre_cam_position
-                    QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
-
-    def set_opacity_attr(self):
-        dialog = MultiInputDialog(placeholder=False, line1=("Image Opacity", self.image_opacity), line2=("Mask Opacity", self.mask_opacity), line3=("Mesh Opacity", self.surface_opacity))
-        if dialog.exec():
-            image_opacity, mask_opacity, surface_opacity = dialog.getInputs()
-            pre_image_opacity, pre_mask_opacity, pre_surface_opacity = self.image_opacity, self.mask_opacity, self.surface_opacity
-            if not (image_opacity == '' or mask_opacity == '' or surface_opacity == ''):
-                try:
-                    self.image_opacity, self.mask_opacity, self.surface_opacity = ast.literal_eval(image_opacity), ast.literal_eval(mask_opacity), ast.literal_eval(surface_opacity)
-                    try:
-                        self.set_image_opacity(self.image_opacity)
-                    except AssertionError:
-                        self.image_opacity = pre_image_opacity
-                        QMessageBox.warning(self, 'vision6D', "Image opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
-                    try: 
-                        self.set_mask_opacity(self.mask_opacity)
-                    except AssertionError: 
-                        self.mask_opacity = pre_mask_opacity
-                        QMessageBox.warning(self, 'vision6D', "Mask opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
-                    try: 
-                        self.set_mesh_opacity(self.surface_opacity)
-                    except AssertionError: 
-                        self.surface_opacity = pre_surface_opacity
-                        QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
-                except:
-                    self.image_opacity, self.mask_opacity, self.surface_opacity = pre_image_opacity, pre_mask_opacity, pre_surface_opacity
                     QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
            
     def set_image_spacing_attr(self):
@@ -446,9 +415,7 @@ class MyMainWindow(MainWindow):
 
     def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True, save_render=True):
 
-        if self.reference is not None: 
-            transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        else: 
+        if self.reference is None:
             QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
@@ -487,7 +454,7 @@ class MyMainWindow(MainWindow):
                 else:
                     mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
 
-                mesh.user_matrix = transformation_matrix
+                mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
 
             self.render.camera = camera
             self.render.disable(); self.render.show(auto_close=False)
@@ -509,7 +476,7 @@ class MyMainWindow(MainWindow):
                 mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
             else:
                 mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
-            mesh.user_matrix = transformation_matrix
+            mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
             self.render.camera = camera
             self.render.disable(); self.render.show(auto_close=False)
 
@@ -525,9 +492,7 @@ class MyMainWindow(MainWindow):
 
     def export_segmesh_plot(self):
 
-        if self.reference is not None: 
-            transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        else:
+        if self.reference is None:
             QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
         
@@ -564,15 +529,16 @@ class MyMainWindow(MainWindow):
             output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
         
         # Render the targeting objects
-        for mesh_name, mesh_actor in self.mesh_actors.items():
-            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
-            colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
-            if colors is None: colors = np.ones((len(vertices), 3)) * 0.5
+        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+        colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
+        if colors is not None: 
             assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-           
-            mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-            mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
-            mesh.user_matrix = transformation_matrix
+            mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
+        else:
+            mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
+
+        mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
 
         self.render.camera = camera
         self.render.disable(); self.render.show(auto_close=False)
@@ -764,22 +730,6 @@ class MyMainWindow(MainWindow):
         self.plotter.add_key_event('l', self.update_gt_pose)
         self.plotter.add_key_event('t', self.current_pose)
         self.plotter.add_key_event('s', self.undo_pose)
-
-        # opacity related key bindings
-        toggle_image_opacity_up = functools.partial(self.toggle_image_opacity, up=True)
-        self.plotter.add_key_event('b', toggle_image_opacity_up)
-        toggle_image_opacity_down = functools.partial(self.toggle_image_opacity, up=False)
-        self.plotter.add_key_event('n', toggle_image_opacity_down)
-
-        toggle_mask_opacity_up = functools.partial(self.toggle_mask_opacity, up=True)
-        self.plotter.add_key_event('h', toggle_mask_opacity_up)
-        toggle_mask_opacity_down = functools.partial(self.toggle_mask_opacity, up=False)
-        self.plotter.add_key_event('j', toggle_mask_opacity_down)
-        
-        toggle_surface_opacity_up = functools.partial(self.toggle_surface_opacity, up=True)
-        self.plotter.add_key_event('y', toggle_surface_opacity_up)
-        toggle_surface_opacity_down = functools.partial(self.toggle_surface_opacity, up=False)
-        self.plotter.add_key_event('u', toggle_surface_opacity_down)
 
         self.plotter.add_axes()
         self.plotter.add_camera_orientation_widget()

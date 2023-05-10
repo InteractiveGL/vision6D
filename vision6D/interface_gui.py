@@ -47,7 +47,7 @@ class Interface_GUI(MyMainWindow):
         # default opacity for image and surface
         self.set_image_opacity(0.99)
         self.set_mask_opacity(0.5)
-        self.set_mesh_opacity(0.8) # self.surface_opacity = 1
+        self.set_mesh_opacity(0.8)
         self.spacing = [0.01, 0.01, 1]
         self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
 
@@ -61,7 +61,8 @@ class Interface_GUI(MyMainWindow):
             self.output_text.append(f"Current reference mesh is <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
         else:
             self.color_button.setText("Select Color")
-
+            self.reference = None
+                                                                
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
         self.image_opacity = image_opacity
@@ -234,45 +235,6 @@ class Interface_GUI(MyMainWindow):
         if mesh_name not in self.track_actors_names:
             self.track_actors_names.append(mesh_name)
             self.add_button_actor_name(mesh_name)
-
-    def toggle_image_opacity(self, *args, up):
-        if up:
-            self.image_opacity += 0.2
-            if self.image_opacity >= 1: self.image_opacity = 1
-        else:
-            self.image_opacity -= 0.2
-            if self.image_opacity <= 0: self.image_opacity = 0
-        
-        if self.image_actor is not None:
-            self.image_actor.GetProperty().opacity = self.image_opacity
-            self.plotter.add_actor(self.image_actor, pickable=False, name="image")
-
-    def toggle_mask_opacity(self, *args, up):
-        if up:
-            self.mask_opacity += 0.2
-            if self.mask_opacity >= 1: self.mask_opacity = 1
-        else:
-            self.mask_opacity -= 0.2
-            if self.mask_opacity <= 0: self.mask_opacity = 0
-        
-        if self.mask_actor is not None:
-            self.mask_actor.GetProperty().opacity = self.mask_opacity
-            self.plotter.add_actor(self.mask_actor, pickable=False, name="mask")
-
-    def toggle_surface_opacity(self, *args, up):    
-        if up:
-            self.surface_opacity += 0.2
-            if self.surface_opacity > 1: self.surface_opacity = 1
-        else:
-            self.surface_opacity -= 0.2
-            if self.surface_opacity < 0: self.surface_opacity = 0
-                
-        if len(self.mesh_actors) != 0:
-            transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = transformation_matrix
-                actor.GetProperty().opacity = self.surface_opacity
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def reset_camera(self, *args):
         self.plotter.camera = self.camera.copy()

@@ -2039,3 +2039,115 @@ def try_except(func):
             if isinstance(args[0], MainWindow): QMessageBox.warning(args[0], 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
 
     return wrapper
+
+
+    def toggle_image_opacity(self, *args, up):
+        if up:
+            self.image_opacity += 0.2
+            if self.image_opacity >= 1: self.image_opacity = 1
+        else:
+            self.image_opacity -= 0.2
+            if self.image_opacity <= 0: self.image_opacity = 0
+        
+        if self.image_actor is not None:
+            self.image_actor.GetProperty().opacity = self.image_opacity
+            self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+    def toggle_mask_opacity(self, *args, up):
+        if up:
+            self.mask_opacity += 0.2
+            if self.mask_opacity >= 1: self.mask_opacity = 1
+        else:
+            self.mask_opacity -= 0.2
+            if self.mask_opacity <= 0: self.mask_opacity = 0
+        
+        if self.mask_actor is not None:
+            self.mask_actor.GetProperty().opacity = self.mask_opacity
+            self.plotter.add_actor(self.mask_actor, pickable=False, name="mask")
+
+    def toggle_surface_opacity(self, *args, up):    
+        if up:
+            self.surface_opacity += 0.2
+            if self.surface_opacity > 1: self.surface_opacity = 1
+        else:
+            self.surface_opacity -= 0.2
+            if self.surface_opacity < 0: self.surface_opacity = 0
+                
+        if len(self.mesh_actors) != 0:
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = transformation_matrix
+                actor.GetProperty().opacity = self.surface_opacity
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+
+    def set_image_opacity(self, image_opacity: float):
+        assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
+        self.image_opacity = image_opacity
+        if self.image_actor is not None:
+            self.image_actor.GetProperty().opacity = image_opacity
+            self.plotter.add_actor(self.image_actor, pickable=False, name='image')
+
+    def set_mask_opacity(self, mask_opacity: float):
+        assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
+        self.mask_opacity = mask_opacity
+        if self.mask_actor is not None:
+            self.mask_actor.GetProperty().opacity = mask_opacity
+            self.plotter.add_actor(self.mask_actor, pickable=False, name='mask')
+
+    def set_mesh_opacity(self, surface_opacity: float):
+        assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
+        self.surface_opacity = surface_opacity
+        if len(self.mesh_actors) != 0:
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
+                actor.GetProperty().opacity = self.surface_opacity
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+# opacity related key bindings
+toggle_image_opacity_up = functools.partial(self.toggle_image_opacity, up=True)
+self.plotter.add_key_event('b', toggle_image_opacity_up)
+toggle_image_opacity_down = functools.partial(self.toggle_image_opacity, up=False)
+self.plotter.add_key_event('n', toggle_image_opacity_down)
+
+toggle_mask_opacity_up = functools.partial(self.toggle_mask_opacity, up=True)
+self.plotter.add_key_event('h', toggle_mask_opacity_up)
+toggle_mask_opacity_down = functools.partial(self.toggle_mask_opacity, up=False)
+self.plotter.add_key_event('j', toggle_mask_opacity_down)
+
+toggle_surface_opacity_up = functools.partial(self.toggle_surface_opacity, up=True)
+self.plotter.add_key_event('y', toggle_surface_opacity_up)
+toggle_surface_opacity_down = functools.partial(self.toggle_surface_opacity, up=False)
+self.plotter.add_key_event('u', toggle_surface_opacity_down)
+
+
+    def set_opacity_attr(self):
+        dialog = MultiInputDialog(placeholder=False, line1=("Image Opacity", self.image_opacity), line2=("Mask Opacity", self.mask_opacity), line3=("Mesh Opacity", self.surface_opacity))
+        if dialog.exec():
+            image_opacity, mask_opacity, surface_opacity = dialog.getInputs()
+            pre_image_opacity, pre_mask_opacity, pre_surface_opacity = self.image_opacity, self.mask_opacity, self.surface_opacity
+            if not (image_opacity == '' or mask_opacity == '' or surface_opacity == ''):
+                try:
+                    self.image_opacity, self.mask_opacity, self.surface_opacity = ast.literal_eval(image_opacity), ast.literal_eval(mask_opacity), ast.literal_eval(surface_opacity)
+                    try:
+                        self.set_image_opacity(self.image_opacity)
+                    except AssertionError:
+                        self.image_opacity = pre_image_opacity
+                        QMessageBox.warning(self, 'vision6D', "Image opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                    try: 
+                        self.set_mask_opacity(self.mask_opacity)
+                    except AssertionError: 
+                        self.mask_opacity = pre_mask_opacity
+                        QMessageBox.warning(self, 'vision6D', "Mask opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                    try: 
+                        self.set_mesh_opacity(self.surface_opacity)
+                    except AssertionError: 
+                        self.surface_opacity = pre_surface_opacity
+                        QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                except:
+                    self.image_opacity, self.mask_opacity, self.surface_opacity = pre_image_opacity, pre_mask_opacity, pre_surface_opacity
+                    QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
+
+# Add set attribute menu
+setAttrMenu = mainMenu.addMenu('Set')
+setAttrMenu.addAction('Set Opacity (bn, hj, yu)', self.set_opacity_attr)
