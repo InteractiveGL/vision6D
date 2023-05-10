@@ -59,13 +59,14 @@ class Interface_GUI(MyMainWindow):
         self.set_mesh_opacity(0.8) # self.surface_opacity = 1
         self.spacing = [0.01, 0.01, 1]
         self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
-        
-    def get_actor_name(self, text):
-        self.output_text.clear(); self.output_text.append(f"Button with text '{text}' clicked.")
 
-    def set_reference(self, name:str):     
-        assert name in self.meshdict.keys(), "reference name is not in the path!"
-        self.reference = name
+    def set_mesh_reference(self, text):
+        if text != 'image' and text != 'mask':
+            self.reference = text
+            self.output_text.clear(); self.output_text.append(f"Current reference mesh is {text}")
+        else:
+            self.reference = None
+            self.output_text.clear(); self.output_text.append(f"Current reference mesh is not set")
 
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
@@ -293,21 +294,30 @@ class Interface_GUI(MyMainWindow):
 
     @try_except
     def reset_gt_pose(self, *args):
-        self.output_text.clear(); self.output_text.append(f"\nReset the GT pose: \n{self.initial_pose}\n")
-        for actor_name, actor in self.mesh_actors.items():
-            actor.user_matrix = self.initial_pose
-            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        if self.reference is not None:
+            self.output_text.clear(); 
+            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+            self.output_text.append(f"\nReset the GT pose: \n{self.initial_pose}\n")
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = self.initial_pose
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def update_gt_pose(self, *args):
         if self.reference is not None:
+            self.output_text.clear(); self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
             self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
             self.initial_pose = self.transformation_matrix
-            self.reset_gt_pose()
+            self.output_text.append(f"\nUpdate the GT pose to: \n{self.initial_pose}\n")
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = self.initial_pose
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def current_pose(self, *args):
         if self.reference is not None:
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            self.output_text.clear(); self.output_text.append(f"\nCurrent pose is: \n{transformation_matrix}\n")
+            self.output_text.clear(); 
+            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+            self.output_text.append(f"\nCurrent pose is: \n{transformation_matrix}\n")
             for actor_name, actor in self.mesh_actors.items():
                 actor.user_matrix = transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
@@ -315,6 +325,9 @@ class Interface_GUI(MyMainWindow):
     def undo_pose(self, *args):
         if len(self.undo_poses) != 0: 
             transformation_matrix = self.undo_poses.pop()
+            self.output_text.clear(); 
+            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+            self.output_text.append(f"\nUndo pose to: \n{transformation_matrix}\n")
             if (transformation_matrix == self.mesh_actors[self.reference].user_matrix).all():
                 if len(self.undo_poses) != 0: transformation_matrix = self.undo_poses.pop()
             for actor_name, actor in self.mesh_actors.items():

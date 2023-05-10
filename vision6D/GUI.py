@@ -135,6 +135,7 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
         fileMenu.addAction('Add Pose', self.add_pose_file)
+        fileMenu.addAction('Set Image/Mask Spacing', self.set_image_spacing_attr)
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -147,13 +148,11 @@ class MyMainWindow(MainWindow):
         
         # Add set attribute menu
         setAttrMenu = mainMenu.addMenu('Set')
-        setAttrMenu.addAction('Set Camera', self.set_camera_attr)
-        setAttrMenu.addAction('Set Reference', self.set_reference_attr)
-        setAttrMenu.addAction('Set Image/Mask Spacing', self.set_image_spacing_attr)
         setAttrMenu.addAction('Set Opacity (bn, hj, yu)', self.set_opacity_attr)
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
+        CameraMenu.addAction('Config Camera', self.set_camera_attr)
         CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
@@ -192,12 +191,6 @@ class MyMainWindow(MainWindow):
                 except:
                     self.focal_length, self.cam_viewup, self.cam_position = pre_focal_length, pre_cam_viewup, pre_cam_position
                     QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
-
-    def set_reference_attr(self):
-        output, ok = self.input_dialog.getText(self, 'Input', "Set Reference Mesh Name", text='ossicles')
-        if ok: 
-            try: self.set_reference(output)
-            except AssertionError: QMessageBox.warning(self, 'vision6D', "Reference name does not exist in the paths", QMessageBox.Ok, QMessageBox.Ok)
 
     def set_opacity_attr(self):
         dialog = MultiInputDialog(placeholder=False, line1=("Image Opacity", self.image_opacity), line2=("Mask Opacity", self.mask_opacity), line3=("Mesh Opacity", self.surface_opacity))
@@ -275,12 +268,8 @@ class MyMainWindow(MainWindow):
                 transformation_matrix = self.transformation_matrix
                 if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
-                
                 self.add_mesh(mesh_name, mesh_source, transformation_matrix)
-                if self.reference is None: 
-                    reply = QMessageBox.question(self,"vision6D", "Do you want to make this mesh as a reference?", QMessageBox.Yes, QMessageBox.No)
-                    if reply == QMessageBox.Yes: self.reference = mesh_name
-      
+                      
     def add_pose_file(self):
         self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
         if self.pose_path != '': 
@@ -337,7 +326,7 @@ class MyMainWindow(MainWindow):
 
     def remove_actor(self, button):
         name = button.text()
-        if self.reference == name: self.reference = None
+        self.reference = None
         if name == 'image': 
             actor = self.image_actor
             self.image_actor = None
@@ -644,7 +633,7 @@ class MyMainWindow(MainWindow):
     def add_button_actor_name(self, actor_name):
         button = QtWidgets.QPushButton(actor_name)
         button.setCheckable(True)  # Set the button to be checkable
-        button.clicked.connect(lambda checked, text=actor_name: self.get_actor_name(text))
+        button.clicked.connect(lambda checked, text=actor_name: self.set_mesh_reference(text))
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_track_actors_names.addButton(button)
@@ -654,24 +643,25 @@ class MyMainWindow(MainWindow):
         popup.close() # automatically close the popup window
 
     def show_color_popup(self):
+
         checked_button = self.button_group_track_actors_names.checkedButton()
         if checked_button is None:
             QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
-            
+
+        if checked_button.text() == "image" or checked_button.text() == "mask":
+            QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+
         popup = CustomDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
         button_position = self.color_button.mapToGlobal(QPoint(0, 0))
         popup.move(button_position + QPoint(self.color_button.width(), 0))
         popup.exec_()
 
         text = self.color_button.text()
-        if checked_button.text() != "image" and checked_button.text() != "mask":
-            if text == 'nocs': self.set_scalar(True, checked_button.text())
-            elif text == 'latlon': self.set_scalar(False, checked_button.text())
-            else: self.set_color(text, checked_button.text())
-        else:
-            QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QMessageBox.Ok, QMessageBox.Ok)
-            return 0
+        if text == 'nocs': self.set_scalar(True, checked_button.text())
+        elif text == 'latlon': self.set_scalar(False, checked_button.text())
+        else: self.set_color(text, checked_button.text())
 
     def remove_actors_button(self):
         checked_button = self.button_group_track_actors_names.checkedButton()
@@ -691,7 +681,7 @@ class MyMainWindow(MainWindow):
         # Create the color dropdown menu (comboBox)
         self.color_button = QtWidgets.QPushButton("Select Color")
         self.color_button.clicked.connect(self.show_color_popup)
-        top_layout.addWidget(self.color_button)
+        top_layout.addWidget(self.color_button, 1) # 1 is for the stretch factor
 
         # Create the slider
         slider = QtWidgets.QSlider(Qt.Horizontal)
@@ -700,12 +690,12 @@ class MyMainWindow(MainWindow):
         slider.setValue(8)
         slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
         slider.setTickInterval(1)
-        top_layout.addWidget(slider)
+        top_layout.addWidget(slider, 2)
 
         # Create the second button
         remove_button = QtWidgets.QPushButton("Remove")
         remove_button.clicked.connect(self.remove_actors_button)
-        top_layout.addWidget(remove_button)
+        top_layout.addWidget(remove_button, 1)
 
         display_layout.addLayout(top_layout)
 

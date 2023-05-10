@@ -1994,3 +1994,9 @@ set_nocs_color = functools.partial(self.set_color, True)
 RegisterMenu.addAction('NOCS', set_nocs_color)
 set_latlon_color = functools.partial(self.set_color, False)
 RegisterMenu.addAction('LatLon', set_latlon_color)
+
+# button.clicked.connect(lambda checked, text=actor_name: self.get_actor_name(text))
+"""
+def get_actor_name(self, text):
+    self.output_text.clear(); self.output_text.append(f"Button with text '{text}' clicked.")
+"""  
