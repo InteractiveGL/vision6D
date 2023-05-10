@@ -338,7 +338,11 @@ class Interface_GUI(MyMainWindow):
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def undo_pose(self, *args):
-        actor_name = self.button_group_track_actors_names.checkedButton().text()
+        if self.button_group_track_actors_names.checkedButton() is not None:
+            actor_name = self.button_group_track_actors_names.checkedButton().text()
+        else:
+            QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
         if len(self.undo_poses[actor_name]) != 0: 
             transformation_matrix = self.undo_poses[actor_name].pop()
             if (transformation_matrix == self.mesh_actors[actor_name].user_matrix).all():
