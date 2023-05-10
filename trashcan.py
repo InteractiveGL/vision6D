@@ -2000,3 +2000,42 @@ RegisterMenu.addAction('LatLon', set_latlon_color)
 def get_actor_name(self, text):
     self.output_text.clear(); self.output_text.append(f"Button with text '{text}' clicked.")
 """  
+
+# def track_click_callback(self, *args):
+#     if len(self.undo_poses) > 20: self.undo_poses.pop(0)
+#     if self.reference is not None: self.undo_poses.append(self.mesh_actors[self.reference].user_matrix)
+
+self.plotter.track_click_position(callback=self.track_click_callback, side='l')
+
+# print(f"Picked actor: {picked_actor.name}")
+
+# else:
+#     self.reference = None
+#     self.output_text.clear(); self.output_text.append(f"Current reference mesh is not set")
+
+ 
+# output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: "
+#   f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
+# self.output_text.append(output_message)
+
+# output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: "
+#   f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
+# self.output_text.append(output_message)
+
+if len(self.mesh_actors) == 0:
+self.mesh_path = None
+self.pose_path = None
+self.meshdict = {}
+self.transformation_matrix = np.eye(4)
+self.undo_poses = {}
+self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
+self.used_colors = []
+
+def try_except(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except:
+            if isinstance(args[0], MainWindow): QMessageBox.warning(args[0], 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
+
+    return wrapper

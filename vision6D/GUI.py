@@ -1,13 +1,11 @@
 # General import
 import os
-import sys
 import logging
 import numpy as np
 import pyvista as pv
 import functools
 import trimesh
 import pathlib
-import copy
 import PIL
 import ast
 
@@ -326,7 +324,6 @@ class MyMainWindow(MainWindow):
 
     def remove_actor(self, button):
         name = button.text()
-        self.reference = None
         if name == 'image': 
             actor = self.image_actor
             self.image_actor = None
@@ -337,26 +334,23 @@ class MyMainWindow(MainWindow):
             self.mask_path = None
         else: 
             actor = self.mesh_actors[name]
-             # remove the item from the mesh dictionary
-            del self.mesh_actors[name]
-            if len(self.mesh_actors) == 0:
-                self.mesh_path = None
-                self.pose_path = None
-                self.meshdict = {}
-                self.reference = None
-                self.transformation_matrix = np.eye(4)
-                self.undo_poses = []
-                self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
-                self.used_colors = []
+            del self.mesh_actors[name] # remove the item from the mesh dictionary
+            del self.mesh_colors[name]
+            del self.meshdict[name]
+            self.reference = None
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
+        self.output_text.clear(); self.output_text.append(f"Remove actor: <span style='background-color:yellow; color:black;'>{name}</span>")
         # remove the button from the button group
         self.button_group_track_actors_names.removeButton(button)
         # remove the button from the self.button_layout widget
         self.button_layout.removeWidget(button)
         # offically delete the button
         button.deleteLater()
+
+        # clear out the plot if there is no actor
+        if self.image_actor is None and self.mask_actor is None and len(self.mesh_actors) == 0: self.clear_plot()
    
     def clear_plot(self):
         
@@ -380,6 +374,7 @@ class MyMainWindow(MainWindow):
         self.mesh_path = None
         self.pose_path = None
         self.meshdict = {}
+        self.mesh_colors = {}
 
         self.mirror_x = False
         self.mirror_y = False
@@ -389,11 +384,12 @@ class MyMainWindow(MainWindow):
         self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
-        self.undo_poses = []
+        self.undo_poses = {}
         self.track_actors_names = []
 
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
+        self.output_text.clear()
 
     def export_image_plot(self):
 
@@ -450,8 +446,11 @@ class MyMainWindow(MainWindow):
 
     def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True, save_render=True):
 
-        if self.reference is not None: transformation_matrix = self.mesh_actors[self.reference].user_matrix
-        else: QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok); return 0
+        if self.reference is not None: 
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+        else: 
+            QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
 
         if reply_reset_camera is None and reply_render_mesh is None and reply_export_surface is None:
             reply_reset_camera = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
@@ -474,17 +473,20 @@ class MyMainWindow(MainWindow):
             output_name = reference_name + f'_render_{id}' if not mirror else reference_name + f'_mirrored_render_{id}'
         else:
             output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
-            
+
+        # Render all objects 
         if render_all_meshes:
-            # Render the targeting objects
             for mesh_name, mesh_actor in self.mesh_actors.items():
                 vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
-                colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
-                if colors is None: colors = np.ones((len(vertices), 3)) * 0.5
-                assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-                
                 mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+
+                colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
+                if colors is not None: 
+                    assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+                    mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+                else:
+                    mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+
                 mesh.user_matrix = transformation_matrix
 
             self.render.camera = camera
@@ -496,17 +498,17 @@ class MyMainWindow(MainWindow):
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             if msg: self.output_text.clear(); self.output_text.append(f"Export all meshes render to:\n {str(output_path)}")
+        # render the reference mesh only
         else:
-            mesh_name = self.reference
-            mesh_actor = self.mesh_actors[mesh_name]
-
+            mesh_actor = self.mesh_actors[self.reference]
             vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
-            colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
-            if colors is None: colors = np.ones((len(vertices), 3)) * 0.5
-            assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-            
             mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-            mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+            colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
+            if colors is not None: 
+                assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
+            else:
+                mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
             mesh.user_matrix = transformation_matrix
             self.render.camera = camera
             self.render.disable(); self.render.show(auto_close=False)
@@ -633,7 +635,7 @@ class MyMainWindow(MainWindow):
     def add_button_actor_name(self, actor_name):
         button = QtWidgets.QPushButton(actor_name)
         button.setCheckable(True)  # Set the button to be checkable
-        button.clicked.connect(lambda checked, text=actor_name: self.set_mesh_reference(text))
+        button.clicked.connect(lambda checked, text=actor_name: self.button_actor_name_clicked(text))
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_track_actors_names.addButton(button)
@@ -649,7 +651,9 @@ class MyMainWindow(MainWindow):
             QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
-        if checked_button.text() == "image" or checked_button.text() == "mask":
+        actor_name = checked_button.text()
+
+        if actor_name not in self.mesh_actors:
             QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
@@ -659,9 +663,10 @@ class MyMainWindow(MainWindow):
         popup.exec_()
 
         text = self.color_button.text()
-        if text == 'nocs': self.set_scalar(True, checked_button.text())
-        elif text == 'latlon': self.set_scalar(False, checked_button.text())
-        else: self.set_color(text, checked_button.text())
+        self.mesh_colors[actor_name] = text
+        if text == 'nocs': self.set_scalar(True, actor_name)
+        elif text == 'latlon': self.set_scalar(False, actor_name)
+        else: self.set_color(text, actor_name)
 
     def remove_actors_button(self):
         checked_button = self.button_group_track_actors_names.checkedButton()
@@ -747,7 +752,7 @@ class MyMainWindow(MainWindow):
     def show_plot(self):
         self.plotter.enable_joystick_actor_style()
         self.plotter.enable_trackball_actor_style()
-        self.plotter.track_click_position(callback=self.track_click_callback, side='l')
+        self.plotter.iren.interactor.AddObserver("LeftButtonPressEvent", self.pick_callback)
 
         # camera related key bindings
         self.plotter.add_key_event('c', self.reset_camera)

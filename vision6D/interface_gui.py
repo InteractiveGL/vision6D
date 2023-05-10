@@ -1,15 +1,13 @@
-import sys
-from typing import List, Dict, Tuple, Optional
 import pathlib
 import logging
 import numpy as np
 import math
 import trimesh
-import functools
 import numpy as np
 import matplotlib.pyplot as plt
 import json
 import PIL
+import vtk
 
 # Setting the Qt bindings for QtPy
 import os
@@ -23,15 +21,6 @@ from .GUI import MyMainWindow
 
 np.set_printoptions(suppress=True)
 
-def try_except(func):
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except:
-            if isinstance(args[0], MainWindow): QMessageBox.warning(args[0], 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
-
-    return wrapper
-
 class Interface_GUI(MyMainWindow):
     def __init__(self):
         super().__init__()
@@ -39,6 +28,7 @@ class Interface_GUI(MyMainWindow):
         # initialize
         self.reference = None
         self.transformation_matrix = np.eye(4)
+        self.initial_pose = self.transformation_matrix
 
         self.mirror_x = False
         self.mirror_y = False
@@ -47,11 +37,12 @@ class Interface_GUI(MyMainWindow):
         self.mask_actor = None
         self.mesh_actors = {}
         
-        self.undo_poses = []
+        self.undo_poses = {}
         self.latlon = vis.utils.load_latitude_longitude()
 
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
+        self.mesh_colors = {}
 
         # default opacity for image and surface
         self.set_image_opacity(0.99)
@@ -60,13 +51,16 @@ class Interface_GUI(MyMainWindow):
         self.spacing = [0.01, 0.01, 1]
         self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
 
-    def set_mesh_reference(self, text):
-        if text != 'image' and text != 'mask':
+    def button_actor_name_clicked(self, text):
+        if text in self.mesh_actors:
+            # set the current mesh color
+            self.color_button.setText(self.mesh_colors[text])
+            # set mesh reference
             self.reference = text
-            self.output_text.clear(); self.output_text.append(f"Current reference mesh is {text}")
+            self.output_text.clear()
+            self.output_text.append(f"Current reference mesh is <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
         else:
-            self.reference = None
-            self.output_text.clear(); self.output_text.append(f"Current reference mesh is not set")
+            self.color_button.setText("Select Color")
 
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
@@ -218,6 +212,7 @@ class Interface_GUI(MyMainWindow):
             self.used_colors = []
 
         self.used_colors.append(mesh_color)
+        self.mesh_colors[mesh_name] = mesh_color
         mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.surface_opacity, name=mesh_name)
 
         mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
@@ -288,19 +283,39 @@ class Interface_GUI(MyMainWindow):
     def zoom_out(self, *args):
         self.plotter.camera.zoom(0.5)
 
-    def track_click_callback(self, *args):
-        if len(self.undo_poses) > 20: self.undo_poses.pop(0)
-        if self.reference is not None: self.undo_poses.append(self.mesh_actors[self.reference].user_matrix)
+    def pick_callback(self, obj, event):
+        x, y = obj.GetEventPosition()
+        picker = vtk.vtkCellPicker()
+        picker.Pick(x, y, 0, self.plotter.renderer)
+        picked_actor = picker.GetActor()
+        if picked_actor is not None:
+            actor_name = picked_actor.name
+            if actor_name in self.mesh_actors:
+                # set the current mesh color
+                self.color_button.setText(self.mesh_colors[actor_name])
+                
+                # set the current reference to the picked actor mesh
+                self.reference = actor_name
+                self.output_text.clear()
+                self.output_text.append(f"Current reference mesh is <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+                
+                if actor_name not in self.undo_poses: self.undo_poses[actor_name] = []
+                self.undo_poses[actor_name].append(self.mesh_actors[actor_name].user_matrix)
+                if len(self.undo_poses[actor_name]) > 20: self.undo_poses[actor_name].pop(0)
+                
+                checked_button = self.button_group_track_actors_names.checkedButton()
+                # uncheck the current button if it is not None
+                if checked_button is not None:
+                    if checked_button.text() != actor_name: checked_button.setChecked(False)
+                # check the picked button
+                for button in self.button_group_track_actors_names.buttons():
+                    if button.text() == actor_name: button.setChecked(True); break
 
-    @try_except
     def reset_gt_pose(self, *args):
-        if self.reference is not None:
-            self.output_text.clear(); 
-            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
-            self.output_text.append(f"\nReset the GT pose: \n{self.initial_pose}\n")
-            for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = self.initial_pose
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        self.output_text.clear(); self.output_text.append(f"\nReset the GT pose to: \n{self.initial_pose}\n")
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = self.initial_pose
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def update_gt_pose(self, *args):
         if self.reference is not None:
@@ -323,23 +338,27 @@ class Interface_GUI(MyMainWindow):
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def undo_pose(self, *args):
-        if len(self.undo_poses) != 0: 
-            transformation_matrix = self.undo_poses.pop()
-            self.output_text.clear(); 
-            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
-            self.output_text.append(f"\nUndo pose to: \n{transformation_matrix}\n")
-            if (transformation_matrix == self.mesh_actors[self.reference].user_matrix).all():
-                if len(self.undo_poses) != 0: transformation_matrix = self.undo_poses.pop()
-            for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = transformation_matrix
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        actor_name = self.button_group_track_actors_names.checkedButton().text()
+        if len(self.undo_poses[actor_name]) != 0: 
+            transformation_matrix = self.undo_poses[actor_name].pop()
+            if (transformation_matrix == self.mesh_actors[actor_name].user_matrix).all():
+                if len(self.undo_poses[actor_name]) != 0: 
+                    transformation_matrix = self.undo_poses[actor_name].pop()
 
-    def set_scalar(self, nocs_color, actor_name):
-        self.nocs_color = nocs_color
+            self.output_text.clear(); 
+            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{actor_name}</span><br>")
+            self.output_text.append(f"\nUndo pose to: \n{transformation_matrix}\n")
+                
+            self.mesh_actors[actor_name].user_matrix = transformation_matrix
+            self.plotter.add_actor(self.mesh_actors[actor_name], pickable=True, name=actor_name)
+
+    def set_scalar(self, nocs, actor_name):
         vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
         # get the corresponding color
-        colors = vis.utils.color_mesh(vertices, nocs=self.nocs_color)
-        if colors.shape != vertices.shape: QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QMessageBox.Ok, QMessageBox.Ok); return 0
+        colors = vis.utils.color_mesh(vertices, nocs=nocs)
+        if colors.shape != vertices.shape: 
+            QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
         assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
         # color the mesh and actor
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
@@ -416,15 +435,15 @@ class Interface_GUI(MyMainWindow):
                 QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QMessageBox.Ok, QMessageBox.Ok)
                 return 0
                 
-            if self.nocs_color:
+            if self.mesh_colors[self.reference] == 'nocs':
                 vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
                 mesh = trimesh.Trimesh(vertices, faces, process=False)
                 predicted_pose = self.nocs_epnp(color_mask, mesh)
                 error = np.sum(np.abs(predicted_pose - gt_pose))
-                self.output_text.clear(); 
-                output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: "
-                  f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
-                self.output_text.append(output_message)
+                self.output_text.clear()
+                self.output_text.append(f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
+                self.output_text.append(f"\n{predicted_pose}\n\nGT POSE: \n\n{gt_pose}\n\nERROR: \n\n{error}")
+
             else:
                 QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QMessageBox.Ok, QMessageBox.Ok)
 
@@ -445,11 +464,14 @@ class Interface_GUI(MyMainWindow):
                         QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
                         return 0
                     color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
-                    nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
+                    # nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
+                    nocs_color = (self.mesh_colors[self.reference] == 'nocs')
                     gt_pose = self.mesh_actors[self.reference].user_matrix
                     vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
                     mesh = trimesh.Trimesh(vertices, faces, process=False)
-                else: QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok); return 0
+                else: 
+                    QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok)
+                    return 0
                 color_mask = (color_mask * mask_data).astype(np.uint8)
             # color mask
             else:
@@ -478,10 +500,10 @@ class Interface_GUI(MyMainWindow):
                 if nocs_method: predicted_pose = self.nocs_epnp(color_mask, mesh); color_theme = 'NOCS'
                 else: predicted_pose = self.latlon_epnp(color_mask, mesh); color_theme = 'LATLON'
                 error = np.sum(np.abs(predicted_pose - gt_pose))
-                self.output_text.clear(); 
-                output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: "
-                  f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
-                self.output_text.append(output_message)
+                self.output_text.clear()
+                self.output_text.append(f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
+                self.output_text.append(f"\n{predicted_pose}\n\nGT POSE: \n\n{gt_pose}\n\nERROR: \n\n{error}")
+
             else:
                 QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
         else:
