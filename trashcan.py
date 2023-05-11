@@ -2160,3 +2160,9 @@ setAttrMenu.addAction('Set Opacity (bn, hj, yu)', self.set_opacity_attr)
 
 self.set_image_opacity(0.99)
 self.set_mask_opacity(0.5)
+
+# if placeholder:
+#     self.args1 = QLineEdit(self, placeholderText=str(line1[1]))
+#     self.args2 = QLineEdit(self, placeholderText=str(line2[1]))
+#     self.args3 = QLineEdit(self, placeholderText=str(line3[1]))
+# else:

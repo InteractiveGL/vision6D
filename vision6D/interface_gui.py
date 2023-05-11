@@ -192,17 +192,21 @@ class Interface_GUI(MyMainWindow):
                               
         if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
             # Load the '.mesh' file
-            if '.mesh' in str(mesh_source): mesh_source = vis.utils.load_trimesh(mesh_source)
+            if pathlib.Path(mesh_source).suffix == '.mesh': mesh_source = vis.utils.load_trimesh(mesh_source)
             # Load the '.ply' file
-            elif '.ply' in str(mesh_source): mesh_source = pv.read(mesh_source)
+            elif pathlib.Path(mesh_source).suffix == '.ply': mesh_source = pv.read(mesh_source)
 
         if isinstance(mesh_source, trimesh.Trimesh):
             assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
             mesh_data = pv.wrap(mesh_source)
+            source_verts = mesh_source.vertices
+            source_faces = mesh_source.faces
             flag = True
 
         if isinstance(mesh_source, pv.PolyData):
             mesh_data = mesh_source
+            source_verts = mesh_source.points
+            source_faces = mesh_source.faces.reshape((-1, 4))[:, 1:]
             flag = True
 
         if not flag:
@@ -228,8 +232,8 @@ class Interface_GUI(MyMainWindow):
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
 
         actor_vertices, actor_faces = vis.utils.get_mesh_actor_vertices_faces(actor)
-        assert (actor_vertices == mesh_source.vertices).all(), "vertices should be the same"
-        assert (actor_faces == mesh_source.faces).all(), "faces should be the same"
+        assert (actor_vertices == source_verts).all(), "vertices should be the same"
+        assert (actor_faces == source_faces).all(), "faces should be the same"
         assert actor.name == mesh_name, "actor's name should equal to mesh_name"
         
         self.mesh_actors[mesh_name] = actor

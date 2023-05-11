@@ -44,17 +44,12 @@ class CustomDialog(QtWidgets.QDialog):
         self.setLayout(button_grid)
 
 class MultiInputDialog(QDialog):
-    def __init__(self, parent=None, placeholder=True, line1=(None, None), line2=(None, None), line3=(None, None)):
+    def __init__(self, parent=None, line1=(None, None), line2=(None, None), line3=(None, None)):
         super().__init__(parent)
 
-        if placeholder:
-            self.args1 = QLineEdit(self, placeholderText=str(line1[1]))
-            self.args2 = QLineEdit(self, placeholderText=str(line2[1]))
-            self.args3 = QLineEdit(self, placeholderText=str(line3[1]))
-        else:
-            self.args1 = QLineEdit(self, text=str(line1[1]))
-            self.args2 = QLineEdit(self, text=str(line2[1]))
-            self.args3 = QLineEdit(self, text=str(line3[1]))
+        self.args1 = QLineEdit(self, text=str(line1[1]))
+        self.args2 = QLineEdit(self, text=str(line2[1]))
+        self.args3 = QLineEdit(self, text=str(line3[1]))
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
 
@@ -230,12 +225,10 @@ class MyMainWindow(MainWindow):
             mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name', text='ossicles')
             if ok: 
                 self.meshdict[mesh_name] = self.mesh_path
-                mesh_source = vis.utils.load_trimesh(self.mesh_path)
-
                 transformation_matrix = self.transformation_matrix
                 if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
-                self.add_mesh(mesh_name, mesh_source, transformation_matrix)
+                self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
                       
     def add_pose_file(self):
         self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
