@@ -261,27 +261,20 @@ class Interface_GUI(MyMainWindow):
         picked_actor = picker.GetActor()
         if picked_actor is not None:
             actor_name = picked_actor.name
-            if actor_name in self.mesh_actors:
-                # set the current mesh color
-                self.color_button.setText(self.mesh_colors[actor_name])
-                
-                # set the current reference to the picked actor mesh
-                self.reference = actor_name
-                curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
-                self.output_text.clear()
-                self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
-                
+            if actor_name in self.mesh_actors:        
                 if actor_name not in self.undo_poses: self.undo_poses[actor_name] = []
                 self.undo_poses[actor_name].append(self.mesh_actors[actor_name].user_matrix)
                 if len(self.undo_poses[actor_name]) > 20: self.undo_poses[actor_name].pop(0)
-                
                 checked_button = self.button_group_track_actors_names.checkedButton()
                 # uncheck the current button if it is not None
                 if checked_button is not None:
                     if checked_button.text() != actor_name: checked_button.setChecked(False)
                 # check the picked button
                 for button in self.button_group_track_actors_names.buttons():
-                    if button.text() == actor_name: button.setChecked(True); break
+                    if button.text() == actor_name: 
+                        button.setChecked(True)
+                        self.button_actor_name_clicked(actor_name)
+                        break
 
     def reset_gt_pose(self, *args):
         self.output_text.clear(); self.output_text.append(f"\nReset the GT pose to: \n{self.initial_pose}\n")

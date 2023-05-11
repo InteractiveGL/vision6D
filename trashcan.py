@@ -2166,3 +2166,14 @@ self.set_mask_opacity(0.5)
 #     self.args2 = QLineEdit(self, placeholderText=str(line2[1]))
 #     self.args3 = QLineEdit(self, placeholderText=str(line3[1]))
 # else:
+
+curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
+self.opacity_slider.setValue(curr_opacity * 100)
+self.output_text.clear()
+self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
+
+# set the current mesh color
+self.color_button.setText(self.mesh_colors[actor_name])
+
+# set the current reference to the picked actor mesh
+self.reference = actor_name        
