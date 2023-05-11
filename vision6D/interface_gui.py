@@ -43,11 +43,12 @@ class Interface_GUI(MyMainWindow):
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
         self.mesh_colors = {}
+        self.mesh_opacity = {}
 
         # default opacity for image and surface
-        self.set_image_opacity(0.99)
-        self.set_mask_opacity(0.5)
-        self.set_mesh_opacity(0.8)
+        self.image_opacity = 0.99
+        self.mask_opacity = 0.5
+        self.surface_opacity = 0.8
         self.spacing = [0.01, 0.01, 1]
         self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
 
@@ -57,35 +58,38 @@ class Interface_GUI(MyMainWindow):
             self.color_button.setText(self.mesh_colors[text])
             # set mesh reference
             self.reference = text
+            curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
+            self.opacity_slider.setValue(curr_opacity * 100)
             self.output_text.clear()
-            self.output_text.append(f"Current reference mesh is <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+            self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
         else:
             self.color_button.setText("Select Color")
+            if text == 'image': curr_opacity = self.image_opacity
+            elif text == 'mask': curr_opacity = self.mask_opacity
+            self.opacity_slider.setValue(curr_opacity * 100)
+            self.output_text.clear()
+            self.output_text.append(f"Current selected actor is <span style='background-color:yellow; color:black;'>{text}</span>, and opacity is {curr_opacity}")
             self.reference = None
                                                                 
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
         self.image_opacity = image_opacity
-        if self.image_actor is not None:
-            self.image_actor.GetProperty().opacity = image_opacity
-            self.plotter.add_actor(self.image_actor, pickable=False, name='image')
+        self.image_actor.GetProperty().opacity = image_opacity
+        self.plotter.add_actor(self.image_actor, pickable=False, name='image')
 
     def set_mask_opacity(self, mask_opacity: float):
         assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
         self.mask_opacity = mask_opacity
-        if self.mask_actor is not None:
-            self.mask_actor.GetProperty().opacity = mask_opacity
-            self.plotter.add_actor(self.mask_actor, pickable=False, name='mask')
+        self.mask_actor.GetProperty().opacity = mask_opacity
+        self.plotter.add_actor(self.mask_actor, pickable=False, name='mask')
 
-    def set_mesh_opacity(self, surface_opacity: float):
+    def set_mesh_opacity(self, name: str, surface_opacity: float):
         assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
-        self.surface_opacity = surface_opacity
-        if len(self.mesh_actors) != 0:
-            for actor_name, actor in self.mesh_actors.items():
-                actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
-                actor.GetProperty().opacity = self.surface_opacity
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
-    
+        self.mesh_opacity[name] = surface_opacity
+        self.mesh_actors[name].user_matrix = pv.array_from_vtkmatrix(self.mesh_actors[name].GetMatrix())
+        self.mesh_actors[name].GetProperty().opacity = surface_opacity
+        self.plotter.add_actor(self.mesh_actors[name], pickable=True, name=name)
+
     def set_camera_extrinsics(self, cam_position, cam_viewup):
         self.camera.SetPosition((0,0,cam_position))
         self.camera.SetFocalPoint((0,0,0))
@@ -132,7 +136,7 @@ class Interface_GUI(MyMainWindow):
         image = image.translate(-1 * np.array(image.center), inplace=False)
 
         # Then add it to the plotter
-        image = self.plotter.add_mesh(image, cmap='gray', opacity=self.mask_opacity, name='image') if channel == 1 else self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name='image')
+        image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_opacity, name='image') if channel == 1 else self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name='image')
         actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
         # Save actor for later
         self.image_actor = actor
@@ -214,7 +218,8 @@ class Interface_GUI(MyMainWindow):
 
         self.used_colors.append(mesh_color)
         self.mesh_colors[mesh_name] = mesh_color
-        mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.surface_opacity, name=mesh_name)
+        self.mesh_opacity[mesh_name] = self.surface_opacity
+        mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
 
         mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
         self.initial_pose = mesh.user_matrix
@@ -258,8 +263,9 @@ class Interface_GUI(MyMainWindow):
                 
                 # set the current reference to the picked actor mesh
                 self.reference = actor_name
+                curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
                 self.output_text.clear()
-                self.output_text.append(f"Current reference mesh is <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+                self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
                 
                 if actor_name not in self.undo_poses: self.undo_poses[actor_name] = []
                 self.undo_poses[actor_name].append(self.mesh_actors[actor_name].user_matrix)
@@ -281,7 +287,7 @@ class Interface_GUI(MyMainWindow):
 
     def update_gt_pose(self, *args):
         if self.reference is not None:
-            self.output_text.clear(); self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+            self.output_text.clear(); self.output_text.append(f"Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.reference}</span>")
             self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
             self.initial_pose = self.transformation_matrix
             self.output_text.append(f"\nUpdate the GT pose to: \n{self.initial_pose}\n")
@@ -293,7 +299,7 @@ class Interface_GUI(MyMainWindow):
         if self.reference is not None:
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
             self.output_text.clear(); 
-            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{self.reference}</span><br>")
+            self.output_text.append(f"Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.reference}</span>")
             self.output_text.append(f"\nCurrent pose is: \n{transformation_matrix}\n")
             for actor_name, actor in self.mesh_actors.items():
                 actor.user_matrix = transformation_matrix
@@ -312,7 +318,7 @@ class Interface_GUI(MyMainWindow):
                     transformation_matrix = self.undo_poses[actor_name].pop()
 
             self.output_text.clear(); 
-            self.output_text.append(f"Current reference mesh is: <br><span style='background-color:yellow; color:black;'>{actor_name}</span><br>")
+            self.output_text.append(f"Current reference mesh is: <span style='background-color:yellow; color:black;'>{actor_name}</span>")
             self.output_text.append(f"\nUndo pose to: \n{transformation_matrix}\n")
                 
             self.mesh_actors[actor_name].user_matrix = transformation_matrix
@@ -328,7 +334,7 @@ class Interface_GUI(MyMainWindow):
         assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
         # color the mesh and actor
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=actor_name)
+        mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.mesh_opacity[actor_name], name=actor_name)
         transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
         mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
@@ -340,7 +346,7 @@ class Interface_GUI(MyMainWindow):
     def set_color(self, color, actor_name):
         vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.surface_opacity, name=actor_name)
+        mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.mesh_opacity[actor_name], name=actor_name)
         transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
         mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)

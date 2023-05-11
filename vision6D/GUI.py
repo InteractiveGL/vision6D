@@ -305,6 +305,7 @@ class MyMainWindow(MainWindow):
             actor = self.mesh_actors[name]
             del self.mesh_actors[name] # remove the item from the mesh dictionary
             del self.mesh_colors[name]
+            del self.mesh_opacity[name]
             del self.meshdict[name]
             self.reference = None
 
@@ -344,6 +345,7 @@ class MyMainWindow(MainWindow):
         self.pose_path = None
         self.meshdict = {}
         self.mesh_colors = {}
+        self.mesh_opacity = {}
 
         self.mirror_x = False
         self.mirror_y = False
@@ -358,7 +360,11 @@ class MyMainWindow(MainWindow):
 
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
+
         self.output_text.clear()
+        self.ignore_slider_value_change = True
+        self.opacity_slider.setValue(100)
+        self.ignore_slider_value_change = False
 
     def export_image_plot(self):
 
@@ -640,6 +646,25 @@ class MyMainWindow(MainWindow):
             QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
         else: self.remove_actor(checked_button)
 
+    def opacity_value_change(self, value):
+        if self.ignore_slider_value_change: return 0
+        checked_button = self.button_group_track_actors_names.checkedButton()
+        if checked_button is not None:
+            actor_name = checked_button.text()
+            if actor_name == 'image': self.set_image_opacity(value / 100)
+            elif actor_name == 'mask': self.set_mask_opacity(value / 100)
+            else: 
+                self.mesh_opacity[actor_name] = value / 100
+                self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
+            self.output_text.clear()
+            self.output_text.append(f"Current actor <span style='background-color:yellow; color:black;'>{actor_name}</span>'s opacity is {value / 100}")
+        else:
+            self.ignore_slider_value_change = True
+            self.opacity_slider.setValue(100)
+            self.ignore_slider_value_change = False
+            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
+            return 0
+        
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
         display_layout = QtWidgets.QVBoxLayout()
@@ -654,14 +679,16 @@ class MyMainWindow(MainWindow):
         self.color_button.clicked.connect(self.show_color_popup)
         top_layout.addWidget(self.color_button, 1) # 1 is for the stretch factor
 
-        # Create the slider
-        slider = QtWidgets.QSlider(Qt.Horizontal)
-        slider.setMinimum(0.01)
-        slider.setMaximum(9.99)
-        slider.setValue(8)
-        slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        slider.setTickInterval(1)
-        top_layout.addWidget(slider, 2)
+        # Create the opacity slider
+        self.opacity_slider = QtWidgets.QSlider(Qt.Horizontal)
+        self.opacity_slider.setMinimum(0)
+        self.opacity_slider.setMaximum(100)
+        self.opacity_slider.setValue(100)
+        self.opacity_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+        self.opacity_slider.setSingleStep(1)
+        self.ignore_slider_value_change = False 
+        self.opacity_slider.valueChanged.connect(self.opacity_value_change)
+        top_layout.addWidget(self.opacity_slider, 2)
 
         # Create the second button
         remove_button = QtWidgets.QPushButton("Remove")

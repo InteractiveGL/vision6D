@@ -2151,3 +2151,12 @@ self.plotter.add_key_event('u', toggle_surface_opacity_down)
 # Add set attribute menu
 setAttrMenu = mainMenu.addMenu('Set')
 setAttrMenu.addAction('Set Opacity (bn, hj, yu)', self.set_opacity_attr)
+
+# if len(self.mesh_actors) != 0:
+#     for actor_name, actor in self.mesh_actors.items():
+#         actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
+#         actor.GetProperty().opacity = self.surface_opacity
+#         self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+self.set_image_opacity(0.99)
+self.set_mask_opacity(0.5)
