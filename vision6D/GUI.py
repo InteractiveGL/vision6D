@@ -128,7 +128,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
         fileMenu.addAction('Add Pose', self.add_pose_file)
-        fileMenu.addAction('Set Image/Mask Spacing', self.set_image_spacing_attr)
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -141,7 +140,7 @@ class MyMainWindow(MainWindow):
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
-        CameraMenu.addAction('Config Camera', self.set_camera_attr)
+        CameraMenu.addAction('Set Camera', self.set_camera)
         CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
@@ -168,7 +167,7 @@ class MyMainWindow(MainWindow):
         epnp_latlon_mask = functools.partial(self.epnp_mask, False)
         PnPMenu.addAction('EPnP with latlon mask', epnp_latlon_mask)
 
-    def set_camera_attr(self):
+    def set_camera(self):
         dialog = MultiInputDialog(line1=("Focal Length", self.focal_length), line2=("View Up", self.cam_viewup), line3=("Cam Position", self.cam_position))
         if dialog.exec():
             focal_length, cam_viewup, cam_position = dialog.getInputs()
@@ -181,7 +180,7 @@ class MyMainWindow(MainWindow):
                     self.focal_length, self.cam_viewup, self.cam_position = pre_focal_length, pre_cam_viewup, pre_cam_position
                     QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
            
-    def set_image_spacing_attr(self):
+    def set_image_spacing(self):
         spacing, ok = self.input_dialog.getText(self, 'Input', "Set Image/Mask Spacing", text=str(self.spacing))
         if ok: 
             try: 
@@ -199,8 +198,6 @@ class MyMainWindow(MainWindow):
         if self.image_path != '': 
             image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(image_source.shape) == 2: image_source = image_source[..., None]
-            if self.mirror_x: image_source = image_source[:, ::-1, :]
-            if self.mirror_y: image_source = image_source[::-1, :, :]
             self.add_image(image_source)
             
     def add_mask_file(self):
@@ -211,8 +208,6 @@ class MyMainWindow(MainWindow):
         if self.mask_path != '':
             mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
             if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
-            if self.mirror_x: mask_source = mask_source[:, ::-1, :]
-            if self.mirror_y: mask_source = mask_source[::-1, :, :]
             self.add_mask(mask_source)
 
     def add_mesh_file(self):
@@ -263,27 +258,25 @@ class MyMainWindow(MainWindow):
             elif (curr_image_data == original_image_data[:, ::-1, :][::-1, :, :]).all():
                 self.mirror_x = True
                 self.mirror_y = True
-            self.add_image(curr_image_data)
+            self.add_image(original_image_data)
         else:
             QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
         if self.mask_actor is not None:
             #^ mirror the mask actor
-            curr_mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
-            if mirror_x: curr_mask_data = curr_mask_data[:, ::-1, :]
-            if mirror_y: curr_mask_data = curr_mask_data[::-1, :, :]
-            self.add_mask(curr_mask_data)
+            original_mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
+            if len(original_mask_data.shape) == 2: original_mask_data = original_mask_data[..., None]
+            self.add_mask(original_mask_data)
 
         #^ mirror the mesh actors
         if len(self.mesh_actors) != 0:
-            for actor_name, actor in self.mesh_actors.items():
-                transformation_matrix = self.mesh_actors[actor_name].user_matrix
-                if mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                if mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                actor.user_matrix = transformation_matrix
-                self.plotter.add_actor(actor, pickable=True, name=actor_name)
-
+            for actor_name, _ in self.mesh_actors.items():
+                transformation_matrix = self.transformation_matrix
+                if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                self.add_mesh(actor_name, self.meshdict[actor_name], transformation_matrix)
+                
     def remove_actor(self, button):
         name = button.text()
         if name == 'image': 
@@ -301,6 +294,7 @@ class MyMainWindow(MainWindow):
             del self.mesh_opacity[name]
             del self.meshdict[name]
             self.reference = None
+            self.color_button.setText("Select Color")
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
@@ -353,6 +347,7 @@ class MyMainWindow(MainWindow):
 
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
+        self.color_button.setText("Select Color")
 
         self.output_text.clear()
         self.ignore_slider_value_change = True

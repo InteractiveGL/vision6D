@@ -2177,3 +2177,12 @@ self.color_button.setText(self.mesh_colors[actor_name])
 
 # set the current reference to the picked actor mesh
 self.reference = actor_name        
+
+#^ mirroring related code
+# transformation_matrix = self.mesh_actors[actor_name].user_matrix
+# if mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+# if mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+# actor.user_matrix = transformation_matrix
+# self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+# curr_mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)

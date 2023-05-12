@@ -128,6 +128,13 @@ class Interface_GUI(MyMainWindow):
         self.plotter.camera = self.camera.copy()
 
     def add_image(self, image_source):
+
+        if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
+            image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
+
+        if self.mirror_x: image_source = image_source[:, ::-1, :]
+        if self.mirror_y: image_source = image_source[::-1, :, :]
+
         dim = image_source.shape
         h, w, channel = dim[0], dim[1], dim[2]
 
@@ -154,6 +161,13 @@ class Interface_GUI(MyMainWindow):
         self.reset_camera()
 
     def add_mask(self, mask_source):
+
+        if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
+            mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
+
+        if self.mirror_x: mask_source = mask_source[:, ::-1, :]
+        if self.mirror_y: mask_source = mask_source[::-1, :, :]
+
         dim = mask_source.shape
         h, w, channel = dim[0], dim[1], dim[2]
         
@@ -180,8 +194,8 @@ class Interface_GUI(MyMainWindow):
         self.reset_camera()
   
     def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
-        if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1])) if (rot is not None and trans is not None) else None
-        self.initial_pose = matrix if matrix is not None else self.transformation_matrix
+        if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1])) #if (rot is not None and trans is not None) else None
+        self.initial_pose = matrix #if matrix is not None else self.transformation_matrix
         self.reset_gt_pose()
         self.reset_camera()
 
@@ -222,6 +236,7 @@ class Interface_GUI(MyMainWindow):
 
         self.used_colors.append(mesh_color)
         self.mesh_colors[mesh_name] = mesh_color
+        self.color_button.setText(self.mesh_colors[mesh_name])
         self.mesh_opacity[mesh_name] = self.surface_opacity
         mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
 
@@ -323,8 +338,11 @@ class Interface_GUI(MyMainWindow):
 
     def set_scalar(self, nocs, actor_name):
         vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
+        vertices_color = vertices
+        if self.mirror_x: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.mirror_y: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
         # get the corresponding color
-        colors = vis.utils.color_mesh(vertices, nocs=nocs)
+        colors = vis.utils.color_mesh(vertices_color, nocs=nocs)
         if colors.shape != vertices.shape: 
             QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QMessageBox.Ok, QMessageBox.Ok)
             return 0
