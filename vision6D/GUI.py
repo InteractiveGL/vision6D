@@ -20,7 +20,7 @@ import vision6D as vis
 
 np.set_printoptions(suppress=True)
 
-class CustomDialog(QtWidgets.QDialog):
+class PopUpDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, on_button_click=None):
         super().__init__(parent)
 
@@ -179,16 +179,30 @@ class MyMainWindow(MainWindow):
                 except:
                     self.focal_length, self.cam_viewup, self.cam_position = pre_focal_length, pre_cam_viewup, pre_cam_position
                     QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
-           
-    def set_image_spacing(self):
-        spacing, ok = self.input_dialog.getText(self, 'Input', "Set Image/Mask Spacing", text=str(self.spacing))
-        if ok: 
-            try: 
-                self.spacing = ast.literal_eval(spacing)
-                if self.image_path: self.add_image(self.image_path)
-                if self.mask_path: self.add_mask(self.mask_path)
-            except: 
-                QMessageBox.warning(self, 'vision6D', "Spacing format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+
+    def set_spacing(self):
+        checked_button = self.button_group_track_actors_names.checkedButton()
+        if checked_button is not None:
+            if checked_button.text() == 'image':
+                spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.image_spacing))
+                if ok:
+                    self.image_spacing = ast.literal_eval(spacing)
+                    self.add_image(self.image_path)
+            elif checked_button.text() == 'mask':
+                spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mask_spacing))
+                if ok:
+                    self.mask_spacing = ast.literal_eval(spacing)
+                    self.add_mask(self.mask_path)
+            else:
+                spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
+                if ok:
+                    actor_name = checked_button.text()
+                    self.mesh_spacing = ast.literal_eval(spacing)
+                    mesh_source = vis.utils.load_trimesh(self.meshdict[actor_name])
+                    mesh_source.vertices = mesh_source.vertices * self.mesh_spacing
+                    self.add_mesh(actor_name, mesh_source)
+        else:
+            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
 
     def add_image_file(self):
         if self.image_path == None or self.image_path == '':
@@ -294,7 +308,8 @@ class MyMainWindow(MainWindow):
             del self.mesh_opacity[name]
             del self.meshdict[name]
             self.reference = None
-            self.color_button.setText("Select Color")
+            self.color_button.setText("Color")
+            self.mesh_spacing = [1, 1, 1]
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
@@ -334,6 +349,10 @@ class MyMainWindow(MainWindow):
         self.mesh_colors = {}
         self.mesh_opacity = {}
 
+        self.image_spacing = [0.01, 0.01, 1]
+        self.mask_spacing = [0.01, 0.01, 1]
+        self.mesh_spacing = [1, 1, 1]
+
         self.mirror_x = False
         self.mirror_y = False
 
@@ -347,7 +366,7 @@ class MyMainWindow(MainWindow):
 
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
-        self.color_button.setText("Select Color")
+        self.color_button.setText("Color")
 
         self.output_text.clear()
         self.ignore_slider_value_change = True
@@ -617,7 +636,7 @@ class MyMainWindow(MainWindow):
             QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QMessageBox.Ok, QMessageBox.Ok)
             return 0
 
-        popup = CustomDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
+        popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
         button_position = self.color_button.mapToGlobal(QPoint(0, 0))
         popup.move(button_position + QPoint(self.color_button.width(), 0))
         popup.exec_()
@@ -663,9 +682,14 @@ class MyMainWindow(MainWindow):
         top_layout.setContentsMargins(0, 10, 0, 10)
 
         # Create the color dropdown menu (comboBox)
-        self.color_button = QtWidgets.QPushButton("Select Color")
+        self.color_button = QtWidgets.QPushButton("Color")
         self.color_button.clicked.connect(self.show_color_popup)
-        top_layout.addWidget(self.color_button, 1) # 1 is for the stretch factor
+        top_layout.addWidget(self.color_button, 0.5) # 1 is for the stretch factor
+
+        # Create the color dropdown menu (comboBox)
+        self.spacing_button = QtWidgets.QPushButton("Spacing")
+        self.spacing_button.clicked.connect(self.set_spacing)
+        top_layout.addWidget(self.spacing_button, 0.5) # 1 is for the stretch factor
 
         # Create the opacity slider
         self.opacity_slider = QtWidgets.QSlider(Qt.Horizontal)
@@ -676,12 +700,12 @@ class MyMainWindow(MainWindow):
         self.opacity_slider.setSingleStep(1)
         self.ignore_slider_value_change = False 
         self.opacity_slider.valueChanged.connect(self.opacity_value_change)
-        top_layout.addWidget(self.opacity_slider, 2)
+        top_layout.addWidget(self.opacity_slider, 1)
 
         # Create the second button
         remove_button = QtWidgets.QPushButton("Remove")
         remove_button.clicked.connect(self.remove_actors_button)
-        top_layout.addWidget(remove_button, 1)
+        top_layout.addWidget(remove_button, 0.5)
 
         display_layout.addLayout(top_layout)
 

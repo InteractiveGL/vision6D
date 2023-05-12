@@ -2186,3 +2186,13 @@ self.reference = actor_name
 # self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
 # curr_mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
+
+def set_image_spacing(self):
+        spacing, ok = self.input_dialog.getText(self, 'Input', "Set Image/Mask Spacing", text=str(self.spacing))
+        if ok: 
+            try: 
+                self.spacing = ast.literal_eval(spacing)
+                if self.image_path: self.add_image(self.image_path)
+                if self.mask_path: self.add_mask(self.mask_path)
+            except: 
+                QMessageBox.warning(self, 'vision6D', "Spacing format is not correct", QMessageBox.Ok, QMessageBox.Ok)

@@ -49,7 +49,9 @@ class Interface_GUI(MyMainWindow):
         self.image_opacity = 0.99
         self.mask_opacity = 0.5
         self.surface_opacity = 0.8
-        self.spacing = [0.01, 0.01, 1]
+        self.image_spacing = [0.01, 0.01, 1]
+        self.mask_spacing = [0.01, 0.01, 1]
+        self.mesh_spacing = [1, 1, 1]
         self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
 
     def button_actor_name_clicked(self, text):
@@ -63,7 +65,7 @@ class Interface_GUI(MyMainWindow):
             self.output_text.clear()
             self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
         else:
-            self.color_button.setText("Select Color")
+            self.color_button.setText("Color")
             if text == 'image': curr_opacity = self.image_opacity
             elif text == 'mask': curr_opacity = self.mask_opacity
             self.opacity_slider.setValue(curr_opacity * 100)
@@ -131,6 +133,8 @@ class Interface_GUI(MyMainWindow):
 
         if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
+        if len(image_source.shape) == 2: 
+            image_source = image_source[..., None]
 
         if self.mirror_x: image_source = image_source[:, ::-1, :]
         if self.mirror_y: image_source = image_source[::-1, :, :]
@@ -138,7 +142,7 @@ class Interface_GUI(MyMainWindow):
         dim = image_source.shape
         h, w, channel = dim[0], dim[1], dim[2]
 
-        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.spacing, origin=(0.0, 0.0, 0.0))
+        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.image_spacing, origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)
 
@@ -164,6 +168,8 @@ class Interface_GUI(MyMainWindow):
 
         if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
+        if len(mask_source.shape) == 2: 
+            mask_source = mask_source[..., None]
 
         if self.mirror_x: mask_source = mask_source[:, ::-1, :]
         if self.mirror_y: mask_source = mask_source[::-1, :, :]
@@ -171,7 +177,7 @@ class Interface_GUI(MyMainWindow):
         dim = mask_source.shape
         h, w, channel = dim[0], dim[1], dim[2]
         
-        mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.spacing, origin=(0.0, 0.0, 0.0))
+        mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.mask_spacing, origin=(0.0, 0.0, 0.0))
         mask.point_data["values"] = mask_source.reshape((w * h, channel)) # order = 'C
         mask = mask.translate(-1 * np.array(mask.center), inplace=False)
 
