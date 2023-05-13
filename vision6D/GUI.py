@@ -8,6 +8,7 @@ import trimesh
 import pathlib
 import PIL
 import ast
+import json
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -43,13 +44,22 @@ class PopUpDialog(QtWidgets.QDialog):
 
         self.setLayout(button_grid)
 
-class MultiInputDialog(QDialog):
-    def __init__(self, parent=None, line1=(None, None), line2=(None, None), line3=(None, None)):
+class CameraPropsInputDialog(QDialog):
+    def __init__(self, parent=None, 
+                    line1=(None, None), 
+                    line2=(None, None), 
+                    line3=(None, None), 
+                    line4=(None, None), 
+                    line5=(None, None),
+                    line6=(None, None)):
         super().__init__(parent)
 
         self.args1 = QLineEdit(self, text=str(line1[1]))
         self.args2 = QLineEdit(self, text=str(line2[1]))
         self.args3 = QLineEdit(self, text=str(line3[1]))
+        self.args4 = QLineEdit(self, text=str(line4[1]))
+        self.args5 = QLineEdit(self, text=str(line5[1]))
+        self.args6 = QLineEdit(self, text=str(line6[1]))
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
 
@@ -57,13 +67,21 @@ class MultiInputDialog(QDialog):
         layout.addRow(f"{line1[0]}", self.args1)
         layout.addRow(f"{line2[0]}", self.args2)
         layout.addRow(f"{line3[0]}", self.args3)
+        layout.addRow(f"{line4[0]}", self.args4)
+        layout.addRow(f"{line5[0]}", self.args5)
+        layout.addRow(f"{line6[0]}", self.args6)
         layout.addWidget(buttonBox)
 
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
 
     def getInputs(self):
-        return (self.args1.text(), self.args2.text(), self.args3.text())
+        return (self.args1.text(), 
+                self.args2.text(), 
+                self.args3.text(),
+                self.args4.text(),
+                self.args5.text(),
+                self.args6.text())
 
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
@@ -107,7 +125,7 @@ class MyMainWindow(MainWindow):
         self.image_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\frames')
         self.mask_dir = pathlib.Path('E:\\GitHub\\yolov8\\runs\\segment')
         self.mesh_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\surgical_planning')
-        self.gt_poses_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\gt_poses')
+        self.pose_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\gt_poses')
 
         self.image_path = None
         self.mask_path = None
@@ -124,6 +142,7 @@ class MyMainWindow(MainWindow):
             
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
+        fileMenu.addAction('Add Workspace', self.add_workspace)
         fileMenu.addAction('Add Image', self.add_image_file)
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
@@ -168,16 +187,22 @@ class MyMainWindow(MainWindow):
         PnPMenu.addAction('EPnP with latlon mask', epnp_latlon_mask)
 
     def set_camera(self):
-        dialog = MultiInputDialog(line1=("Focal Length", self.focal_length), line2=("View Up", self.cam_viewup), line3=("Cam Position", self.cam_position))
+        dialog = CameraPropsInputDialog(
+            line1=("Fx", self.fx), 
+            line2=("Fy", self.fy), 
+            line3=("Cx", self.cx), 
+            line4=("Cy", self.cy), 
+            line5=("View Up", self.cam_viewup), 
+            line6=("Cam Position", self.cam_position))
         if dialog.exec():
-            focal_length, cam_viewup, cam_position = dialog.getInputs()
-            pre_focal_length, pre_cam_viewup, pre_cam_position = self.focal_length, self.cam_viewup, self.cam_position
-            if not (focal_length == '' or cam_viewup == '' or cam_position == ''):
+            fx, fy, cx, cy, cam_viewup, cam_position = dialog.getInputs()
+            pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position = self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position
+            if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == '' or cam_position == ''):
                 try:
-                    self.focal_length, self.cam_viewup, self.cam_position = ast.literal_eval(focal_length), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
-                    self.set_camera_props(self.focal_length, self.cam_viewup, self.cam_position)
+                    self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
+                    self.set_camera_props(self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position)
                 except:
-                    self.focal_length, self.cam_viewup, self.cam_position = pre_focal_length, pre_cam_viewup, pre_cam_position
+                    self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
                     QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
 
     def set_spacing(self):
@@ -186,61 +211,94 @@ class MyMainWindow(MainWindow):
             if checked_button.text() == 'image':
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.image_spacing))
                 if ok:
-                    self.image_spacing = ast.literal_eval(spacing)
+                    try: self.image_spacing = ast.literal_eval(spacing)
+                    except: QMessageBox.warning(self, 'vision6D', "Format is not correct", QMessageBox.Ok, QMessageBox.Ok)
                     self.add_image(self.image_path)
             elif checked_button.text() == 'mask':
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mask_spacing))
                 if ok:
-                    self.mask_spacing = ast.literal_eval(spacing)
+                    try: self.mask_spacing = ast.literal_eval(spacing)
+                    except: QMessageBox.warning(self, 'vision6D', "Format is not correct", QMessageBox.Ok, QMessageBox.Ok)
                     self.add_mask(self.mask_path)
             else:
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
                 if ok:
                     actor_name = checked_button.text()
-                    self.mesh_spacing = ast.literal_eval(spacing)
-                    mesh_source = vis.utils.load_trimesh(self.meshdict[actor_name])
-                    mesh_source.vertices = mesh_source.vertices * self.mesh_spacing
-                    self.add_mesh(actor_name, mesh_source)
+                    try: self.mesh_spacing = ast.literal_eval(spacing)
+                    except: QMessageBox.warning(self, 'vision6D', "Format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+                    self.add_mesh(actor_name, self.meshdict[actor_name])
         else:
             QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
 
-    def add_image_file(self):
-        if self.image_path == None or self.image_path == '':
-            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
-        else:
-            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
+    def add_workspace(self):
+        workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(vis.config.GITROOT / "workspace"), "Files (*.json)")
+        if workspace_path != '':
+            with open(str(workspace_path), 'r') as f: 
+                workspace = json.load(f)
+
+            self.image_path = workspace['image_path']
+            self.mask_path = workspace['mask_path']
+            self.pose_path = workspace['pose_path']
+            mesh_paths = workspace['mesh_path']
+
+            self.add_image_file(load_from_workspace=True)
+            self.add_mask_file(load_from_workspace=True)
+            self.add_pose_file(load_from_workspace=True)
+
+            for item in mesh_paths.items():
+                mesh_name, self.mesh_path = item
+                self.add_mesh_file(mesh_name=mesh_name, load_from_workspace=True)
+
+    def add_image_file(self, load_from_workspace=False):
+        if not load_from_workspace:
+            if self.image_path == None or self.image_path == '':
+                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
+            else:
+                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
+
         if self.image_path != '': 
             image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(image_source.shape) == 2: image_source = image_source[..., None]
             self.add_image(image_source)
             
-    def add_mask_file(self):
-        if self.mask_path == None or self.mask_path == '':
-            self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mask_dir), "Files (*.png *.jpg)")
-        else:
-            self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
+    def add_mask_file(self, load_from_workspace=False):
+        if not load_from_workspace:
+            if self.mask_path == None or self.mask_path == '':
+                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mask_dir), "Files (*.png *.jpg)")
+            else:
+                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
+        
         if self.mask_path != '':
             mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
             if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
             self.add_mask(mask_source)
 
-    def add_mesh_file(self):
-        if self.mesh_path == None or self.mesh_path == '':
-            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mesh_dir), "Files (*.mesh *.ply)")
-        else:
-            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
+    def add_mesh_file(self, mesh_name=None, load_from_workspace=False):
+        if not load_from_workspace:
+            if self.mesh_path == None or self.mesh_path == '':
+                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mesh_dir), "Files (*.mesh *.ply)")
+            else:
+                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
 
         if self.mesh_path != '':
-            mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name', text='ossicles')
-            if ok: 
-                self.meshdict[mesh_name] = self.mesh_path
-                transformation_matrix = self.transformation_matrix
-                if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
-                self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
+            if mesh_name is None:
+                mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name', text='ossicles')
+                if not ok: return 0
+
+            self.meshdict[mesh_name] = self.mesh_path
+            self.mesh_opacity[mesh_name] = self.surface_opacity
+            transformation_matrix = self.transformation_matrix
+            if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
+            self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
                       
-    def add_pose_file(self):
-        self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.gt_poses_dir), "Files (*.npy)")
+    def add_pose_file(self, load_from_workspace=False):
+        if not load_from_workspace:
+            if self.pose_path == None or self.pose_path == '':
+                self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.pose_dir), "Files (*.npy)")
+            else:
+                self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.pose_path).parent), "Files (*.npy)")
+        
         if self.pose_path != '': 
             transformation_matrix = np.load(self.pose_path)
             self.transformation_matrix = transformation_matrix
@@ -614,7 +672,7 @@ class MyMainWindow(MainWindow):
     def add_button_actor_name(self, actor_name):
         button = QtWidgets.QPushButton(actor_name)
         button.setCheckable(True)  # Set the button to be checkable
-        button.clicked.connect(lambda checked, text=actor_name: self.button_actor_name_clicked(text))
+        button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_track_actors_names.addButton(button)

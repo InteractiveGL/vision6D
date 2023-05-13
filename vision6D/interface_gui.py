@@ -52,7 +52,7 @@ class Interface_GUI(MyMainWindow):
         self.image_spacing = [0.01, 0.01, 1]
         self.mask_spacing = [0.01, 0.01, 1]
         self.mesh_spacing = [1, 1, 1]
-        self.set_camera_props(focal_length=50000, cam_viewup=(0, -1, 0), cam_position=-500)
+        self.set_camera_props(fx=50000, fy=50000, cx=960, cy=540, cam_viewup=(0, -1, 0), cam_position=-500)
 
     def button_actor_name_clicked(self, text):
         if text in self.mesh_actors:
@@ -97,12 +97,12 @@ class Interface_GUI(MyMainWindow):
         self.camera.SetFocalPoint((0,0,0))
         self.camera.SetViewUp(cam_viewup)
     
-    def set_camera_intrinsics(self, width, height, cam_focal_length):
+    def set_camera_intrinsics(self, width, height, fx, fy, cx, cy):
         
         # Set camera intrinsic attribute
         self.camera_intrinsics = np.array([
-            [cam_focal_length, 0, width/2],
-            [0, cam_focal_length, height/2],
+            [fx, 0, cx],
+            [0, fy, cy],
             [0, 0, 1]
         ])
         
@@ -119,13 +119,16 @@ class Interface_GUI(MyMainWindow):
         view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
  
-    def set_camera_props(self, focal_length, cam_viewup, cam_position):
+    def set_camera_props(self, fx, fy, cx, cy, cam_viewup, cam_position):
         # Set up the camera
         self.camera = pv.Camera()
-        self.focal_length = focal_length
+        self.fx = fx
+        self.fy = fy
+        self.cx = cx
+        self.cy = cy
         self.cam_viewup = cam_viewup
         self.cam_position = cam_position
-        self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.focal_length)
+        self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.fx, self.fy, self.cx, self.cy)
         self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
         self.plotter.camera = self.camera.copy()
 
@@ -219,19 +222,22 @@ class Interface_GUI(MyMainWindow):
         if isinstance(mesh_source, trimesh.Trimesh):
             assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
             mesh_data = pv.wrap(mesh_source)
-            source_verts = mesh_source.vertices
+            source_verts = mesh_source.vertices * self.mesh_spacing
             source_faces = mesh_source.faces
             flag = True
 
         if isinstance(mesh_source, pv.PolyData):
             mesh_data = mesh_source
-            source_verts = mesh_source.points
+            source_verts = mesh_source.points * self.mesh_spacing
             source_faces = mesh_source.faces.reshape((-1, 4))[:, 1:]
             flag = True
 
         if not flag:
             QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
             return 0
+
+        # consider the mesh verts spacing
+        mesh_data.points = mesh_data.points * self.mesh_spacing
 
         # assign a color to every mesh
         if len(self.colors) != 0: mesh_color = self.colors.pop(0)
@@ -243,7 +249,6 @@ class Interface_GUI(MyMainWindow):
         self.used_colors.append(mesh_color)
         self.mesh_colors[mesh_name] = mesh_color
         self.color_button.setText(self.mesh_colors[mesh_name])
-        self.mesh_opacity[mesh_name] = self.surface_opacity
         mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
 
         mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
@@ -423,6 +428,8 @@ class Interface_GUI(MyMainWindow):
                 return 0
             color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
             gt_pose = self.mesh_actors[self.reference].user_matrix
+            if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+            if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
 
             if np.sum(color_mask) == 0:
                 QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QMessageBox.Ok, QMessageBox.Ok)
@@ -432,6 +439,8 @@ class Interface_GUI(MyMainWindow):
                 vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
                 mesh = trimesh.Trimesh(vertices, faces, process=False)
                 predicted_pose = self.nocs_epnp(color_mask, mesh)
+                if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 self.output_text.clear()
                 self.output_text.append(f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
@@ -460,6 +469,8 @@ class Interface_GUI(MyMainWindow):
                     # nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     nocs_color = (self.mesh_colors[self.reference] == 'nocs')
                     gt_pose = self.mesh_actors[self.reference].user_matrix
+                    if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+                    if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
                     vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
                     mesh = trimesh.Trimesh(vertices, faces, process=False)
                 else: 
@@ -490,8 +501,20 @@ class Interface_GUI(MyMainWindow):
                 return 0
                 
             if nocs_method == nocs_color:
-                if nocs_method: predicted_pose = self.nocs_epnp(color_mask, mesh); color_theme = 'NOCS'
-                else: predicted_pose = self.latlon_epnp(color_mask, mesh); color_theme = 'LATLON'
+                if nocs_method: 
+                    predicted_pose = self.nocs_epnp(color_mask, mesh)
+                    if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                    if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                    color_theme = 'NOCS'
+                else: 
+                    predicted_pose = self.latlon_epnp(color_mask, mesh)
+                    if self.mirror_x: 
+                        predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) @ predicted_pose
+                        predicted_pose[2, 3] = -1 * predicted_pose[2, 3] #^ interesting
+                    if self.mirror_y: 
+                        predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) @ predicted_pose
+                        predicted_pose[2, 3] = -1 * predicted_pose[2, 3] #^ interesting
+                    color_theme = 'LATLON'
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 self.output_text.clear()
                 self.output_text.append(f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
