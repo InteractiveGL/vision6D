@@ -122,10 +122,15 @@ class MyMainWindow(MainWindow):
         self.splitter.addWidget(self.plotter)
         self.main_layout.addWidget(self.splitter)
 
-        # Add a QLabel as an overlay
+        # Add a QLabel as an overlay hint label
         self.hintLabel = QLabel(self.plotter)
         self.hintLabel.setText("Drag and drop a file here...")
-        self.hintLabel.setStyleSheet("color: white; background-color: rgba(0, 0, 0, 127); padding: 5px;")
+        self.hintLabel.setStyleSheet("""
+                                    color: white; 
+                                    background-color: rgba(0, 0, 0, 127); 
+                                    padding: 10px;
+                                    border: 2px dashed gray;
+                                    """)
         self.hintLabel.setAlignment(Qt.AlignCenter)
 
         # Show the plotter
@@ -164,6 +169,13 @@ class MyMainWindow(MainWindow):
             else:
                 QMessageBox.warning(self, 'vision6D', "File format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
                 return 0
+
+    def resizeEvent(self, e):
+        x = (self.plotter.size().width() - self.hintLabel.width()) // 2
+        y = (self.plotter.size().height() - self.hintLabel.height()) // 2
+        self.initialHintLabelPosition = self.hintLabel.pos()
+        self.hintLabel.move(x, y)
+        super().resizeEvent(e)
 
     # ^Main Menu
     def set_menu_bars(self):
@@ -712,11 +724,20 @@ class MyMainWindow(MainWindow):
         self.panel_layout.setStretchFactor(self.output, 1)
 
     def toggle_panel(self):
+
         if self.panel_widget.isVisible():
+            # self.panel_widget width changes when the panel is visiable or hiden
+            self.panel_widget_width = self.panel_widget.width()
             self.panel_widget.hide()
+            x = (self.plotter.size().width() + self.panel_widget_width - self.hintLabel.width()) // 2
+            y = (self.plotter.size().height() - self.hintLabel.height()) // 2
+            self.hintLabel.move(x, y)
         else:
             self.panel_widget.show()
-        
+            x = (self.plotter.size().width() - self.panel_widget_width - self.hintLabel.width()) // 2
+            y = (self.plotter.size().height() - self.hintLabel.height()) // 2
+            self.hintLabel.move(x, y)
+
     def add_button_actor_name(self, actor_name):
         button = QtWidgets.QPushButton(actor_name)
         button.setCheckable(True)  # Set the button to be checkable
@@ -853,6 +874,7 @@ class MyMainWindow(MainWindow):
     #^ Show plot
     def create_plotter(self):
         self.frame = QtWidgets.QFrame()
+        self.frame.setFixedSize(*self.window_size)
         self.plotter = QtInteractor(self.frame)
         # self.plotter.setFixedSize(*self.window_size) # but camera locate in the center instead of top left
         self.render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True) 
