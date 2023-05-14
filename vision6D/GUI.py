@@ -13,13 +13,22 @@ import json
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
 from pyvistaqt import QtInteractor, MainWindow
-from PyQt5.QtWidgets import QMessageBox, QInputDialog, QFileDialog, QLineEdit, QDialogButtonBox, QFormLayout, QDialog
+from PyQt5.QtWidgets import QLabel, QMessageBox, QInputDialog, QFileDialog, QLineEdit, QDialogButtonBox, QFormLayout, QDialog
 from PyQt5.QtCore import Qt, QPoint
 
 # self defined package import
 import vision6D as vis
 
 np.set_printoptions(suppress=True)
+
+class YesNoBox(QMessageBox):
+    def __init__(self, *args, **kwargs):
+        super(YesNoBox, self).__init__(*args, **kwargs)
+        self.canceled = False
+
+    def closeEvent(self, event: QtGui.QCloseEvent):
+        self.canceled = True
+        super(YesNoBox, self).closeEvent(event)
 
 class PopUpDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, on_button_click=None):
@@ -92,6 +101,7 @@ class MyMainWindow(MainWindow):
         self.window_size = (1920, 1080)
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
+        self.setAcceptDrops(True)
 
         self.track_actors_names = []
         self.button_group_track_actors_names = QtWidgets.QButtonGroup(self)
@@ -112,9 +122,49 @@ class MyMainWindow(MainWindow):
         self.splitter.addWidget(self.plotter)
         self.main_layout.addWidget(self.splitter)
 
+        # Add a QLabel as an overlay
+        self.hintLabel = QLabel(self.plotter)
+        self.hintLabel.setText("Drag and drop a file here...")
+        self.hintLabel.setStyleSheet("color: white; background-color: rgba(0, 0, 0, 127); padding: 5px;")
+        self.hintLabel.setAlignment(Qt.AlignCenter)
+
         # Show the plotter
         self.show_plot()
-            
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls():
+            e.accept()
+            self.hintLabel.hide()  # Hide hint when dragging
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        for url in e.mimeData().urls():
+            file_path = url.toLocalFile()
+            if file_path.endswith(('.ply', '.mesh')):  # add mesh
+                self.mesh_path = file_path
+                self.add_mesh_file(load_from_workspace=True)
+            elif file_path.endswith(('.png', '.jpg')):  # add image/mask
+                yes_no_box = YesNoBox()
+                yes_no_box.setIcon(QMessageBox.Question)
+                yes_no_box.setWindowTitle("Vision6D")
+                yes_no_box.setText("Do you want to load the image as mask?")
+                yes_no_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                button_clicked = yes_no_box.exec_()
+                if not yes_no_box.canceled:
+                    if button_clicked == QMessageBox.Yes:
+                        self.mask_path = file_path
+                        self.add_mask_file(load_from_workspace=True)
+                    elif button_clicked == QMessageBox.No:
+                        self.image_path = file_path
+                        self.add_image_file(load_from_workspace=True)
+            elif file_path.endswith('.npy'):
+                self.pose_path = file_path
+                self.add_pose_file(load_from_workspace=True)
+            else:
+                QMessageBox.warning(self, 'vision6D', "File format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
+                return 0
+
     # ^Main Menu
     def set_menu_bars(self):
         mainMenu = self.menuBar()
@@ -397,6 +447,8 @@ class MyMainWindow(MainWindow):
             self.button_layout.removeWidget(button)
             # offically delete the button
             button.deleteLater()
+
+        self.hintLabel.show()
 
         # Re-initial the dictionaries
         self.image_path = None

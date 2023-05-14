@@ -2031,6 +2031,13 @@ self.undo_poses = {}
 self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
 self.used_colors = []
 
+if not load_from_workspace:
+    if self.image_path == None or self.image_path == '':
+        self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
+    else:
+        self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
+
+
 def try_except(func):
     def wrapper(*args, **kwargs):
         try:
