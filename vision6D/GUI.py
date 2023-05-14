@@ -143,7 +143,7 @@ class MyMainWindow(MainWindow):
             file_path = url.toLocalFile()
             if file_path.endswith(('.ply', '.mesh')):  # add mesh
                 self.mesh_path = file_path
-                self.add_mesh_file(load_from_workspace=True)
+                self.add_mesh_file(prompt=False)
             elif file_path.endswith(('.png', '.jpg')):  # add image/mask
                 yes_no_box = YesNoBox()
                 yes_no_box.setIcon(QMessageBox.Question)
@@ -154,13 +154,13 @@ class MyMainWindow(MainWindow):
                 if not yes_no_box.canceled:
                     if button_clicked == QMessageBox.Yes:
                         self.mask_path = file_path
-                        self.add_mask_file(load_from_workspace=True)
+                        self.add_mask_file(prompt=False)
                     elif button_clicked == QMessageBox.No:
                         self.image_path = file_path
-                        self.add_image_file(load_from_workspace=True)
+                        self.add_image_file(prompt=False)
             elif file_path.endswith('.npy'):
                 self.pose_path = file_path
-                self.add_pose_file(load_from_workspace=True)
+                self.add_pose_file(prompt=False)
             else:
                 QMessageBox.warning(self, 'vision6D', "File format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
                 return 0
@@ -172,11 +172,6 @@ class MyMainWindow(MainWindow):
         self.input_dialog = QInputDialog()
         self.file_dialog = QFileDialog()
         
-        self.image_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\frames')
-        self.mask_dir = pathlib.Path('E:\\GitHub\\yolov8\\runs\\segment')
-        self.mesh_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\surgical_planning')
-        self.pose_dir = pathlib.Path('E:\\GitHub\\ossicles_6D_pose_estimation\\data\\gt_poses')
-
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
@@ -281,8 +276,9 @@ class MyMainWindow(MainWindow):
             QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
 
     def add_workspace(self):
-        workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(vis.config.GITROOT / "workspace"), "Files (*.json)")
+        workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path != '':
+            self.hintLabel.hide()
             with open(str(workspace_path), 'r') as f: 
                 workspace = json.load(f)
 
@@ -291,18 +287,18 @@ class MyMainWindow(MainWindow):
             self.pose_path = workspace['pose_path']
             mesh_paths = workspace['mesh_path']
 
-            self.add_image_file(load_from_workspace=True)
-            self.add_mask_file(load_from_workspace=True)
-            self.add_pose_file(load_from_workspace=True)
+            self.add_image_file(prompt=False)
+            self.add_mask_file(prompt=False)
+            self.add_pose_file(prompt=False)
 
             for item in mesh_paths.items():
                 mesh_name, self.mesh_path = item
-                self.add_mesh_file(mesh_name=mesh_name, load_from_workspace=True)
+                self.add_mesh_file(mesh_name=mesh_name, prompt=False)
 
-    def add_image_file(self, load_from_workspace=False):
-        if not load_from_workspace:
+    def add_image_file(self, prompt=True):
+        if prompt:
             if self.image_path == None or self.image_path == '':
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
+                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg)")
             else:
                 self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
 
@@ -311,10 +307,10 @@ class MyMainWindow(MainWindow):
             if len(image_source.shape) == 2: image_source = image_source[..., None]
             self.add_image(image_source)
             
-    def add_mask_file(self, load_from_workspace=False):
-        if not load_from_workspace:
+    def add_mask_file(self, prompt=True):
+        if prompt:
             if self.mask_path == None or self.mask_path == '':
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mask_dir), "Files (*.png *.jpg)")
+                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg)")
             else:
                 self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
         
@@ -323,10 +319,10 @@ class MyMainWindow(MainWindow):
             if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
             self.add_mask(mask_source)
 
-    def add_mesh_file(self, mesh_name=None, load_from_workspace=False):
-        if not load_from_workspace:
+    def add_mesh_file(self, mesh_name=None, prompt=True):
+        if prompt:
             if self.mesh_path == None or self.mesh_path == '':
-                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.mesh_dir), "Files (*.mesh *.ply)")
+                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply)")
             else:
                 self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
 
@@ -342,10 +338,10 @@ class MyMainWindow(MainWindow):
             if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
             self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
                       
-    def add_pose_file(self, load_from_workspace=False):
-        if not load_from_workspace:
+    def add_pose_file(self, prompt=True):
+        if prompt:
             if self.pose_path == None or self.pose_path == '':
-                self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.pose_dir), "Files (*.npy)")
+                self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.npy)")
             else:
                 self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.pose_path).parent), "Files (*.npy)")
         
