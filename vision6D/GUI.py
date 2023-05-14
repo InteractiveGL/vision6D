@@ -146,7 +146,7 @@ class MyMainWindow(MainWindow):
     def dropEvent(self, e):
         for url in e.mimeData().urls():
             file_path = url.toLocalFile()
-            if file_path.endswith(('.ply', '.mesh')):  # add mesh
+            if file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):  # add mesh
                 self.mesh_path = file_path
                 self.add_mesh_file(prompt=False)
             elif file_path.endswith(('.png', '.jpg')):  # add image/mask
@@ -334,7 +334,7 @@ class MyMainWindow(MainWindow):
     def add_mesh_file(self, mesh_name=None, prompt=True):
         if prompt:
             if self.mesh_path == None or self.mesh_path == '':
-                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply)")
+                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)")
             else:
                 self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
 

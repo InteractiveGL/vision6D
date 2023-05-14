@@ -217,7 +217,7 @@ class Interface_GUI(MyMainWindow):
             # Load the '.mesh' file
             if pathlib.Path(mesh_source).suffix == '.mesh': mesh_source = vis.utils.load_trimesh(mesh_source)
             # Load the '.ply' file
-            elif pathlib.Path(mesh_source).suffix == '.ply': mesh_source = pv.read(mesh_source)
+            else: mesh_source = pv.read(mesh_source)
 
         if isinstance(mesh_source, trimesh.Trimesh):
             assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
