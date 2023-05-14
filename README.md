@@ -23,7 +23,7 @@ vis.exe()
 
 The interactivate window will be shown as below:
 
-<!-- ![Sample Image]("teaser/interface.PNG") -->
+![Sample Image]("https://github.com/ykzzyk/vision6D/blob/develop/teaer/interface.PNG")
 
 ## Contributing
 If you want to contribute to this project, please follow the guidelines in CONTRIBUTING.md. All contributions are welcome!
