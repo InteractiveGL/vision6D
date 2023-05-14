@@ -1488,3 +1488,718 @@ def color_mesh_with_fast_marching(mesh):
         map[distances[i]] = mesh.vertices[i]
 
     return distances, north_pole, south_pole
+
+if __name__ == "__main__":
+    root = pathlib.Path.cwd()
+    with open(root / "vision6D" / "ossiclesCoordinateMapping.json", "r") as f: data = json.load(f)
+    verts = np.array(data['verts']).reshape((len(data['verts'])), 3)
+    faces = np.array(data['faces']).reshape((len(data['faces'])), 3)
+
+    longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
+    latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
+
+    # read atlas mesh
+    mesh1 = vis.utils.load_meshobj(vis.config.ATLAS_OSSICLES_MESH_PATH)
+    mesh2 = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+    print("hhh")
+
+# mesh_source.vertices = trimesh.sample.sample_surface(mesh_source, 10000000)[0]
+                
+def test_render_point_clouds():
+    # set the off_screen to True
+    app = vis.App(off_screen=True, nocs_color=False)
+    gt_pose = vis.config.gt_pose_5997_right
+    meshpath = vis.config.OSSICLES_MESH_PATH_5997_right
+    app.set_transformation_matrix(gt_pose)
+    app.load_meshes({'ossicles': meshpath})
+    # render the color mask since the off_screen is True
+    color_mask = app.plot()
+
+    # show the image
+    plt.imshow(color_mask)
+    plt.show()
+
+    # check if the mapped color table exist in the generated color mask
+    # np.any(np.all(color_mask/255 == [0, 0, 0], axis=2))
+
+    viridis_colormap = plt.cm.get_cmap("viridis").colors
+
+    color_mask = color_mask / 255
+
+    binary_mask = vis.utils.color2binary_mask(color_mask)
+    idx = np.where(binary_mask == 1)
+    pts = np.stack((idx[1], idx[0]), axis=1)
+    # Obtain the 3D verticies (normaize rgb values)
+    rgb = color_mask[pts[:,1], pts[:,0]] / 255
+
+    # get the vertices from the atlas ossicles
+    # atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+    # atlas_mesh.vertices -= np.mean(atlas_mesh.vertices, axis=0)
+    mesh_5997 = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
+
+    # load the vertices
+    # denormalize to get the rgb value for vertices respectively
+    r = vis.utils.de_normalize(rgb[:, 0], mesh_5997.vertices[..., 0])
+    g = vis.utils.de_normalize(rgb[:, 1], mesh_5997.vertices[..., 1])
+    b = vis.utils.de_normalize(rgb[:, 2], mesh_5997.vertices[..., 2])
+    vtx = np.stack([r, g, b], axis=1)
+
+    # ~ EPNP algorithm
+    pts2d = pts.astype('float32')
+    pts3d = vtx.astype('float32')
+    camera_intrinsics = app.camera_intrinsics.astype('float32')
+
+    predicted_pose = np.eye(4)
+    if pts2d.shape[0] > 4:
+        # Use EPNP, inliers are the indices of the inliers
+        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, distCoeffs=np.zeros((4, 1)), confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
+        if success:
+            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
+    
+    # projected_points, _ = cv2.projectPoints(mesh_5997.vertices, rotation_vector, translation_vector, camera_matrix=app.camera_intrinsics, dist_coeffs=np.zeros((4, 1)))
+    # projected_points = projected_points.reshape(-1, 2)
+    # rt, _ = trimesh.registration.mesh_other(mesh_5997, atlas_mesh, samples=2454) # samples number equal to the number of vertices
+
+    points_atlas = []
+    points_vtx = []
+    for i, j in zip(atlas_mesh.vertices, vtx):
+        if np.isclose(i, j, rtol=0.1).all():
+            points_atlas.append(i)
+            points_vtx.append(j)
+
+    print("jjj")
+
+    # Calculate the closest points on mesh2's surface for each vertex in mesh1
+    # closest_points, distance, triangle_id = atlas_mesh.nearest.on_surface(vtx)
+    # # Find the index of the minimum distance
+    # min_distance_index = np.argmin(distance)
+
+    # # Get the corresponding closest points on both meshes
+    # point_on_mesh2 = closest_points[min_distance_index]
+
+    # print("jjj")
+
+    # dist_mat = distance_matrix(atlas_mesh.vertices, vtx)
+    # min_ind = dist_mat.argmin(axis=1)
+    # true_vtx = vtx[min_ind, :]
+
+def test_color_mesh_with_fast_marching():
+    atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
+    mesh_5997 = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
+    distances, north_pole, south_pole = vis.utils.color_mesh_with_fast_marching(atlas_mesh)
+
+    pl = pv.Plotter(shape=(1, 2))
+    pl.subplot(0, 0)
+    pl.add_mesh(atlas_mesh, scalars=distances, point_size=1, opacity=1)
+    pl.add_points(atlas_mesh.vertices[north_pole], color='red', render_points_as_spheres=True, point_size=15)
+    pl.add_points(atlas_mesh.vertices[south_pole], color='blue', render_points_as_spheres=True, point_size=15)
+    
+    pl.subplot(0, 1)
+    pl.add_mesh(mesh_5997, scalars=distances, point_size=1, opacity=1)
+    pl.add_points(mesh_5997.vertices[north_pole], color='red', render_points_as_spheres=True, point_size=15)
+    pl.add_points(mesh_5997.vertices[south_pole], color='blue', render_points_as_spheres=True, point_size=15)
+    
+    pl.show()
+
+"""
+self.add_redo_pose_action = QtWidgets.QAction('Redo pose', self)
+self.add_redo_pose_action.triggered.connect(self.redo_pose)
+RegisterMenu.addAction(self.add_redo_pose_action)
+"""
+self.redo_poses.append(transformation_matrix)
+if len(self.redo_poses) > 20: self.redo_poses.pop(0)
+
+"""
+def redo_pose(self):
+    if len(self.redo_poses) != 0:
+        transformation_matrix = self.redo_poses.pop()
+        if (transformation_matrix == self.mesh_actors[self.reference].user_matrix).all():
+            if len(self.redo_poses) != 0: transformation_matrix = self.redo_poses.pop()
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        self.undo_poses.append(transformation_matrix)
+        if len(self.undo_poses) > 20: self.undo_poses.pop(0)
+"""
+
+
+        # Add the set attribute button
+        SetAttrMenu = mainMenu.addMenu('SetAttr')
+        self.add_set_reference_action = QtWidgets.QAction('Set Reference Mesh', self)
+        self.add_set_reference_action.triggered.connect(self.set_textbox)
+        SetAttrMenu.addAction(self.add_set_reference_action)
+
+        self.add_current_pose_action = QtWidgets.QAction('Current pose', self)
+        self.add_current_pose_action.triggered.connect(self.current_pose)
+        RegisterMenu.addAction(self.add_current_pose_action)
+
+def set_textbox(self):
+        # Create textbox
+        self.textbox = QtWidgets.QLineEdit(self)
+        self.textbox.move(20, 20)
+        self.textbox.resize(280,40)
+        
+        # Create a button in the window
+        self.button = QtWidgets.QPushButton('Show text', self)
+        self.button.move(20,80)
+
+        # connect button to function on_click
+        self.button.clicked.connect(self.on_click)
+
+def on_click(self):
+        textboxValue = self.textbox.text()
+        QMessageBox.question(self, 'Message - pythonspot.com', "You typed: " + textboxValue, QMessageBox.Ok, QMessageBox.Ok)
+        self.textbox.setText("")
+
+# Add opacity related actions
+OpacityMenu = mainMenu.addMenu('Opacity')
+self.add_increase_image_opacity_action = QtWidgets.QAction('Increase Image Opacity', self)
+self.add_increase_image_opacity_action.triggered.connect(self.increase_image_opacity)
+OpacityMenu.addAction(self.add_increase_image_opacity_action)
+
+self.add_decrease_image_opacity_action = QtWidgets.QAction('Decrease Image Opacity', self)
+self.add_decrease_image_opacity_action.triggered.connect(self.decrease_image_opacity)
+OpacityMenu.addAction(self.add_decrease_image_opacity_action)
+
+self.add_increase_surface_opacity_action = QtWidgets.QAction('Increase Surface Opacity', self)
+self.add_increase_surface_opacity_action.triggered.connect(self.increase_surface_opacity)
+OpacityMenu.addAction(self.add_increase_surface_opacity_action)
+
+self.add_decrease_surface_opacity_action = QtWidgets.QAction('Decrease Surface Opacity', self)
+self.add_decrease_surface_opacity_action.triggered.connect(self.decrease_surface_opacity)
+OpacityMenu.addAction(self.add_decrease_surface_opacity_action)
+
+          
+def increase_image_opacity(self):
+    self.image_opacity += 0.1
+    if self.image_opacity >= 1: self.image_opacity = 1
+    self.image_actor.GetProperty().opacity = self.image_opacity
+    self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+def decrease_image_opacity(self):
+    self.image_opacity -= 0.1
+    if self.image_opacity <= 0: self.image_opacity = 0
+    self.image_actor.GetProperty().opacity = self.image_opacity
+    self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+def increase_surface_opacity(self):
+    self.surface_opacity += 0.1
+    if self.surface_opacity > 1: self.surface_opacity = 1
+
+    transformation_matrix = self.mesh_actors[self.reference].user_matrix
+    for actor_name, actor in self.mesh_actors.items():
+        actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        actor.GetProperty().opacity = self.surface_opacity
+        self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+def decrease_surface_opacity(self):
+    self.surface_opacity -= 0.1
+    if self.surface_opacity < 0: self.surface_opacity = 0
+    transformation_matrix = self.mesh_actors[self.reference].user_matrix
+    for actor_name, actor in self.mesh_actors.items():
+        actor.user_matrix = transformation_matrix if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        actor.GetProperty().opacity = self.surface_opacity
+        self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+exitButton = QtWidgets.QAction('Exit', self)
+exitButton.setShortcut('Ctrl+Q')
+exitButton.triggered.connect(self.close)
+fileMenu.addAction(exitButton)
+
+
+# for action in self.removeMenu.actions():
+#     if action.text() == name:
+#         self.removeMenu.removeAction(action)
+
+
+
+# self.add_pose_action = QtWidgets.QAction('Add Pose', self)
+# self.add_pose_action.triggered.connect(self.add_pose_file)
+# fileMenu.addAction(self.add_pose_action)
+
+self.add_mesh_action = QtWidgets.QAction('Add Mesh', self)
+self.add_mesh_action.triggered.connect(self.add_mesh_file)
+
+self.add_image_action = QtWidgets.QAction('Add Image', self)
+self.add_image_action.triggered.connect(self.add_image_file)
+
+# Add set attribute menu
+setAttrMenu = mainMenu.addMenu('Set')
+self.add_set_reference_action = QtWidgets.QAction('Set Reference', self)
+on_click_set_reference = functools.partial(self.on_click, info="Set Reference Mesh Name", hints='ossicles')
+self.add_set_reference_action.triggered.connect(on_click_set_reference)
+setAttrMenu.addAction(self.add_set_reference_action)
+
+CameraMenu = mainMenu.addMenu('Camera')
+self.add_reset_camera_action = QtWidgets.QAction('Reset Camera (c)', self)
+self.add_reset_camera_action.triggered.connect(self.reset_camera)
+CameraMenu.addAction(self.add_reset_camera_action)
+
+
+# coloring
+colors = vis.utils.color_mesh(mesh_source.vertices, self.nocs_color)
+if colors.shape != mesh_source.vertices.shape: colors = np.ones((len(mesh_source.vertices), 3)) * 0.5
+assert colors.shape == mesh_source.vertices.shape, "colors shape should be the same as mesh_source.vertices shape"
+
+colors = vis.utils.color_mesh(mesh_data.points, self.nocs_color)
+if colors.shape != mesh_data.points.shape: colors = np.ones((len(mesh_data.points), 3)) * 0.5
+assert colors.shape == mesh_data.points.shape, "colors shape should be the same as mesh_data.points shape"
+
+
+if self.nocs_color: # color array is(2454, 3)
+    mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+else: # color array is (2454, )
+    if mesh_name == "ossicles": self.latlon = colors
+    mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=self.surface_opacity, name=mesh_name) if not self.point_clouds else self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=self.surface_opacity, name=mesh_name) #, show_edges=True)
+
+"""
+reply = QMessageBox.question(self,"vision6D", "Render the depth map?", QMessageBox.Yes, QMessageBox.No)
+if reply == QMessageBox.Yes: return_depth_map = True
+else: return_depth_map = False
+"""
+
+# focal_length = (self.window_size[1] / 2) / math.tan((self.plotter.camera.view_angle / 2) * math.pi / 180) # (height / 2) / tan((view_angle / 2) * pi / 180)
+# cx = self.window_size[0] / 2
+# cy = self.window_size[1] / 2
+
+# self.image_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\frames'
+# self.mask_dir = r'E:\GitHub\yolov8\runs\segment'
+# self.mesh_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\surgical_planning'
+# self.gt_poses_dir = r'E:\GitHub\ossicles_6D_pose_estimation\data\gt_poses'
+
+OSSICLES_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "processed_meshes" / "6742_right_ossicles_processed.mesh"
+FACIAL_NERVE_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "processed_meshes" / "6742_right_facial_nerve_processed.mesh"
+CHORDA_MESH_PATH_6742_right = OP_DATA_DIR / "surgical_planning"/ "CIP.6742.8381574350255_video_trim" / "mesh" / "processed_meshes" / "6742_right_chorda_processed.mesh"
+
+# average ossicles
+AVERAGE_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "average_mesh.ply"
+ATLAS_OSSICLES_MESH_PATH = OP_DATA_DIR / "meshes" / "ref_atlas_ossicles.mesh"
+
+if not self.mirror_objects else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+if not "_mirror" in actor_name else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+
+if not '_mirror' in self.reference else np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ self.transformation_matrix
+
+
+if len(point_array.shape) == 1: 
+    point_array = point_array.reshape(*point_array.shape, 1)
+
+# setattr(self, f"{mesh_name}_mesh", mesh_source)
+            
+# if self.mask_actor is not None:
+    
+# elif self.mask_actor is not None:
+#     if direction == 'x': self.mirror_x = True
+#     elif direction == 'y': self.mirror_y = True
+# elif len(self.mesh_actors) != 0:
+#     if direction == 'x': self.mirror_x = True
+#     elif direction == 'y': self.mirror_y = True
+
+
+# if len(self.mesh_actors) != 0:
+#     # if self.reference is not None:
+#     #     transformation_matrix = self.mesh_actors[self.reference].user_matrix
+#     #     if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#     #     if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#     for actor_name, actor in self.mesh_actors.items():
+#         original_vertices = vis.utils.load_trimesh(self.meshdict[actor_name]).vertices
+#         transformation_matrix = self.mesh_actors[actor_name].user_matrix
+#         if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#         if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+#         actor.user_matrix = transformation_matrix
+#         self.plotter.add_actor(actor, pickable=True, name=actor_name)
+#         mirrored_vertices = vis.utils.transform_vertices(vis.utils.get_actor_vertices(actor), actor.user_matrix)
+#         if (mirrored_vertices == original_vertices).all():
+#             self.mirror_x = False
+#             self.mirror_y = False
+
+#     print("hhh")
+    # else:
+    #     QMessageBox.warning(self, 'vision6D', "Need to set a reference first!", QMessageBox.Ok, QMessageBox.Ok)
+    #     return 0
+
+
+    # if self.reference is not None:
+    #     transformation_matrix = self.mesh_actors[self.reference].user_matrix
+    #     if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+    #     if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+    #     for actor_name, actor in self.mesh_actors.items():
+    #         actor.user_matrix = transformation_matrix
+    #         self.plotter.add_actor(actor, pickable=True, name=actor_name)
+    
+
+# self.reset_camera()
+
+"""
+def reset_mirror(self):
+    self.mirror_x = False
+    self.mirror_y = False
+
+    if self.image_actor is not None:
+        image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+        if len(image_data.shape) == 2: image_data = image_data[..., None]
+        self.add_image(image_data)
+    if self.mask_actor is not None:
+        mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
+        if len(mask_data.shape) == 2: mask_data = mask_data[..., None]
+        self.add_mask(mask_data)
+
+    if len(self.mesh_actors) != 0:
+        matrix = np.load(self.pose_path)
+        self.add_pose(matrix)
+        for actor_name, actor in self.mesh_actors.items():
+            actor.user_matrix = self.transformation_matrix
+            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+"""
+
+# mirror = np.any((self.mirror_x, self.mirror_y))
+# if mirror:
+#     if len(self.mesh_actors) != 0:
+
+# mirror = np.any((self.mirror_x, self.mirror_y))
+# if mirror:
+
+actor_vertices = vis.utils.get_actor_vertices(actor)
+curr_vertices = vis.utils.transform_vertices(actor_vertices, actor.user_matrix)
+if (curr_vertices == self.original_vertices[actor_name]).all():
+self.mirror_x = False
+self.mirror_y = False
+elif (curr_vertices == vis.utils.transform_vertices(self.original_vertices[actor_name], np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))).all():
+self.mirror_x = True
+self.mirror_y = False
+elif (curr_vertices == vis.utils.transform_vertices(self.original_vertices[actor_name], np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))).all():
+self.mirror_x = False
+self.mirror_y = True
+elif (curr_vertices == vis.utils.transform_vertices(self.original_vertices[actor_name], np.array([[-1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))).all():
+self.mirror_x = True
+self.mirror_y = True
+print("hhh")
+
+self.mesh_polydata[self.reference].point_data.active_scalars
+mesh_data.point_data.active_scalars
+
+
+"""
+if len(self.mesh_actors) != 0:
+    for mesh_name, mesh_actor in self.mesh_actors.items():
+
+        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
+
+        # get the corresponding color
+        colors = vis.utils.color_mesh(vertices, nocs=self.nocs_color)
+        if colors.shape != vertices.shape: colors = np.ones((len(vertices), 3)) * 0.5
+        assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+        
+        # color the mesh and actor
+        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+        mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.surface_opacity, name=mesh_name)
+        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[mesh_name].GetMatrix())
+        mesh.user_matrix = transformation_matrix
+        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+
+        actor_colors = vis.utils.get_mesh_actor_scalars(actor)
+        assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
+
+        assert actor.name == mesh_name, "actor's name should equal to mesh_name"
+        self.mesh_actors[mesh_name] = actor
+else:
+    QMessageBox.warning(self, 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
+"""
+
+"""
+# class MyMainWindow(GUI, MainWindow):
+#     def __init__(self, parent=None):
+#         # QtWidgets.QMainWindow.__init__(self, parent)
+#         super().__init__()
+
+#         # self.window_size = (1920, 1080)
+#         # self.render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True) 
+#         # self.render.set_background('black'); 
+#         # assert self.render.background_color == "black", "render's background need to be black"
+
+#         self.signal_close.connect(self.plotter.close)
+#         self.plotter.enable_joystick_actor_style()
+#         self.plotter.enable_trackball_actor_style()
+"""
+
+# class GUI(QtWidgets.QMainWindow):
+# super(GUI, self).__init__(parent)
+
+
+def menu_section1(self):
+    self.section1 = QtWidgets.QGroupBox("Section 1")
+    section1_layout = QtWidgets.QVBoxLayout()
+    section1_layout.setContentsMargins(10, 20, 10, 10)
+
+    button1 = QtWidgets.QPushButton("Button 1")
+    button2 = QtWidgets.QPushButton("Button 2")
+    section1_layout.addWidget(button1)
+    section1_layout.addWidget(button2)
+    self.section1.setLayout(section1_layout)
+    self.menu_layout.addWidget(self.section1)
+
+
+self.menu_layout.setStretchFactor(self.section1, 1)
+
+
+def button_clicked(self, text):
+    print(f"Currently seclected actor name is ")
+    self.update_plot(text)
+
+def update_plot(self, input_string):
+    # Clear the existing actors in the plotter
+    # self.plotter.clear()
+
+    # Example: Add a mesh depending on the input string
+    if input_string == "Input 1":
+        mesh = pv.Cube()
+    elif input_string == "Input 2":
+        mesh = pv.Sphere()
+    elif input_string == "Input 3":
+        mesh = pv.Cone()
+    elif input_string == "Input 4":
+        mesh = pv.Cylinder()
+    elif input_string == "Input 5":
+        mesh = pv.Arrow()
+    else:
+        mesh = None
+
+    # Add the new mesh to the plotter and render
+    if mesh is not None:
+        self.plotter.add_mesh(mesh, color='green')
+        self.plotter.reset_camera()
+        self.plotter.show()
+
+# Create buttons for each actor name
+# for actor_name in self.track_actors_names:
+#     button = QtWidgets.QPushButton(actor_name)
+#     button.setCheckable(True)  # Set the button to be checkable
+#     button.clicked.connect(lambda checked, text=actor_name: self.get_actor_name(text))
+#     button.setFixedSize(self.display.size().width(), 100)
+#     button_layout.addWidget(button)
+#     button_group.addButton(button)
+
+actions_to_remove = [action for action in self.removeMenu.actions() if action.text() == name]
+
+if (len(actions_to_remove) != 1):
+    QMessageBox.warning(self, 'vision6D', "The actions to remove should always be 1", QMessageBox.Ok, QMessageBox.Ok)
+    return 0
+
+self.removeMenu.removeAction(actions_to_remove[0])
+
+# Add coloring related actions
+RegisterMenu = mainMenu.addMenu('Color')
+set_nocs_color = functools.partial(self.set_color, True)
+RegisterMenu.addAction('NOCS', set_nocs_color)
+set_latlon_color = functools.partial(self.set_color, False)
+RegisterMenu.addAction('LatLon', set_latlon_color)
+
+# button.clicked.connect(lambda checked, text=actor_name: self.get_actor_name(text))
+"""
+def get_actor_name(self, text):
+    self.output_text.clear(); self.output_text.append(f"Button with text '{text}' clicked.")
+"""  
+
+# def track_click_callback(self, *args):
+#     if len(self.undo_poses) > 20: self.undo_poses.pop(0)
+#     if self.reference is not None: self.undo_poses.append(self.mesh_actors[self.reference].user_matrix)
+
+self.plotter.track_click_position(callback=self.track_click_callback, side='l')
+
+# print(f"Picked actor: {picked_actor.name}")
+
+# else:
+#     self.reference = None
+#     self.output_text.clear(); self.output_text.append(f"Current reference mesh is not set")
+
+ 
+# output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: "
+#   f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
+# self.output_text.append(output_message)
+
+# output_message = (f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: "
+#   f"<br>{predicted_pose}<br>GT POSE: <br>{gt_pose}<br>ERROR: <br>{error}")
+# self.output_text.append(output_message)
+
+if len(self.mesh_actors) == 0:
+self.mesh_path = None
+self.pose_path = None
+self.meshdict = {}
+self.transformation_matrix = np.eye(4)
+self.undo_poses = {}
+self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
+self.used_colors = []
+
+if not load_from_workspace:
+    if self.image_path == None or self.image_path == '':
+        self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(self.image_dir), "Files (*.png *.jpg)")
+    else:
+        self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
+
+
+def try_except(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except:
+            if isinstance(args[0], MainWindow): QMessageBox.warning(args[0], 'vision6D', "Need to load a mesh first!", QMessageBox.Ok, QMessageBox.Ok)
+
+    return wrapper
+
+
+    def toggle_image_opacity(self, *args, up):
+        if up:
+            self.image_opacity += 0.2
+            if self.image_opacity >= 1: self.image_opacity = 1
+        else:
+            self.image_opacity -= 0.2
+            if self.image_opacity <= 0: self.image_opacity = 0
+        
+        if self.image_actor is not None:
+            self.image_actor.GetProperty().opacity = self.image_opacity
+            self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+
+    def toggle_mask_opacity(self, *args, up):
+        if up:
+            self.mask_opacity += 0.2
+            if self.mask_opacity >= 1: self.mask_opacity = 1
+        else:
+            self.mask_opacity -= 0.2
+            if self.mask_opacity <= 0: self.mask_opacity = 0
+        
+        if self.mask_actor is not None:
+            self.mask_actor.GetProperty().opacity = self.mask_opacity
+            self.plotter.add_actor(self.mask_actor, pickable=False, name="mask")
+
+    def toggle_surface_opacity(self, *args, up):    
+        if up:
+            self.surface_opacity += 0.2
+            if self.surface_opacity > 1: self.surface_opacity = 1
+        else:
+            self.surface_opacity -= 0.2
+            if self.surface_opacity < 0: self.surface_opacity = 0
+                
+        if len(self.mesh_actors) != 0:
+            transformation_matrix = self.mesh_actors[self.reference].user_matrix
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = transformation_matrix
+                actor.GetProperty().opacity = self.surface_opacity
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+
+    def set_image_opacity(self, image_opacity: float):
+        assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
+        self.image_opacity = image_opacity
+        if self.image_actor is not None:
+            self.image_actor.GetProperty().opacity = image_opacity
+            self.plotter.add_actor(self.image_actor, pickable=False, name='image')
+
+    def set_mask_opacity(self, mask_opacity: float):
+        assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
+        self.mask_opacity = mask_opacity
+        if self.mask_actor is not None:
+            self.mask_actor.GetProperty().opacity = mask_opacity
+            self.plotter.add_actor(self.mask_actor, pickable=False, name='mask')
+
+    def set_mesh_opacity(self, surface_opacity: float):
+        assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
+        self.surface_opacity = surface_opacity
+        if len(self.mesh_actors) != 0:
+            for actor_name, actor in self.mesh_actors.items():
+                actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
+                actor.GetProperty().opacity = self.surface_opacity
+                self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+# opacity related key bindings
+toggle_image_opacity_up = functools.partial(self.toggle_image_opacity, up=True)
+self.plotter.add_key_event('b', toggle_image_opacity_up)
+toggle_image_opacity_down = functools.partial(self.toggle_image_opacity, up=False)
+self.plotter.add_key_event('n', toggle_image_opacity_down)
+
+toggle_mask_opacity_up = functools.partial(self.toggle_mask_opacity, up=True)
+self.plotter.add_key_event('h', toggle_mask_opacity_up)
+toggle_mask_opacity_down = functools.partial(self.toggle_mask_opacity, up=False)
+self.plotter.add_key_event('j', toggle_mask_opacity_down)
+
+toggle_surface_opacity_up = functools.partial(self.toggle_surface_opacity, up=True)
+self.plotter.add_key_event('y', toggle_surface_opacity_up)
+toggle_surface_opacity_down = functools.partial(self.toggle_surface_opacity, up=False)
+self.plotter.add_key_event('u', toggle_surface_opacity_down)
+
+
+    def set_opacity_attr(self):
+        dialog = MultiInputDialog(placeholder=False, line1=("Image Opacity", self.image_opacity), line2=("Mask Opacity", self.mask_opacity), line3=("Mesh Opacity", self.surface_opacity))
+        if dialog.exec():
+            image_opacity, mask_opacity, surface_opacity = dialog.getInputs()
+            pre_image_opacity, pre_mask_opacity, pre_surface_opacity = self.image_opacity, self.mask_opacity, self.surface_opacity
+            if not (image_opacity == '' or mask_opacity == '' or surface_opacity == ''):
+                try:
+                    self.image_opacity, self.mask_opacity, self.surface_opacity = ast.literal_eval(image_opacity), ast.literal_eval(mask_opacity), ast.literal_eval(surface_opacity)
+                    try:
+                        self.set_image_opacity(self.image_opacity)
+                    except AssertionError:
+                        self.image_opacity = pre_image_opacity
+                        QMessageBox.warning(self, 'vision6D', "Image opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                    try: 
+                        self.set_mask_opacity(self.mask_opacity)
+                    except AssertionError: 
+                        self.mask_opacity = pre_mask_opacity
+                        QMessageBox.warning(self, 'vision6D', "Mask opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                    try: 
+                        self.set_mesh_opacity(self.surface_opacity)
+                    except AssertionError: 
+                        self.surface_opacity = pre_surface_opacity
+                        QMessageBox.warning(self, 'vision6D', "Mesh opacity should range from 0 to 1", QMessageBox.Ok, QMessageBox.Ok)
+                except:
+                    self.image_opacity, self.mask_opacity, self.surface_opacity = pre_image_opacity, pre_mask_opacity, pre_surface_opacity
+                    QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
+
+# Add set attribute menu
+setAttrMenu = mainMenu.addMenu('Set')
+setAttrMenu.addAction('Set Opacity (bn, hj, yu)', self.set_opacity_attr)
+
+# if len(self.mesh_actors) != 0:
+#     for actor_name, actor in self.mesh_actors.items():
+#         actor.user_matrix = pv.array_from_vtkmatrix(actor.GetMatrix())
+#         actor.GetProperty().opacity = self.surface_opacity
+#         self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+self.set_image_opacity(0.99)
+self.set_mask_opacity(0.5)
+
+# if placeholder:
+#     self.args1 = QLineEdit(self, placeholderText=str(line1[1]))
+#     self.args2 = QLineEdit(self, placeholderText=str(line2[1]))
+#     self.args3 = QLineEdit(self, placeholderText=str(line3[1]))
+# else:
+
+curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
+self.opacity_slider.setValue(curr_opacity * 100)
+self.output_text.clear()
+self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
+
+# set the current mesh color
+self.color_button.setText(self.mesh_colors[actor_name])
+
+# set the current reference to the picked actor mesh
+self.reference = actor_name        
+
+#^ mirroring related code
+# transformation_matrix = self.mesh_actors[actor_name].user_matrix
+# if mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+# if mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+# actor.user_matrix = transformation_matrix
+# self.plotter.add_actor(actor, pickable=True, name=actor_name)
+
+# curr_mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
+
+def set_image_spacing(self):
+        spacing, ok = self.input_dialog.getText(self, 'Input', "Set Image/Mask Spacing", text=str(self.spacing))
+        if ok: 
+            try: 
+                self.spacing = ast.literal_eval(spacing)
+                if self.image_path: self.add_image(self.image_path)
+                if self.mask_path: self.add_mask(self.mask_path)
+            except: 
+                QMessageBox.warning(self, 'vision6D', "Spacing format is not correct", QMessageBox.Ok, QMessageBox.Ok)

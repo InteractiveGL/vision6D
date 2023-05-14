@@ -24,103 +24,96 @@ import PIL
 logger = logging.getLogger("vision6D")
 np.set_printoptions(suppress=True)
 
-def test_render_point_clouds():
-    # set the off_screen to True
-    app = vis.App(off_screen=True, nocs_color=False)
-    gt_pose = vis.config.gt_pose_5997_right
-    meshpath = vis.config.OSSICLES_MESH_PATH_5997_right
-    app.set_transformation_matrix(gt_pose)
-    app.load_meshes({'ossicles': meshpath})
-    # render the color mask since the off_screen is True
-    color_mask = app.plot()
+def get_neighbors(x, y, image, pts2d):
+    
+    neighbors = []
+    
+    # Check the neighbor to the left
+    if x > 0 and image[y, x-1] == 1:
+        # left = (x-1, y)
+        # loc = np.where((pts2d[:,0]==x-1)&(pts2d[:,1]==y))
+        # neighbors.append(loc)
+        neighbors.append(np.argwhere((pts2d[:,0]==x-1)&(pts2d[:,1]==y)).flatten())
+    
+    # Check the neighbor to the right
+    if x < image.shape[1]-1 and image[y, x+1] == 1:
+        # right = (x+1, y)
+        # loc = np.where((pts2d[:,0]==x+1)&(pts2d[:,1]==y))
+        # neighbors.append(loc)
+        neighbors.append(np.argwhere((pts2d[:,0]==x+1)&(pts2d[:,1]==y)).flatten())
+    
+    # Check the neighbor above
+    if y > 0 and image[y-1, x] == 1:
+        # top = (x, y-1)
+        # loc = np.where((pts2d[:,0]==x)&(pts2d[:,1]==y-1))
+        # neighbors.append(loc)
+        neighbors.append(np.argwhere((pts2d[:,0]==x)&(pts2d[:,1]==y-1)).flatten())
+    
+    # Check the neighbor below
+    if y < image.shape[0]-1 and image[y+1, x] == 1:
+        # buttom = (x, y+1)
+        # loc = np.where((pts2d[:,0]==x)&(pts2d[:,1]==y+1))
+        # neighbors.append(loc)
+        neighbors.append(np.argwhere((pts2d[:,0]==x)&(pts2d[:,1]==y+1)).flatten())
+    
+    return neighbors
 
-    # show the image
-    plt.imshow(color_mask)
+def find_closest_neighbors(pts3d):
+
+    neighs = []
+    for i in range(len(pts3d)):
+        dists = np.sum((pts3d - pts3d[i])**2, axis=1)
+        inds = np.argsort(dists)[:4]
+        neighs.append(inds.tolist())
+
+    neighs = np.array(neighs)
+
+def test_draw_neibors_3d():
+    pts2d = np.load(vis.config.GITROOT / "test" / "data" / "pts2d.npy")
+    pts3d = np.load(vis.config.GITROOT / "test" / "data" / "pts3d_nocs.npy")
+
+    app = vis.App(off_screen=True)
+
+    binary_image = np.zeros((1080, 1920), dtype=np.uint8)
+    color_image = np.zeros((1080, 1920, 3), dtype=np.float64)
+    binary_image[pts2d[:, 1], pts2d[:, 0]] = 1
+    color_image[pts2d[:, 1], pts2d[:, 0]] = pts3d
+
+    app.set_transformation_matrix(vis.config.gt_pose_632_right)
+    point_plotter = app.pv_plotter
+    point_plotter.set_background('black')
+    pts3d_points = point_plotter.add_points(pts3d)
+    pts3d_points.user_matrix = app.transformation_matrix
+    point_plotter.add_actor(pts3d_points)
+    point_plotter.camera = app.camera
+    point_plotter.show()
+    res = point_plotter.last_image
+
+    plt.subplot(311)
+    plt.imshow(binary_image)
+    plt.subplot(312)
+    plt.imshow(color_image)
+    plt.subplot(313)
+    plt.imshow(res)
     plt.show()
 
-    # check if the mapped color table exist in the generated color mask
-    # np.any(np.all(color_mask/255 == [0, 0, 0], axis=2))
+    xs = pts2d[:, 0]
+    ys = pts2d[:, 1]
 
-    viridis_colormap = plt.cm.get_cmap("viridis").colors
+    neighs = []
+    for i in range(len(pts2d)):
+        neighbors = get_neighbors(xs[i], ys[i], binary_image, pts2d)
+        neighs.append(neighbors)
+        
+    neighs = np.array(neighs, dtype=object)
 
-    color_mask = color_mask / 255
+    # plot 2D vertices and lines connecting neighbors
+    plt.scatter(pts3d[:, 0], pts3d[:, 1])
+    for i, n in enumerate(neighs):
+        for j in n:
+            plt.plot([pts3d[i, 0], pts3d[j, 0]], [pts3d[i, 1], pts3d[j, 1]], 'b')
 
-    binary_mask = vis.utils.color2binary_mask(color_mask)
-    idx = np.where(binary_mask == 1)
-    pts = np.stack((idx[1], idx[0]), axis=1)
-    # Obtain the 3D verticies (normaize rgb values)
-    rgb = color_mask[pts[:,1], pts[:,0]] / 255
+    plt.show()
 
-    # get the vertices from the atlas ossicles
-    # atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
-    # atlas_mesh.vertices -= np.mean(atlas_mesh.vertices, axis=0)
-    mesh_5997 = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
-
-    # load the vertices
-    # denormalize to get the rgb value for vertices respectively
-    r = vis.utils.de_normalize(rgb[:, 0], mesh_5997.vertices[..., 0])
-    g = vis.utils.de_normalize(rgb[:, 1], mesh_5997.vertices[..., 1])
-    b = vis.utils.de_normalize(rgb[:, 2], mesh_5997.vertices[..., 2])
-    vtx = np.stack([r, g, b], axis=1)
-
-    # ~ EPNP algorithm
-    pts2d = pts.astype('float32')
-    pts3d = vtx.astype('float32')
-    camera_intrinsics = app.camera_intrinsics.astype('float32')
-
-    predicted_pose = np.eye(4)
-    if pts2d.shape[0] > 4:
-        # Use EPNP, inliers are the indices of the inliers
-        success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, distCoeffs=np.zeros((4, 1)), confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
-        if success:
-            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
-            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(app.camera.position)
-    
-    # projected_points, _ = cv2.projectPoints(mesh_5997.vertices, rotation_vector, translation_vector, camera_matrix=app.camera_intrinsics, dist_coeffs=np.zeros((4, 1)))
-    # projected_points = projected_points.reshape(-1, 2)
-    # rt, _ = trimesh.registration.mesh_other(mesh_5997, atlas_mesh, samples=2454) # samples number equal to the number of vertices
-
-    points_atlas = []
-    points_vtx = []
-    for i, j in zip(atlas_mesh.vertices, vtx):
-        if np.isclose(i, j, rtol=0.1).all():
-            points_atlas.append(i)
-            points_vtx.append(j)
-
-    print("jjj")
-
-    # Calculate the closest points on mesh2's surface for each vertex in mesh1
-    # closest_points, distance, triangle_id = atlas_mesh.nearest.on_surface(vtx)
-    # # Find the index of the minimum distance
-    # min_distance_index = np.argmin(distance)
-
-    # # Get the corresponding closest points on both meshes
-    # point_on_mesh2 = closest_points[min_distance_index]
-
-    # print("jjj")
-
-    # dist_mat = distance_matrix(atlas_mesh.vertices, vtx)
-    # min_ind = dist_mat.argmin(axis=1)
-    # true_vtx = vtx[min_ind, :]
-
-def test_color_mesh_with_fast_marching():
-    atlas_mesh = vis.utils.load_trimesh(vis.config.ATLAS_OSSICLES_MESH_PATH)
-    mesh_5997 = vis.utils.load_trimesh(vis.config.OSSICLES_MESH_PATH_5997_right)
-    distances, north_pole, south_pole = vis.utils.color_mesh_with_fast_marching(atlas_mesh)
-
-    pl = pv.Plotter(shape=(1, 2))
-    pl.subplot(0, 0)
-    pl.add_mesh(atlas_mesh, scalars=distances, point_size=1, opacity=1)
-    pl.add_points(atlas_mesh.vertices[north_pole], color='red', render_points_as_spheres=True, point_size=15)
-    pl.add_points(atlas_mesh.vertices[south_pole], color='blue', render_points_as_spheres=True, point_size=15)
-    
-    pl.subplot(0, 1)
-    pl.add_mesh(mesh_5997, scalars=distances, point_size=1, opacity=1)
-    pl.add_points(mesh_5997.vertices[north_pole], color='red', render_points_as_spheres=True, point_size=15)
-    pl.add_points(mesh_5997.vertices[south_pole], color='blue', render_points_as_spheres=True, point_size=15)
-    
-    pl.show()
-
-
-
+    print("hhh")
     

@@ -4,6 +4,8 @@ from typing import Type
 import logging
 
 import numpy as np
+import pathlib
+import os
 import pyvista as pv
 import matplotlib.pyplot as plt
 from easydict import EasyDict
@@ -11,8 +13,10 @@ import trimesh
 from PIL import Image
 import cv2
 import pygeodesic.geodesic as geodesic
+import vtk.util.numpy_support as vtknp
+import json
 
-# Create logger
+CWD = pathlib.Path(os.path.abspath(__file__)).parent
 logger = logging.getLogger("vision6D")
 
 def fread(fid, _len, _type):
@@ -112,7 +116,7 @@ def load_trimesh(meshpath):
     assert mesh.faces.shape == meshobj.triangles.T.shape
     return mesh
 
-def writemesh(meshpath, mesh, mirror=False, suffix=''):
+def writemesh(meshpath, output_path, mesh, mirror=False, suffix=''):
     """
     write mesh object to improvise, and keep the original meshobj.sz
     """
@@ -121,9 +125,9 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
     meshobj.vertices = mesh.vertices.T / meshobj.sz.reshape((-1, 1)) if mesh.vertices.shape[1]==3 else mesh.vertices / meshobj.sz.reshape((-1, 1))
     meshobj.orient = np.array((1, 2, 3), dtype="int32")
 
-    name = meshpath.stem
-
-    if "centered" in name: name = '_'.join(name.split("_")[:-1])
+    name = output_path.stem
+    if "centered" in name: 
+        name = '_'.join(name.split("_")[:-1])
     name += suffix
     
     if mirror:
@@ -131,7 +135,7 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
         elif "right" in name: side = "left"
         name = name.split("_")[0] + "_" + side + "_" + '_'.join(name.split("_")[2:-1])
 
-    with open(meshpath.parent / (name + ".mesh"), "wb") as f:
+    with open(output_path.parent / (name + ".mesh"), "wb") as f:
         f.write(meshobj.id.astype('int32'))
         f.write(meshobj.numverts.astype('int32'))
         f.write(meshobj.numtris.astype('int32'))
@@ -152,7 +156,6 @@ def writemesh(meshpath, mesh, mirror=False, suffix=''):
         #         f.write(mesh.colormap.cols.T)
         #         f.write(mesh.colormap.vertexindexes.T.tobytes(order='C'))
         """
-    print("finish writing to a mesh file")
         
 def color2binary_mask(color_mask):
     binary_mask = np.zeros(color_mask[...,:1].shape, dtype=np.uint8)
@@ -214,13 +217,16 @@ def normalize(x):
 def de_normalize(rgb, vertices):
     return rgb * (np.max(vertices) - np.min(vertices)) + np.min(vertices)
 
-def color_mesh(vertices):
-    assert vertices.shape[1] == 3, "the vertices is suppose to be transposed"
-    colors = copy.deepcopy(vertices)
-    # normalize vertices and center it to 0
-    colors[..., 0] = normalize(vertices[..., 0])
-    colors[..., 1] = normalize(vertices[..., 1])
-    colors[..., 2] = normalize(vertices[..., 2])
+def color_mesh(vertices, nocs=True):
+    if nocs:
+        assert vertices.shape[1] == 3, "the vertices is suppose to be transposed"
+        colors = copy.deepcopy(vertices)
+        # normalize vertices and center it to 0
+        colors[..., 0] = normalize(vertices[..., 0])
+        colors[..., 1] = normalize(vertices[..., 1])
+        colors[..., 2] = normalize(vertices[..., 2])
+    else:
+        colors = load_latitude_longitude()
     return colors
     
 def save_image(array, folder, name):
@@ -273,7 +279,19 @@ def rigid_transform_3D(A, B):
 
     return rt
 
-def latLon2xyz(m,lat,lon,gx,gy):
+def load_latitude_longitude():
+    # get the latitude and longitude
+    with open(CWD / "data" / "ossiclesCoordinateMapping.json", "r") as f: data = json.load(f)
+    
+    latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
+    longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
+    placeholder = np.zeros((len(data['longitude']), 1))
+    
+    # set the latlon attribute
+    latlon = np.hstack((latitude, longitude, placeholder))
+    return latlon
+
+def latLon2xyzv1(m,lat,lon,gx,gy):
     vert = np.array([0, 0, 0])
     for f in m.faces:
         lonf = lon[f]
@@ -288,21 +306,87 @@ def latLon2xyz(m,lat,lon,gx,gy):
             break
     return vert
 
-# def latLon2xyz_vectorized(m, lat, lon, gx, gy):
-#     vert = np.array([0, 0, 0])
-#     f = m.faces
-#     lonf = lon[f]
-#     lonf[lonf == 0] = 1
-#     V = [[lat[f[:, 1]] - lat[f[:, 0]], lat[f[:, 2]] - lat[f[:, 0]]], [lonf[:, 1] - lonf[:, 0], lonf[:, 2] - lonf[:, 0]]]
-#     ab = np.linalg.pinv(V) @ (np.array([gx,gy])) - np.vstack((lat[f[:, 0]], lonf[:, 0]))
-#     a = ab[0]
-#     b = ab[1]
-#     mask = (a >= 0) & (b >= 0) & (a + b <= 1)
-#     idx = np.where(mask)[0]
-#     if len(idx) != 0: 
-#         vert = m.vertices[m.faces[idx, 0]] + \
-#             a[idx, np.newaxis] * (m.vertices[m.faces[idx, 1]] - \
-#             m.vertices[m.faces[idx, 0]]) + b[idx, np.newaxis] * (m.vertices[m.faces[idx, 2]] - \
-#             m.vertices[m.faces[idx, 0]])
-    
-#     return vert
+def latLon2xyz(m,lat,lonf,msk,gx,gy):
+    xyz = []
+    class xyznode:
+        def __init__(self, pnt, d):
+            self.pnt=pnt
+            self.d=d
+        def __le__(self, rhs):
+            return self.d <= rhs.d
+
+    indx = np.where(
+        (np.sum(lat[m.faces]>=gx,axis=1)>0)&(np.sum(lat[m.faces]<=gx,axis=1)>0)&msk&
+        (np.sum(lonf>=gy,axis=1)>0)&(np.sum(lonf<=gy,axis=1)>0))[0]
+    if len(indx)==0:
+        indx = [np.argmin(np.min((lat[m.faces]-gx)*(lat[m.faces]-gx) + (lonf-gy)*(lonf-gy), axis=1))]
+
+    for ind in indx:
+        f = m.faces[ind]
+        V = np.array([[lat[f[1]] - lat[f[0]],lat[f[2]] - lat[f[0]]],
+                        [lonf[ind,1] - lonf[ind,0],lonf[ind,2] - lonf[ind,0]]])##T?
+        ab = np.linalg.pinv(V) @ (np.array([gx,gy]) - np.array([lat[f[0]],lonf[ind,0]]))
+        a = ab[0]
+        b = ab[1]
+        if a>=0 and b>=0 and a + b<=1:
+            xyz.append(xyznode(m.vertices[f[0]] + a * (m.vertices[f[1]] - m.vertices[f[0]]) + b * (m.vertices[f[2]] - m.vertices[f[0]]),
+                        np.sum((np.array([lat[f[0]], lonf[ind,0]]) + V@ab - np.array([gx,gy]))**2)))
+        else:
+            c = V[:,0] @ (np.array([gx,gy]) - np.array([lat[f[0]],lonf[ind,0]]))/(np.linalg.norm(V[:,0])**2)
+            d = V[:,1] @ (np.array([gx,gy]) - np.array([lat[f[0]],lonf[ind,0]])) / (np.linalg.norm(V[:,1])**2)
+            v2 = np.array([lat[f[2]] - lat[f[1]], lonf[ind,2] - lonf[ind,1]])
+            e = v2 @ (np.array([gx,gy]) - np.array([lat[f[1]],lonf[ind,1]])) / (np.linalg.norm(v2)**2)
+            c = np.clip(c,0,1)
+            d = np.clip(d,0,1)
+            e = np.clip(e,0,1)
+            p1 = c*V[:,0] + np.array([lat[f[0]],lonf[ind,0]])
+            p2 = d*V[:,1] + np.array([lat[f[0]],lonf[ind,0]])
+            p3 = e*v2     + np.array([lat[f[1]],lonf[ind,1]])
+            d1 = np.sum((p1 - np.array([gx,gy]))**2)
+            d2 = np.sum((p2 - np.array([gx,gy]))**2)
+            d3 = np.sum((p3 - np.array([gx,gy]))**2)
+            if d1 < d2 and d1<d3:
+                xyz.append(xyznode(m.vertices[f[0]] + c * (m.vertices[f[1]] - m.vertices[f[0]]),d1))
+            elif d2 < d3:
+                xyz.append(xyznode(m.vertices[f[0]] + d * (m.vertices[f[2]] - m.vertices[f[0]]),d2))
+            else:
+                xyz.append(xyznode(m.vertices[f[1]] + e * (m.vertices[f[2]] - m.vertices[f[1]]),d3))
+    return np.min(xyz).pnt
+
+def get_image_mask_actor_scalars(actor):
+    input = actor.GetMapper().GetInput()
+    shape = input.GetDimensions()[::-1]
+    point_data = input.GetPointData().GetScalars()
+    point_array = vtknp.vtk_to_numpy(point_data)
+    if len(point_array.shape) == 1: point_array = point_array.reshape(*point_array.shape, 1)
+    scalars = point_array.reshape(*shape[1:], point_array.shape[-1])
+    return scalars
+
+def get_mesh_actor_vertices_faces(actor):
+    input = actor.GetMapper().GetInput()
+    points = input.GetPoints().GetData()
+    cells = input.GetPolys().GetData()
+    vertices = vtknp.vtk_to_numpy(points)
+    """
+    # popular presentation
+    Triangle 1: (0, 1, 2)
+    Triangle 2: (3, 4, 5)
+    Triangle 3: (6, 7, 8)
+    Triangle 4: (9, 10, 11)
+
+    # When PyVista converts this mesh into a vtkPolyData object, the faces are represented as a list of vertex indices and the number of vertices in each face:
+    Face 1: (3, 0, 1, 2)
+    Face 2: (3, 3, 4, 5)
+    Face 3: (3, 6, 7, 8)
+    Face 4: (3, 9, 10, 11)
+    """
+    faces = vtknp.vtk_to_numpy(cells).reshape((-1, 4))
+    faces = faces[:, 1:] # trim the first element in each row
+    return vertices, faces
+
+def get_mesh_actor_scalars(actor):
+    input = actor.GetMapper().GetInput()
+    point_data = input.GetPointData()
+    scalars = point_data.GetScalars()
+    if scalars is not None: scalars = vtknp.vtk_to_numpy(scalars)
+    return scalars
