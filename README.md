@@ -21,12 +21,9 @@ import vision6D as vis
 vis.exe()
 ```
 
-The interactivate window will be shown as below:
+Usage example shown below to register computer monitor model to an image
 
-![interface](https://github.com/ykzzyk/vision6D/assets/55161270/850b09cb-9c02-4687-92f4-13be8ef9fc17)
-
-## Contributing
-If you want to contribute to this project, please follow the guidelines in CONTRIBUTING.md. All contributions are welcome!
+![example](https://github.com/ykzzyk/vision6D/assets/55161270/b6e4b0f6-ac51-416a-a63d-0aa0de2793d0)
 
 ## License
 This project is licensed under the MIT License.
