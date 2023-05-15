@@ -564,8 +564,7 @@ class MyMainWindow(MainWindow):
 
         for mesh_name, mesh_actor in self.mesh_actors.items():
             if not render_all_meshes:
-                if mesh_name != self.reference:
-                    continue
+                if mesh_name != self.reference: continue
             vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
             mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
             colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
