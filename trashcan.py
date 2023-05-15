@@ -2203,3 +2203,5 @@ def set_image_spacing(self):
                 if self.mask_path: self.add_mask(self.mask_path)
             except: 
                 QMessageBox.warning(self, 'vision6D', "Spacing format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+
+# with open(str(stylesheet_pth), "r") as file: stylesheet = file.read()  # Replace with the path to your .qss file

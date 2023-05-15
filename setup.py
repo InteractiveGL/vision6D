@@ -1,4 +1,6 @@
 # For development mode
 import setuptools
 
-setuptools.setup()
+setuptools.setup(
+    package_data={
+        'vision6D': ['vision6D/style.qss'],},)
