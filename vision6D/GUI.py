@@ -577,53 +577,33 @@ class MyMainWindow(MainWindow):
             output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
 
         # Render all objects 
-        if render_all_meshes:
-            for mesh_name, mesh_actor in self.mesh_actors.items():
-                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
-                mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-
-                colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
-                if colors is not None: 
-                    assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-                    mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
-                else:
-                    mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
-
-                mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
-
-            self.render.camera = camera
-            self.render.disable(); self.render.show(auto_close=False)
-
-            # obtain the rendered image
-            image = self.render.last_image
-            output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
-            rendered_image = PIL.Image.fromarray(image)
-            rendered_image.save(output_path)
-            if msg: self.output_text.clear(); self.output_text.append(f"Export all meshes render to:\n {str(output_path)}")
-        # render the reference mesh only
-        else:
-            mesh_actor = self.mesh_actors[self.reference]
+        for mesh_name, mesh_actor in self.mesh_actors.items():
+            if not render_all_meshes:
+                if mesh_name != self.reference: continue
             vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
             mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
             colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
             if colors is not None: 
                 assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
+                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             else:
-                mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
+                mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
-            self.render.camera = camera
-            self.render.disable(); self.render.show(auto_close=False)
+        
+        self.render.camera = camera
+        self.render.disable(); self.render.show(auto_close=False)
 
-            # obtain the rendered image
-            image = self.render.last_image
-            if save_render:
-                output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
-                rendered_image = PIL.Image.fromarray(image)
-                rendered_image.save(output_path)
-            if msg: self.output_text.clear(); self.output_text.append(f"Export reference mesh render to:\n {str(output_path)}")
+        # obtain the rendered image
+        image = self.render.last_image
 
-            return image
+        if save_render:
+            output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(output_path)
+            self.output_text.clear()
+            self.output_text.append(f"Export reference mesh render to:\n {str(output_path)}")
+
+        return image
 
     def export_segmesh_plot(self):
 
