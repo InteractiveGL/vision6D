@@ -189,13 +189,6 @@ class MyMainWindow(MainWindow):
         self.mesh_path = None
         self.pose_path = None
         self.meshdict = {}
-        
-        os.makedirs(vis.config.GITROOT / "output", exist_ok=True)
-        os.makedirs(vis.config.GITROOT / "output" / "image", exist_ok=True)
-        os.makedirs(vis.config.GITROOT / "output" / "mask", exist_ok=True)
-        os.makedirs(vis.config.GITROOT / "output" / "mesh", exist_ok=True)
-        os.makedirs(vis.config.GITROOT / "output" / "segmesh", exist_ok=True)
-        os.makedirs(vis.config.GITROOT / "output" / "gt_poses", exist_ok=True)
             
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
@@ -515,12 +508,12 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = self.render.last_image
-        mirror = np.any((self.mirror_x, self.mirror_y))
-        output_name = pathlib.Path(self.image_path).stem if not mirror else pathlib.Path(self.image_path).stem + "_mirrored"
-        output_path = vis.config.GITROOT / "output" / "image" / (output_name + '.png')
-        rendered_image = PIL.Image.fromarray(image)
-        rendered_image.save(output_path)
-        self.output_text.clear(); self.output_text.append(f"Export image render to:\n {str(output_path)}")
+        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
+        if output_path: 
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(output_path)
+            self.output_text.clear()
+            self.output_text.append(f"Export image render to:\n {str(output_path)}")
 
     def export_mask_plot(self):
         if self.mask_actor is None:
@@ -541,14 +534,14 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = self.render.last_image
-        mirror = np.any((self.mirror_x, self.mirror_y))
-        output_name = pathlib.Path(self.mask_path).stem if not mirror else pathlib.Path(self.mask_path).stem + "_mirrored"
-        output_path = vis.config.GITROOT / "output" / "mask" / (output_name + '.png')
-        rendered_image = PIL.Image.fromarray(image)
-        rendered_image.save(output_path)
-        self.output_text.clear(); self.output_text.append(f"Export mask render to:\n {str(output_path)}")
+        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
+        if output_path:
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(output_path)
+            self.output_text.clear()
+            self.output_text.append(f"Export mask render to:\n {str(output_path)}")
 
-    def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, msg=True, save_render=True):
+    def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, save_render=True):
 
         if self.reference is None:
             QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
@@ -566,64 +559,38 @@ class MyMainWindow(MainWindow):
         if reply_export_surface == QMessageBox.No: point_clouds = True
         else: point_clouds = False
         
+        # Clear out the render
         self.render.clear()
-        reference_name = pathlib.Path(self.meshdict[self.reference]).stem
 
-        mirror = np.any((self.mirror_x, self.mirror_y))
-        if self.image_actor is not None: 
-            id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = reference_name + f'_render_{id}' if not mirror else reference_name + f'_mirrored_render_{id}'
-        else:
-            output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
-
-        # Render all objects 
-        if render_all_meshes:
-            for mesh_name, mesh_actor in self.mesh_actors.items():
-                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
-                mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-
-                colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
-                if colors is not None: 
-                    assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-                    mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
-                else:
-                    mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
-
-                mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
-
-            self.render.camera = camera
-            self.render.disable(); self.render.show(auto_close=False)
-
-            # obtain the rendered image
-            image = self.render.last_image
-            output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
-            rendered_image = PIL.Image.fromarray(image)
-            rendered_image.save(output_path)
-            if msg: self.output_text.clear(); self.output_text.append(f"Export all meshes render to:\n {str(output_path)}")
-        # render the reference mesh only
-        else:
-            mesh_actor = self.mesh_actors[self.reference]
+        for mesh_name, mesh_actor in self.mesh_actors.items():
+            if not render_all_meshes:
+                if mesh_name != self.reference:
+                    continue
             vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
             mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
             colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
             if colors is not None: 
                 assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
+                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             else:
-                mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
+                mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
-            self.render.camera = camera
-            self.render.disable(); self.render.show(auto_close=False)
+      
+        self.render.camera = camera
+        self.render.disable(); self.render.show(auto_close=False)
 
-            # obtain the rendered image
-            image = self.render.last_image
-            if save_render:
-                output_path = vis.config.GITROOT / "output" / "mesh" / (output_name + ".png")
+        # obtain the rendered image
+        image = self.render.last_image
+
+        if save_render:
+            output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Mesh Files (*.png)")
+            if output_path:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
-            if msg: self.output_text.clear(); self.output_text.append(f"Export reference mesh render to:\n {str(output_path)}")
+                self.output_text.clear()
+                self.output_text.append(f"Export reference mesh render to:\n {str(output_path)}")
 
-            return image
+        return image
 
     def export_segmesh_plot(self):
 
@@ -654,15 +621,7 @@ class MyMainWindow(MainWindow):
         if np.max(segmask) > 1: segmask = segmask / 255
 
         self.render.clear()
-        reference_name = pathlib.Path(self.meshdict[self.reference]).stem
-
-        mirror = np.any((self.mirror_x, self.mirror_y))
-        if self.image_actor is not None: 
-            id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = reference_name + f'_render_{id}' if not mirror else reference_name + f'_mirrored_render_{id}'
-        else:
-            output_name = reference_name + '_render' if not mirror else reference_name + '_mirrored_render'
-        
+                
         # Render the targeting objects
         vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
@@ -681,31 +640,25 @@ class MyMainWindow(MainWindow):
         # obtain the rendered image
         image = self.render.last_image
         image = (image * segmask).astype(np.uint8)
-        output_path = vis.config.GITROOT / "output" / "segmesh" / (output_name + ".png")
-        rendered_image = PIL.Image.fromarray(image)
-        rendered_image.save(output_path)
-        self.output_text.clear(); self.output_text.append(f"Export segmask render:\n to {str(output_path)}")
-        
-        return image
+        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "SegMesh Files (*.png)")
+        if output_path:
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(output_path)
+            self.output_text.clear()
+            self.output_text.append(f"Export segmask render:\n to {str(output_path)}")
+            
+        # return image
 
     def export_pose(self):
         if self.reference is None: 
             QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
             return 0
-        
         self.update_gt_pose()
-
-        mesh_path_name = pathlib.Path(self.mesh_path).stem.split('_')
-        
-        mirror = np.any((self.mirror_x, self.mirror_y))
-        if self.image_actor is not None: 
-            id = pathlib.Path(self.image_path).stem.split('_')[-1]
-            output_name = "_".join(mesh_path_name[:2]) + f'_gt_pose_{id}' if not mirror else "_".join(mesh_path_name[:2]) + f'_mirrored_gt_pose_{id}'
-        else: output_name = "_".join(mesh_path_name[:2]) + '_gt_pose' if not mirror else "_".join(mesh_path_name[:2]) + f'_mirrored_gt_pose'
-
-        output_path = vis.config.GITROOT / "output" / "gt_poses" / (output_name + ".npy")
-        np.save(output_path, self.transformation_matrix)
-        self.output_text.clear(); self.output_text.append(f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
+        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Pose Files (*.npy)")
+        if output_path:
+            np.save(output_path, self.transformation_matrix)
+            self.output_text.clear()
+            self.output_text.append(f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
 
     # ^Panel
     def set_panel_bar(self):

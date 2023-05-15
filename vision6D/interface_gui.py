@@ -426,7 +426,7 @@ class Interface_GUI(MyMainWindow):
             if colors is None or (np.all(colors == colors[0])):
                 QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
                 return 0
-            color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
+            color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, save_render=False)
             gt_pose = self.mesh_actors[self.reference].user_matrix
             if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
             if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
@@ -465,7 +465,7 @@ class Interface_GUI(MyMainWindow):
                     if colors is None or (np.all(colors == colors[0])):
                         QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
                         return 0
-                    color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
+                    color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, save_render=False)
                     # nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     nocs_color = (self.mesh_colors[self.reference] == 'nocs')
                     gt_pose = self.mesh_actors[self.reference].user_matrix

@@ -33,5 +33,4 @@ from .app import App
 from .interface import Interface
 from .interface_gui import Interface_GUI
 from . import utils
-from . import config
 from .run_gui import exe
