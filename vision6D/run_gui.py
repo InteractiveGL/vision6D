@@ -1,5 +1,4 @@
 from vision6D import Interface_GUI
-from PyQt5.QtCore import QFile
 import sys
 from qtpy import QtWidgets
 
