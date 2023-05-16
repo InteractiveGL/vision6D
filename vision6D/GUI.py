@@ -126,7 +126,7 @@ class MyMainWindow(MainWindow):
         self.setAcceptDrops(True)
 
         self.track_actors_names = []
-        self.button_group_track_actors_names = QtWidgets.QButtonGroup(self)
+        self.button_group_actors_names = QtWidgets.QButtonGroup(self)
 
         # Set panel bar
         self.set_panel_bar()
@@ -279,7 +279,7 @@ class MyMainWindow(MainWindow):
                     QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def set_spacing(self):
-        checked_button = self.button_group_track_actors_names.checkedButton()
+        checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is not None:
             if checked_button.text() == 'image':
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.image_spacing))
@@ -451,7 +451,7 @@ class MyMainWindow(MainWindow):
         self.track_actors_names.remove(name)
         self.output_text.clear(); self.output_text.append(f"Remove actor: <span style='background-color:yellow; color:black;'>{name}</span>")
         # remove the button from the button group
-        self.button_group_track_actors_names.removeButton(button)
+        self.button_group_actors_names.removeButton(button)
         # remove the button from the self.button_layout widget
         self.button_layout.removeWidget(button)
         # offically delete the button
@@ -463,14 +463,14 @@ class MyMainWindow(MainWindow):
     def clear_plot(self):
         
         # Clear out everything in the remove menu
-        for button in self.button_group_track_actors_names.buttons():
+        for button in self.button_group_actors_names.buttons():
             name = button.text()
             if name == 'image': actor = self.image_actor
             elif name == 'mask': actor = self.mask_actor
             else: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
             # remove the button from the button group
-            self.button_group_track_actors_names.removeButton(button)
+            self.button_group_actors_names.removeButton(button)
             # remove the button from the self.button_layout widget
             self.button_layout.removeWidget(button)
             # offically delete the button
@@ -721,10 +721,10 @@ class MyMainWindow(MainWindow):
         button = QtWidgets.QPushButton(actor_name)
         button.setCheckable(True)  # Set the button to be checkable
         button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
+        button.setChecked(True)
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
-        self.button_group_track_actors_names.addButton(button)
-        button.setChecked(True)
+        self.button_group_actors_names.addButton(button)
         self.button_actor_name_clicked(actor_name)
 
     def update_color_button_text(self, text, popup):
@@ -733,7 +733,7 @@ class MyMainWindow(MainWindow):
 
     def show_color_popup(self):
 
-        checked_button = self.button_group_track_actors_names.checkedButton()
+        checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is None:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
@@ -756,14 +756,14 @@ class MyMainWindow(MainWindow):
         else: self.set_color(text, actor_name)
 
     def remove_actors_button(self):
-        checked_button = self.button_group_track_actors_names.checkedButton()
+        checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is None: 
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else: self.remove_actor(checked_button)
 
     def opacity_value_change(self, value):
         if self.ignore_slider_value_change: return 0
-        checked_button = self.button_group_track_actors_names.checkedButton()
+        checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is not None:
             actor_name = checked_button.text()
             if actor_name == 'image': self.set_image_opacity(value / 100)

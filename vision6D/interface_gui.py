@@ -165,6 +165,8 @@ class Interface_GUI(MyMainWindow):
             self.track_actors_names.append('image')
             self.add_button_actor_name('image')
 
+        self.check_button('image')
+
         # reset the camera
         self.reset_camera()
 
@@ -199,6 +201,8 @@ class Interface_GUI(MyMainWindow):
         if 'mask' not in self.track_actors_names:
             self.track_actors_names.append('mask')
             self.add_button_actor_name('mask')
+
+        self.check_button('mask')
 
         # reset the camera
         self.reset_camera()
@@ -272,6 +276,8 @@ class Interface_GUI(MyMainWindow):
             self.track_actors_names.append(mesh_name)
             self.add_button_actor_name(mesh_name)
 
+        self.check_button(mesh_name)
+
     def reset_camera(self, *args):
         self.plotter.camera = self.camera.copy()
 
@@ -281,7 +287,14 @@ class Interface_GUI(MyMainWindow):
     def zoom_out(self, *args):
         self.plotter.camera.zoom(0.5)
 
-    def pick_callback(self, obj, event):
+    def check_button(self, actor_name):
+        for button in self.button_group_actors_names.buttons():
+            if button.text() == actor_name: 
+                button.setChecked(True)
+                self.button_actor_name_clicked(actor_name)
+                break
+
+    def pick_callback(self, obj, *args):
         x, y = obj.GetEventPosition()
         picker = vtk.vtkCellPicker()
         picker.Pick(x, y, 0, self.plotter.renderer)
@@ -293,11 +306,7 @@ class Interface_GUI(MyMainWindow):
                 self.undo_poses[actor_name].append(self.mesh_actors[actor_name].user_matrix)
                 if len(self.undo_poses[actor_name]) > 20: self.undo_poses[actor_name].pop(0)
                 # check the picked button
-                for button in self.button_group_track_actors_names.buttons():
-                    if button.text() == actor_name: 
-                        button.setChecked(True)
-                        self.button_actor_name_clicked(actor_name)
-                        break
+                self.check_button(actor_name)
 
     def reset_gt_pose(self, *args):
         self.output_text.clear(); self.output_text.append(f"\nReset the GT pose to: \n{self.initial_pose}\n")
@@ -326,8 +335,8 @@ class Interface_GUI(MyMainWindow):
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def undo_pose(self, *args):
-        if self.button_group_track_actors_names.checkedButton() is not None:
-            actor_name = self.button_group_track_actors_names.checkedButton().text()
+        if self.button_group_actors_names.checkedButton() is not None:
+            actor_name = self.button_group_actors_names.checkedButton().text()
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
@@ -506,7 +515,7 @@ class Interface_GUI(MyMainWindow):
                         # add the mesh object file
                         self.transformation_matrix = gt_pose
                         self.add_mesh_file(prompt=True)
-                        checked_button = self.button_group_track_actors_names.checkedButton()
+                        checked_button = self.button_group_actors_names.checkedButton()
                         vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[checked_button.text()])
                         mesh = trimesh.Trimesh(vertices, faces, process=False)
                     else:
