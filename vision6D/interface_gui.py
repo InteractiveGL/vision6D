@@ -13,7 +13,7 @@ import vtk
 import os
 os.environ["QT_API"] = "pyqt5"
 
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5 import QtWidgets
 import pyvista as pv
 from pyvistaqt import QtInteractor, MainWindow
 import vision6D as vis
@@ -233,7 +233,7 @@ class Interface_GUI(MyMainWindow):
             flag = True
 
         if not flag:
-            QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
         # consider the mesh verts spacing
@@ -291,10 +291,6 @@ class Interface_GUI(MyMainWindow):
                 if actor_name not in self.undo_poses: self.undo_poses[actor_name] = []
                 self.undo_poses[actor_name].append(self.mesh_actors[actor_name].user_matrix)
                 if len(self.undo_poses[actor_name]) > 20: self.undo_poses[actor_name].pop(0)
-                checked_button = self.button_group_track_actors_names.checkedButton()
-                # uncheck the current button if it is not None
-                if checked_button is not None:
-                    if checked_button.text() != actor_name: checked_button.setChecked(False)
                 # check the picked button
                 for button in self.button_group_track_actors_names.buttons():
                     if button.text() == actor_name: 
@@ -332,7 +328,7 @@ class Interface_GUI(MyMainWindow):
         if self.button_group_track_actors_names.checkedButton() is not None:
             actor_name = self.button_group_track_actors_names.checkedButton().text()
         else:
-            QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         if len(self.undo_poses[actor_name]) != 0: 
             transformation_matrix = self.undo_poses[actor_name].pop()
@@ -355,7 +351,7 @@ class Interface_GUI(MyMainWindow):
         # get the corresponding color
         colors = vis.utils.color_mesh(vertices_color, nocs=nocs)
         if colors.shape != vertices.shape: 
-            QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
         # color the mesh and actor
@@ -424,15 +420,15 @@ class Interface_GUI(MyMainWindow):
         if self.reference is not None:
             colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
             if colors is None or (np.all(colors == colors[0])):
-                QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
-            color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
+            color_mask = self.export_mesh_plot(QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, save_render=False)
             gt_pose = self.mesh_actors[self.reference].user_matrix
             if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
             if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
 
             if np.sum(color_mask) == 0:
-                QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QMessageBox.Ok, QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
                 
             if self.mesh_colors[self.reference] == 'nocs':
@@ -447,10 +443,10 @@ class Interface_GUI(MyMainWindow):
                 self.output_text.append(f"\n{predicted_pose}\n\nGT POSE: \n\n{gt_pose}\n\nERROR: \n\n{error}")
 
             else:
-                QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QMessageBox.Ok, QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
         else:
-            QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
     def epnp_mask(self, nocs_method):
@@ -463,9 +459,9 @@ class Interface_GUI(MyMainWindow):
                 if self.reference is not None:
                     colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
                     if colors is None or (np.all(colors == colors[0])):
-                        QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QMessageBox.Ok, QMessageBox.Ok)
+                        QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                         return 0
-                    color_mask = self.export_mesh_plot(QMessageBox.Yes, QMessageBox.Yes, QMessageBox.Yes, msg=False, save_render=False)
+                    color_mask = self.export_mesh_plot(QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, save_render=False)
                     # nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     nocs_color = (self.mesh_colors[self.reference] == 'nocs')
                     gt_pose = self.mesh_actors[self.reference].user_matrix
@@ -474,7 +470,7 @@ class Interface_GUI(MyMainWindow):
                     vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
                     mesh = trimesh.Trimesh(vertices, faces, process=False)
                 else: 
-                    QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QMessageBox.Ok, QMessageBox.Ok)
+                    QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     return 0
                 color_mask = (color_mask * mask_data).astype(np.uint8)
             # color mask
@@ -493,11 +489,11 @@ class Interface_GUI(MyMainWindow):
                         mesh_path = pathlib.Path(self.mask_path).stem.split('_')[0] + '_video_trim' 
                         mesh = vis.utils.load_trimesh(pathlib.Path(vis.config.OP_DATA_DIR / "surgical_planning" / mesh_path / "mesh" / "processed_meshes" / f"{id}_right_ossicles_processed.mesh"))
                     else:
-                        QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QMessageBox.Ok, QMessageBox.Ok)
+                        QtWidgets.QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                         return 0
         
             if np.sum(color_mask) == 0:
-                QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QMessageBox.Ok, QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
                 
             if nocs_method == nocs_color:
@@ -521,6 +517,6 @@ class Interface_GUI(MyMainWindow):
                 self.output_text.append(f"\n{predicted_pose}\n\nGT POSE: \n\n{gt_pose}\n\nERROR: \n\n{error}")
 
             else:
-                QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
+                QtWidgets.QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
         else:
-            QMessageBox.warning(self,"vision6D", "please load a mask first")
+            QtWidgets.QMessageBox.warning(self,"vision6D", "please load a mask first")

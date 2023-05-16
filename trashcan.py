@@ -2203,3 +2203,8 @@ def set_image_spacing(self):
                 if self.mask_path: self.add_mask(self.mask_path)
             except: 
                 QMessageBox.warning(self, 'vision6D', "Spacing format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+
+checked_button = self.button_group_track_actors_names.checkedButton()
+# uncheck the current button if it is not None
+if checked_button is not None:
+    if checked_button.text() != actor_name: checked_button.setChecked(False)
