@@ -2205,3 +2205,7 @@ def set_image_spacing(self):
                 QMessageBox.warning(self, 'vision6D', "Spacing format is not correct", QMessageBox.Ok, QMessageBox.Ok)
 
 # with open(str(stylesheet_pth), "r") as file: stylesheet = file.read()  # Replace with the path to your .qss file
+
+# uncheck the current button if it is not None
+if checked_button is not None:
+    if checked_button.text() != actor_name: checked_button.setChecked(False)

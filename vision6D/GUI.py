@@ -13,7 +13,6 @@ import json
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
 from pyvistaqt import QtInteractor, MainWindow
-from PyQt5.QtWidgets import QLabel, QMessageBox, QInputDialog, QFileDialog, QLineEdit, QDialogButtonBox, QFormLayout, QDialog
 from PyQt5.QtCore import Qt, QPoint
 
 # self defined package import
@@ -21,7 +20,7 @@ import vision6D as vis
 
 np.set_printoptions(suppress=True)
 
-class YesNoBox(QMessageBox):
+class YesNoBox(QtWidgets.QMessageBox):
     def __init__(self, *args, **kwargs):
         super(YesNoBox, self).__init__(*args, **kwargs)
         self.canceled = False
@@ -53,7 +52,7 @@ class PopUpDialog(QtWidgets.QDialog):
 
         self.setLayout(button_grid)
 
-class CameraPropsInputDialog(QDialog):
+class CameraPropsInputDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, 
                     line1=(None, None), 
                     line2=(None, None), 
@@ -63,16 +62,16 @@ class CameraPropsInputDialog(QDialog):
                     line6=(None, None)):
         super().__init__(parent)
 
-        self.args1 = QLineEdit(self, text=str(line1[1]))
-        self.args2 = QLineEdit(self, text=str(line2[1]))
-        self.args3 = QLineEdit(self, text=str(line3[1]))
-        self.args4 = QLineEdit(self, text=str(line4[1]))
-        self.args5 = QLineEdit(self, text=str(line5[1]))
-        self.args6 = QLineEdit(self, text=str(line6[1]))
+        self.args1 = QtWidgets.QLineEdit(self, text=str(line1[1]))
+        self.args2 = QtWidgets.QLineEdit(self, text=str(line2[1]))
+        self.args3 = QtWidgets.QLineEdit(self, text=str(line3[1]))
+        self.args4 = QtWidgets.QLineEdit(self, text=str(line4[1]))
+        self.args5 = QtWidgets.QLineEdit(self, text=str(line5[1]))
+        self.args6 = QtWidgets.QLineEdit(self, text=str(line6[1]))
 
-        buttonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self)
 
-        layout = QFormLayout(self)
+        layout = QtWidgets.QFormLayout(self)
         layout.addRow(f"{line1[0]}", self.args1)
         layout.addRow(f"{line2[0]}", self.args2)
         layout.addRow(f"{line3[0]}", self.args3)
@@ -91,6 +90,29 @@ class CameraPropsInputDialog(QDialog):
                 self.args4.text(),
                 self.args5.text(),
                 self.args6.text())
+    
+class GetTextDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super(GetTextDialog, self).__init__(parent)
+        
+        self.setWindowTitle("Vision6D")
+        self.introLabel = QtWidgets.QLabel("Input the Ground Truth Pose:")
+        self.textEdit = QtWidgets.QTextEdit(self)
+        self.textEdit.setPlainText(f"[[1, 0, 0, 0], \n[0, 1, 0, 0], \n[0, 0, 1, 0], \n[0, 0, 0, 1]]")
+        self.btnSubmit = QtWidgets.QPushButton("Submit", self)
+        self.btnSubmit.clicked.connect(self.submit_text)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.introLabel)
+        layout.addWidget(self.textEdit)
+        layout.addWidget(self.btnSubmit)
+
+    def submit_text(self):
+        self.user_text = self.textEdit.toPlainText()
+        self.accept()
+
+    def get_text(self):
+        return self.user_text
 
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
@@ -123,7 +145,7 @@ class MyMainWindow(MainWindow):
         self.main_layout.addWidget(self.splitter)
 
         # Add a QLabel as an overlay hint label
-        self.hintLabel = QLabel(self.plotter)
+        self.hintLabel = QtWidgets.QLabel(self.plotter)
         self.hintLabel.setText("Drag and drop a file here...")
         self.hintLabel.setStyleSheet("""
                                     color: white; 
@@ -151,23 +173,23 @@ class MyMainWindow(MainWindow):
                 self.add_mesh_file(prompt=False)
             elif file_path.endswith(('.png', '.jpg')):  # add image/mask
                 yes_no_box = YesNoBox()
-                yes_no_box.setIcon(QMessageBox.Question)
+                yes_no_box.setIcon(QtWidgets.QMessageBox.Question)
                 yes_no_box.setWindowTitle("Vision6D")
                 yes_no_box.setText("Do you want to load the image as mask?")
-                yes_no_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+                yes_no_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
                 button_clicked = yes_no_box.exec_()
                 if not yes_no_box.canceled:
-                    if button_clicked == QMessageBox.Yes:
+                    if button_clicked == QtWidgets.QMessageBox.Yes:
                         self.mask_path = file_path
                         self.add_mask_file(prompt=False)
-                    elif button_clicked == QMessageBox.No:
+                    elif button_clicked == QtWidgets.QMessageBox.No:
                         self.image_path = file_path
                         self.add_image_file(prompt=False)
             elif file_path.endswith('.npy'):
                 self.pose_path = file_path
                 self.add_pose_file(prompt=False)
             else:
-                QMessageBox.warning(self, 'vision6D', "File format is not supported!", QMessageBox.Ok, QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
 
     def resizeEvent(self, e):
@@ -181,8 +203,9 @@ class MyMainWindow(MainWindow):
     def set_menu_bars(self):
         mainMenu = self.menuBar()
         # simple dialog to record users input info
-        self.input_dialog = QInputDialog()
-        self.file_dialog = QFileDialog()
+        self.input_dialog = QtWidgets.QInputDialog()
+        self.file_dialog = QtWidgets.QFileDialog()
+        self.get_text_dialog = GetTextDialog()
         
         self.image_path = None
         self.mask_path = None
@@ -253,7 +276,7 @@ class MyMainWindow(MainWindow):
                     self.set_camera_props(self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position)
                 except:
                     self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
-                    QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QMessageBox.Ok, QMessageBox.Ok)
+                    QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def set_spacing(self):
         checked_button = self.button_group_track_actors_names.checkedButton()
@@ -262,23 +285,23 @@ class MyMainWindow(MainWindow):
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.image_spacing))
                 if ok:
                     try: self.image_spacing = ast.literal_eval(spacing)
-                    except: QMessageBox.warning(self, 'vision6D', "Format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     self.add_image(self.image_path)
             elif checked_button.text() == 'mask':
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mask_spacing))
                 if ok:
                     try: self.mask_spacing = ast.literal_eval(spacing)
-                    except: QMessageBox.warning(self, 'vision6D', "Format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     self.add_mask(self.mask_path)
             else:
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
                 if ok:
                     actor_name = checked_button.text()
                     try: self.mesh_spacing = ast.literal_eval(spacing)
-                    except: QMessageBox.warning(self, 'vision6D', "Format is not correct", QMessageBox.Ok, QMessageBox.Ok)
+                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     self.add_mesh(actor_name, self.meshdict[actor_name])
         else:
-            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def add_workspace(self):
         workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
@@ -387,7 +410,7 @@ class MyMainWindow(MainWindow):
                 self.mirror_y = True
             self.add_image(original_image_data)
         else:
-            QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
         if self.mask_actor is not None:
@@ -491,11 +514,11 @@ class MyMainWindow(MainWindow):
     def export_image_plot(self):
 
         if self.image_actor is None:
-            QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes: camera = self.camera.copy()
+        reply = QtWidgets.QMessageBox.question(self,"vision6D", "Reset Camera?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
 
         self.render.clear()
@@ -508,7 +531,7 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = self.render.last_image
-        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
         if output_path: 
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
@@ -517,11 +540,11 @@ class MyMainWindow(MainWindow):
 
     def export_mask_plot(self):
         if self.mask_actor is None:
-            QMessageBox.warning(self, 'vision6D', "Need to load a mask first!", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a mask first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        reply = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes: camera = self.camera.copy()
+        reply = QtWidgets.QMessageBox.question(self,"vision6D", "Reset Camera?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if reply == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
 
         self.render.clear()
@@ -534,7 +557,7 @@ class MyMainWindow(MainWindow):
 
         # obtain the rendered image
         image = self.render.last_image
-        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
         if output_path:
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
@@ -544,19 +567,19 @@ class MyMainWindow(MainWindow):
     def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, save_render=True):
 
         if self.reference is None:
-            QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
         if reply_reset_camera is None and reply_render_mesh is None and reply_export_surface is None:
-            reply_reset_camera = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
-            reply_render_mesh = QMessageBox.question(self,"vision6D", "Only render the reference mesh?", QMessageBox.Yes, QMessageBox.No)
-            reply_export_surface = QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QMessageBox.Yes, QMessageBox.No)
+            reply_reset_camera = QtWidgets.QMessageBox.question(self,"vision6D", "Reset Camera?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+            reply_render_mesh = QtWidgets.QMessageBox.question(self,"vision6D", "Only render the reference mesh?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+            reply_export_surface = QtWidgets.QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
             
-        if reply_reset_camera == QMessageBox.Yes: camera = self.camera.copy()
+        if reply_reset_camera == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
-        if reply_render_mesh == QMessageBox.No: render_all_meshes = True
+        if reply_render_mesh == QtWidgets.QMessageBox.No: render_all_meshes = True
         else: render_all_meshes = False
-        if reply_export_surface == QMessageBox.No: point_clouds = True
+        if reply_export_surface == QtWidgets.QMessageBox.No: point_clouds = True
         else: point_clouds = False
         
         # Clear out the render
@@ -582,7 +605,7 @@ class MyMainWindow(MainWindow):
         image = self.render.last_image
 
         if save_render:
-            output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Mesh Files (*.png)")
+            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mesh Files (*.png)")
             if output_path:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
@@ -594,19 +617,19 @@ class MyMainWindow(MainWindow):
     def export_segmesh_plot(self):
 
         if self.reference is None:
-            QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
         if self.mask_actor is None: 
-            QMessageBox.warning(self, 'vision6D', "Need to load a segmentation mask first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a segmentation mask first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
-        reply_reset_camera = QMessageBox.question(self,"vision6D", "Reset Camera?", QMessageBox.Yes, QMessageBox.No)
-        reply_export_surface = QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QMessageBox.Yes, QMessageBox.No)
+        reply_reset_camera = QtWidgets.QMessageBox.question(self,"vision6D", "Reset Camera?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        reply_export_surface = QtWidgets.QMessageBox.question(self,"vision6D", "Export the mesh as surface?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
 
-        if reply_reset_camera == QMessageBox.Yes: camera = self.camera.copy()
+        if reply_reset_camera == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
-        if reply_export_surface == QMessageBox.No: point_clouds = True
+        if reply_export_surface == QtWidgets.QMessageBox.No: point_clouds = True
         else: point_clouds = False
 
         self.render.clear()
@@ -639,7 +662,7 @@ class MyMainWindow(MainWindow):
         # obtain the rendered image
         image = self.render.last_image
         image = (image * segmask).astype(np.uint8)
-        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "SegMesh Files (*.png)")
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "SegMesh Files (*.png)")
         if output_path:
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
@@ -650,10 +673,10 @@ class MyMainWindow(MainWindow):
 
     def export_pose(self):
         if self.reference is None: 
-            QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         self.update_gt_pose()
-        output_path, _ = QFileDialog.getSaveFileName(self, "Save File", "", "Pose Files (*.npy)")
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Pose Files (*.npy)")
         if output_path:
             np.save(output_path, self.transformation_matrix)
             self.output_text.clear()
@@ -701,6 +724,8 @@ class MyMainWindow(MainWindow):
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_track_actors_names.addButton(button)
+        button.setChecked(True)
+        self.button_actor_name_clicked(actor_name)
 
     def update_color_button_text(self, text, popup):
         self.color_button.setText(text)
@@ -710,13 +735,13 @@ class MyMainWindow(MainWindow):
 
         checked_button = self.button_group_track_actors_names.checkedButton()
         if checked_button is None:
-            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
         actor_name = checked_button.text()
 
         if actor_name not in self.mesh_actors:
-            QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
         popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
@@ -733,7 +758,7 @@ class MyMainWindow(MainWindow):
     def remove_actors_button(self):
         checked_button = self.button_group_track_actors_names.checkedButton()
         if checked_button is None: 
-            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else: self.remove_actor(checked_button)
 
     def opacity_value_change(self, value):
@@ -752,7 +777,7 @@ class MyMainWindow(MainWindow):
             self.ignore_slider_value_change = True
             self.opacity_slider.setValue(100)
             self.ignore_slider_value_change = False
-            QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QMessageBox.Ok, QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
     def panel_display(self):
