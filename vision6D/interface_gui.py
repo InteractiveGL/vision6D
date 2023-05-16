@@ -491,7 +491,7 @@ class Interface_GUI(MyMainWindow):
                         id = pathlib.Path(self.mask_path).stem.split('_')[0].split('.')[1]
                         #TODO: hard coded, and needed to be updated in the future
                         mesh_path = pathlib.Path(self.mask_path).stem.split('_')[0] + '_video_trim' 
-                        mesh = vis.utils.load_trimesh(pathlib.Path(self.mesh_dir / mesh_path / "mesh" / "processed_meshes" / f"{id}_right_ossicles_processed.mesh"))
+                        mesh = vis.utils.load_trimesh(pathlib.Path(vis.config.OP_DATA_DIR / "surgical_planning" / mesh_path / "mesh" / "processed_meshes" / f"{id}_right_ossicles_processed.mesh"))
                     else:
                         QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QMessageBox.Ok, QMessageBox.Ok)
                         return 0
