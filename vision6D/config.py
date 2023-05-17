@@ -6,7 +6,6 @@ CWD = pathlib.Path(os.path.abspath(__file__)).parent
 GITROOT = CWD.parent
 OP_DATA_DIR = GITROOT.parent / 'ossicles_6D_pose_estimation' / 'data'
 YOLOV8_DATA_DIR = GITROOT.parent / 'yolov8'
-GT_POSES_DIR = OP_DATA_DIR / "gt_poses"
 
 #~ right ossicles
 #* 455
@@ -100,18 +99,18 @@ SCALA_TYMPANI_MESH_PATH_6087_left = OP_DATA_DIR / "surgical_planning"/ "CIP.6087
 
 # right ossicles
 # actual pose for the 455 mesh
-gt_pose_455_right = np.load(GT_POSES_DIR / "455_right_gt_pose.npy")
-gt_pose_5997_right = np.load(GT_POSES_DIR / "5997_right_gt_pose.npy")
-gt_pose_6088_right = np.load(GT_POSES_DIR / "6088_right_gt_pose.npy")
-gt_pose_6108_right = np.load(GT_POSES_DIR / "6108_right_gt_pose.npy")
-gt_pose_632_right = np.load(GT_POSES_DIR / "632_right_gt_pose.npy")
+gt_pose_455_right = np.load(OP_DATA_DIR / "gt_poses" / "455_right_gt_pose.npy")
+gt_pose_5997_right = np.load(OP_DATA_DIR / "gt_poses" / "5997_right_gt_pose.npy")
+gt_pose_6088_right = np.load(OP_DATA_DIR / "gt_poses" / "6088_right_gt_pose.npy")
+gt_pose_6108_right = np.load(OP_DATA_DIR / "gt_poses" / "6108_right_gt_pose.npy")
+gt_pose_632_right = np.load(OP_DATA_DIR / "gt_poses" / "632_right_gt_pose.npy")
 
-gt_pose_6320_right = np.load(GT_POSES_DIR / "6320_right_gt_pose.npy")
-gt_pose_6329_right = np.load(GT_POSES_DIR / "6329_right_gt_pose.npy")
-gt_pose_6602_right = np.load(GT_POSES_DIR / "6602_right_gt_pose.npy")
-gt_pose_6751_right = np.load(GT_POSES_DIR / "6751_right_gt_pose.npy")
+gt_pose_6320_right = np.load(OP_DATA_DIR / "gt_poses" / "6320_right_gt_pose.npy")
+gt_pose_6329_right = np.load(OP_DATA_DIR / "gt_poses" / "6329_right_gt_pose.npy")
+gt_pose_6602_right = np.load(OP_DATA_DIR / "gt_poses" / "6602_right_gt_pose.npy")
+gt_pose_6751_right = np.load(OP_DATA_DIR / "gt_poses" / "6751_right_gt_pose.npy")
 
 # left ossicles
-gt_pose_6742_left = np.load(GT_POSES_DIR / "6742_left_gt_pose.npy")
-gt_pose_6087_left = np.load(GT_POSES_DIR / "6087_left_gt_pose.npy")
+gt_pose_6742_left = np.load(OP_DATA_DIR / "gt_poses" / "6742_left_gt_pose.npy")
+gt_pose_6087_left = np.load(OP_DATA_DIR / "gt_poses" / "6087_left_gt_pose.npy")
 
