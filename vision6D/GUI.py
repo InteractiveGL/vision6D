@@ -271,7 +271,7 @@ class MyMainWindow(MainWindow):
 
     def set_camera_extrinsics(self):
         self.camera.SetPosition((0,0,self.cam_position))
-        self.camera.SetFocalPoint((0,0,0))
+        self.camera.SetFocalPoint((*self.camera.GetWindowCenter(),0)) # Get the camera window center
         self.camera.SetViewUp(self.cam_viewup)
     
     def set_camera_intrinsics(self):
