@@ -9,6 +9,7 @@ import pathlib
 import PIL
 import ast
 import json
+import math
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -136,6 +137,15 @@ class MyMainWindow(MainWindow):
 
         # Create the plotter
         self.create_plotter()
+        
+        # Set the camera
+        self.fx = 50000
+        self.fy = 50000
+        self.cx = 960
+        self.cy = 540
+        self.cam_viewup = (0, -1, 0)
+        self.cam_position = -500
+        self.set_camera_props()
 
         # Set up the main layout with the left panel and the render window using QSplitter
         self.main_layout = QtWidgets.QHBoxLayout(self.main_widget)
@@ -259,6 +269,36 @@ class MyMainWindow(MainWindow):
         epnp_latlon_mask = functools.partial(self.epnp_mask, False)
         PnPMenu.addAction('EPnP with latlon mask', epnp_latlon_mask)
 
+    def set_camera_extrinsics(self):
+        self.camera.SetPosition((0,0,self.cam_position))
+        self.camera.SetFocalPoint((0,0,0))
+        self.camera.SetViewUp(self.cam_viewup)
+    
+    def set_camera_intrinsics(self):
+        
+        # Set camera intrinsic attribute
+        self.camera_intrinsics = np.array([
+            [self.fx, 0, self.cx],
+            [0, self.fy, self.cy],
+            [0, 0, 1]
+        ])
+                
+        # convert the principal point to window center (normalized coordinate system) and set it
+        wcx = -2*(self.cx - float(self.window_size[0])/2) / self.window_size[0]
+        wcy =  2*(self.cy - float(self.window_size[1])/2) / self.window_size[1]
+        self.camera.SetWindowCenter(wcx, wcy) # (0,0)
+        
+        # Setting the view angle in degrees
+        view_angle = (180 / math.pi) * (2.0 * math.atan2(self.window_size[1]/2.0, self.fx)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+        self.camera.SetViewAngle(view_angle) # view angle should be in degrees
+ 
+    def set_camera_props(self):
+        # Set up the camera
+        self.camera = pv.Camera()
+        self.set_camera_intrinsics()
+        self.set_camera_extrinsics()
+        self.plotter.camera = self.camera.copy()
+
     def set_camera(self):
         dialog = CameraPropsInputDialog(
             line1=("Fx", self.fx), 
@@ -273,7 +313,7 @@ class MyMainWindow(MainWindow):
             if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == '' or cam_position == ''):
                 try:
                     self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
-                    self.set_camera_props(self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position)
+                    self.set_camera_props()
                 except:
                     self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
                     QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

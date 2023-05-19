@@ -1,7 +1,6 @@
 import pathlib
 import logging
 import numpy as np
-import math
 import trimesh
 import numpy as np
 import matplotlib.pyplot as plt
@@ -53,8 +52,7 @@ class Interface_GUI(MyMainWindow):
         self.image_spacing = [0.01, 0.01, 1]
         self.mask_spacing = [0.01, 0.01, 1]
         self.mesh_spacing = [1, 1, 1]
-        self.set_camera_props(fx=50000, fy=50000, cx=960, cy=540, cam_viewup=(0, -1, 0), cam_position=-500)
-
+        
     def button_actor_name_clicked(self, text):
         if text in self.mesh_actors:
             # set the current mesh color
@@ -92,46 +90,6 @@ class Interface_GUI(MyMainWindow):
         self.mesh_actors[name].user_matrix = pv.array_from_vtkmatrix(self.mesh_actors[name].GetMatrix())
         self.mesh_actors[name].GetProperty().opacity = surface_opacity
         self.plotter.add_actor(self.mesh_actors[name], pickable=True, name=name)
-
-    def set_camera_extrinsics(self, cam_position, cam_viewup):
-        self.camera.SetPosition((0,0,cam_position))
-        self.camera.SetFocalPoint((0,0,0))
-        self.camera.SetViewUp(cam_viewup)
-    
-    def set_camera_intrinsics(self, width, height, fx, fy, cx, cy):
-        
-        # Set camera intrinsic attribute
-        self.camera_intrinsics = np.array([
-            [fx, 0, cx],
-            [0, fy, cy],
-            [0, 0, 1]
-        ])
-        
-        cx = self.camera_intrinsics[0,2]
-        cy = self.camera_intrinsics[1,2]
-        f = self.camera_intrinsics[0,0]
-        
-        # convert the principal point to window center (normalized coordinate system) and set it
-        wcx = -2*(cx - float(width)/2) / width
-        wcy =  2*(cy - float(height)/2) / height
-        self.camera.SetWindowCenter(wcx, wcy) # (0,0)
-        
-        # Setting the view angle in degrees
-        view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, f)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
-        self.camera.SetViewAngle(view_angle) # view angle should be in degrees
- 
-    def set_camera_props(self, fx, fy, cx, cy, cam_viewup, cam_position):
-        # Set up the camera
-        self.camera = pv.Camera()
-        self.fx = fx
-        self.fy = fy
-        self.cx = cx
-        self.cy = cy
-        self.cam_viewup = cam_viewup
-        self.cam_position = cam_position
-        self.set_camera_intrinsics(self.window_size[0], self.window_size[1], self.fx, self.fy, self.cx, self.cy)
-        self.set_camera_extrinsics(self.cam_position, self.cam_viewup)
-        self.plotter.camera = self.camera.copy()
 
     def add_image(self, image_source):
 
