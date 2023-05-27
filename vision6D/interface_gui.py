@@ -430,7 +430,6 @@ class Interface_GUI(MyMainWindow):
                         QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                         return 0
                     color_mask = self.export_mesh_plot(QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, save_render=False)
-                    # nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
                     nocs_color = (self.mesh_colors[self.reference] == 'nocs')
                     gt_pose = self.mesh_actors[self.reference].user_matrix
                     if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
@@ -473,9 +472,12 @@ class Interface_GUI(MyMainWindow):
                         # add the mesh object file
                         self.transformation_matrix = gt_pose
                         self.add_mesh_file(prompt=True)
-                        checked_button = self.button_group_actors_names.checkedButton()
-                        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[checked_button.text()])
-                        mesh = trimesh.Trimesh(vertices, faces, process=False)
+                        if self.mesh_path != '':
+                            checked_button = self.button_group_actors_names.checkedButton()
+                            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[checked_button.text()])
+                            mesh = trimesh.Trimesh(vertices, faces, process=False)
+                        else:
+                            return 0
                     else:
                         QtWidgets.QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                         return 0
@@ -491,19 +493,14 @@ class Interface_GUI(MyMainWindow):
                     if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                     color_theme = 'NOCS'
                 else: 
+                    if self.mirror_x: color_mask = color_mask[:, ::-1, :]
+                    if self.mirror_y: color_mask = color_mask[::-1, :, :]
                     predicted_pose = self.latlon_epnp(color_mask, mesh)
-                    if self.mirror_x: 
-                        predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) @ predicted_pose
-                        predicted_pose[2, 3] = -1 * predicted_pose[2, 3] #^ interesting
-                    if self.mirror_y: 
-                        predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) @ predicted_pose
-                        predicted_pose[2, 3] = -1 * predicted_pose[2, 3] #^ interesting
                     color_theme = 'LATLON'
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 self.output_text.clear()
                 self.output_text.append(f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
                 self.output_text.append(f"\n{predicted_pose}\n\nGT POSE: \n\n{gt_pose}\n\nERROR: \n\n{error}")
-
             else:
                 QtWidgets.QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
         else:
