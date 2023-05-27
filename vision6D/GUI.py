@@ -10,6 +10,7 @@ import PIL
 import ast
 import json
 import math
+import copy
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -149,7 +150,8 @@ class MyMainWindow(MainWindow):
 
         self.track_actors_names = []
         self.button_group_actors_names = QtWidgets.QButtonGroup(self)
-        self.toggle_hide_flag = False
+
+        self.toggle_hide_actors_flag = False
 
         # Set panel bar
         self.set_panel_bar()
@@ -547,7 +549,11 @@ class MyMainWindow(MainWindow):
         self.pose_path = None
         self.meshdict = {}
         self.mesh_colors = {}
+
+        # reset everything to original actor opacity
         self.mesh_opacity = {}
+        self.image_opacity = 0.99
+        self.mask_opacity = 0.5
 
         self.image_spacing = [0.01, 0.01, 1]
         self.mask_spacing = [0.01, 0.01, 1]
@@ -837,39 +843,48 @@ class MyMainWindow(MainWindow):
             self.output_text.append(f"Current actor <span style='background-color:yellow; color:black;'>{actor_name}</span>'s opacity is {value / 100}")
         else:
             self.ignore_slider_value_change = True
-            self.opacity_slider.setValue(100)
+            self.opacity_slider.setValue(value)
             self.ignore_slider_value_change = False
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
     def toggle_hide_actors_button(self):
-        self.toggle_hide_flag = not self.toggle_hide_flag
-        if self.toggle_hide_flag == True:
+        self.toggle_hide_actors_flag = not self.toggle_hide_actors_flag
+        
+        if self.toggle_hide_actors_flag:
             for button in self.button_group_actors_names.buttons():
+                button.setChecked(True)
                 actor_name = button.text()
-                if actor_name == 'image':
-                    self.image_opacity = 0
-                    self.set_image_opacity(self.image_opacity)
-                if actor_name == 'mask':
-                    self.mask_opacity = 0
-                    self.set_mask_opacity(self.mask_opacity)
-                if actor_name != 'image' and actor_name != 'mask':
-                    self.mesh_opacity[actor_name] = 0
-                    self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
-                self.opacity_slider.setValue(0)
+                if actor_name == 'image': self.store_image_opacity = copy.deepcopy(self.image_opacity)
+                elif actor_name == 'mask': self.store_mask_opacity = copy.deepcopy(self.mask_opacity)
+                else: self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
+                self.opacity_value_change(0)
+
+            self.ignore_slider_value_change = True
+            self.opacity_slider.setValue(0)
+            self.ignore_slider_value_change = False
+                
+            checked_button = self.button_group_actors_names.checkedButton()
+            if checked_button is None: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        
         else:
             for button in self.button_group_actors_names.buttons():
+                button.setChecked(True)
                 actor_name = button.text()
-                if actor_name == 'image':
-                    self.image_opacity = 0.99
-                    self.set_image_opacity(self.image_opacity)
-                if actor_name == 'mask':
-                    self.mask_opacity = 0.5
-                    self.set_mask_opacity(self.mask_opacity)
-                if actor_name != 'image' and actor_name != 'mask':
-                    self.mesh_opacity[actor_name] = 0.8
-                    self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
-                self.opacity_slider.setValue(100)
+                if actor_name == 'image': self.opacity_value_change(self.store_image_opacity * 100)
+                elif actor_name == 'mask': self.opacity_value_change(self.store_mask_opacity * 100)
+                else: self.opacity_value_change(self.store_mesh_opacity[actor_name] * 100)
+
+            checked_button = self.button_group_actors_names.checkedButton()
+            if checked_button is not None:
+                actor_name = checked_button.text()
+                self.ignore_slider_value_change = True
+                if actor_name == 'image': self.opacity_slider.setValue(self.image_opacity * 100)
+                elif actor_name == 'mask': self.opacity_slider.setValue(self.mask_opacity * 100)
+                else: self.opacity_slider.setValue(self.mesh_opacity[actor_name] * 100)
+                self.ignore_slider_value_change = False
+            else:
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")

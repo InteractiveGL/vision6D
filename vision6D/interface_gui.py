@@ -43,12 +43,13 @@ class Interface_GUI(MyMainWindow):
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
         self.mesh_colors = {}
-        self.mesh_opacity = {}
 
-        # default opacity for image and surface
+        self.mesh_opacity = {}
+        self.store_mesh_opacity = {}
         self.image_opacity = 0.99
         self.mask_opacity = 0.5
         self.surface_opacity = 0.8
+        
         self.image_spacing = [0.01, 0.01, 1]
         self.mask_spacing = [0.01, 0.01, 1]
         self.mesh_spacing = [1, 1, 1]
