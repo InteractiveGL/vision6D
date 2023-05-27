@@ -149,6 +149,7 @@ class MyMainWindow(MainWindow):
 
         self.track_actors_names = []
         self.button_group_actors_names = QtWidgets.QButtonGroup(self)
+        self.toggle_hide_flag = False
 
         # Set panel bar
         self.set_panel_bar()
@@ -841,6 +842,34 @@ class MyMainWindow(MainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
+    def toggle_hide_actors_button(self):
+        self.toggle_hide_flag = not self.toggle_hide_flag
+        if self.toggle_hide_flag == True:
+            for button in self.button_group_actors_names.buttons():
+                actor_name = button.text()
+                if actor_name == 'image':
+                    self.image_opacity = 0
+                    self.set_image_opacity(self.image_opacity)
+                if actor_name == 'mask':
+                    self.mask_opacity = 0
+                    self.set_mask_opacity(self.mask_opacity)
+                if actor_name != 'image' and actor_name != 'mask':
+                    self.mesh_opacity[actor_name] = 0
+                    self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
+        else:
+            for button in self.button_group_actors_names.buttons():
+                actor_name = button.text()
+                if actor_name == 'image':
+                    self.image_opacity = 0.99
+                    self.set_image_opacity(self.image_opacity)
+                if actor_name == 'mask':
+                    self.mask_opacity = 0.5
+                    self.set_mask_opacity(self.mask_opacity)
+                if actor_name != 'image' and actor_name != 'mask':
+                    self.mesh_opacity[actor_name] = 0.8
+                    self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
+
+
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
         display_layout = QtWidgets.QVBoxLayout()
@@ -853,12 +882,12 @@ class MyMainWindow(MainWindow):
         # Create the color dropdown menu (comboBox)
         self.color_button = QtWidgets.QPushButton("Color")
         self.color_button.clicked.connect(self.show_color_popup)
-        top_layout.addWidget(self.color_button, 0.5) # 1 is for the stretch factor
+        top_layout.addWidget(self.color_button, 1) # 1 is for the stretch factor
 
         # Create the color dropdown menu (comboBox)
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.set_spacing)
-        top_layout.addWidget(self.spacing_button, 0.5) # 1 is for the stretch factor
+        top_layout.addWidget(self.spacing_button, 1) # 1 is for the stretch factor
 
         # Create the opacity slider
         self.opacity_slider = QtWidgets.QSlider(Qt.Horizontal)
@@ -869,12 +898,17 @@ class MyMainWindow(MainWindow):
         self.opacity_slider.setSingleStep(1)
         self.ignore_slider_value_change = False 
         self.opacity_slider.valueChanged.connect(self.opacity_value_change)
-        top_layout.addWidget(self.opacity_slider, 1)
+        top_layout.addWidget(self.opacity_slider, 1.5)
 
-        # Create the second button
+        # Create the hide button
+        hide_button = QtWidgets.QPushButton("toggle hide")
+        hide_button.clicked.connect(self.toggle_hide_actors_button)
+        top_layout.addWidget(hide_button, 1)
+
+        # Create the remove button
         remove_button = QtWidgets.QPushButton("Remove")
         remove_button.clicked.connect(self.remove_actors_button)
-        top_layout.addWidget(remove_button, 0.5)
+        top_layout.addWidget(remove_button, 1)
 
         display_layout.addLayout(top_layout)
 
