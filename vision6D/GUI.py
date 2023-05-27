@@ -818,9 +818,8 @@ class MyMainWindow(MainWindow):
             self.output_text.append(f"Current actor <span style='background-color:yellow; color:black;'>{actor_name}</span>'s opacity is {value / 100}")
         else:
             self.ignore_slider_value_change = True
-            self.opacity_slider.setValue(100)
+            self.opacity_slider.setValue(value)
             self.ignore_slider_value_change = False
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
     def panel_display(self):
