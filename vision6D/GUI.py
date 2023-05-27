@@ -409,35 +409,17 @@ class MyMainWindow(MainWindow):
     
     def mirror_actors(self, direction):
 
-        if direction == 'x': mirror_x = True; mirror_y = False
-        elif direction == 'y': mirror_x = False; mirror_y = True
+        if direction == 'x': self.mirror_x = not self.mirror_x
+        elif direction == 'y': self.mirror_y = not self.mirror_y
 
         #^ mirror the image actor
         if self.image_actor is not None:
             original_image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(original_image_data.shape) == 2: original_image_data = original_image_data[..., None]
-            curr_image_data = vis.utils.get_image_mask_actor_scalars(self.image_actor)
-            if mirror_x: curr_image_data = curr_image_data[:, ::-1, :]
-            if mirror_y: curr_image_data = curr_image_data[::-1, :, :]
-            if (curr_image_data == original_image_data).all(): 
-                self.mirror_x = False
-                self.mirror_y = False
-            elif (curr_image_data == original_image_data[:, ::-1, :]).all(): 
-                self.mirror_x = True
-                self.mirror_y = False
-            elif (curr_image_data == original_image_data[::-1, :, :]).all():
-                self.mirror_x = False
-                self.mirror_y = True
-            elif (curr_image_data == original_image_data[:, ::-1, :][::-1, :, :]).all():
-                self.mirror_x = True
-                self.mirror_y = True
             self.add_image(original_image_data)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
 
+        #^ mirror the mask actor
         if self.mask_actor is not None:
-            #^ mirror the mask actor
             original_mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
             if len(original_mask_data.shape) == 2: original_mask_data = original_mask_data[..., None]
             self.add_mask(original_mask_data)
