@@ -856,6 +856,7 @@ class MyMainWindow(MainWindow):
                 if actor_name != 'image' and actor_name != 'mask':
                     self.mesh_opacity[actor_name] = 0
                     self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
+                self.opacity_slider.setValue(0)
         else:
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
@@ -868,7 +869,7 @@ class MyMainWindow(MainWindow):
                 if actor_name != 'image' and actor_name != 'mask':
                     self.mesh_opacity[actor_name] = 0.8
                     self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
-
+                self.opacity_slider.setValue(100)
 
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
