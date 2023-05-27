@@ -452,10 +452,9 @@ class Interface_GUI(MyMainWindow):
                         gt_pose_dir = pathlib.Path(self.mask_path).parent.parent.parent/ 'labels' / 'info.json'
                         with open(gt_pose_dir) as f: data = json.load(f)
                         gt_pose = np.array(data[pathlib.Path(self.mask_path).stem]['gt_pose'])
-                        id = pathlib.Path(self.mask_path).stem.split('_')[0].split('.')[1]
                         #TODO: hard coded, and needed to be updated in the future
                         mesh_path = pathlib.Path(self.mask_path).stem.split('_')[0] + '_video_trim' 
-                        mesh = vis.utils.load_trimesh(pathlib.Path(vis.config.OP_DATA_DIR / "surgical_planning" / mesh_path / "mesh" / "processed_meshes" / f"{id}_right_ossicles_processed.mesh"))
+                        mesh = vis.utils.load_trimesh(next(pathlib.Path(vis.config.OP_DATA_DIR / "surgical_planning" / mesh_path / "mesh" / "processed_meshes").glob("*_ossicles_processed.mesh")))
                     else:
                         QtWidgets.QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                         return 0
@@ -471,13 +470,9 @@ class Interface_GUI(MyMainWindow):
                     if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                     color_theme = 'NOCS'
                 else: 
+                    if self.mirror_x: color_mask = color_mask[:, ::-1, :]
+                    if self.mirror_y: color_mask = color_mask[::-1, :, :]
                     predicted_pose = self.latlon_epnp(color_mask, mesh)
-                    if self.mirror_x: 
-                        predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) @ predicted_pose
-                        predicted_pose[2, 3] = -1 * predicted_pose[2, 3] #^ interesting
-                    if self.mirror_y: 
-                        predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]]) @ predicted_pose
-                        predicted_pose[2, 3] = -1 * predicted_pose[2, 3] #^ interesting
                     color_theme = 'LATLON'
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 self.output_text.clear()
