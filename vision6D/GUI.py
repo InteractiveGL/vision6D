@@ -845,7 +845,6 @@ class MyMainWindow(MainWindow):
             self.ignore_slider_value_change = True
             self.opacity_slider.setValue(value)
             self.ignore_slider_value_change = False
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
     def toggle_hide_actors_button(self):
