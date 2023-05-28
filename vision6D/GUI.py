@@ -1,6 +1,4 @@
 # General import
-import os
-import logging
 import numpy as np
 import pyvista as pv
 import functools
@@ -140,6 +138,8 @@ class GetTextDialog(QtWidgets.QDialog):
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
+        # Fix the QMainWindow size to the desktop resolution
+        self.setGeometry(QtWidgets.QApplication.desktop().screenGeometry())
 
         # Set up the main window layout
         self.setWindowTitle("Vision6D")
@@ -1006,7 +1006,7 @@ class MyMainWindow(MainWindow):
         self.frame = QtWidgets.QFrame()
         self.frame.setFixedSize(*self.window_size)
         self.plotter = QtInteractor(self.frame)
-        # self.plotter.setFixedSize(*self.window_size) # but camera locate in the center instead of top left
+        # self.plotter.setFixedSize(*self.window_size)
         self.render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True) 
         self.render.set_background('black'); 
         assert self.render.background_color == "black", "render's background need to be black"
@@ -1036,4 +1036,4 @@ class MyMainWindow(MainWindow):
 
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
-        self.splitter.setSizes([int(self.width() * 0.05), int(self.width() * 0.95)])
+        self.splitter.setSizes([int(self.width() * 0.2), int(self.width() * 0.8)])
