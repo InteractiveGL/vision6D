@@ -2209,3 +2209,35 @@ def set_image_spacing(self):
 # uncheck the current button if it is not None
 if checked_button is not None:
     if checked_button.text() != actor_name: checked_button.setChecked(False)
+
+# # Create the opacity slider
+# slider_bar_layout = QtWidgets.QVBoxLayout()
+
+# right_buttons_layout = QtWidgets.QHBoxLayout()
+# right_buttons_layout.setContentsMargins(0, 10, 0, 10)
+# set_camera_button = QtWidgets.QPushButton("Set Camera")
+# set_camera_button.clicked.connect(self.set_camera)
+# right_buttons_layout.addWidget(set_camera_button)
+
+# actor_pose_button = QtWidgets.QPushButton("Pose")
+# actor_pose_button.clicked.connect(self.add_pose_file)
+# right_buttons_layout.addWidget(actor_pose_button)
+
+# right_buttons_widget = QtWidgets.QWidget()
+# right_buttons_widget.setLayout(right_buttons_layout)
+# slider_bar_layout.addWidget(right_buttons_widget)
+
+# self.opacity_slider = QtWidgets.QSlider(Qt.Horizontal)
+# self.opacity_slider.setMinimum(0)
+# self.opacity_slider.setMaximum(100)
+# self.opacity_slider.setValue(100)
+# self.opacity_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
+# self.opacity_slider.setSingleStep(1)
+# self.ignore_slider_value_change = False 
+# self.opacity_slider.valueChanged.connect(self.opacity_value_change)
+
+# slider_bar_layout.addWidget(self.opacity_slider)
+# slider_bar_layout.setContentsMargins(0, 10, 0, 10)
+# slider_widget = QtWidgets.QWidget()
+# slider_widget.setLayout(slider_bar_layout)
+# top_layout.addWidget(slider_widget, 1)

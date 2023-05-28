@@ -253,7 +253,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Image', self.add_image_file)
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
-        fileMenu.addAction('Add Pose', self.add_pose_file)
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -266,7 +265,6 @@ class MyMainWindow(MainWindow):
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
-        CameraMenu.addAction('Set Camera', self.set_camera)
         CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
@@ -394,7 +392,7 @@ class MyMainWindow(MainWindow):
             else:
                 self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
 
-        if self.image_path != '':
+        if self.image_path != '' and self.image_path is not None:
             self.hintLabel.hide()
             image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(image_source.shape) == 2: image_source = image_source[..., None]
@@ -407,7 +405,7 @@ class MyMainWindow(MainWindow):
             else:
                 self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
         
-        if self.mask_path != '':
+        if self.mask_path != '' and self.mask_path is not None:
             self.hintLabel.hide()
             mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
             if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
@@ -420,7 +418,7 @@ class MyMainWindow(MainWindow):
             else:
                 self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
         
-        if self.mesh_path != '':
+        if self.mesh_path != '' and self.mesh_path is not None:
             self.hintLabel.hide()
             if mesh_name is None:
                 mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name')#, text='ossicles')
@@ -440,7 +438,7 @@ class MyMainWindow(MainWindow):
             else:
                 self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.pose_path).parent), "Files (*.npy)")
         
-        if self.pose_path != '':
+        if self.pose_path != '' and self.pose_path is not None:
             self.hintLabel.hide()
             transformation_matrix = np.load(self.pose_path)
             self.transformation_matrix = transformation_matrix
@@ -880,33 +878,36 @@ class MyMainWindow(MainWindow):
         # Create Grid layout for function buttons
         grid_layout = QtWidgets.QGridLayout()
 
-        # Create the color dropdown menu (comboBox)
-        self.color_button = QtWidgets.QPushButton("Color")
-        self.color_button.clicked.connect(self.show_color_popup)
-        grid_layout.addWidget(self.color_button, 0, 0)
-        
-        # Create the color dropdown menu (comboBox)
-        self.spacing_button = QtWidgets.QPushButton("Spacing")
-        self.spacing_button.clicked.connect(self.set_spacing)
-        grid_layout.addWidget(self.spacing_button, 0, 1)
+        # Create the set camera button
+        set_camera_button = QtWidgets.QPushButton("Set Camera")
+        set_camera_button.clicked.connect(self.set_camera)
+        grid_layout.addWidget(set_camera_button, 0, 0)
+
+        # Create the actor pose button
+        actor_pose_button = QtWidgets.QPushButton("Set Pose")
+        actor_pose_button.clicked.connect(lambda _, prompt=True: self.add_pose_file(prompt))
+        grid_layout.addWidget(actor_pose_button, 0, 1)
 
         # Create the hide button
         hide_button = QtWidgets.QPushButton("toggle hide")
         hide_button.clicked.connect(self.toggle_hide_actors_button)
-        grid_layout.addWidget(hide_button, 1, 0)
+        grid_layout.addWidget(hide_button, 0, 2)
 
         # Create the remove button
-        remove_button = QtWidgets.QPushButton("Remove")
+        remove_button = QtWidgets.QPushButton("Remove Actor")
         remove_button.clicked.connect(self.remove_actors_button)
-        grid_layout.addWidget(remove_button, 1, 1)
+        grid_layout.addWidget(remove_button, 0, 3)
 
-        grid_widget = QtWidgets.QWidget()
-        grid_widget.setLayout(grid_layout)
-        top_layout.addWidget(grid_widget, 1)
+        # Create the color dropdown menu (comboBox)
+        self.color_button = QtWidgets.QPushButton("Color")
+        self.color_button.clicked.connect(self.show_color_popup)
+        grid_layout.addWidget(self.color_button, 1, 0)
+        
+        # Create the spacing button (comboBox)
+        self.spacing_button = QtWidgets.QPushButton("Spacing")
+        self.spacing_button.clicked.connect(self.set_spacing)
+        grid_layout.addWidget(self.spacing_button, 1, 1)
 
-        # Create the opacity slider
-        slider_bar_layout = QtWidgets.QVBoxLayout()
-        self.opacityLabel = QtWidgets.QLabel("Ajust actor opacity below")
         self.opacity_slider = QtWidgets.QSlider(Qt.Horizontal)
         self.opacity_slider.setMinimum(0)
         self.opacity_slider.setMaximum(100)
@@ -915,13 +916,11 @@ class MyMainWindow(MainWindow):
         self.opacity_slider.setSingleStep(1)
         self.ignore_slider_value_change = False 
         self.opacity_slider.valueChanged.connect(self.opacity_value_change)
+        grid_layout.addWidget(self.opacity_slider, 1, 2, 1, 2)
 
-        slider_bar_layout.addWidget(self.opacityLabel)
-        slider_bar_layout.addWidget(self.opacity_slider)
-        slider_bar_layout.setContentsMargins(0, 0, 0, 0)
-        slider_widget = QtWidgets.QWidget()
-        slider_widget.setLayout(slider_bar_layout)
-        top_layout.addWidget(slider_widget, 1)
+        grid_widget = QtWidgets.QWidget()
+        grid_widget.setLayout(grid_layout)
+        top_layout.addWidget(grid_widget)
 
         display_layout.addLayout(top_layout)
 
@@ -995,4 +994,4 @@ class MyMainWindow(MainWindow):
 
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
-        self.splitter.setSizes([int(self.width() * 0.2), int(self.width() * 0.8)])
+        self.splitter.setSizes([int(self.width() * 0.05), int(self.width() * 0.95)])
