@@ -816,9 +816,14 @@ class MyMainWindow(MainWindow):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is not None:
             actor_name = checked_button.text()
-            if actor_name == 'image': self.set_image_opacity(value / 100)
-            elif actor_name == 'mask': self.set_mask_opacity(value / 100)
+            if actor_name == 'image': 
+                self.store_image_opacity = copy.deepcopy(self.image_opacity)
+                self.set_image_opacity(value / 100)
+            elif actor_name == 'mask': 
+                self.store_mask_opacity = copy.deepcopy(self.mask_opacity)
+                self.set_mask_opacity(value / 100)
             else: 
+                self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
                 self.mesh_opacity[actor_name] = value / 100
                 self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
             self.output_text.clear()
@@ -836,17 +841,14 @@ class MyMainWindow(MainWindow):
             for button in self.button_group_actors_names.buttons():
                 button.setChecked(True)
                 actor_name = button.text()
-                if actor_name == 'image': self.store_image_opacity = copy.deepcopy(self.image_opacity)
-                elif actor_name == 'mask': self.store_mask_opacity = copy.deepcopy(self.mask_opacity)
-                else: self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
                 self.opacity_value_change(0)
-
-            self.ignore_slider_value_change = True
-            self.opacity_slider.setValue(0)
-            self.ignore_slider_value_change = False
-                
+    
             checked_button = self.button_group_actors_names.checkedButton()
-            if checked_button is None: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            if checked_button is not None: 
+                self.ignore_slider_value_change = True
+                self.opacity_slider.setValue(0)
+                self.ignore_slider_value_change = False
+            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         
         else:
             for button in self.button_group_actors_names.buttons():
@@ -864,8 +866,7 @@ class MyMainWindow(MainWindow):
                 elif actor_name == 'mask': self.opacity_slider.setValue(self.mask_opacity * 100)
                 else: self.opacity_slider.setValue(self.mesh_opacity[actor_name] * 100)
                 self.ignore_slider_value_change = False
-            else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
@@ -876,17 +877,36 @@ class MyMainWindow(MainWindow):
         top_layout = QtWidgets.QHBoxLayout()
         top_layout.setContentsMargins(0, 10, 0, 10)
 
+        # Create Grid layout for function buttons
+        grid_layout = QtWidgets.QGridLayout()
+
         # Create the color dropdown menu (comboBox)
         self.color_button = QtWidgets.QPushButton("Color")
         self.color_button.clicked.connect(self.show_color_popup)
-        top_layout.addWidget(self.color_button, 1) # 1 is for the stretch factor
-
+        grid_layout.addWidget(self.color_button, 0, 0)
+        
         # Create the color dropdown menu (comboBox)
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.set_spacing)
-        top_layout.addWidget(self.spacing_button, 1) # 1 is for the stretch factor
+        grid_layout.addWidget(self.spacing_button, 0, 1)
+
+        # Create the hide button
+        hide_button = QtWidgets.QPushButton("toggle hide")
+        hide_button.clicked.connect(self.toggle_hide_actors_button)
+        grid_layout.addWidget(hide_button, 1, 0)
+
+        # Create the remove button
+        remove_button = QtWidgets.QPushButton("Remove")
+        remove_button.clicked.connect(self.remove_actors_button)
+        grid_layout.addWidget(remove_button, 1, 1)
+
+        grid_widget = QtWidgets.QWidget()
+        grid_widget.setLayout(grid_layout)
+        top_layout.addWidget(grid_widget, 1)
 
         # Create the opacity slider
+        slider_bar_layout = QtWidgets.QVBoxLayout()
+        self.opacityLabel = QtWidgets.QLabel("Ajust actor opacity below")
         self.opacity_slider = QtWidgets.QSlider(Qt.Horizontal)
         self.opacity_slider.setMinimum(0)
         self.opacity_slider.setMaximum(100)
@@ -895,17 +915,13 @@ class MyMainWindow(MainWindow):
         self.opacity_slider.setSingleStep(1)
         self.ignore_slider_value_change = False 
         self.opacity_slider.valueChanged.connect(self.opacity_value_change)
-        top_layout.addWidget(self.opacity_slider, 1.5)
 
-        # Create the hide button
-        hide_button = QtWidgets.QPushButton("toggle hide")
-        hide_button.clicked.connect(self.toggle_hide_actors_button)
-        top_layout.addWidget(hide_button, 1)
-
-        # Create the remove button
-        remove_button = QtWidgets.QPushButton("Remove")
-        remove_button.clicked.connect(self.remove_actors_button)
-        top_layout.addWidget(remove_button, 1)
+        slider_bar_layout.addWidget(self.opacityLabel)
+        slider_bar_layout.addWidget(self.opacity_slider)
+        slider_bar_layout.setContentsMargins(0, 0, 0, 0)
+        slider_widget = QtWidgets.QWidget()
+        slider_widget.setLayout(slider_bar_layout)
+        top_layout.addWidget(slider_widget, 1)
 
         display_layout.addLayout(top_layout)
 
