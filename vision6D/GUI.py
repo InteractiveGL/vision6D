@@ -492,8 +492,7 @@ class MyMainWindow(MainWindow):
             
             # Output the mirrored transformation matrix
             self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
-            
-                
+             
     def remove_actor(self, button):
         name = button.text()
         if name == 'image': 
@@ -892,7 +891,7 @@ class MyMainWindow(MainWindow):
 
         #* Create the top widgets (layout)
         top_layout = QtWidgets.QHBoxLayout()
-        top_layout.setContentsMargins(0, 10, 0, 10)
+        top_layout.setContentsMargins(0, 0, 0, 0)
 
         # Create Grid layout for function buttons
         grid_layout = QtWidgets.QGridLayout()
