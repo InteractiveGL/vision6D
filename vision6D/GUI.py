@@ -221,7 +221,7 @@ class MyMainWindow(MainWindow):
                         self.add_image_file(prompt=False)
             elif file_path.endswith('.npy'):
                 self.pose_path = file_path
-                self.add_pose_file(prompt=False)
+                self.add_pose_file()
             else:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
@@ -340,6 +340,31 @@ class MyMainWindow(MainWindow):
                     self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
                     QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
+    def set_pose(self):
+        # get the gt pose
+        res = self.get_text_dialog.exec_()
+
+        if res == QtWidgets.QDialog.Accepted:
+            try:
+                gt_pose = ast.literal_eval(self.get_text_dialog.user_text)
+                gt_pose = np.array(gt_pose)
+                if gt_pose.shape != (4, 4): 
+                    QtWidgets.QMessageBox.warning(self, 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
+                    return None
+                else:
+                    self.hintLabel.hide()
+                    transformation_matrix = gt_pose
+                    self.transformation_matrix = transformation_matrix
+                    if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    self.add_pose(matrix=transformation_matrix)
+                    return 0
+            except: 
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                return None
+        else: 
+            return None
+
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is not None:
@@ -379,7 +404,7 @@ class MyMainWindow(MainWindow):
 
             self.add_image_file(prompt=False)
             self.add_mask_file(prompt=False)
-            self.add_pose_file(prompt=False)
+            self.add_pose_file()
 
             for item in mesh_paths.items():
                 mesh_name, self.mesh_path = item
@@ -431,13 +456,7 @@ class MyMainWindow(MainWindow):
             if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
             self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
                       
-    def add_pose_file(self, prompt=True):
-        if prompt:
-            if self.pose_path == None or self.pose_path == '':
-                self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.npy)")
-            else:
-                self.pose_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.pose_path).parent), "Files (*.npy)")
-        
+    def add_pose_file(self):
         if self.pose_path != '' and self.pose_path is not None:
             self.hintLabel.hide()
             transformation_matrix = np.load(self.pose_path)
@@ -470,6 +489,10 @@ class MyMainWindow(MainWindow):
                 if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 self.add_mesh(actor_name, self.meshdict[actor_name], transformation_matrix)
+            
+            # Output the mirrored transformation matrix
+            self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
+            
                 
     def remove_actor(self, button):
         name = button.text()
@@ -493,7 +516,7 @@ class MyMainWindow(MainWindow):
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
-        self.output_text.clear(); self.output_text.append(f"Remove actor: <span style='background-color:yellow; color:black;'>{name}</span>")
+        self.output_text.append(f"-> Remove actor: <span style='background-color:yellow; color:black;'>{name}</span>")
         # remove the button from the button group
         self.button_group_actors_names.removeButton(button)
         # remove the button from the self.button_layout widget
@@ -554,7 +577,6 @@ class MyMainWindow(MainWindow):
         self.used_colors = []
         self.color_button.setText("Color")
 
-        self.output_text.clear()
         self.ignore_slider_value_change = True
         self.opacity_slider.setValue(100)
         self.ignore_slider_value_change = False
@@ -583,8 +605,7 @@ class MyMainWindow(MainWindow):
         if output_path: 
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
-            self.output_text.clear()
-            self.output_text.append(f"Export image render to:\n {str(output_path)}")
+            self.output_text.append(f"-> Export image render to:\n {str(output_path)}")
 
     def export_mask_plot(self):
         if self.mask_actor is None:
@@ -609,8 +630,7 @@ class MyMainWindow(MainWindow):
         if output_path:
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
-            self.output_text.clear()
-            self.output_text.append(f"Export mask render to:\n {str(output_path)}")
+            self.output_text.append(f"-> Export mask render to:\n {str(output_path)}")
 
     def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, save_render=True):
 
@@ -657,8 +677,7 @@ class MyMainWindow(MainWindow):
             if output_path:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
-                self.output_text.clear()
-                self.output_text.append(f"Export reference mesh render to:\n {str(output_path)}")
+                self.output_text.append(f"-> Export reference mesh render to:\n {str(output_path)}")
 
         return image
 
@@ -714,11 +733,8 @@ class MyMainWindow(MainWindow):
         if output_path:
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
-            self.output_text.clear()
-            self.output_text.append(f"Export segmask render:\n to {str(output_path)}")
-            
-        # return image
-
+            self.output_text.append(f"-> Export segmask render:\n to {str(output_path)}")
+        
     def export_pose(self):
         if self.reference is None: 
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -727,8 +743,13 @@ class MyMainWindow(MainWindow):
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Pose Files (*.npy)")
         if output_path:
             np.save(output_path, self.transformation_matrix)
-            self.output_text.clear()
-            self.output_text.append(f"\nSaved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
+            self.output_text.append(f"-> Saved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
+
+    def copy_output_text(self):
+        self.clipboard.setText(self.output_text.toPlainText())
+        
+    def clear_output_text(self):
+        self.output_text.clear()
 
     # ^Panel
     def set_panel_bar(self):
@@ -824,8 +845,6 @@ class MyMainWindow(MainWindow):
                 self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
                 self.mesh_opacity[actor_name] = value / 100
                 self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
-            self.output_text.clear()
-            self.output_text.append(f"Current actor <span style='background-color:yellow; color:black;'>{actor_name}</span>'s opacity is {value / 100}")
         else:
             self.ignore_slider_value_change = True
             self.opacity_slider.setValue(value)
@@ -885,7 +904,7 @@ class MyMainWindow(MainWindow):
 
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
-        actor_pose_button.clicked.connect(lambda _, prompt=True: self.add_pose_file(prompt))
+        actor_pose_button.clicked.connect(self.set_pose)
         grid_layout.addWidget(actor_pose_button, 0, 1)
 
         # Create the hide button
@@ -953,8 +972,32 @@ class MyMainWindow(MainWindow):
         output_layout = QtWidgets.QVBoxLayout()
         output_layout.setContentsMargins(10, 20, 10, 10)
 
+        #* Create the top widgets (layout)
+        top_layout = QtWidgets.QHBoxLayout()
+        top_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create Grid layout for function buttons
+        grid_layout = QtWidgets.QGridLayout()
+
+        # Create the set camera button
+        copy_text_button = QtWidgets.QPushButton("Copy")
+        copy_text_button.clicked.connect(self.copy_output_text)
+        grid_layout.addWidget(copy_text_button, 0, 2, 1, 1)
+
+        # Create the actor pose button
+        clear_text_button = QtWidgets.QPushButton("Clear")
+        clear_text_button.clicked.connect(self.clear_output_text)
+        grid_layout.addWidget(clear_text_button, 0, 3, 1, 1)
+
+        grid_widget = QtWidgets.QWidget()
+        grid_widget.setLayout(grid_layout)
+        top_layout.addWidget(grid_widget)
+        output_layout.addLayout(top_layout)
+
         self.output_text = QtWidgets.QTextEdit()
-        self.output_text.setReadOnly(True)
+        self.output_text.setReadOnly(False)
+        # Access to the system clipboard
+        self.clipboard = QtGui.QGuiApplication.clipboard()
         output_layout.addWidget(self.output_text)
         self.output.setLayout(output_layout)
         self.panel_layout.addWidget(self.output)

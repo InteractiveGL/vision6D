@@ -62,17 +62,16 @@ class Interface_GUI(MyMainWindow):
             self.reference = text
             curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
             self.opacity_slider.setValue(curr_opacity * 100)
-            self.output_text.clear()
-            self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
         else:
             self.color_button.setText("Color")
             if text == 'image': curr_opacity = self.image_opacity
             elif text == 'mask': curr_opacity = self.mask_opacity
             self.opacity_slider.setValue(curr_opacity * 100)
-            self.output_text.clear()
-            self.output_text.append(f"Current selected actor is <span style='background-color:yellow; color:black;'>{text}</span>, and opacity is {curr_opacity}")
             self.reference = None
-                                                                
+        
+        output = f"-> Actor {text}, and its opacity is {curr_opacity}"
+        if output not in self.output_text.toPlainText(): self.output_text.append(output)
+                                            
     def set_image_opacity(self, image_opacity: float):
         assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
         self.image_opacity = image_opacity
@@ -268,17 +267,17 @@ class Interface_GUI(MyMainWindow):
                 self.check_button(actor_name)
 
     def reset_gt_pose(self, *args):
-        self.output_text.clear(); self.output_text.append(f"\nReset the GT pose to: \n{self.initial_pose}\n")
+        self.output_text.append(f"-> Reset the GT pose to: \n{self.initial_pose}")
         for actor_name, actor in self.mesh_actors.items():
             actor.user_matrix = self.initial_pose
             self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
     def update_gt_pose(self, *args):
         if self.reference is not None:
-            self.output_text.clear(); self.output_text.append(f"Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.reference}</span>")
             self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
             self.initial_pose = self.transformation_matrix
-            self.output_text.append(f"\nUpdate the GT pose to: \n{self.initial_pose}\n")
+            self.output_text.append(f"-> Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.reference}</span>")
+            self.output_text.append(f"Update the GT pose to: \n{self.initial_pose}")
             for actor_name, actor in self.mesh_actors.items():
                 actor.user_matrix = self.initial_pose
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
@@ -286,9 +285,8 @@ class Interface_GUI(MyMainWindow):
     def current_pose(self, *args):
         if self.reference is not None:
             transformation_matrix = self.mesh_actors[self.reference].user_matrix
-            self.output_text.clear(); 
-            self.output_text.append(f"Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.reference}</span>")
-            self.output_text.append(f"\nCurrent pose is: \n{transformation_matrix}\n")
+            self.output_text.append(f"-> Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.reference}</span>")
+            self.output_text.append(f"Current pose is: \n{transformation_matrix}")
             for actor_name, actor in self.mesh_actors.items():
                 actor.user_matrix = transformation_matrix
                 self.plotter.add_actor(actor, pickable=True, name=actor_name)
@@ -305,9 +303,8 @@ class Interface_GUI(MyMainWindow):
                 if len(self.undo_poses[actor_name]) != 0: 
                     transformation_matrix = self.undo_poses[actor_name].pop()
 
-            self.output_text.clear(); 
-            self.output_text.append(f"Current reference mesh is: <span style='background-color:yellow; color:black;'>{actor_name}</span>")
-            self.output_text.append(f"\nUndo pose to: \n{transformation_matrix}\n")
+            self.output_text.append(f"-> Current reference mesh is: <span style='background-color:yellow; color:black;'>{actor_name}</span>")
+            self.output_text.append(f"Undo pose to: \n{transformation_matrix}")
                 
             self.mesh_actors[actor_name].user_matrix = transformation_matrix
             self.plotter.add_actor(self.mesh_actors[actor_name], pickable=True, name=actor_name)
@@ -407,9 +404,8 @@ class Interface_GUI(MyMainWindow):
                 if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                 if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                 error = np.sum(np.abs(predicted_pose - gt_pose))
-                self.output_text.clear()
-                self.output_text.append(f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
-                self.output_text.append(f"\n{predicted_pose}\n\nGT POSE: \n\n{gt_pose}\n\nERROR: \n\n{error}")
+                self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
+                self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
 
             else:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -450,35 +446,21 @@ class Interface_GUI(MyMainWindow):
                     if digit_counts[0] == np.max(counts): 
                         nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
 
-                        # get the gt pose
-                        res = self.get_text_dialog.exec_()
-
-                        if res == QtWidgets.QDialog.Accepted:
-                            try:
-                                gt_pose = ast.literal_eval(self.get_text_dialog.user_text)
-                                gt_pose = np.array(gt_pose)
-                                if gt_pose.shape != (4, 4): 
-                                    QtWidgets.QMessageBox.warning(self, 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
-                                    return 0
-                            except: 
-                                QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                                return 0
-                        else: 
-                            return 0
-
-                        self.output_text.clear()
-                        self.output_text.append(f"The input ground truth pose is:\n[{gt_pose[0]}, \n{gt_pose[1]}, \n{gt_pose[2]}, \n{gt_pose[3]}]")
-                        QtWidgets.QMessageBox.information(self, "Information", "Please load the corresponding mesh")
-
+                        # Set the pose information if the format is correct
+                        res = self.set_pose()
+                        if res is None: return 0
+                        
+                        gt_pose = self.transformation_matrix
+                                                
                         # add the mesh object file
-                        self.transformation_matrix = gt_pose
+                        QtWidgets.QMessageBox.information(self, "Information", "Please load the corresponding mesh")
+                        
                         self.add_mesh_file(prompt=True)
                         if self.mesh_path != '':
                             checked_button = self.button_group_actors_names.checkedButton()
                             vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[checked_button.text()])
                             mesh = trimesh.Trimesh(vertices, faces, process=False)
-                        else:
-                            return 0
+                        else: return 0
                     else:
                         QtWidgets.QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                         return 0
@@ -499,9 +481,8 @@ class Interface_GUI(MyMainWindow):
                     predicted_pose = self.latlon_epnp(color_mask, mesh)
                     color_theme = 'LATLON'
                 error = np.sum(np.abs(predicted_pose - gt_pose))
-                self.output_text.clear()
-                self.output_text.append(f"PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
-                self.output_text.append(f"\n{predicted_pose}\n\nGT POSE: \n\n{gt_pose}\n\nERROR: \n\n{error}")
+                self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
+                self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
             else:
                 QtWidgets.QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
         else:
