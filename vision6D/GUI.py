@@ -475,6 +475,9 @@ class MyMainWindow(MainWindow):
                 self.mesh_path = mesh_path
                 self.add_mesh_file(prompt=False)
 
+            # reset camera
+            self.reset_camera()
+
     def add_image_file(self, prompt=True):
         if prompt:
             if self.image_path == None or self.image_path == '':

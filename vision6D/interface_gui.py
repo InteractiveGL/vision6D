@@ -125,9 +125,6 @@ class Interface_GUI(MyMainWindow):
 
         self.check_button('image')
 
-        # reset the camera
-        self.reset_camera()
-
     def add_mask(self, mask_source):
 
         if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
@@ -162,9 +159,6 @@ class Interface_GUI(MyMainWindow):
 
         self.check_button('mask')
 
-        # reset the camera
-        self.reset_camera()
-  
     def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
         if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1])) #if (rot is not None and trans is not None) else None
         self.initial_pose = matrix #if matrix is not None else self.transformation_matrix
@@ -226,8 +220,6 @@ class Interface_GUI(MyMainWindow):
         assert actor.name == mesh_name, "actor's name should equal to mesh_name"
         
         self.mesh_actors[mesh_name] = actor
-
-        self.reset_camera()
 
         # add remove current mesh to removeMenu
         if mesh_name not in self.track_actors_names:
