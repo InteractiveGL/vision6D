@@ -138,9 +138,7 @@ class GetTextDialog(QtWidgets.QDialog):
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
-        # Fix the QMainWindow size to the desktop resolution
-        self.setGeometry(QtWidgets.QApplication.desktop().screenGeometry())
-
+        
         # Set up the main window layout
         self.setWindowTitle("Vision6D")
         self.window_size = (1920, 1080)
@@ -229,7 +227,6 @@ class MyMainWindow(MainWindow):
     def resizeEvent(self, e):
         x = (self.plotter.size().width() - self.hintLabel.width()) // 2
         y = (self.plotter.size().height() - self.hintLabel.height()) // 2
-        self.initialHintLabelPosition = self.hintLabel.pos()
         self.hintLabel.move(x, y)
         super().resizeEvent(e)
 
@@ -1036,4 +1033,4 @@ class MyMainWindow(MainWindow):
 
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
-        self.splitter.setSizes([int(self.width() * 0.2), int(self.width() * 0.8)])
+        self.splitter.setSizes([int(self.width() * 0.05), int(self.width() * 0.95)])
