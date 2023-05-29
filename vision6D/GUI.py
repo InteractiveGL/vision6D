@@ -9,6 +9,7 @@ import ast
 import json
 import math
 import copy
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -91,6 +92,62 @@ class CameraPropsInputDialog(QtWidgets.QDialog):
                 self.args5.text(),
                 self.args6.text())
     
+class CalibrationPopWindow(QtWidgets.QDialog):
+    def __init__(self, calibrated_image, original_image, parent=None):
+        super(CalibrationPopWindow, self).__init__(parent)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+
+        self.calibrated_image = calibrated_image
+        self.original_image = original_image
+
+        self.setWindowTitle("Vision6D")
+        self.setFixedSize(960, 540)
+
+        overall = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
+
+        vbox1layout = QtWidgets.QVBoxLayout()
+        label1 = QtWidgets.QLabel("Calibrated image", self)
+        label1.setAlignment(Qt.AlignCenter)
+        pixmap_label1 = QtWidgets.QLabel(self)
+        qimage1 = QtGui.QImage(self.calibrated_image, self.calibrated_image.shape[1], self.calibrated_image.shape[0], QtGui.QImage.Format_RGB888)
+        pixmap1 = QtGui.QPixmap.fromImage(qimage1)
+        pixmap1 = QtGui.QPixmap.fromImage(qimage1).scaled(960, 540, Qt.KeepAspectRatio)
+        pixmap_label1.setPixmap(pixmap1)
+        pixmap_label1.setAlignment(Qt.AlignCenter)
+        vbox1layout.addWidget(label1)
+        vbox1layout.addWidget(pixmap_label1)
+
+        vbox2layout = QtWidgets.QVBoxLayout()
+        label2 = QtWidgets.QLabel("Original image", self)
+        label2.setAlignment(Qt.AlignCenter)
+        pixmap_label2 = QtWidgets.QLabel(self)
+        qimage2 = QtGui.QImage(self.original_image, self.original_image.shape[1], self.original_image.shape[0], QtGui.QImage.Format_RGB888)
+        pixmap2 = QtGui.QPixmap.fromImage(qimage2)
+        pixmap2 = QtGui.QPixmap.fromImage(qimage2).scaled(960, 540, Qt.KeepAspectRatio)
+        pixmap_label2.setPixmap(pixmap2)
+        pixmap_label2.setAlignment(Qt.AlignCenter)
+
+        vbox2layout.addWidget(label2)
+        vbox2layout.addWidget(pixmap_label2)
+
+        layout.addLayout(vbox1layout)
+        layout.addLayout(vbox2layout)
+
+        psnr, ssim = self.calculate_similarity()
+        similarity_label = QtWidgets.QLabel(f"PSNR is {psnr} and SSIM is {ssim}", self)
+        similarity_label.setAlignment(Qt.AlignCenter)
+
+        overall.addLayout(layout)
+        overall.addWidget(similarity_label)
+
+        self.setLayout(overall)
+
+    def calculate_similarity(self):
+        psnr = peak_signal_noise_ratio(self.calibrated_image, self.original_image, data_range=255)
+        ssim = structural_similarity(self.calibrated_image, self.original_image, data_range=255, channel_axis=2)
+        return psnr, ssim
+
 class GetTextDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(GetTextDialog, self).__init__(parent)
@@ -262,6 +319,7 @@ class MyMainWindow(MainWindow):
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
+        CameraMenu.addAction('Calibrate', self.camera_calibrate)
         CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
@@ -317,6 +375,17 @@ class MyMainWindow(MainWindow):
         self.set_camera_intrinsics()
         self.set_camera_extrinsics()
         self.plotter.camera = self.camera.copy()
+
+    def camera_calibrate(self):
+        if self.image_path != '' and self.image_path is not None:
+            original_image = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+            calibrated_image = np.array(self.render_image(self.image_actor, self.plotter.camera.copy()), dtype='uint8')
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+        
+        calibrate_pop = CalibrationPopWindow(calibrated_image, original_image)
+        calibrate_pop.exec_()
 
     def set_camera(self):
         dialog = CameraPropsInputDialog(
@@ -577,6 +646,37 @@ class MyMainWindow(MainWindow):
         self.opacity_slider.setValue(100)
         self.ignore_slider_value_change = False
 
+    def render_image(self, actor, camera):
+        self.render.clear()
+        render_actor = actor.copy(deep=True)
+        render_actor.GetProperty().opacity = 1
+        self.render.add_actor(render_actor, pickable=False)
+        self.render.camera = camera
+        self.render.disable()
+        self.render.show(auto_close=False)
+        image = self.render.last_image
+        return image
+    
+    def render_mesh(self, render_all_meshes, camera, point_clouds):
+        self.render.clear()
+        for mesh_name, mesh_actor in self.mesh_actors.items():
+            if not render_all_meshes:
+                if mesh_name != self.reference: continue
+            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
+            mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+            colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
+            if colors is not None: 
+                assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+            else:
+                mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
+            mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
+        self.render.camera = camera
+        self.render.disable()
+        self.render.show(auto_close=False)
+        image = self.render.last_image
+        return image
+
     def export_image_plot(self):
 
         if self.image_actor is None:
@@ -587,16 +687,7 @@ class MyMainWindow(MainWindow):
         if reply == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
 
-        self.render.clear()
-        image_actor = self.image_actor.copy(deep=True)
-        image_actor.GetProperty().opacity = 1
-        self.render.add_actor(image_actor, pickable=False, name="image")
-        self.render.camera = camera
-        self.render.disable()
-        self.render.show(auto_close=False)
-
-        # obtain the rendered image
-        image = self.render.last_image
+        image = self.render_image(self.image_actor, camera)
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
         if output_path: 
             rendered_image = PIL.Image.fromarray(image)
@@ -612,16 +703,7 @@ class MyMainWindow(MainWindow):
         if reply == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
 
-        self.render.clear()
-        mask_actor = self.mask_actor.copy(deep=True)
-        mask_actor.GetProperty().opacity = 1
-        self.render.add_actor(mask_actor, pickable=False, name="mask")
-        self.render.camera = camera
-        self.render.disable()
-        self.render.show(auto_close=False)
-
-        # obtain the rendered image
-        image = self.render.last_image
+        image = self.render_image(self.mask_actor, camera)
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
         if output_path:
             rendered_image = PIL.Image.fromarray(image)
@@ -646,28 +728,8 @@ class MyMainWindow(MainWindow):
         if reply_export_surface == QtWidgets.QMessageBox.No: point_clouds = True
         else: point_clouds = False
         
-        # Clear out the render
-        self.render.clear()
-
-        for mesh_name, mesh_actor in self.mesh_actors.items():
-            if not render_all_meshes:
-                if mesh_name != self.reference: continue
-            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
-            mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-            colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
-            if colors is not None: 
-                assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-                mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
-            else:
-                mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[mesh_name], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
-            mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
-      
-        self.render.camera = camera
-        self.render.disable(); self.render.show(auto_close=False)
-
-        # obtain the rendered image
-        image = self.render.last_image
-
+        image = self.render_mesh(render_all_meshes, camera, point_clouds)
+        
         if save_render:
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mesh Files (*.png)")
             if output_path:
@@ -695,35 +757,9 @@ class MyMainWindow(MainWindow):
         if reply_export_surface == QtWidgets.QMessageBox.No: point_clouds = True
         else: point_clouds = False
 
-        self.render.clear()
-        mask_actor = self.mask_actor.copy(deep=True)
-        mask_actor.GetProperty().opacity = 1
-        self.render.add_actor(mask_actor, pickable=False, name="mask")
-        self.render.camera = camera
-        self.render.disable()
-        self.render.show(auto_close=False)
-        segmask = self.render.last_image
+        segmask = self.render_image(self.mask_actor, camera)
         if np.max(segmask) > 1: segmask = segmask / 255
-
-        self.render.clear()
-                
-        # Render the targeting objects
-        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
-        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
-        if colors is not None: 
-            assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-            mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
-        else:
-            mesh = self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='surface', opacity=1, name=self.reference) if not point_clouds else self.render.add_mesh(mesh_data, color=self.mesh_colors[self.reference], style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=self.reference)
-
-        mesh.user_matrix = self.mesh_actors[self.reference].user_matrix
-
-        self.render.camera = camera
-        self.render.disable(); self.render.show(auto_close=False)
-
-        # obtain the rendered image
-        image = self.render.last_image
+        image = self.render_mesh(False, camera, point_clouds)
         image = (image * segmask).astype(np.uint8)
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "SegMesh Files (*.png)")
         if output_path:
