@@ -104,6 +104,10 @@ class Interface_GUI(MyMainWindow):
         dim = image_source.shape
         h, w, channel = dim[0], dim[1], dim[2]
 
+        # Create the render based on the image size
+        self.render = pv.Plotter(window_size=[w, h], lighting=None, off_screen=True) 
+        self.render.set_background('black'); assert self.render.background_color == "black", "render's background need to be black"
+
         image = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.image_spacing, origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)

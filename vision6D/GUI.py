@@ -111,7 +111,6 @@ class CalibrationPopWindow(QtWidgets.QDialog):
         label1.setAlignment(Qt.AlignCenter)
         pixmap_label1 = QtWidgets.QLabel(self)
         qimage1 = QtGui.QImage(self.calibrated_image, self.calibrated_image.shape[1], self.calibrated_image.shape[0], QtGui.QImage.Format_RGB888)
-        pixmap1 = QtGui.QPixmap.fromImage(qimage1)
         pixmap1 = QtGui.QPixmap.fromImage(qimage1).scaled(960, 540, Qt.KeepAspectRatio)
         pixmap_label1.setPixmap(pixmap1)
         pixmap_label1.setAlignment(Qt.AlignCenter)
@@ -123,7 +122,6 @@ class CalibrationPopWindow(QtWidgets.QDialog):
         label2.setAlignment(Qt.AlignCenter)
         pixmap_label2 = QtWidgets.QLabel(self)
         qimage2 = QtGui.QImage(self.original_image, self.original_image.shape[1], self.original_image.shape[0], QtGui.QImage.Format_RGB888)
-        pixmap2 = QtGui.QPixmap.fromImage(qimage2)
         pixmap2 = QtGui.QPixmap.fromImage(qimage2).scaled(960, 540, Qt.KeepAspectRatio)
         pixmap_label2.setPixmap(pixmap2)
         pixmap_label2.setAlignment(Qt.AlignCenter)
@@ -378,6 +376,9 @@ class MyMainWindow(MainWindow):
     def camera_calibrate(self):
         if self.image_path != '' and self.image_path is not None:
             original_image = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+            # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
+            if len(original_image.shape) == 2: original_image = original_image[..., None]
+            if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
             calibrated_image = np.array(self.render_image(self.image_actor, self.plotter.camera.copy()), dtype='uint8')
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -1039,9 +1040,6 @@ class MyMainWindow(MainWindow):
         self.frame.setFixedSize(*self.window_size)
         self.plotter = QtInteractor(self.frame)
         # self.plotter.setFixedSize(*self.window_size)
-        self.render = pv.Plotter(window_size=[self.window_size[0], self.window_size[1]], lighting=None, off_screen=True) 
-        self.render.set_background('black'); 
-        assert self.render.background_color == "black", "render's background need to be black"
         self.signal_close.connect(self.plotter.close)
 
     def show_plot(self):
