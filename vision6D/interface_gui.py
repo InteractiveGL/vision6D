@@ -171,7 +171,7 @@ class Interface_GUI(MyMainWindow):
         self.reset_gt_pose()
         self.reset_camera()
 
-    def add_mesh(self, mesh_name, mesh_source, transformation_matrix = None):
+    def add_mesh(self, mesh_name, mesh_source, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
 
         flag = False

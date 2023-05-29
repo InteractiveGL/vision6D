@@ -218,6 +218,7 @@ class MyMainWindow(MainWindow):
         self.create_plotter()
         
         # Set the camera
+        self.camera = pv.Camera()
         self.fx = 50000
         self.fy = 50000
         self.cx = 960
@@ -370,8 +371,6 @@ class MyMainWindow(MainWindow):
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
  
     def set_camera_props(self):
-        # Set up the camera
-        self.camera = pv.Camera()
         self.set_camera_intrinsics()
         self.set_camera_extrinsics()
         self.plotter.camera = self.camera.copy()
@@ -472,9 +471,9 @@ class MyMainWindow(MainWindow):
             self.add_mask_file(prompt=False)
             self.add_pose_file()
 
-            for item in mesh_paths.items():
-                mesh_name, self.mesh_path = item
-                self.add_mesh_file(mesh_name=mesh_name, prompt=False)
+            for mesh_path in mesh_paths:
+                self.mesh_path = mesh_path
+                self.add_mesh_file(prompt=False)
 
     def add_image_file(self, prompt=True):
         if prompt:
@@ -502,7 +501,7 @@ class MyMainWindow(MainWindow):
             if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
             self.add_mask(mask_source)
 
-    def add_mesh_file(self, mesh_name=None, prompt=True):
+    def add_mesh_file(self, prompt=True):
         if prompt:
             if self.mesh_path == None or self.mesh_path == '':
                 self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)")
@@ -511,10 +510,7 @@ class MyMainWindow(MainWindow):
         
         if self.mesh_path != '' and self.mesh_path is not None:
             self.hintLabel.hide()
-            if mesh_name is None:
-                mesh_name, ok = self.input_dialog.getText(self, 'Input', 'Specify the object Class name')#, text='ossicles')
-                if not ok: return 0
-
+            mesh_name = pathlib.Path(self.mesh_path).stem
             self.meshdict[mesh_name] = self.mesh_path
             self.mesh_opacity[mesh_name] = self.surface_opacity
             transformation_matrix = self.transformation_matrix
