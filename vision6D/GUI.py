@@ -459,6 +459,8 @@ class MyMainWindow(MainWindow):
     def add_workspace(self):
         workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path != '':
+            # Clear the plot automatically if loading a new workspace
+            self.clear_plot()
             self.hintLabel.hide()
             with open(str(workspace_path), 'r') as f: 
                 workspace = json.load(f)
@@ -645,6 +647,8 @@ class MyMainWindow(MainWindow):
         self.ignore_slider_value_change = True
         self.opacity_slider.setValue(100)
         self.ignore_slider_value_change = False
+
+        self.clear_output_text()
 
     def render_image(self, actor, camera):
         self.render.clear()
