@@ -14,11 +14,8 @@ pip install vision6D
 ```
 
 ## Usage
-```python
-import vision6D as vis
-
-# Load the interactive window
-vis.exe()
+```bash
+vision6D
 ```
 
 Usage example shown below to register computer monitor model to an image
