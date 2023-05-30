@@ -391,12 +391,8 @@ def test_pnp_from_dataset_with_seg_mask(seg_mask_path, ossicles_path, RT, resize
         # pts2d = pts2d[lst]
         pts3d = np.array(pts3d).reshape((len(pts3d), 3))
 
-        pts2d = pts2d.astype('float32')
-        pts3d = pts3d.astype('float32')
-        camera_intrinsics = app.camera_intrinsics.astype('float32')
-        
         # use EPNP to predict the pose
-        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, app.camera.position)
+        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, app.camera_intrinsics, app.camera.position)
         logger.debug(f"\ndifference from predicted pose and RT pose: {np.sum(np.abs(predicted_pose - RT))}")
         assert np.isclose(predicted_pose, RT, atol=20).all()
 
