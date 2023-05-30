@@ -2,12 +2,22 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# Reference:
-# https://stackoverflow.com/questions/4673373/logging-within-pytest-tests
-[tool.pytest.ini_options]
-
 # Logging + CLI
+# Reference: https://stackoverflow.com/questions/4673373/logging-within-pytest-tests
+[tool.pytest.ini_options]
 log_cli = true
 log_cli_level = "DEBUG"
 log_cli_format = "%(asctime)s.%(msecs)03d [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[metadata]
+name = "vision6D"
+version = "0.1.7"
+description = "6D pose registration tool"
+authors = ["Yike Zhang <yike.zhang@vanderbilt.edu>"]
+
+[options]
+packages = find:
+
+[options.entry_points]
+console_scripts = vision6D = vision6D.exe()
