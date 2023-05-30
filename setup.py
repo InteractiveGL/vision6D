@@ -7,7 +7,7 @@ setuptools.setup(
     include_package_data=True,
     entry_points = {
         'console_scripts':[
-            'vision6D = vision6D:exe',
+            'vision6D = vision6D.run_gui:exe',
         ]
     }
 )
