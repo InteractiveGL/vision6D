@@ -25,8 +25,5 @@ An example shown below to register computer monitor model to an image
 
 ![example](https://github.com/ykzzyk/vision6D/assets/55161270/b6e4b0f6-ac51-416a-a63d-0aa0de2793d0)
 
-## License
-This project is licensed under the MIT License.
-
 ## Contact
 If you have further question, you can either open a issue on GitHub or directly connect me via email yike.zhang@vanderbilt.edu
