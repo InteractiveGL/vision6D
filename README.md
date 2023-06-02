@@ -21,7 +21,7 @@ import vision6D as vis
 vis.exe()
 ```
 
-An example shown below to register computer monitor model to an image
+## Interface
 
 ![0](https://github.com/ykzzyk/vision6D/assets/55161270/6e80f88c-9c8c-403e-87e7-1d47cd654df4)
 
