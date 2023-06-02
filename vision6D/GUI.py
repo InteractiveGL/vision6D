@@ -1062,6 +1062,14 @@ class MyMainWindow(MainWindow):
         self.plotter.add_key_event('t', self.current_pose)
         self.plotter.add_key_event('s', self.undo_pose)
 
+        # change opacity key bindings
+        self.plotter.add_key_event('b', functools.partial(self.toggle_image_opacity, up=True))
+        self.plotter.add_key_event('n', functools.partial(self.toggle_image_opacity, up=False))
+        self.plotter.add_key_event('g', functools.partial(self.toggle_mask_opacity, up=True))
+        self.plotter.add_key_event('h', functools.partial(self.toggle_mask_opacity, up=False))
+        self.plotter.add_key_event('y', functools.partial(self.toggle_mesh_opacity, up=True))
+        self.plotter.add_key_event('u', functools.partial(self.toggle_mesh_opacity, up=False))
+
         self.plotter.add_axes()
         self.plotter.add_camera_orientation_widget()
 
