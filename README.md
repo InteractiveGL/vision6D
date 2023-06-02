@@ -27,3 +27,6 @@ vis.exe()
 
 ## Contact
 If you have further question, you can either open a issue on GitHub or directly connect me via email yike.zhang@vanderbilt.edu
+
+## Acknowledgement
+Our code is developed upon Pyvista, pyvistaqt, PyQt5, we thank their excellent work and open source repository.
