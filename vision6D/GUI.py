@@ -259,7 +259,7 @@ class MyMainWindow(MainWindow):
             if file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):  # add mesh
                 self.mesh_path = file_path
                 self.add_mesh_file(prompt=False)
-            elif file_path.endswith(('.png', '.jpg')):  # add image/mask
+            elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                 yes_no_box = YesNoBox()
                 yes_no_box.setIcon(QtWidgets.QMessageBox.Question)
                 yes_no_box.setWindowTitle("Vision6D")
@@ -484,9 +484,9 @@ class MyMainWindow(MainWindow):
     def add_image_file(self, prompt=True):
         if prompt:
             if self.image_path == None or self.image_path == '':
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg)")
+                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
             else:
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg)")
+                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
 
         if self.image_path != '' and self.image_path is not None:
             self.hintLabel.hide()
@@ -497,9 +497,9 @@ class MyMainWindow(MainWindow):
     def add_mask_file(self, prompt=True):
         if prompt:
             if self.mask_path == None or self.mask_path == '':
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg)")
+                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
             else:
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg)")
+                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
         
         if self.mask_path != '' and self.mask_path is not None:
             self.hintLabel.hide()
