@@ -3,7 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/vision6D.svg)](https://badge.fury.io/py/vision6D)
 [![License](https://img.shields.io/badge/License-GNU-green.svg)](https://www.gnu.org/licenses/)
 
-> Vision6D is a visualization tool to provide a convinent way to create ground truth 6D pose for 6D pose estimation related projects.
+> Vision6D is a visualization tool to provide a convinent way to create ground truth labels of 2D-3D dense correspondence map for 6D pose estimation (3D rotation and 3D translation in the camera coordinate frame) related projects.
 
 ## Installation
 
