@@ -915,9 +915,9 @@ class MyMainWindow(MainWindow):
             if checked_button is not None:
                 actor_name = checked_button.text()
                 self.ignore_slider_value_change = True
-                if actor_name == 'image': self.opacity_slider.setValue(self.image_opacity * 100)
-                elif actor_name == 'mask': self.opacity_slider.setValue(self.mask_opacity * 100)
-                else: self.opacity_slider.setValue(self.mesh_opacity[actor_name] * 100)
+                if actor_name == 'image': self.opacity_slider.setValue(int(self.image_opacity * 100))
+                elif actor_name == 'mask': self.opacity_slider.setValue(int(self.mask_opacity * 100))
+                else: self.opacity_slider.setValue(int(self.mesh_opacity[actor_name] * 100))
                 self.ignore_slider_value_change = False
             else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
@@ -1067,8 +1067,8 @@ class MyMainWindow(MainWindow):
         self.plotter.add_key_event('n', functools.partial(self.toggle_image_opacity, up=False))
         self.plotter.add_key_event('g', functools.partial(self.toggle_mask_opacity, up=True))
         self.plotter.add_key_event('h', functools.partial(self.toggle_mask_opacity, up=False))
-        self.plotter.add_key_event('y', functools.partial(self.toggle_mesh_opacity, up=True))
-        self.plotter.add_key_event('u', functools.partial(self.toggle_mesh_opacity, up=False))
+        self.plotter.add_key_event('y', functools.partial(self.toggle_surface_opacity, up=True))
+        self.plotter.add_key_event('u', functools.partial(self.toggle_surface_opacity, up=False))
 
         self.plotter.add_axes()
         self.plotter.add_camera_orientation_widget()
