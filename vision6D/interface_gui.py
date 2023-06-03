@@ -60,14 +60,14 @@ class Interface_GUI(MyMainWindow):
             # set mesh reference
             self.reference = text
             curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
-            self.opacity_slider.setValue(curr_opacity * 100)
+            self.opacity_slider.setValue(int(curr_opacity * 100))
             self.output_text.clear()
             self.output_text.append(f"Current reference mesh actor is <span style='background-color:yellow; color:black;'>{self.reference}</span>, and opacity is {curr_opacity}")
         else:
             self.color_button.setText("Color")
             if text == 'image': curr_opacity = self.image_opacity
             elif text == 'mask': curr_opacity = self.mask_opacity
-            self.opacity_slider.setValue(curr_opacity * 100)
+            self.opacity_slider.setValue(int(curr_opacity * 100))
             self.output_text.clear()
             self.output_text.append(f"Current selected actor is <span style='background-color:yellow; color:black;'>{text}</span>, and opacity is {curr_opacity}")
             self.reference = None
