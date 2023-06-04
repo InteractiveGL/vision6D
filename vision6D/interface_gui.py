@@ -1,13 +1,10 @@
 import pathlib
-import logging
 import numpy as np
 import trimesh
 import numpy as np
 import matplotlib.pyplot as plt
-import json
 import PIL
 import vtk
-import ast
 
 # Setting the Qt bindings for QtPy
 import os
@@ -503,15 +500,15 @@ class Interface_GUI(MyMainWindow):
                 
             if nocs_method == nocs_color:
                 if nocs_method: 
+                    color_theme = 'NOCS'
                     predicted_pose = self.nocs_epnp(color_mask, mesh)
                     if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                     if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                    color_theme = 'NOCS'
                 else: 
+                    color_theme = 'LATLON'
                     if self.mirror_x: color_mask = color_mask[:, ::-1, :]
                     if self.mirror_y: color_mask = color_mask[::-1, :, :]
                     predicted_pose = self.latlon_epnp(color_mask, mesh)
-                    color_theme = 'LATLON'
                 error = np.sum(np.abs(predicted_pose - gt_pose))
                 self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
                 self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
