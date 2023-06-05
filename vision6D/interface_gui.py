@@ -43,9 +43,9 @@ class Interface_GUI(MyMainWindow):
 
         self.mesh_opacity = {}
         self.store_mesh_opacity = {}
-        self.image_opacity = 0.99
-        self.mask_opacity = 0.5
-        self.surface_opacity = 0.8
+        self.image_opacity = self.opacity_spinbox.value()
+        self.mask_opacity = self.opacity_spinbox.value()
+        self.surface_opacity = self.opacity_spinbox.value()
         
         self.image_spacing = [0.01, 0.01, 1]
         self.mask_spacing = [0.01, 0.01, 1]

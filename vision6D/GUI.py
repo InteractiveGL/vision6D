@@ -643,8 +643,10 @@ class MyMainWindow(MainWindow):
 
         # reset everything to original actor opacity
         self.mesh_opacity = {}
-        self.image_opacity = 0.99
-        self.mask_opacity = 0.5
+        self.store_mesh_opacity = {}
+        self.image_opacity = self.opacity_spinbox.value()
+        self.mask_opacity = self.opacity_spinbox.value()
+        self.surface_opacity = self.opacity_spinbox.value()
 
         self.image_spacing = [0.01, 0.01, 1]
         self.mask_spacing = [0.01, 0.01, 1]
@@ -664,10 +666,6 @@ class MyMainWindow(MainWindow):
         self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
         self.used_colors = []
         self.color_button.setText("Color")
-
-        self.ignore_spinbox_value_change = True
-        self.opacity_spinbox.setValue(1.0)
-        self.ignore_spinbox_value_change = False
 
         self.clear_output_text()
 
@@ -994,6 +992,8 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox.setMaximum(1.0)
         self.opacity_spinbox.setDecimals(2)
         self.opacity_spinbox.setSingleStep(0.05)
+        self.ignore_spinbox_value_change = True
+        self.opacity_spinbox.setValue(0.8)
         self.ignore_spinbox_value_change = False 
         self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
         grid_layout.addWidget(self.opacity_spinbox, 1, 2, 1, 2)
