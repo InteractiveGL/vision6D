@@ -32,4 +32,5 @@ logging.config.dictConfig(LOGGING_CONFIG)
 from .app import App
 from .interface import Interface
 from .interface_gui import Interface_GUI
+from .widgets_gui import VideoPlayer, YesNoBox, PopUpDialog, CameraPropsInputDialog, CalibrationPopWindow, GetTextDialog
 from . import utils

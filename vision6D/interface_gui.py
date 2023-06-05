@@ -63,6 +63,7 @@ class Interface_GUI(MyMainWindow):
             self.color_button.setText("Color")
             if text == 'image': curr_opacity = self.image_opacity
             elif text == 'mask': curr_opacity = self.mask_opacity
+            else: curr_opacity = self.opacity_spinbox.value()
             self.opacity_spinbox.setValue(curr_opacity)
             self.reference = None
         

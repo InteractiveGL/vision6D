@@ -1,4 +1,5 @@
 # General import
+import os
 import numpy as np
 import pyvista as pv
 import functools
@@ -9,7 +10,7 @@ import ast
 import json
 import math
 import copy
-from skimage.metrics import peak_signal_noise_ratio, structural_similarity
+import cv2
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -20,192 +21,6 @@ from PyQt5.QtCore import Qt, QPoint
 import vision6D as vis
 
 np.set_printoptions(suppress=True)
-
-class YesNoBox(QtWidgets.QMessageBox):
-    def __init__(self, *args, **kwargs):
-        super(YesNoBox, self).__init__(*args, **kwargs)
-        self.canceled = False
-
-    def closeEvent(self, event: QtGui.QCloseEvent):
-        self.canceled = True
-        super(YesNoBox, self).closeEvent(event)
-
-class PopUpDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, on_button_click=None):
-        super().__init__(parent)
-
-        self.setWindowTitle("Vision6D - Colors")
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint) # Disable the question mark
-
-        button_grid = QtWidgets.QGridLayout()
-        colors = ["nocs", "cyan", "magenta", 
-                "yellow", "lime", "deepskyblue", "latlon", "salmon", 
-                "silver", "aquamarine", "plum", "blueviolet"]
-
-        button_count = 0
-        for i in range(2):
-            for j in range(6):
-                name = f"{colors[button_count]}"
-                button = QtWidgets.QPushButton(name)
-                button.clicked.connect(lambda _, idx=name: on_button_click(str(idx)))
-                button_grid.addWidget(button, j, i)
-                button_count += 1
-
-        self.setLayout(button_grid)
-
-class CameraPropsInputDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, 
-                    line1=(None, None), 
-                    line2=(None, None), 
-                    line3=(None, None), 
-                    line4=(None, None), 
-                    line5=(None, None),
-                    line6=(None, None)):
-        super().__init__(parent)
-
-        self.args1 = QtWidgets.QLineEdit(self, text=str(line1[1]))
-        self.args2 = QtWidgets.QLineEdit(self, text=str(line2[1]))
-        self.args3 = QtWidgets.QLineEdit(self, text=str(line3[1]))
-        self.args4 = QtWidgets.QLineEdit(self, text=str(line4[1]))
-        self.args5 = QtWidgets.QLineEdit(self, text=str(line5[1]))
-        self.args6 = QtWidgets.QLineEdit(self, text=str(line6[1]))
-
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self)
-
-        layout = QtWidgets.QFormLayout(self)
-        layout.addRow(f"{line1[0]}", self.args1)
-        layout.addRow(f"{line2[0]}", self.args2)
-        layout.addRow(f"{line3[0]}", self.args3)
-        layout.addRow(f"{line4[0]}", self.args4)
-        layout.addRow(f"{line5[0]}", self.args5)
-        layout.addRow(f"{line6[0]}", self.args6)
-        layout.addWidget(buttonBox)
-
-        buttonBox.accepted.connect(self.accept)
-        buttonBox.rejected.connect(self.reject)
-
-    def getInputs(self):
-        return (self.args1.text(), 
-                self.args2.text(), 
-                self.args3.text(),
-                self.args4.text(),
-                self.args5.text(),
-                self.args6.text())
-    
-class CalibrationPopWindow(QtWidgets.QDialog):
-    def __init__(self, calibrated_image, original_image, parent=None):
-        super(CalibrationPopWindow, self).__init__(parent)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
-
-        self.calibrated_image = calibrated_image
-        self.original_image = original_image
-
-        self.setWindowTitle("Vision6D")
-
-        # Set the size for display
-        if self.original_image.shape[1] > 960 and self.original_image.shape[1] > 540:
-            size = int(self.original_image.shape[1] // 2), int(self.original_image.shape[0] // 2)
-        else: size = int(self.original_image.shape[1]), int(self.original_image.shape[0])
-        
-        overall = QtWidgets.QVBoxLayout()
-        layout = QtWidgets.QHBoxLayout()
-
-        vbox1layout = QtWidgets.QVBoxLayout()
-        label1 = QtWidgets.QLabel("Calibrated image", self)
-        label1.setAlignment(Qt.AlignCenter)
-        pixmap_label1 = QtWidgets.QLabel(self)
-
-        qimage1 = self.numpy_to_qimage(self.calibrated_image)
-        pixmap1 = QtGui.QPixmap.fromImage(qimage1).scaled(*size, Qt.KeepAspectRatio)
-        
-        pixmap_label1.setPixmap(pixmap1)
-        pixmap_label1.setAlignment(Qt.AlignCenter)
-        pixmap_label1.setFixedSize(*size)
-        
-        vbox1layout.addWidget(label1)
-        vbox1layout.addWidget(pixmap_label1)
-
-        vbox2layout = QtWidgets.QVBoxLayout()
-        label2 = QtWidgets.QLabel("Original image", self)
-        label2.setAlignment(Qt.AlignCenter)
-        pixmap_label2 = QtWidgets.QLabel(self)
-
-        qimage2 = self.numpy_to_qimage(self.original_image)
-        pixmap2 = QtGui.QPixmap.fromImage(qimage2).scaled(*size, Qt.KeepAspectRatio)
-        
-        pixmap_label2.setPixmap(pixmap2)
-        pixmap_label2.setAlignment(Qt.AlignCenter)
-        pixmap_label2.setFixedSize(*size)
-        
-        vbox2layout.addWidget(label2)
-        vbox2layout.addWidget(pixmap_label2)
-
-        layout.addLayout(vbox1layout)
-        layout.addLayout(vbox2layout)
-
-        psnr, ssim = self.calculate_similarity()
-        similarity_label = QtWidgets.QLabel(f"PSNR is {psnr} and SSIM is {ssim}", self)
-        similarity_label.setAlignment(Qt.AlignCenter)
-
-        overall.addLayout(layout)
-        overall.addWidget(similarity_label)
-
-        self.setLayout(overall)
-
-    def numpy_to_qimage(self, array):
-        height, width, channel = array.shape
-        #* bytesPerline is very important
-        bytesPerLine = channel * width
-        return QtGui.QImage(array.tobytes(), width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
-
-    def calculate_similarity(self):
-        psnr = peak_signal_noise_ratio(self.calibrated_image, self.original_image, data_range=255)
-        ssim = structural_similarity(self.calibrated_image, self.original_image, data_range=255, channel_axis=2)
-        return psnr, ssim
-
-class GetTextDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None):
-        super(GetTextDialog, self).__init__(parent)
-
-        layout = QtWidgets.QVBoxLayout(self)
-        
-        self.setWindowTitle("Vision6D")
-        self.introLabel = QtWidgets.QLabel("Input the Ground Truth Pose:")
-        self.btnloadfromfile = QtWidgets.QPushButton("Load from file", self)
-
-        hbox = QtWidgets.QHBoxLayout()
-        hbox.addWidget(self.introLabel)
-        hbox.addWidget(self.btnloadfromfile)
-        hbox.setContentsMargins(0, 0, 0, 0)
-        self.hboxWidget = QtWidgets.QWidget()
-        self.hboxWidget.setLayout(hbox)
-
-        self.btnloadfromfile.clicked.connect(self.load_from_file)
-        self.textEdit = QtWidgets.QTextEdit(self)
-        self.textEdit.setPlainText(f"[[1, 0, 0, 0], \n[0, 1, 0, 0], \n[0, 0, 1, 0], \n[0, 0, 0, 1]]")
-        self.btnSubmit = QtWidgets.QPushButton("Submit", self)
-        self.btnSubmit.clicked.connect(self.submit_text)
-
-        layout.addWidget(self.hboxWidget)
-        layout.addWidget(self.textEdit)
-        layout.addWidget(self.btnSubmit)
-
-    def submit_text(self):
-        self.user_text = self.textEdit.toPlainText()
-        self.accept()
-
-    def load_from_file(self):
-        file_dialog = QtWidgets.QFileDialog()
-        pose_path, _ = file_dialog.getOpenFileName(None, "Open file", "", "Files (*.npy)")
-        if pose_path != '':
-            gt_pose = np.load(pose_path)
-            self.textEdit.setPlainText(f"[[{np.around(gt_pose[0, 0], 8)}, {np.around(gt_pose[0, 1], 8)}, {np.around(gt_pose[0, 2], 8)}, {np.around(gt_pose[0, 3], 8)}],\n"
-                                    f"[{np.around(gt_pose[1, 0], 8)}, {np.around(gt_pose[1, 1], 8)}, {np.around(gt_pose[1, 2], 8)}, {np.around(gt_pose[1, 3], 8)}],\n"
-                                    f"[{np.around(gt_pose[2, 0], 8)}, {np.around(gt_pose[2, 1], 8)}, {np.around(gt_pose[2, 2], 8)}, {np.around(gt_pose[2, 3], 8)}],\n"
-                                    f"[{np.around(gt_pose[3, 0], 8)}, {np.around(gt_pose[3, 1], 8)}, {np.around(gt_pose[3, 2], 8)}, {np.around(gt_pose[3, 3], 8)}]]")
-
-    def get_text(self):
-        return self.user_text
 
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
@@ -273,11 +88,17 @@ class MyMainWindow(MainWindow):
     def dropEvent(self, e):
         for url in e.mimeData().urls():
             file_path = url.toLocalFile()
+            # Load mesh file
             if file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):  # add mesh
                 self.mesh_path = file_path
                 self.add_mesh_file(prompt=False)
+            # Load video file
+            elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
+                self.video_path = file_path
+                self.add_video_file(prompt=False)
+            # Load image/mask file
             elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
-                yes_no_box = YesNoBox()
+                yes_no_box = vis.YesNoBox()
                 yes_no_box.setIcon(QtWidgets.QMessageBox.Question)
                 yes_no_box.setWindowTitle("Vision6D")
                 yes_no_box.setText("Do you want to load the image as mask?")
@@ -309,8 +130,9 @@ class MyMainWindow(MainWindow):
         # simple dialog to record users input info
         self.input_dialog = QtWidgets.QInputDialog()
         self.file_dialog = QtWidgets.QFileDialog()
-        self.get_text_dialog = GetTextDialog()
+        self.get_text_dialog = vis.GetTextDialog()
         
+        self.video_path = None
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
@@ -320,9 +142,11 @@ class MyMainWindow(MainWindow):
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
         fileMenu.addAction('Add Workspace', self.add_workspace)
+        fileMenu.addAction('Add Video', self.add_video_file)
         fileMenu.addAction('Add Image', self.add_image_file)
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
+        fileMenu.addAction('Delete Video', self.delete_video)
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -332,6 +156,12 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Mesh Render', self.export_mesh_plot)
         exportMenu.addAction('SegMesh Render', self.export_segmesh_plot)
         exportMenu.addAction('Pose', self.export_pose)
+
+        # Add video related actions
+        VideoMenu = mainMenu.addMenu('Video')
+        VideoMenu.addAction('Play', self.play_video)
+        VideoMenu.addAction('Prev Frame', self.prev_frame)
+        VideoMenu.addAction('Next Frame', self.next_frame)
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
@@ -405,11 +235,11 @@ class MyMainWindow(MainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        calibrate_pop = CalibrationPopWindow(calibrated_image, original_image)
+        calibrate_pop = vis.CalibrationPopWindow(calibrated_image, original_image)
         calibrate_pop.exec_()
 
     def set_camera(self):
-        dialog = CameraPropsInputDialog(
+        dialog = vis.CameraPropsInputDialog(
             line1=("Fx", self.fx), 
             line2=("Fy", self.fy), 
             line3=("Cx", self.cx), 
@@ -455,19 +285,20 @@ class MyMainWindow(MainWindow):
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is not None:
-            if checked_button.text() == 'image':
+            button_name = checked_button.text()
+            if button_name == 'image':
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.image_spacing))
                 if ok:
                     try: self.image_spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     self.add_image(self.image_path)
-            elif checked_button.text() == 'mask':
+            elif button_name == 'mask':
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mask_spacing))
                 if ok:
                     try: self.mask_spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     self.add_mask(self.mask_path)
-            else:
+            elif button_name in self.mesh_actors:
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
                 if ok:
                     actor_name = checked_button.text()
@@ -502,6 +333,33 @@ class MyMainWindow(MainWindow):
             # reset camera
             self.reset_camera()
 
+    def add_frame_as_image(self):
+        self.video_player.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
+        ret, frame = self.video_player.cap.read()
+        if ret: 
+            video_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            save_frame = PIL.Image.fromarray(video_frame)
+            os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_frames", exist_ok=True)
+            output_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_frames" / f'frame_{self.current_frame}.png'
+            save_frame.save(output_path)
+            self.image_path = output_path
+            self.add_image(video_frame)
+            self.output_text.append(f"-> <span style='background-color:yellow; color:black;'>Current video frame</span> is ({self.current_frame}/{self.video_player.frame_count})")
+
+    def add_video_file(self, prompt=True):
+        if prompt:
+            if self.video_path == None or self.video_path == '':
+                self.video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
+            else:
+                self.video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
+
+        if self.video_path != '' and self.video_path is not None:
+            self.hintLabel.hide()
+            self.output_text.append(f"-> Load video {self.video_path} into vision6D")
+            self.current_frame = 0
+            self.video_player = vis.VideoPlayer(self.video_path, self.current_frame)
+            self.add_frame_as_image()
+            
     def add_image_file(self, prompt=True):
         if prompt:
             if self.image_path == None or self.image_path == '':
@@ -592,7 +450,7 @@ class MyMainWindow(MainWindow):
             actor = self.mask_actor
             self.mask_actor = None
             self.mask_path = None
-        else: 
+        elif name in self.mesh_actors: 
             actor = self.mesh_actors[name]
             del self.mesh_actors[name] # remove the item from the mesh dictionary
             del self.mesh_colors[name]
@@ -622,7 +480,7 @@ class MyMainWindow(MainWindow):
             name = button.text()
             if name == 'image': actor = self.image_actor
             elif name == 'mask': actor = self.mask_actor
-            else: actor = self.mesh_actors[name]
+            elif name in self.mesh_actors: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
             # remove the button from the button group
             self.button_group_actors_names.removeButton(button)
@@ -634,6 +492,7 @@ class MyMainWindow(MainWindow):
         self.hintLabel.show()
 
         # Re-initial the dictionaries
+        self.video_path = None
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
@@ -873,7 +732,7 @@ class MyMainWindow(MainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
-        popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
+        popup = vis.PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
         button_position = self.color_button.mapToGlobal(QPoint(0, 0))
         popup.move(button_position + QPoint(self.color_button.width(), 0))
         popup.exec_()
@@ -901,7 +760,7 @@ class MyMainWindow(MainWindow):
             elif actor_name == 'mask': 
                 self.store_mask_opacity = copy.deepcopy(self.mask_opacity)
                 self.set_mask_opacity(value)
-            else: 
+            elif actor_name in self.mesh_actors: 
                 self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
                 self.mesh_opacity[actor_name] = value
                 self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
@@ -933,7 +792,7 @@ class MyMainWindow(MainWindow):
                 actor_name = button.text()
                 if actor_name == 'image': self.opacity_value_change(self.store_image_opacity)
                 elif actor_name == 'mask': self.opacity_value_change(self.store_mask_opacity)
-                else: self.opacity_value_change(self.store_mesh_opacity[actor_name])
+                elif actor_name in self.mesh_actors: self.opacity_value_change(self.store_mesh_opacity[actor_name])
 
             checked_button = self.button_group_actors_names.checkedButton()
             if checked_button is not None:
@@ -941,51 +800,84 @@ class MyMainWindow(MainWindow):
                 self.ignore_spinbox_value_change = True
                 if actor_name == 'image': self.opacity_spinbox.setValue(self.image_opacity)
                 elif actor_name == 'mask': self.opacity_spinbox.setValue(self.mask_opacity)
-                else: self.opacity_spinbox.setValue(self.mesh_opacity[actor_name])
+                elif actor_name in self.mesh_actors: self.opacity_spinbox.setValue(self.mesh_opacity[actor_name])
                 self.ignore_spinbox_value_change = False
             else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
+    def play_video(self):
+        if self.video_path != None and self.video_path != '':
+            self.video_player.exec_()
+            self.current_frame = self.video_player.current_frame
+            self.add_frame_as_image()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+    
+    def prev_frame(self):
+        if self.video_path != None and self.video_path != '':
+            self.current_frame = max(0, self.video_player.current_frame - 1)
+            self.video_player.slider.setValue(self.current_frame)
+            self.add_frame_as_image()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+    def next_frame(self):
+        if self.video_path != None and self.video_path != '':
+            self.current_frame = min(self.video_player.current_frame + 1, self.video_player.frame_count)
+            self.video_player.slider.setValue(self.current_frame)
+            self.add_frame_as_image()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+    def delete_video(self):
+        self.output_text.append(f"-> Delete video {self.video_path} into vision6D")
+        self.video_path = None
+        self.current_frame = 0
+        self.remove_actor()
 
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
         display_layout = QtWidgets.QVBoxLayout()
-        display_layout.setContentsMargins(10, 20, 10, 10)
+        display_layout.setContentsMargins(10, 15, 10, 0)
 
         #* Create the top widgets (layout)
         top_layout = QtWidgets.QHBoxLayout()
         top_layout.setContentsMargins(0, 0, 0, 0)
 
         # Create Grid layout for function buttons
-        grid_layout = QtWidgets.QGridLayout()
+        top_grid_layout = QtWidgets.QGridLayout()
 
         # Create the set camera button
         set_camera_button = QtWidgets.QPushButton("Set Camera")
         set_camera_button.clicked.connect(self.set_camera)
-        grid_layout.addWidget(set_camera_button, 0, 0)
+        top_grid_layout.addWidget(set_camera_button, 0, 0)
 
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
         actor_pose_button.clicked.connect(self.set_pose)
-        grid_layout.addWidget(actor_pose_button, 0, 1)
+        top_grid_layout.addWidget(actor_pose_button, 0, 1)
 
         # Create the hide button
         hide_button = QtWidgets.QPushButton("toggle hide")
         hide_button.clicked.connect(self.toggle_hide_actors_button)
-        grid_layout.addWidget(hide_button, 0, 2)
+        top_grid_layout.addWidget(hide_button, 0, 2)
 
         # Create the remove button
         remove_button = QtWidgets.QPushButton("Remove Actor")
         remove_button.clicked.connect(self.remove_actors_button)
-        grid_layout.addWidget(remove_button, 0, 3)
+        top_grid_layout.addWidget(remove_button, 0, 3)
 
         # Create the color dropdown menu (comboBox)
         self.color_button = QtWidgets.QPushButton("Color")
         self.color_button.clicked.connect(self.show_color_popup)
-        grid_layout.addWidget(self.color_button, 1, 0)
+        top_grid_layout.addWidget(self.color_button, 1, 0)
         
         # Create the spacing button (comboBox)
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.set_spacing)
-        grid_layout.addWidget(self.spacing_button, 1, 1)
+        top_grid_layout.addWidget(self.spacing_button, 1, 1)
 
         self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
         self.opacity_spinbox.setMinimum(0.0)
@@ -996,13 +888,34 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox.setValue(0.8)
         self.ignore_spinbox_value_change = False 
         self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
-        grid_layout.addWidget(self.opacity_spinbox, 1, 2, 1, 2)
+        top_grid_layout.addWidget(self.opacity_spinbox, 1, 2, 1, 2)
 
-        grid_widget = QtWidgets.QWidget()
-        grid_widget.setLayout(grid_layout)
-        top_layout.addWidget(grid_widget)
-
+        top_grid_widget = QtWidgets.QWidget()
+        top_grid_widget.setLayout(top_grid_layout)
+        top_layout.addWidget(top_grid_widget)
         display_layout.addLayout(top_layout)
+
+        video_widget = QtWidgets.QLabel("Video")
+        display_layout.addWidget(video_widget)
+        
+        # Create Grid layout for video function buttons
+        middle_grid_layout = QtWidgets.QGridLayout()
+        middle_grid_layout.setContentsMargins(10, 5, 10, 0)
+
+        # Create the video related button
+        self.play_video_button = QtWidgets.QPushButton("Play")
+        self.play_video_button.clicked.connect(self.play_video)
+        middle_grid_layout.addWidget(self.play_video_button, 0, 0)
+
+        self.prev_frame_button = QtWidgets.QPushButton("Prev Frame")
+        self.prev_frame_button.clicked.connect(self.prev_frame)
+        middle_grid_layout.addWidget(self.prev_frame_button, 0, 1)
+
+        self.next_frame_button = QtWidgets.QPushButton("Next Frame")
+        self.next_frame_button.clicked.connect(self.next_frame)
+        middle_grid_layout.addWidget(self.next_frame_button, 0, 2)
+
+        display_layout.addLayout(middle_grid_layout)
 
         #* Create the bottom widgets
         actor_widget = QtWidgets.QLabel("Actors")
@@ -1031,7 +944,7 @@ class MyMainWindow(MainWindow):
         # Add a spacer to the top of the main layout
         self.output = QtWidgets.QGroupBox("Output")
         output_layout = QtWidgets.QVBoxLayout()
-        output_layout.setContentsMargins(10, 20, 10, 10)
+        output_layout.setContentsMargins(10, 15, 10, 0)
 
         #* Create the top widgets (layout)
         top_layout = QtWidgets.QHBoxLayout()
