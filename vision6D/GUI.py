@@ -101,8 +101,12 @@ class CalibrationPopWindow(QtWidgets.QDialog):
         self.original_image = original_image
 
         self.setWindowTitle("Vision6D")
-        self.setFixedSize(960, 540)
 
+        # Set the size for display
+        if self.original_image.shape[1] > 960 and self.original_image.shape[1] > 540:
+            size = int(self.original_image.shape[1] // 2), int(self.original_image.shape[0] // 2)
+        else: size = int(self.original_image.shape[1]), int(self.original_image.shape[0])
+        
         overall = QtWidgets.QVBoxLayout()
         layout = QtWidgets.QHBoxLayout()
 
@@ -110,10 +114,14 @@ class CalibrationPopWindow(QtWidgets.QDialog):
         label1 = QtWidgets.QLabel("Calibrated image", self)
         label1.setAlignment(Qt.AlignCenter)
         pixmap_label1 = QtWidgets.QLabel(self)
-        qimage1 = QtGui.QImage(self.calibrated_image, self.calibrated_image.shape[1], self.calibrated_image.shape[0], QtGui.QImage.Format_RGB888)
-        pixmap1 = QtGui.QPixmap.fromImage(qimage1).scaled(960, 540, Qt.KeepAspectRatio)
+
+        qimage1 = self.numpy_to_qimage(self.calibrated_image)
+        pixmap1 = QtGui.QPixmap.fromImage(qimage1).scaled(*size, Qt.KeepAspectRatio)
+        
         pixmap_label1.setPixmap(pixmap1)
         pixmap_label1.setAlignment(Qt.AlignCenter)
+        pixmap_label1.setFixedSize(*size)
+        
         vbox1layout.addWidget(label1)
         vbox1layout.addWidget(pixmap_label1)
 
@@ -121,11 +129,14 @@ class CalibrationPopWindow(QtWidgets.QDialog):
         label2 = QtWidgets.QLabel("Original image", self)
         label2.setAlignment(Qt.AlignCenter)
         pixmap_label2 = QtWidgets.QLabel(self)
-        qimage2 = QtGui.QImage(self.original_image, self.original_image.shape[1], self.original_image.shape[0], QtGui.QImage.Format_RGB888)
-        pixmap2 = QtGui.QPixmap.fromImage(qimage2).scaled(960, 540, Qt.KeepAspectRatio)
+
+        qimage2 = self.numpy_to_qimage(self.original_image)
+        pixmap2 = QtGui.QPixmap.fromImage(qimage2).scaled(*size, Qt.KeepAspectRatio)
+        
         pixmap_label2.setPixmap(pixmap2)
         pixmap_label2.setAlignment(Qt.AlignCenter)
-
+        pixmap_label2.setFixedSize(*size)
+        
         vbox2layout.addWidget(label2)
         vbox2layout.addWidget(pixmap_label2)
 
@@ -140,6 +151,12 @@ class CalibrationPopWindow(QtWidgets.QDialog):
         overall.addWidget(similarity_label)
 
         self.setLayout(overall)
+
+    def numpy_to_qimage(self, array):
+        height, width, channel = array.shape
+        #* bytesPerline is very important
+        bytesPerLine = channel * width
+        return QtGui.QImage(array.tobytes(), width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
 
     def calculate_similarity(self):
         psnr = peak_signal_noise_ratio(self.calibrated_image, self.original_image, data_range=255)
@@ -377,9 +394,13 @@ class MyMainWindow(MainWindow):
         if self.image_path != '' and self.image_path is not None:
             original_image = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
+            original_image = original_image[..., :3]
             if len(original_image.shape) == 2: original_image = original_image[..., None]
             if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
             calibrated_image = np.array(self.render_image(self.image_actor, self.plotter.camera.copy()), dtype='uint8')
+            if original_image.shape != calibrated_image.shape:
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Original image shape is not equal to calibrated image shape!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                return 0
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
@@ -693,7 +714,8 @@ class MyMainWindow(MainWindow):
 
         image = self.render_image(self.image_actor, camera)
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
-        if output_path: 
+        if output_path:
+            if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             self.output_text.append(f"-> Export image render to:\n {str(output_path)}")
@@ -710,6 +732,7 @@ class MyMainWindow(MainWindow):
         image = self.render_image(self.mask_actor, camera)
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
         if output_path:
+            if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             self.output_text.append(f"-> Export mask render to:\n {str(output_path)}")
@@ -737,6 +760,7 @@ class MyMainWindow(MainWindow):
         if save_render:
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mesh Files (*.png)")
             if output_path:
+                if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export reference mesh render to:\n {str(output_path)}")
@@ -767,6 +791,7 @@ class MyMainWindow(MainWindow):
         image = (image * segmask).astype(np.uint8)
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "SegMesh Files (*.png)")
         if output_path:
+            if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             self.output_text.append(f"-> Export segmask render:\n to {str(output_path)}")
@@ -778,6 +803,7 @@ class MyMainWindow(MainWindow):
         self.update_gt_pose()
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Pose Files (*.npy)")
         if output_path:
+            if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.npy')
             np.save(output_path, self.transformation_matrix)
             self.output_text.append(f"-> Saved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
 
