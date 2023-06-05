@@ -665,9 +665,9 @@ class MyMainWindow(MainWindow):
         self.used_colors = []
         self.color_button.setText("Color")
 
-        self.ignore_slider_value_change = True
-        self.opacity_slider.setValue(100)
-        self.ignore_slider_value_change = False
+        self.ignore_spinbox_value_change = True
+        self.opacity_spinbox.setValue(1.0)
+        self.ignore_spinbox_value_change = False
 
         self.clear_output_text()
 
@@ -893,24 +893,24 @@ class MyMainWindow(MainWindow):
         else: self.remove_actor(checked_button)
 
     def opacity_value_change(self, value):
-        if self.ignore_slider_value_change: return 0
+        if self.ignore_spinbox_value_change: return 0
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is not None:
             actor_name = checked_button.text()
             if actor_name == 'image': 
                 self.store_image_opacity = copy.deepcopy(self.image_opacity)
-                self.set_image_opacity(value / 100)
+                self.set_image_opacity(value)
             elif actor_name == 'mask': 
                 self.store_mask_opacity = copy.deepcopy(self.mask_opacity)
-                self.set_mask_opacity(value / 100)
+                self.set_mask_opacity(value)
             else: 
                 self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
-                self.mesh_opacity[actor_name] = value / 100
+                self.mesh_opacity[actor_name] = value
                 self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
         else:
-            self.ignore_slider_value_change = True
-            self.opacity_slider.setValue(value)
-            self.ignore_slider_value_change = False
+            self.ignore_spinbox_value_change = True
+            self.opacity_spinbox.setValue(value)
+            self.ignore_spinbox_value_change = False
             return 0
         
     def toggle_hide_actors_button(self):
@@ -924,27 +924,27 @@ class MyMainWindow(MainWindow):
     
             checked_button = self.button_group_actors_names.checkedButton()
             if checked_button is not None: 
-                self.ignore_slider_value_change = True
-                self.opacity_slider.setValue(0)
-                self.ignore_slider_value_change = False
+                self.ignore_spinbox_value_change = True
+                self.opacity_spinbox.setValue(0.0)
+                self.ignore_spinbox_value_change = False
             else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         
         else:
             for button in self.button_group_actors_names.buttons():
                 button.setChecked(True)
                 actor_name = button.text()
-                if actor_name == 'image': self.opacity_value_change(self.store_image_opacity * 100)
-                elif actor_name == 'mask': self.opacity_value_change(self.store_mask_opacity * 100)
-                else: self.opacity_value_change(self.store_mesh_opacity[actor_name] * 100)
+                if actor_name == 'image': self.opacity_value_change(self.store_image_opacity)
+                elif actor_name == 'mask': self.opacity_value_change(self.store_mask_opacity)
+                else: self.opacity_value_change(self.store_mesh_opacity[actor_name])
 
             checked_button = self.button_group_actors_names.checkedButton()
             if checked_button is not None:
                 actor_name = checked_button.text()
-                self.ignore_slider_value_change = True
-                if actor_name == 'image': self.opacity_slider.setValue(int(self.image_opacity * 100))
-                elif actor_name == 'mask': self.opacity_slider.setValue(int(self.mask_opacity * 100))
-                else: self.opacity_slider.setValue(int(self.mesh_opacity[actor_name] * 100))
-                self.ignore_slider_value_change = False
+                self.ignore_spinbox_value_change = True
+                if actor_name == 'image': self.opacity_spinbox.setValue(self.image_opacity)
+                elif actor_name == 'mask': self.opacity_spinbox.setValue(self.mask_opacity)
+                else: self.opacity_spinbox.setValue(self.mesh_opacity[actor_name])
+                self.ignore_spinbox_value_change = False
             else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def panel_display(self):
@@ -989,15 +989,14 @@ class MyMainWindow(MainWindow):
         self.spacing_button.clicked.connect(self.set_spacing)
         grid_layout.addWidget(self.spacing_button, 1, 1)
 
-        self.opacity_slider = QtWidgets.QSlider(Qt.Horizontal)
-        self.opacity_slider.setMinimum(0)
-        self.opacity_slider.setMaximum(100)
-        self.opacity_slider.setValue(100)
-        self.opacity_slider.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.opacity_slider.setSingleStep(1)
-        self.ignore_slider_value_change = False 
-        self.opacity_slider.valueChanged.connect(self.opacity_value_change)
-        grid_layout.addWidget(self.opacity_slider, 1, 2, 1, 2)
+        self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
+        self.opacity_spinbox.setMinimum(0.0)
+        self.opacity_spinbox.setMaximum(1.0)
+        self.opacity_spinbox.setDecimals(2)
+        self.opacity_spinbox.setSingleStep(0.05)
+        self.ignore_spinbox_value_change = False 
+        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
+        grid_layout.addWidget(self.opacity_spinbox, 1, 2, 1, 2)
 
         grid_widget = QtWidgets.QWidget()
         grid_widget.setLayout(grid_layout)

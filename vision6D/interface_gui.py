@@ -58,12 +58,12 @@ class Interface_GUI(MyMainWindow):
             # set mesh reference
             self.reference = text
             curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
-            self.opacity_slider.setValue(int(curr_opacity * 100))
+            self.opacity_spinbox.setValue(curr_opacity)
         else:
             self.color_button.setText("Color")
             if text == 'image': curr_opacity = self.image_opacity
             elif text == 'mask': curr_opacity = self.mask_opacity
-            self.opacity_slider.setValue(int(curr_opacity * 100))
+            self.opacity_spinbox.setValue(curr_opacity)
             self.reference = None
         
         output = f"-> Actor {text}, and its opacity is {curr_opacity}"
@@ -268,9 +268,9 @@ class Interface_GUI(MyMainWindow):
             if self.image_opacity < 0: self.image_opacity = 0
         self.image_actor.GetProperty().opacity = self.image_opacity
         self.plotter.add_actor(self.image_actor, pickable=False, name="image")
-        self.ignore_slider_value_change = True
-        self.opacity_slider.setValue(int(self.image_opacity * 100))
-        self.ignore_slider_value_change = False
+        self.ignore_spinbox_value_change = True
+        self.opacity_spinbox.setValue(self.image_opacity)
+        self.ignore_spinbox_value_change = False
 
     def toggle_mask_opacity(self, *args, up):
         if up:
@@ -281,19 +281,19 @@ class Interface_GUI(MyMainWindow):
             if self.mask_opacity < 0: self.mask_opacity = 0
         self.mask_actor.GetProperty().opacity = self.mask_opacity
         self.plotter.add_actor(self.mask_actor, pickable=False, name="mask")
-        self.ignore_slider_value_change = True
-        self.opacity_slider.setValue(int(self.mask_opacity * 100))
-        self.ignore_slider_value_change = False
+        self.ignore_spinbox_value_change = True
+        self.opacity_spinbox.setValue(self.mask_opacity)
+        self.ignore_spinbox_value_change = False
 
     def toggle_surface_opacity(self, *args, up):
-        current_opacity = self.opacity_slider.value() / 100
+        current_opacity = self.opacity_spinbox.value()
         if up:
             current_opacity += 0.05
             if current_opacity > 1: current_opacity = 1
         else:
             current_opacity -= 0.05
             if current_opacity < 0: current_opacity = 0
-        self.opacity_slider.setValue(int(current_opacity * 100))
+        self.opacity_spinbox.setValue(current_opacity)
 
     def reset_gt_pose(self, *args):
         self.output_text.append(f"-> Reset the GT pose to: \n{self.initial_pose}")
