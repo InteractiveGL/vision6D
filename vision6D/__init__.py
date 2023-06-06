@@ -29,6 +29,7 @@ LOGGING_CONFIG = {
 # Setup the logging configuration
 logging.config.dictConfig(LOGGING_CONFIG)
 
-from .GUI import MyMainWindow
+from .mainwindow import MyMainWindow
+from .gui import Interface
 from .widgets_gui import VideoPlayer, YesNoBox, PopUpDialog, CameraPropsInputDialog, CalibrationPopWindow, GetTextDialog
 from . import utils
