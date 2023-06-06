@@ -143,6 +143,7 @@ class MyMainWindow(MainWindow):
         # Add video related actions
         VideoMenu = mainMenu.addMenu('Video')
         VideoMenu.addAction('Play', self.play_video)
+        VideoMenu.addAction('Sample', self.sample_video)
         save_per_frame_info = functools.partial(self.load_per_frame_info, save=True)
         VideoMenu.addAction('Save Frame', save_per_frame_info)
         VideoMenu.addAction('Prev Frame', self.prev_frame)
@@ -263,12 +264,16 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox.setValue(0.3)
         self.ignore_spinbox_value_change = False 
         self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
-        top_grid_layout.addWidget(self.opacity_spinbox, 1, 2, 1, 2)
+        top_grid_layout.addWidget(self.opacity_spinbox, 1, 2)
 
         # Create the video related button
         self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.play_video_button.clicked.connect(self.play_video)
-        top_grid_layout.addWidget(self.play_video_button, 2, 0)
+        top_grid_layout.addWidget(self.play_video_button, 1, 3)
+
+        self.sample_video_button = QtWidgets.QPushButton("Sample Video")
+        self.sample_video_button.clicked.connect(self.sample_video)
+        top_grid_layout.addWidget(self.sample_video_button, 2, 0)
 
         self.save_frame_button = QtWidgets.QPushButton("Save Frame")
         self.save_frame_button.clicked.connect(lambda _, save=True: self.load_per_frame_info(save))

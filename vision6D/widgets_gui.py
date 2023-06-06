@@ -2,6 +2,7 @@
 import numpy as np
 import json
 import cv2
+import pathlib
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 # Qt5 import
@@ -10,6 +11,103 @@ from PyQt5.QtCore import Qt
 
 # self defined package import
 np.set_printoptions(suppress=True)
+
+class VideoSampler(QtWidgets.QDialog):
+    def __init__(self, video_player, fps, parent=None):
+        super(VideoSampler, self).__init__(parent)
+        self.setWindowTitle("Vision6D - Video Sampler")
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint) # Disable the question mark
+        self.setFixedSize(800, 500)
+        
+        self.video_player = video_player
+        self.fps = fps
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        # Create QLabel for the top
+        label1 = QtWidgets.QLabel("How often should we sample this video?", self)
+        font = QtGui.QFont('Times', 14)
+        font.setBold(True)
+        label1.setFont(font)
+
+        label1.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(label1)
+
+        line = QtWidgets.QFrame(self)
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        line.setStyleSheet("color: grey")
+        layout.addWidget(line)
+
+        # Load the video
+        self.video_path = self.video_player.video_path
+        self.cap = self.video_player.cap
+        self.frame_count = self.video_player.frame_count
+        video_width = self.video_player.video_width
+        video_height = self.video_player.video_height
+
+        if video_width > 600 and video_height > 400: self.video_size = int(video_width // 4), int(video_height // 4)
+        else: self.video_size = video_width, video_height
+        
+        # Create a QLabel to hold the thumbnail
+        self.thumbnail_label = QtWidgets.QLabel(self)
+
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        ret, frame = self.cap.read()
+        if ret: thumbnail_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Load the image using QPixmap
+        img = QtGui.QImage(thumbnail_frame.tobytes(), thumbnail_frame.shape[1], thumbnail_frame.shape[0], thumbnail_frame.shape[2]*thumbnail_frame.shape[1], QtGui.QImage.Format_RGB888)
+        pixmap = QtGui.QPixmap.fromImage(img)
+        
+        # Resize the QPixmap to the desired thumbnail size
+        thumbnail = pixmap.scaled(*self.video_size)  # Change the size to fit your needs
+        
+        # Set the QPixmap as the image displayed by the QLabel
+        self.thumbnail_label.setPixmap(thumbnail)
+        
+        layout.addWidget(self.thumbnail_label, alignment=Qt.AlignCenter)
+
+        # Calculate and print the video duration in seconds
+        total_seconds = self.frame_count / self.fps
+        minutes, remainder_seconds = divmod(total_seconds, 60)
+
+        # Create QLabel for the bottom
+        label2 = QtWidgets.QLabel(f"{pathlib.Path(self.video_path).stem}{pathlib.Path(self.video_path).suffix} ({int(minutes)}m{int(remainder_seconds)}s)", self)
+        font = QtGui.QFont('Times', 10)
+        font.setBold(True)
+        label2.setFont(font)
+        label2.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(label2, alignment=Qt.AlignCenter)
+
+        self.slider = QtWidgets.QSlider(Qt.Horizontal)
+        self.slider.setMinimum(1)
+        # At least 5 samples
+        self.slider.setMaximum(int(self.frame_count // 10))
+        self.slider.setValue(self.fps)
+        self.slider.setTickPosition(QtWidgets.QSlider.NoTicks)
+        self.slider.setTickInterval(self.fps)
+        self.slider.setSingleStep(self.fps)
+        self.slider.valueChanged.connect(self.slider_moved)
+
+        layout.addWidget(self.slider)
+
+        # Create QLabel for the bottom
+        self.label_frame_rate = QtWidgets.QLabel(f"Frame rate is {self.fps} fps, Output size {int(self.frame_count // self.fps)} images", self)
+        font = QtGui.QFont('Times', 14)
+        self.label_frame_rate.setFont(font)
+        self.label_frame_rate.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.label_frame_rate, alignment=Qt.AlignCenter)
+        self.setLayout(layout)
+
+    def slider_moved(self, value):
+        tick_interval = self.slider.tickInterval()
+        snap_value = int(round(value / tick_interval)) * tick_interval
+        if snap_value == 0: snap_value = value
+        self.slider.setValue(snap_value)
+        self.fps = snap_value
+        self.label_frame_rate.setText(f"Frame rate: {self.fps} fps, Total outputs: {self.frame_count // self.fps} images")
+
 class VideoPlayer(QtWidgets.QDialog):
     def __init__(self, video_path, current_frame):
         super().__init__()
@@ -22,6 +120,8 @@ class VideoPlayer(QtWidgets.QDialog):
         QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.next_frame)
         QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.prev_frame)
         QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.play_pause_video)
+
+        self.video_path = video_path
 
         self.layout = QtWidgets.QVBoxLayout(self)
 
@@ -41,16 +141,16 @@ class VideoPlayer(QtWidgets.QDialog):
         self.play = False
 
         # Load the video
-        self.cap = cv2.VideoCapture(str(video_path))
+        self.cap = cv2.VideoCapture(str(self.video_path))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.frame_count = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.slider.setMaximum(self.frame_count - 1)
 
-        video_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        video_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        self.video_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.video_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        if video_width > 960 and video_height > 540: self.video_size = int(video_width // 2), int(video_height // 2)
-        else: self.video_size = video_width, video_height
+        if self.video_width > 960 and self.video_height > 540: self.video_size = int(self.video_width // 2), int(self.video_height // 2)
+        else: self.video_size = self.video_width, self.video_height
         
         self.current_frame = current_frame
 
@@ -91,11 +191,13 @@ class VideoPlayer(QtWidgets.QDialog):
             self.next_button.setEnabled(True)
 
     def next_frame(self):
-        self.current_frame = min(self.current_frame + 1, self.frame_count)
+        current_frame = self.current_frame + 1
+        if current_frame <= self.frame_count: self.current_frame = current_frame
         self.slider.setValue(self.current_frame)
 
     def prev_frame(self):
-        self.current_frame = max(0, self.current_frame - 1)
+        current_frame = self.current_frame - 1
+        if current_frame >= 0: self.current_frame = current_frame
         self.slider.setValue(self.current_frame)
 
     def update_frame(self):
@@ -295,4 +397,3 @@ class GetTextDialog(QtWidgets.QDialog):
 
     def get_text(self):
         return self.user_text
-
