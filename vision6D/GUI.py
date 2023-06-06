@@ -162,11 +162,16 @@ class MyMainWindow(MainWindow):
         VideoMenu.addAction('Play', self.play_video)
         VideoMenu.addAction('Prev Frame', self.prev_frame)
         VideoMenu.addAction('Next Frame', self.next_frame)
+
+        # Add shortcut to the right, left, space buttons
+        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.next_frame)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.prev_frame)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.play_video)
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
         CameraMenu.addAction('Calibrate', self.camera_calibrate)
-        CameraMenu.addAction('Reset Camera (c)', self.reset_camera)
+        CameraMenu.addAction('Reset Camera (d)', self.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
 
@@ -808,6 +813,7 @@ class MyMainWindow(MainWindow):
         if self.video_path != None and self.video_path != '':
             self.video_player.exec_()
             self.current_frame = self.video_player.current_frame
+            self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
             self.add_frame_as_image()
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -816,6 +822,7 @@ class MyMainWindow(MainWindow):
     def prev_frame(self):
         if self.video_path != None and self.video_path != '':
             self.current_frame = max(0, self.video_player.current_frame - 1)
+            self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
             self.video_player.slider.setValue(self.current_frame)
             self.add_frame_as_image()
         else:
@@ -825,6 +832,7 @@ class MyMainWindow(MainWindow):
     def next_frame(self):
         if self.video_path != None and self.video_path != '':
             self.current_frame = min(self.video_player.current_frame + 1, self.video_player.frame_count)
+            self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
             self.video_player.slider.setValue(self.current_frame)
             self.add_frame_as_image()
         else:
@@ -832,11 +840,11 @@ class MyMainWindow(MainWindow):
             return 0
 
     def delete_video(self):
+        self.play_video_button.setText("Play")
         self.output_text.append(f"-> Delete video {self.video_path} into vision6D")
         self.video_path = None
         self.current_frame = 0
-        self.remove_actor()
-
+        
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
         display_layout = QtWidgets.QVBoxLayout()
@@ -990,7 +998,7 @@ class MyMainWindow(MainWindow):
         self.plotter.iren.interactor.AddObserver("LeftButtonPressEvent", self.pick_callback)
 
         # camera related key bindings
-        self.plotter.add_key_event('c', self.reset_camera)
+        self.plotter.add_key_event('d', self.reset_camera)
         self.plotter.add_key_event('z', self.zoom_out)
         self.plotter.add_key_event('x', self.zoom_in)
 

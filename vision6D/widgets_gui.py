@@ -18,6 +18,11 @@ class VideoPlayer(QtWidgets.QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint) # Disable the question mark
         self.setFixedSize(1000, 600)
 
+        # Add shortcut to the right, left, space buttons
+        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.next_frame)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.prev_frame)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.play_pause_video)
+
         self.layout = QtWidgets.QVBoxLayout(self)
 
         self.label = QtWidgets.QLabel(self)
