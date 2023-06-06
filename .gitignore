@@ -131,3 +131,5 @@ dmypy.json
 temp/
 output/
 workspace/
+test/
+.vscode/
