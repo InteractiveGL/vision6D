@@ -1,4 +1,4 @@
-from vision6D import Interface_GUI
+from vision6D import MyMainWindow
 import sys
 from qtpy import QtWidgets
 
@@ -529,7 +529,7 @@ def exe():
         min-width: 50px;
     }
     """)
-    window = Interface_GUI()
+    window = MyMainWindow()
     window.showMaximized()
     sys.exit(app.exec_())
 

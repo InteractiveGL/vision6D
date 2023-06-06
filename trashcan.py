@@ -2241,3 +2241,5 @@ if checked_button is not None:
 # slider_widget = QtWidgets.QWidget()
 # slider_widget.setLayout(slider_bar_layout)
 # top_layout.addWidget(slider_widget, 1)
+
+ #if matrix is not None else self.transformation_matrix
