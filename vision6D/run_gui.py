@@ -10,7 +10,6 @@ def exe():
     app = QtWidgets.QApplication(sys.argv)
     with open(CWD / "data" / "style.qss", "r") as f: 
         app.setStyleSheet(f.read())
-
     window = Interface()
     window.showMaximized()
     sys.exit(app.exec_())
