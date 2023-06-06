@@ -349,7 +349,7 @@ class MyMainWindow(MainWindow):
             save_frame.save(output_path)
             self.image_path = output_path
             self.add_image(video_frame)
-            self.output_text.append(f"-> <span style='background-color:yellow; color:black;'>Current video frame</span> is ({self.current_frame}/{self.video_player.frame_count})")
+            self.output_text.append(f"-> Current video frame is ({self.current_frame}/{self.video_player.frame_count})")
 
     def add_video_file(self, prompt=True):
         if prompt:
@@ -362,6 +362,7 @@ class MyMainWindow(MainWindow):
             self.hintLabel.hide()
             self.output_text.append(f"-> Load video {self.video_path} into vision6D")
             self.current_frame = 0
+            self.play_video_button.setText("Play")
             self.video_player = vis.VideoPlayer(self.video_path, self.current_frame)
             self.add_frame_as_image()
             
@@ -467,7 +468,7 @@ class MyMainWindow(MainWindow):
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
-        self.output_text.append(f"-> Remove actor: <span style='background-color:yellow; color:black;'>{name}</span>")
+        self.output_text.append(f"-> Remove actor: {name}")
         # remove the button from the button group
         self.button_group_actors_names.removeButton(button)
         # remove the button from the self.button_layout widget
@@ -498,6 +499,7 @@ class MyMainWindow(MainWindow):
 
         # Re-initial the dictionaries
         self.video_path = None
+        self.play_video_button.setText("Play")
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
@@ -840,9 +842,9 @@ class MyMainWindow(MainWindow):
             return 0
 
     def delete_video(self):
-        self.play_video_button.setText("Play")
         self.output_text.append(f"-> Delete video {self.video_path} into vision6D")
         self.video_path = None
+        self.play_video_button.setText("Play")
         self.current_frame = 0
         
     def panel_display(self):
