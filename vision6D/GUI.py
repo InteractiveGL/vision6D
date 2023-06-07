@@ -43,7 +43,7 @@ class Interface(MyMainWindow):
         self.undo_poses = {}
         self.latlon = vis.utils.load_latitude_longitude()
 
-        self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
+        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "forestgreen"]
         self.used_colors = []
         self.mesh_colors = {}
 
@@ -632,25 +632,29 @@ class Interface(MyMainWindow):
     def add_workspace(self):
         workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path != '':
-            # Clear the plot automatically if loading a new workspace
-            self.clear_plot()
+            self.clear_plot() # Clear the plot when load a workspace
             self.hintLabel.hide()
             with open(str(workspace_path), 'r') as f: 
                 workspace = json.load(f)
 
-            self.image_path = workspace['image_path']
-            self.mask_path = workspace['mask_path']
-            self.pose_path = workspace['pose_path']
-            mesh_paths = workspace['mesh_path']
-
-            self.add_image_file(prompt=False)
-            self.add_mask_file(prompt=False)
-            self.add_pose_file()
-
-            for mesh_path in mesh_paths:
-                self.mesh_path = mesh_path
-                self.add_mesh_file(prompt=False)
-
+            if 'image_path' in workspace:
+                self.image_path = workspace['image_path']
+                self.add_image_file(prompt=False)
+            if 'video_path' in workspace:
+                self.video_path = workspace['video_path']
+                self.add_video_file(prompt=False)
+            if 'mask_path' in workspace:
+                self.mask_path = workspace['mask_path']
+                self.add_mask_file(prompt=False)
+            if 'pose_path' in workspace:
+                self.pose_path = workspace['pose_path']
+                self.add_pose_file()
+            if 'mesh_path' in workspace:
+                mesh_path = workspace['mesh_path']
+                for path in mesh_path:
+                    self.mesh_path = path
+                    self.add_mesh_file(prompt=False)
+            
             # reset camera
             self.reset_camera()
 
@@ -912,7 +916,7 @@ class Interface(MyMainWindow):
         self.undo_poses = {}
         self.track_actors_names = []
 
-        self.colors = ["cyan", "magenta", "yellow", "lime", "deepskyblue", "salmon", "silver", "aquamarine", "plum", "blueviolet"]
+        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "forestgreen"]
         self.used_colors = []
         self.color_button.setText("Color")
 
