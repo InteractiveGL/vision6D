@@ -274,13 +274,11 @@ class PopUpDialog(QtWidgets.QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint) # Disable the question mark
 
         button_grid = QtWidgets.QGridLayout()
-        colors = ["nocs", "cyan", "magenta", 
-                "yellow", "lime", "deepskyblue", "latlon", "salmon", 
-                "silver", "aquamarine", "plum", "blueviolet"]
+        colors = ["nocs", "cyan", "magenta", "yellow", "lime", "dodgerblue", "latlon", "darkviolet", "darkorange", "forestgreen"]
 
         button_count = 0
         for i in range(2):
-            for j in range(6):
+            for j in range(5):
                 name = f"{colors[button_count]}"
                 button = QtWidgets.QPushButton(name)
                 button.clicked.connect(lambda _, idx=name: on_button_click(str(idx)))
