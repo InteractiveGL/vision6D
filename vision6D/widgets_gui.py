@@ -93,7 +93,7 @@ class VideoSampler(QtWidgets.QDialog):
         layout.addWidget(self.slider)
 
         # Create QLabel for the bottom
-        self.label_frame_rate = QtWidgets.QLabel(f"Frame rate is {self.fps} fps, Output size {int(self.frame_count // self.fps)} images", self)
+        self.label_frame_rate = QtWidgets.QLabel(f"Frame per step: {self.fps}, Total output size: {round(self.frame_count // self.fps)} images", self)
         font = QtGui.QFont('Times', 14)
         self.label_frame_rate.setFont(font)
         self.label_frame_rate.setContentsMargins(0, 0, 0, 0)
@@ -106,7 +106,7 @@ class VideoSampler(QtWidgets.QDialog):
         if snap_value == 0: snap_value = value
         self.slider.setValue(snap_value)
         self.fps = snap_value
-        self.label_frame_rate.setText(f"Frame rate: {self.fps} fps, Total outputs: {self.frame_count // self.fps} images")
+        self.label_frame_rate.setText(f"Frame per step: {self.fps}, Total output size: {round(self.frame_count // self.fps)} images")
 
 class VideoPlayer(QtWidgets.QDialog):
     def __init__(self, video_path, current_frame):
