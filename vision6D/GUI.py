@@ -703,10 +703,10 @@ class Interface(MyMainWindow):
             self.current_frame = 0
             self.video_player = vis.VideoPlayer(self.video_path, self.current_frame)
             self.play_video_button.setText("Play Video")
-            self.load_per_frame_info(True)
             self.output_text.append(f"-> Load video {self.video_path} into vision6D")
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
             self.fps = round(self.video_player.fps)
+            self.load_per_frame_info(True)
             self.sample_video()
             
     def add_image_file(self, prompt=True):

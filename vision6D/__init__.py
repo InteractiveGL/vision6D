@@ -30,7 +30,7 @@ LOGGING_CONFIG = {
 logging.config.dictConfig(LOGGING_CONFIG)
 
 from .mainwindow import MyMainWindow
-from .gui import Interface
+from .GUI import Interface
 from . import utils
 from .widgets_gui import (VideoSampler, 
                         VideoPlayer,
