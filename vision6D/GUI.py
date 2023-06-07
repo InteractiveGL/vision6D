@@ -619,28 +619,15 @@ class Interface(MyMainWindow):
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button is not None:
-            button_name = checked_button.text()
-            if button_name == 'image':
-                spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.image_spacing))
-                if ok:
-                    try: self.image_spacing = ast.literal_eval(spacing)
-                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    self.add_image(self.image_path)
-            elif button_name == 'mask':
-                spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mask_spacing))
-                if ok:
-                    try: self.mask_spacing = ast.literal_eval(spacing)
-                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    self.add_mask(self.mask_path)
-            elif button_name in self.mesh_actors:
+            actor_name = checked_button.text()
+            if actor_name in self.mesh_actors:
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
                 if ok:
-                    actor_name = checked_button.text()
                     try: self.mesh_spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     self.add_mesh(actor_name, self.meshdict[actor_name])
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def add_workspace(self):
         workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
@@ -683,6 +670,7 @@ class Interface(MyMainWindow):
                     # save each frame
                     save_frame.save(output_frame_path)
                     self.output_text.append(f"-> Save frame {self.current_frame}: ({self.current_frame}/{self.video_player.frame_count})")
+                    self.image_path = str(output_frame_path)
 
                     # save gt_pose for each frame
                     self.current_pose()
@@ -715,7 +703,7 @@ class Interface(MyMainWindow):
             self.current_frame = 0
             self.video_player = vis.VideoPlayer(self.video_path, self.current_frame)
             self.play_video_button.setText("Play Video")
-            self.load_per_frame_info()
+            self.load_per_frame_info(True)
             self.output_text.append(f"-> Load video {self.video_path} into vision6D")
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
             self.fps = round(self.video_player.fps)
@@ -1194,8 +1182,7 @@ class Interface(MyMainWindow):
     def next_frame(self):
         if self.video_path != None and self.video_path != '':
             # save pose from the previous frame 
-            pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
-            if not os.path.isfile(pose_path): self.load_per_frame_info(save=True)
+            self.load_per_frame_info(save=True)
             current_frame = self.video_player.current_frame + self.fps
             if current_frame <= self.video_player.frame_count: self.current_frame = current_frame
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
