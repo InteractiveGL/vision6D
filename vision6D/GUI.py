@@ -689,8 +689,8 @@ class Interface(MyMainWindow):
     def sample_video(self):
         if self.video_path != '' and self.video_path is not None:
             self.video_sampler = vis.VideoSampler(self.video_player, self.fps)
-            self.video_sampler.exec_()
-            self.fps = round(self.video_sampler.fps)
+            res = self.video_sampler.exec_()
+            if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
@@ -1156,18 +1156,19 @@ class Interface(MyMainWindow):
 
     def play_video(self):
         if self.video_path != None and self.video_path != '':
-            self.video_player.exec_()
-            self.current_frame = self.video_player.current_frame
-            self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-            self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
-            self.load_per_frame_info()
+            res = self.video_player.exec_()
+            if res == QtWidgets.QDialog.Accepted:
+                self.current_frame = self.video_player.current_frame
+                self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
+                self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
+                self.load_per_frame_info()
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
     
     def prev_frame(self):
         if self.video_path != None and self.video_path != '':
-            current_frame = self.video_player.current_frame - self.fps
+            current_frame = self.current_frame - self.fps
             if current_frame >= 0: self.current_frame = current_frame
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
             pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
@@ -1187,10 +1188,10 @@ class Interface(MyMainWindow):
         if self.video_path != None and self.video_path != '':
             # save pose from the previous frame 
             self.load_per_frame_info(save=True)
-            current_frame = self.video_player.current_frame + self.fps
+            current_frame = self.current_frame + self.fps
             if current_frame <= self.video_player.frame_count: self.current_frame = current_frame
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-            # load pose for the current frame if the pose file exist
+            # load pose for the current frame if the pose exist
             pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
             if os.path.isfile(pose_path): 
                 self.transformation_matrix = np.load(pose_path)

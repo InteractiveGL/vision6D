@@ -80,33 +80,58 @@ class VideoSampler(QtWidgets.QDialog):
         label2.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(label2, alignment=Qt.AlignCenter)
 
-        self.slider = QtWidgets.QSlider(Qt.Horizontal)
-        self.slider.setMinimum(1)
-        # At least 5 samples
-        self.slider.setMaximum(int(self.frame_count // 10))
-        self.slider.setValue(self.fps)
-        self.slider.setTickPosition(QtWidgets.QSlider.NoTicks)
-        self.slider.setTickInterval(self.fps)
-        self.slider.setSingleStep(self.fps)
-        self.slider.valueChanged.connect(self.slider_moved)
-
-        layout.addWidget(self.slider)
-
-        # Create QLabel for the bottom
-        self.label_frame_rate = QtWidgets.QLabel(f"Frame per step: {self.fps}, Total output size: {round(self.frame_count // self.fps)} images", self)
-        font = QtGui.QFont('Times', 14)
+        hlayout = QtWidgets.QGridLayout()
+        self.label_frame_rate = QtWidgets.QLabel(f"Frame per step: ")
+        self.label_frame_rate.setContentsMargins(80, 0, 0, 0)
         self.label_frame_rate.setFont(font)
-        self.label_frame_rate.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.label_frame_rate, alignment=Qt.AlignCenter)
+        hlayout.addWidget(self.label_frame_rate, 0, 0)
+        self.step_spinbox = QtWidgets.QSpinBox()
+        self.step_spinbox.setMinimum(1)
+        self.step_spinbox.setMaximum(self.frame_count)
+        self.step_spinbox.setValue(self.fps)
+        self.step_spinbox.valueChanged.connect(self.step_spinbox_value_changed)
+        hlayout.addWidget(self.step_spinbox, 0, 1)
+        self.output_size_label = QtWidgets.QLabel(f"Total output images: ")
+        self.output_size_label.setContentsMargins(80, 0, 0, 0)
+        self.output_size_label.setFont(font)
+        hlayout.addWidget(self.output_size_label, 0, 2)
+        self.output_spinbox = QtWidgets.QSpinBox()
+        self.output_spinbox.setMinimum(1)
+        self.output_spinbox.setMaximum(self.frame_count)
+        self.output_spinbox.setValue(round(self.frame_count // self.fps))
+        self.output_spinbox.valueChanged.connect(self.output_spinbox_value_changed)
+        hlayout.addWidget(self.output_spinbox, 0, 3)
+        layout.addLayout(hlayout)
+
+        line = QtWidgets.QFrame(self)
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        line.setStyleSheet("color: grey")
+        layout.addWidget(line)
+
+        accept_button = QtWidgets.QPushButton('Choose Frame Rate', self)
+        font = QtGui.QFont('Times', 12); font.setBold(True)
+        accept_button.setFont(font)
+        accept_button.setFixedSize(300, 40)
+        accept_button.clicked.connect(self.accept)
+        layout.addWidget(accept_button, alignment=Qt.AlignRight)
+
         self.setLayout(layout)
 
-    def slider_moved(self, value):
-        tick_interval = self.slider.tickInterval()
-        snap_value = int(round(value / tick_interval)) * tick_interval
-        if snap_value == 0: snap_value = value
-        self.slider.setValue(snap_value)
-        self.fps = snap_value
-        self.label_frame_rate.setText(f"Frame per step: {self.fps}, Total output size: {round(self.frame_count // self.fps)} images")
+    def step_spinbox_value_changed(self, value):
+        self.fps = value
+        self.output_spinbox.setValue(round(self.frame_count // self.fps))
+        
+    def output_spinbox_value_changed(self, value):
+        self.fps = round(self.frame_count // value)
+        self.step_spinbox.setValue(self.fps)
+
+    def closeEvent(self, event):
+        event.ignore()
+        super().closeEvent(event)
+
+    def accept(self):
+        super().accept()
 
 class VideoPlayer(QtWidgets.QDialog):
     def __init__(self, video_path, current_frame):
@@ -164,6 +189,19 @@ class VideoPlayer(QtWidgets.QDialog):
 
         self.layout.addLayout(self.button_layout)
 
+        line = QtWidgets.QFrame(self)
+        line.setFrameShape(QtWidgets.QFrame.HLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        line.setStyleSheet("color: grey")
+        self.layout.addWidget(line)
+
+        accept_button = QtWidgets.QPushButton('Set selected frame', self)
+        font = QtGui.QFont('Times', 12); font.setBold(True)
+        accept_button.setFont(font)
+        accept_button.setFixedSize(400, 40)
+        accept_button.clicked.connect(self.accept)
+        self.layout.addWidget(accept_button, alignment=Qt.AlignRight)
+
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.next_frame)
         self.isPlaying = False
@@ -211,6 +249,13 @@ class VideoPlayer(QtWidgets.QDialog):
             convert_to_qt_format = QtGui.QImage(rgb_image.tobytes(), w, h, bytes_per_line, QtGui.QImage.Format_RGB888)
             p = convert_to_qt_format.scaled(*self.video_size, QtCore.Qt.KeepAspectRatio)
             self.label.setPixmap(QtGui.QPixmap.fromImage(p))
+
+    def closeEvent(self, event):
+        event.ignore()
+        super().closeEvent(event)
+
+    def accept(self):
+        super().accept()
 
 class YesNoBox(QtWidgets.QMessageBox):
     def __init__(self, *args, **kwargs):
