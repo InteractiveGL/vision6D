@@ -129,7 +129,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Image', self.add_image_file)
         fileMenu.addAction('Add Mask', self.add_mask_file)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
-        fileMenu.addAction('Delete Video', self.delete_video)
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -144,6 +143,7 @@ class MyMainWindow(MainWindow):
         VideoMenu = mainMenu.addMenu('Video')
         VideoMenu.addAction('Play', self.play_video)
         VideoMenu.addAction('Sample', self.sample_video)
+        VideoMenu.addAction('Delete', self.delete_video)
         save_per_frame_info = functools.partial(self.load_per_frame_info, save=True)
         VideoMenu.addAction('Save Frame', save_per_frame_info)
         VideoMenu.addAction('Prev Frame', self.prev_frame)

@@ -1169,37 +1169,39 @@ class Interface(MyMainWindow):
     def prev_frame(self):
         if self.video_path != None and self.video_path != '':
             current_frame = self.current_frame - self.fps
-            if current_frame >= 0: self.current_frame = current_frame
-            self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-            pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
-            if os.path.isfile(pose_path): 
-                self.transformation_matrix = np.load(pose_path)
-                self.register_pose(self.transformation_matrix)
-                self.output_text.append(f"-> Load saved frame {self.current_frame} pose: \n{self.transformation_matrix}")
-            else: self.output_text.append(f"-> No saved pose for frame {self.current_frame}")
-            self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
-            self.video_player.slider.setValue(self.current_frame)
-            self.load_per_frame_info()
+            if current_frame >= 0: 
+                self.current_frame = current_frame
+                self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
+                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
+                if os.path.isfile(pose_path): 
+                    self.transformation_matrix = np.load(pose_path)
+                    self.register_pose(self.transformation_matrix)
+                    self.output_text.append(f"-> Load saved frame {self.current_frame} pose: \n{self.transformation_matrix}")
+                else: self.output_text.append(f"-> No saved pose for frame {self.current_frame}")
+                self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
+                self.video_player.slider.setValue(self.current_frame)
+                self.load_per_frame_info()
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
     def next_frame(self):
         if self.video_path != None and self.video_path != '':
-            # save pose from the previous frame 
-            self.load_per_frame_info(save=True)
             current_frame = self.current_frame + self.fps
-            if current_frame <= self.video_player.frame_count: self.current_frame = current_frame
-            self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-            # load pose for the current frame if the pose exist
-            pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
-            if os.path.isfile(pose_path): 
-                self.transformation_matrix = np.load(pose_path)
-                self.register_pose(self.transformation_matrix)
-                self.output_text.append(f"-> Load saved frame {self.current_frame} pose: \n{self.transformation_matrix}")
-            self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
-            self.video_player.slider.setValue(self.current_frame)
-            self.load_per_frame_info()
+            if current_frame <= self.video_player.frame_count: 
+                # save pose from the previous frame 
+                self.load_per_frame_info(save=True)
+                self.current_frame = current_frame
+                self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
+                # load pose for the current frame if the pose exist
+                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
+                if os.path.isfile(pose_path): 
+                    self.transformation_matrix = np.load(pose_path)
+                    self.register_pose(self.transformation_matrix)
+                    self.output_text.append(f"-> Load saved frame {self.current_frame} pose: \n{self.transformation_matrix}")
+                self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
+                self.video_player.slider.setValue(self.current_frame)
+                self.load_per_frame_info()
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
