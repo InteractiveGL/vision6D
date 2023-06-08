@@ -133,12 +133,12 @@ class MyMainWindow(MainWindow):
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
-        exportMenu.addAction('Image Render', self.export_image_plot)
-        exportMenu.addAction('Mask Render', self.export_mask_plot)
-        exportMenu.addAction('Mesh Render', self.export_mesh_plot)
-        exportMenu.addAction('SegMesh Render', self.export_segmesh_plot)
+        exportMenu.addAction('Image', self.export_image)
+        exportMenu.addAction('Mask', self.export_mask)
         exportMenu.addAction('Pose', self.export_pose)
-
+        exportMenu.addAction('Mesh Render', self.export_mesh_render)
+        exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
+        
         # Add video related actions
         VideoMenu = mainMenu.addMenu('Video')
         VideoMenu.addAction('Play', self.play_video)

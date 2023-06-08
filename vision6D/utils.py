@@ -353,7 +353,7 @@ def latLon2xyz(m,lat,lonf,msk,gx,gy):
                 xyz.append(xyznode(m.vertices[f[1]] + e * (m.vertices[f[2]] - m.vertices[f[1]]),d3))
     return np.min(xyz).pnt
 
-def get_image_mask_actor_scalars(actor):
+def get_image_actor_scalars(actor):
     input = actor.GetMapper().GetInput()
     shape = input.GetDimensions()[::-1]
     point_data = input.GetPointData().GetScalars()
@@ -361,6 +361,11 @@ def get_image_mask_actor_scalars(actor):
     if len(point_array.shape) == 1: point_array = point_array.reshape(*point_array.shape, 1)
     scalars = point_array.reshape(*shape[1:], point_array.shape[-1])
     return scalars
+
+def get_mask_actor_points(actor):
+    input = actor.GetMapper().GetInput()
+    points = input.GetPoints().GetData()
+    return vtknp.vtk_to_numpy(points)
 
 def get_mesh_actor_vertices_faces(actor):
     input = actor.GetMapper().GetInput()

@@ -50,11 +50,10 @@ class Interface(MyMainWindow):
         self.mesh_opacity = {}
         self.store_mesh_opacity = {}
         self.image_opacity = 0.8
-        self.mask_opacity = 0.1
+        self.mask_opacity = 0.3
         self.surface_opacity = self.opacity_spinbox.value()
         
-        self.image_spacing = [0.01, 0.01, 1]
-        self.mask_spacing = [0.01, 0.01, 1]
+        # Set mesh spacing
         self.mesh_spacing = [1, 1, 1]
         
         # Set the camera
@@ -142,8 +141,7 @@ class Interface(MyMainWindow):
 
         if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
-        if len(image_source.shape) == 2: 
-            image_source = image_source[..., None]
+        if len(image_source.shape) == 2: image_source = image_source[..., None]
 
         if self.mirror_x: image_source = image_source[:, ::-1, :]
         if self.mirror_y: image_source = image_source[::-1, :, :]
@@ -155,7 +153,7 @@ class Interface(MyMainWindow):
         self.render = pv.Plotter(window_size=[w, h], lighting=None, off_screen=True) 
         self.render.set_background('black'); assert self.render.background_color == "black", "render's background need to be black"
 
-        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.image_spacing, origin=(0.0, 0.0, 0.0))
+        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01, 0.01, 1], origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)
 
@@ -166,7 +164,7 @@ class Interface(MyMainWindow):
         self.image_actor = actor
         
         # get the image scalar
-        image_data = vis.utils.get_image_mask_actor_scalars(self.image_actor)
+        image_data = vis.utils.get_image_actor_scalars(self.image_actor)
         assert (image_data == image_source).all() or (image_data*255 == image_source).all(), "image_data and image_source should be equal"
 
         # add remove current image to removeMenu
@@ -180,30 +178,38 @@ class Interface(MyMainWindow):
 
         if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
-        if len(mask_source.shape) == 2: 
-            mask_source = mask_source[..., None]
-
-        if self.mirror_x: mask_source = mask_source[:, ::-1, :]
-        if self.mirror_y: mask_source = mask_source[::-1, :, :]
-
-        dim = mask_source.shape
-        h, w, channel = dim[0], dim[1], dim[2]
         
-        mask = pv.UniformGrid(dimensions=(w, h, 1), spacing=self.mask_spacing, origin=(0.0, 0.0, 0.0))
-        mask.point_data["values"] = mask_source.reshape((w * h, channel)) # order = 'C
-        mask = mask.translate(-1 * np.array(mask.center), inplace=False)
+        # Get the segmentation contour points
+        contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        points2d = contours[0].squeeze()
+        
+        # Mirror points
+        h, w = mask_source.shape[0], mask_source.shape[1]
+        if self.mirror_x: points2d[:, 0] = w - points2d[:, 0]
+        if self.mirror_y: points2d[:, 1] = h - points2d[:, 1]
 
-        # Then add it to the plotter
-        mask = self.plotter.add_mesh(mask, cmap='gray', opacity=self.mask_opacity, name='mask') if channel == 1 else self.plotter.add_mesh(mask, rgb=True, opacity=self.mask_opacity, name='mask')
-        actor, _ = self.plotter.add_actor(mask, pickable=False, name='mask')
-        # Save actor for later
+        bottom_point = points2d[np.argmax(points2d[:, 1])]
+
+        mask_center = (mask_source.shape[1] // 2, mask_source.shape[0] // 2)
+
+        self.mask_offset = np.hstack(((bottom_point - mask_center)*0.01, 0))
+
+        points = np.hstack((points2d*0.01, np.zeros(points2d.shape[0]).reshape((-1, 1))))
+        mask = pv.wrap(points)
+        lines = np.hstack([[points.shape[0]+1], np.arange(points.shape[0]), 0])
+        mask.lines = lines
+        self.mask_bottom_point = mask.points[np.argmax(mask.points[:, 1])]
+        mask = mask.translate(-self.mask_bottom_point+self.mask_offset, inplace=False)
+
+        # Add mask to the plot
+        mask_mesh = self.plotter.add_mesh(mask, color="blue", opacity=self.mask_opacity, line_width=2, point_size=0.01, show_edges=True)
+        actor, _ = self.plotter.add_actor(mask_mesh, pickable=False, name='mask')
         self.mask_actor = actor
 
-        # get the image scalar
-        mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
-        assert (mask_data == mask_source).all() or (mask_data*255 == mask_source).all(), "mask_data and mask_source should be equal"
+        mask_point_data = vis.utils.get_mask_actor_points(self.mask_actor)
+        assert np.isclose(((mask_point_data+self.mask_bottom_point-self.mask_offset) - points), 0).all(), "mask_point_data and points should be equal"
 
-        # add remove current image to removeMenu
+        # Add remove current image to removeMenu
         if 'mask' not in self.track_actors_names:
             self.track_actors_names.append('mask')
             self.add_button_actor_name('mask')
@@ -295,6 +301,16 @@ class Interface(MyMainWindow):
                 self.button_actor_name_clicked(actor_name)
                 break
 
+    def add_button_actor_name(self, actor_name):
+        button = QtWidgets.QPushButton(actor_name)
+        button.setCheckable(True)  # Set the button to be checkable
+        button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
+        button.setChecked(True)
+        button.setFixedSize(self.display.size().width(), 50)
+        self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
+        self.button_group_actors_names.addButton(button)
+        self.button_actor_name_clicked(actor_name)
+
     def pick_callback(self, obj, *args):
         x, y = obj.GetEventPosition()
         picker = vtk.vtkCellPicker()
@@ -345,186 +361,51 @@ class Interface(MyMainWindow):
             if current_opacity < 0: current_opacity = 0
         self.opacity_spinbox.setValue(current_opacity)
 
-    def set_scalar(self, nocs, actor_name):
-        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
-        vertices_color = vertices
-        if self.mirror_x: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        if self.mirror_y: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        # get the corresponding color
-        colors = vis.utils.color_mesh(vertices_color, nocs=nocs)
-        if colors.shape != vertices.shape: 
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
-        assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-        # color the mesh and actor
-        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.mesh_opacity[actor_name], name=actor_name)
-        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
-        mesh.user_matrix = transformation_matrix
-        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
-        actor_colors = vis.utils.get_mesh_actor_scalars(actor)
-        assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
-        assert actor.name == actor_name, "actor's name should equal to actor_name"
-        self.mesh_actors[actor_name] = actor
-
-    def set_color(self, color, actor_name):
-        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
-        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.mesh_opacity[actor_name], name=actor_name)
-        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
-        mesh.user_matrix = transformation_matrix
-        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
-        assert actor.name == actor_name, "actor's name should equal to actor_name"
-        self.mesh_actors[actor_name] = actor
-        
-    def nocs_epnp(self, color_mask, mesh):
-        vertices = mesh.vertices
-        pts3d, pts2d = vis.utils.create_2d_3d_pairs(color_mask, vertices)
-        pts2d = pts2d.astype('float32')
-        pts3d = pts3d.astype('float32')
-        camera_intrinsics = self.camera_intrinsics.astype('float32')
-        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
-        return predicted_pose
-
-    def latlon_epnp(self, color_mask, mesh):
-        binary_mask = vis.utils.color2binary_mask(color_mask)
-        idx = np.where(binary_mask == 1)
-        # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
-        idx = idx[:2][::-1]
-        pts2d = np.stack((idx[0], idx[1]), axis=1)
-        pts3d = []
-        
-        # Obtain the rg color
-        color = color_mask[pts2d[:,1], pts2d[:,0]][..., :2]
-        if np.max(color) > 1: color = color / 255
-        gx = color[:, 0]
-        gy = color[:, 1]
-
-        lat = np.array(self.latlon[..., 0])
-        lon = np.array(self.latlon[..., 1])
-        lonf = lon[mesh.faces]
-        msk = (np.sum(lonf>=0, axis=1)==3) & (np.sum(lat[mesh.faces]>=0, axis=1)==3)
-        for i in range(len(pts2d)):
-            pt = vis.utils.latLon2xyz(mesh, lat, lonf, msk, gx[i], gy[i])
-            pts3d.append(pt)
-       
-        pts3d = np.array(pts3d).reshape((len(pts3d), 3))
-
-        pts2d = pts2d.astype('float32')
-        pts3d = pts3d.astype('float32')
-        camera_intrinsics = self.camera_intrinsics.astype('float32')
-        
-        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
-
-        return predicted_pose
-
-    def epnp_mesh(self):
-        if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
-        if self.reference is not None:
-            colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
-            if colors is None or (np.all(colors == colors[0])):
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
-            color_mask = self.export_mesh_plot(QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, save_render=False)
-            gt_pose = self.mesh_actors[self.reference].user_matrix
-            if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-            if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-
-            if np.sum(color_mask) == 0:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
-                
-            if self.mesh_colors[self.reference] == 'nocs':
-                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
-                mesh = trimesh.Trimesh(vertices, faces, process=False)
-                predicted_pose = self.nocs_epnp(color_mask, mesh)
-                if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                error = np.sum(np.abs(predicted_pose - gt_pose))
-                self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
-                self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
-
-            else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
+    def opacity_value_change(self, value):
+        if self.ignore_spinbox_value_change: return 0
+        checked_button = self.button_group_actors_names.checkedButton()
+        if checked_button is not None:
+            actor_name = checked_button.text()
+            if actor_name == 'image': 
+                self.set_image_opacity(value)
+            elif actor_name == 'mask': 
+                self.set_mask_opacity(value)
+            elif actor_name in self.mesh_actors: 
+                self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
+                self.mesh_opacity[actor_name] = value
+                self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            self.ignore_spinbox_value_change = True
+            self.opacity_spinbox.setValue(value)
+            self.ignore_spinbox_value_change = False
             return 0
-
-    def epnp_mask(self, nocs_method):
-        if self.mask_actor is not None:
-            mask_data = vis.utils.get_image_mask_actor_scalars(self.mask_actor)
-            if np.max(mask_data) > 1: mask_data = mask_data / 255
-
-            # binary mask
-            if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
-                if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
-                if self.reference is not None:
-                    colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
-                    if colors is None or (np.all(colors == colors[0])):
-                        QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                        return 0
-                    color_mask = self.export_mesh_plot(QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, save_render=False)
-                    nocs_color = (self.mesh_colors[self.reference] == 'nocs')
-                    gt_pose = self.mesh_actors[self.reference].user_matrix
-                    if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-                    if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-                    vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
-                    mesh = trimesh.Trimesh(vertices, faces, process=False)
-                else: 
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    return 0
-                color_mask = (color_mask * mask_data).astype(np.uint8)
-            # color mask
-            else:
-                color_mask = mask_data
-                if np.sum(color_mask) != 0:
-                    unique, counts = np.unique(color_mask, return_counts=True)
-                    digit_counts = dict(zip(unique, counts))
-                    if digit_counts[0] == np.max(counts): 
-                        nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
-
-                        # Set the pose information if the format is correct
-                        res = self.set_pose()
-                        if res is None: return 0
-                        
-                        gt_pose = self.transformation_matrix
-                                                
-                        # add the mesh object file
-                        QtWidgets.QMessageBox.information(self, "Information", "Please load the corresponding mesh")
-                        
-                        self.add_mesh_file(prompt=True)
-                        if self.mesh_path != '':
-                            checked_button = self.button_group_actors_names.checkedButton()
-                            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[checked_button.text()])
-                            mesh = trimesh.Trimesh(vertices, faces, process=False)
-                        else: return 0
-                    else:
-                        QtWidgets.QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                        return 0
         
-            if np.sum(color_mask) == 0:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
-                
-            if nocs_method == nocs_color:
-                if nocs_method: 
-                    color_theme = 'NOCS'
-                    predicted_pose = self.nocs_epnp(color_mask, mesh)
-                    if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                    if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                else: 
-                    color_theme = 'LATLON'
-                    if self.mirror_x: color_mask = color_mask[:, ::-1, :]
-                    if self.mirror_y: color_mask = color_mask[::-1, :, :]
-                    predicted_pose = self.latlon_epnp(color_mask, mesh)
-                error = np.sum(np.abs(predicted_pose - gt_pose))
-                self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
-                self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
-            else:
-                QtWidgets.QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
+    def toggle_hide_meshes_button(self):
+        self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
+        
+        if self.toggle_hide_meshes_flag:
+            for button in self.button_group_actors_names.buttons():
+                if button.text() in self.mesh_actors:
+                    button.setChecked(True); self.opacity_value_change(0)
+    
+            checked_button = self.button_group_actors_names.checkedButton()
+            if checked_button is not None: 
+                self.ignore_spinbox_value_change = True
+                self.opacity_spinbox.setValue(0.0)
+                self.ignore_spinbox_value_change = False
+            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        
         else:
-            QtWidgets.QMessageBox.warning(self,"vision6D", "please load a mask first")
+            for button in self.button_group_actors_names.buttons():
+                if button.text() in self.mesh_actors:
+                    button.setChecked(True); self.opacity_value_change(self.store_mesh_opacity[button.text()])
+
+            checked_button = self.button_group_actors_names.checkedButton()
+            if checked_button is not None:
+                self.ignore_spinbox_value_change = True
+                if checked_button.text() in self.mesh_actors: self.opacity_spinbox.setValue(self.mesh_opacity[checked_button.text()])
+                self.ignore_spinbox_value_change = False
+            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def set_camera_extrinsics(self):
         self.camera.SetPosition((0,0,self.cam_position))
@@ -561,7 +442,7 @@ class Interface(MyMainWindow):
             original_image = original_image[..., :3]
             if len(original_image.shape) == 2: original_image = original_image[..., None]
             if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
-            calibrated_image = np.array(self.render_image(self.image_actor, self.plotter.camera.copy()), dtype='uint8')
+            calibrated_image = np.array(self.render_image(self.plotter.camera.copy()), dtype='uint8')
             if original_image.shape != calibrated_image.shape:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Original image shape is not equal to calibrated image shape!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
@@ -616,19 +497,6 @@ class Interface(MyMainWindow):
         else: 
             return None
 
-    def set_spacing(self):
-        checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button is not None:
-            actor_name = checked_button.text()
-            if actor_name in self.mesh_actors:
-                spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
-                if ok:
-                    try: self.mesh_spacing = ast.literal_eval(spacing)
-                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    self.add_mesh(actor_name, self.meshdict[actor_name])
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
     def add_workspace(self):
         workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path != '':
@@ -657,44 +525,7 @@ class Interface(MyMainWindow):
             
             # reset camera
             self.reset_camera()
-
-    def load_per_frame_info(self, save=False):
-        if self.video_path is not None and self.video_path != '':
-            self.video_player.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
-            ret, frame = self.video_player.cap.read()
-            if ret: 
-                video_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                self.add_image(video_frame)
-                if save:
-                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D", exist_ok=True)
-                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "frames", exist_ok=True)
-                    output_frame_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "frames" / f"frame_{self.current_frame}.png"
-                    save_frame = PIL.Image.fromarray(video_frame)
-                    
-                    # save each frame
-                    save_frame.save(output_frame_path)
-                    self.output_text.append(f"-> Save frame {self.current_frame}: ({self.current_frame}/{self.video_player.frame_count})")
-                    self.image_path = str(output_frame_path)
-
-                    # save gt_pose for each frame
-                    self.current_pose()
-                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses", exist_ok=True)
-                    output_pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
-                    np.save(output_pose_path, self.transformation_matrix)
-                    self.output_text.append(f"-> Save frame {self.current_frame} pose: \n{self.transformation_matrix}")
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
-    
-    def sample_video(self):
-        if self.video_path != '' and self.video_path is not None:
-            self.video_sampler = vis.VideoSampler(self.video_player, self.fps)
-            res = self.video_sampler.exec_()
-            if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
-        
+   
     def add_video_file(self, prompt=True):
         if prompt:
             if self.video_path == None or self.video_path == '':
@@ -736,7 +567,6 @@ class Interface(MyMainWindow):
         if self.mask_path != '' and self.mask_path is not None:
             self.hintLabel.hide()
             mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
-            if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
             self.add_mask(mask_source)
 
     def add_mesh_file(self, prompt=True):
@@ -865,7 +695,13 @@ class Interface(MyMainWindow):
 
         # clear out the plot if there is no actor
         if self.image_actor is None and self.mask_actor is None and len(self.mesh_actors) == 0: self.clear_plot()
-   
+
+    def remove_actors_button(self):
+        checked_button = self.button_group_actors_names.checkedButton()
+        if checked_button is None: 
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: self.remove_actor(checked_button)
+
     def clear_plot(self):
         
         # Clear out everything in the remove menu
@@ -898,11 +734,9 @@ class Interface(MyMainWindow):
         self.mesh_opacity = {}
         self.store_mesh_opacity = {}
         self.image_opacity = 0.8
-        self.mask_opacity = 0.1
+        self.mask_opacity = 0.3
         self.surface_opacity = self.opacity_spinbox.value()
 
-        self.image_spacing = [0.01, 0.01, 1]
-        self.mask_spacing = [0.01, 0.01, 1]
         self.mesh_spacing = [1, 1, 1]
 
         self.mirror_x = False
@@ -922,9 +756,9 @@ class Interface(MyMainWindow):
 
         self.clear_output_text()
 
-    def render_image(self, actor, camera):
+    def render_image(self, camera):
         self.render.clear()
-        render_actor = actor.copy(deep=True)
+        render_actor = self.image_actor.copy(deep=True)
         render_actor.GetProperty().opacity = 1
         self.render.add_actor(render_actor, pickable=False)
         self.render.camera = camera
@@ -933,6 +767,19 @@ class Interface(MyMainWindow):
         image = self.render.last_image
         return image
     
+    def render_mask(self):
+        mask_point_data = vis.utils.get_mask_actor_points(self.mask_actor)
+        points3d = mask_point_data+self.mask_bottom_point-self.mask_offset
+        points = points3d[..., :2] * 100
+        # Data type need to be np.int32
+        points = points.astype('int32')
+
+        # get polymask from given points
+        w, h = self.render.window_size
+        mask = np.zeros((h, w), dtype=np.uint8)
+        image = cv2.fillPoly(mask, [points], 255)
+        return image
+
     def render_mesh(self, render_all_meshes, camera, point_clouds):
         self.render.clear()
         for mesh_name, mesh_actor in self.mesh_actors.items():
@@ -953,7 +800,7 @@ class Interface(MyMainWindow):
         image = self.render.last_image
         return image
 
-    def export_image_plot(self):
+    def export_image(self):
 
         if self.image_actor is None:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -963,7 +810,7 @@ class Interface(MyMainWindow):
         if reply == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
         else: camera = self.plotter.camera.copy()
 
-        image = self.render_image(self.image_actor, camera)
+        image = self.render_image(camera)
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
         if output_path:
             if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
@@ -971,24 +818,31 @@ class Interface(MyMainWindow):
             rendered_image.save(output_path)
             self.output_text.append(f"-> Export image render to:\n {str(output_path)}")
 
-    def export_mask_plot(self):
+    def export_mask(self):
         if self.mask_actor is None:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a mask first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        reply = QtWidgets.QMessageBox.question(self,"vision6D", "Reset Camera?", QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-        if reply == QtWidgets.QMessageBox.Yes: camera = self.camera.copy()
-        else: camera = self.plotter.camera.copy()
-
-        image = self.render_image(self.mask_actor, camera)
+        image = self.render_mask()
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
         if output_path:
             if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             self.output_text.append(f"-> Export mask render to:\n {str(output_path)}")
+   
+    def export_pose(self):
+        if self.reference is None: 
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+        self.update_gt_pose()
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Pose Files (*.npy)")
+        if output_path:
+            if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.npy')
+            np.save(output_path, self.transformation_matrix)
+            self.output_text.append(f"-> Saved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
 
-    def export_mesh_plot(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, save_render=True):
+    def export_mesh_render(self, reply_reset_camera=None, reply_render_mesh=None, reply_export_surface=None, save_render=True):
 
         if self.reference is None:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -1018,7 +872,7 @@ class Interface(MyMainWindow):
 
         return image
 
-    def export_segmesh_plot(self):
+    def export_segmesh_render(self):
 
         if self.reference is None:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -1036,7 +890,7 @@ class Interface(MyMainWindow):
         if reply_export_surface == QtWidgets.QMessageBox.No: point_clouds = True
         else: point_clouds = False
 
-        segmask = self.render_image(self.mask_actor, camera)
+        segmask = self.render_mask(self.mask_actor)
         if np.max(segmask) > 1: segmask = segmask / 255
         image = self.render_mesh(False, camera, point_clouds)
         image = (image * segmask).astype(np.uint8)
@@ -1046,33 +900,207 @@ class Interface(MyMainWindow):
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             self.output_text.append(f"-> Export segmask render:\n to {str(output_path)}")
-        
-    def export_pose(self):
-        if self.reference is None: 
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
+    def set_spacing(self):
+        checked_button = self.button_group_actors_names.checkedButton()
+        if checked_button is not None:
+            actor_name = checked_button.text()
+            if actor_name in self.mesh_actors:
+                spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
+                if ok:
+                    try: self.mesh_spacing = ast.literal_eval(spacing)
+                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    self.add_mesh(actor_name, self.meshdict[actor_name])
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
+    def set_scalar(self, nocs, actor_name):
+        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
+        vertices_color = vertices
+        if self.mirror_x: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.mirror_y: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        # get the corresponding color
+        colors = vis.utils.color_mesh(vertices_color, nocs=nocs)
+        if colors.shape != vertices.shape: 
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
-        self.update_gt_pose()
-        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Pose Files (*.npy)")
-        if output_path:
-            if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.npy')
-            np.save(output_path, self.transformation_matrix)
-            self.output_text.append(f"-> Saved:\n{self.transformation_matrix}\nExport to:\n {str(output_path)}")
+        assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
+        # color the mesh and actor
+        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+        mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.mesh_opacity[actor_name], name=actor_name)
+        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
+        mesh.user_matrix = transformation_matrix
+        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
+        actor_colors = vis.utils.get_mesh_actor_scalars(actor)
+        assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
+        assert actor.name == actor_name, "actor's name should equal to actor_name"
+        self.mesh_actors[actor_name] = actor
+
+    def set_color(self, color, actor_name):
+        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
+        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+        mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.mesh_opacity[actor_name], name=actor_name)
+        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
+        mesh.user_matrix = transformation_matrix
+        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
+        assert actor.name == actor_name, "actor's name should equal to actor_name"
+        self.mesh_actors[actor_name] = actor
+        
+    def nocs_epnp(self, color_mask, mesh):
+        vertices = mesh.vertices
+        pts3d, pts2d = vis.utils.create_2d_3d_pairs(color_mask, vertices)
+        pts2d = pts2d.astype('float32')
+        pts3d = pts3d.astype('float32')
+        camera_intrinsics = self.camera_intrinsics.astype('float32')
+        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+        return predicted_pose
+
+    def latlon_epnp(self, color_mask, mesh):
+        binary_mask = vis.utils.color2binary_mask(color_mask)
+        idx = np.where(binary_mask == 1)
+        # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
+        idx = idx[:2][::-1]
+        pts2d = np.stack((idx[0], idx[1]), axis=1)
+        pts3d = []
+        
+        # Obtain the rg color
+        color = color_mask[pts2d[:,1], pts2d[:,0]][..., :2]
+        if np.max(color) > 1: color = color / 255
+        gx = color[:, 0]
+        gy = color[:, 1]
+
+        lat = np.array(self.latlon[..., 0])
+        lon = np.array(self.latlon[..., 1])
+        lonf = lon[mesh.faces]
+        msk = (np.sum(lonf>=0, axis=1)==3) & (np.sum(lat[mesh.faces]>=0, axis=1)==3)
+        for i in range(len(pts2d)):
+            pt = vis.utils.latLon2xyz(mesh, lat, lonf, msk, gx[i], gy[i])
+            pts3d.append(pt)
+       
+        pts3d = np.array(pts3d).reshape((len(pts3d), 3))
+
+        pts2d = pts2d.astype('float32')
+        pts3d = pts3d.astype('float32')
+        camera_intrinsics = self.camera_intrinsics.astype('float32')
+        
+        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+
+        return predicted_pose
+
+    def epnp_mesh(self):
+        if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
+        if self.reference is not None:
+            colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
+            if colors is None or (np.all(colors == colors[0])):
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                return 0
+            color_mask = self.export_mesh_render(QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, save_render=False)
+            gt_pose = self.mesh_actors[self.reference].user_matrix
+            if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+            if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+
+            if np.sum(color_mask) == 0:
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                return 0
+                
+            if self.mesh_colors[self.reference] == 'nocs':
+                vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+                mesh = trimesh.Trimesh(vertices, faces, process=False)
+                predicted_pose = self.nocs_epnp(color_mask, mesh)
+                if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                error = np.sum(np.abs(predicted_pose - gt_pose))
+                self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
+                self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+
+            else:
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+    def epnp_mask(self, nocs_method):
+        if self.mask_actor is not None:
+            mask_data = self.render_mask()
+            if len(mask_data.shape) == 2: mask_data = mask_data[..., None]
+            if np.max(mask_data) > 1: mask_data = mask_data / 255
+
+            # binary mask
+            if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
+                if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
+                if self.reference is not None:
+                    colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
+                    if colors is None or (np.all(colors == colors[0])):
+                        QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                        return 0
+                    color_mask = self.export_mesh_render(QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.Yes, save_render=False)
+                    nocs_color = (self.mesh_colors[self.reference] == 'nocs')
+                    gt_pose = self.mesh_actors[self.reference].user_matrix
+                    if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+                    if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+                    vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+                    mesh = trimesh.Trimesh(vertices, faces, process=False)
+                else: 
+                    QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    return 0
+                color_mask = (color_mask * mask_data).astype(np.uint8)
+            # color mask
+            else:
+                color_mask = mask_data
+                if np.sum(color_mask) != 0:
+                    unique, counts = np.unique(color_mask, return_counts=True)
+                    digit_counts = dict(zip(unique, counts))
+                    if digit_counts[0] == np.max(counts): 
+                        nocs_color = False if np.sum(color_mask[..., 2]) == 0 else True
+
+                        # Set the pose information if the format is correct
+                        res = self.set_pose()
+                        if res is None: return 0
+                        
+                        gt_pose = self.transformation_matrix
+                                                
+                        # add the mesh object file
+                        QtWidgets.QMessageBox.information(self, "Information", "Please load the corresponding mesh")
+                        
+                        self.add_mesh_file(prompt=True)
+                        if self.mesh_path != '':
+                            checked_button = self.button_group_actors_names.checkedButton()
+                            vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[checked_button.text()])
+                            mesh = trimesh.Trimesh(vertices, faces, process=False)
+                        else: return 0
+                    else:
+                        QtWidgets.QMessageBox.warning(self, 'vision6D', "A color mask need to be loaded", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                        return 0
+        
+            if np.sum(color_mask) == 0:
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                return 0
+                
+            if nocs_method == nocs_color:
+                if nocs_method: 
+                    color_theme = 'NOCS'
+                    predicted_pose = self.nocs_epnp(color_mask, mesh)
+                    if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                    if self.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                else: 
+                    color_theme = 'LATLON'
+                    if self.mirror_x: color_mask = color_mask[:, ::-1, :]
+                    if self.mirror_y: color_mask = color_mask[::-1, :, :]
+                    predicted_pose = self.latlon_epnp(color_mask, mesh)
+                error = np.sum(np.abs(predicted_pose - gt_pose))
+                self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
+                self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+            else:
+                QtWidgets.QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
+        else:
+            QtWidgets.QMessageBox.warning(self,"vision6D", "please load a mask first")
 
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
         
     def clear_output_text(self):
         self.output_text.clear()
-
-    def add_button_actor_name(self, actor_name):
-        button = QtWidgets.QPushButton(actor_name)
-        button.setCheckable(True)  # Set the button to be checkable
-        button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
-        button.setChecked(True)
-        button.setFixedSize(self.display.size().width(), 50)
-        self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
-        self.button_group_actors_names.addButton(button)
-        self.button_actor_name_clicked(actor_name)
 
     def update_color_button_text(self, text, popup):
         self.color_button.setText(text)
@@ -1102,57 +1130,42 @@ class Interface(MyMainWindow):
         elif text == 'latlon': self.set_scalar(False, actor_name)
         else: self.set_color(text, actor_name)
 
-    def remove_actors_button(self):
-        checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button is None: 
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else: self.remove_actor(checked_button)
+    def load_per_frame_info(self, save=False):
+        if self.video_path is not None and self.video_path != '':
+            self.video_player.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
+            ret, frame = self.video_player.cap.read()
+            if ret: 
+                video_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.add_image(video_frame)
+                if save:
+                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D", exist_ok=True)
+                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "frames", exist_ok=True)
+                    output_frame_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "frames" / f"frame_{self.current_frame}.png"
+                    save_frame = PIL.Image.fromarray(video_frame)
+                    
+                    # save each frame
+                    save_frame.save(output_frame_path)
+                    self.output_text.append(f"-> Save frame {self.current_frame}: ({self.current_frame}/{self.video_player.frame_count})")
+                    self.image_path = str(output_frame_path)
 
-    def opacity_value_change(self, value):
-        if self.ignore_spinbox_value_change: return 0
-        checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button is not None:
-            actor_name = checked_button.text()
-            if actor_name == 'image': 
-                self.set_image_opacity(value)
-            elif actor_name == 'mask': 
-                self.set_mask_opacity(value)
-            elif actor_name in self.mesh_actors: 
-                self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
-                self.mesh_opacity[actor_name] = value
-                self.set_mesh_opacity(actor_name, self.mesh_opacity[actor_name])
+                    # save gt_pose for each frame
+                    self.current_pose()
+                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses", exist_ok=True)
+                    output_pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
+                    np.save(output_pose_path, self.transformation_matrix)
+                    self.output_text.append(f"-> Save frame {self.current_frame} pose: \n{self.transformation_matrix}")
         else:
-            self.ignore_spinbox_value_change = True
-            self.opacity_spinbox.setValue(value)
-            self.ignore_spinbox_value_change = False
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
-        
-    def toggle_hide_meshes_button(self):
-        self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
-        
-        if self.toggle_hide_meshes_flag:
-            for button in self.button_group_actors_names.buttons():
-                if button.text() in self.mesh_actors:
-                    button.setChecked(True); self.opacity_value_change(0)
     
-            checked_button = self.button_group_actors_names.checkedButton()
-            if checked_button is not None: 
-                self.ignore_spinbox_value_change = True
-                self.opacity_spinbox.setValue(0.0)
-                self.ignore_spinbox_value_change = False
-            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        
+    def sample_video(self):
+        if self.video_path != '' and self.video_path is not None:
+            self.video_sampler = vis.VideoSampler(self.video_player, self.fps)
+            res = self.video_sampler.exec_()
+            if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
         else:
-            for button in self.button_group_actors_names.buttons():
-                if button.text() in self.mesh_actors:
-                    button.setChecked(True); self.opacity_value_change(self.store_mesh_opacity[button.text()])
-
-            checked_button = self.button_group_actors_names.checkedButton()
-            if checked_button is not None:
-                self.ignore_spinbox_value_change = True
-                if checked_button.text() in self.mesh_actors: self.opacity_spinbox.setValue(self.mesh_opacity[checked_button.text()])
-                self.ignore_spinbox_value_change = False
-            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
 
     def play_video(self):
         if self.video_path != None and self.video_path != '':
