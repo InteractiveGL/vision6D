@@ -678,8 +678,8 @@ class Interface(MyMainWindow):
 
                     # save gt_pose for each frame
                     self.current_pose()
-                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses", exist_ok=True)
-                    output_pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
+                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses", exist_ok=True)
+                    output_pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
                     np.save(output_pose_path, self.transformation_matrix)
                     self.output_text.append(f"-> Save frame {self.current_frame} pose: \n{self.transformation_matrix}")
         else:
@@ -1172,7 +1172,7 @@ class Interface(MyMainWindow):
             if current_frame >= 0: 
                 self.current_frame = current_frame
                 self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
+                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
                 if os.path.isfile(pose_path): 
                     self.transformation_matrix = np.load(pose_path)
                     self.register_pose(self.transformation_matrix)
@@ -1194,7 +1194,7 @@ class Interface(MyMainWindow):
                 self.current_frame = current_frame
                 self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
                 # load pose for the current frame if the pose exist
-                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "gt_poses" / f"pose_{self.current_frame}.npy"
+                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
                 if os.path.isfile(pose_path): 
                     self.transformation_matrix = np.load(pose_path)
                     self.register_pose(self.transformation_matrix)
