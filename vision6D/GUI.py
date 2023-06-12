@@ -398,7 +398,8 @@ class Interface(MyMainWindow):
         else:
             for button in self.button_group_actors_names.buttons():
                 if button.text() in self.mesh_actors:
-                    button.setChecked(True); self.opacity_value_change(self.store_mesh_opacity[button.text()])
+                    button.setChecked(True)
+                    self.opacity_value_change(self.store_mesh_opacity[button.text()])
 
             checked_button = self.button_group_actors_names.checkedButton()
             if checked_button is not None:
@@ -912,6 +913,8 @@ class Interface(MyMainWindow):
                     try: self.mesh_spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     self.add_mesh(actor_name, self.meshdict[actor_name])
+            else:
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 

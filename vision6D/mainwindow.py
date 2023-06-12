@@ -236,57 +236,31 @@ class MyMainWindow(MainWindow):
         actor_pose_button.clicked.connect(self.set_pose)
         top_grid_layout.addWidget(actor_pose_button, 0, 1)
 
-        # Create the hide button
-        hide_button = QtWidgets.QPushButton("toggle meshes")
-        hide_button.clicked.connect(self.toggle_hide_meshes_button)
-        top_grid_layout.addWidget(hide_button, 0, 2)
-
-        # Create the remove button
-        remove_button = QtWidgets.QPushButton("Remove Actor")
-        remove_button.clicked.connect(self.remove_actors_button)
-        top_grid_layout.addWidget(remove_button, 0, 3)
-
-        # Create the color dropdown menu (comboBox)
-        self.color_button = QtWidgets.QPushButton("Color")
-        self.color_button.clicked.connect(self.show_color_popup)
-        top_grid_layout.addWidget(self.color_button, 1, 0)
-        
-        # Create the spacing button (comboBox)
-        self.spacing_button = QtWidgets.QPushButton("Spacing")
-        self.spacing_button.clicked.connect(self.set_spacing)
-        top_grid_layout.addWidget(self.spacing_button, 1, 1)
-
-        self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
-        self.opacity_spinbox.setMinimum(0.0)
-        self.opacity_spinbox.setMaximum(1.0)
-        self.opacity_spinbox.setDecimals(2)
-        self.opacity_spinbox.setSingleStep(0.05)
-        self.ignore_spinbox_value_change = True
-        self.opacity_spinbox.setValue(0.3)
-        self.ignore_spinbox_value_change = False 
-        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
-        top_grid_layout.addWidget(self.opacity_spinbox, 1, 2)
+        # Create the draw mask button
+        draw_mask_button = QtWidgets.QPushButton("Draw Mask")
+        draw_mask_button.clicked.connect(self.draw_mask)
+        top_grid_layout.addWidget(draw_mask_button, 0, 2)
 
         # Create the video related button
         self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.play_video_button.clicked.connect(self.play_video)
-        top_grid_layout.addWidget(self.play_video_button, 1, 3)
+        top_grid_layout.addWidget(self.play_video_button, 0, 3)
 
         self.sample_video_button = QtWidgets.QPushButton("Sample Video")
         self.sample_video_button.clicked.connect(self.sample_video)
-        top_grid_layout.addWidget(self.sample_video_button, 2, 0)
+        top_grid_layout.addWidget(self.sample_video_button, 1, 0)
 
         self.save_frame_button = QtWidgets.QPushButton("Save Frame")
         self.save_frame_button.clicked.connect(lambda _, save=True: self.load_per_frame_info(save))
-        top_grid_layout.addWidget(self.save_frame_button, 2, 1)
+        top_grid_layout.addWidget(self.save_frame_button, 1, 1)
 
         self.prev_frame_button = QtWidgets.QPushButton("Prev Frame")
         self.prev_frame_button.clicked.connect(self.prev_frame)
-        top_grid_layout.addWidget(self.prev_frame_button, 2, 2)
+        top_grid_layout.addWidget(self.prev_frame_button, 1, 2)
 
         self.next_frame_button = QtWidgets.QPushButton("Next Frame")
         self.next_frame_button.clicked.connect(self.next_frame)
-        top_grid_layout.addWidget(self.next_frame_button, 2, 3)
+        top_grid_layout.addWidget(self.next_frame_button, 1, 3)
 
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
@@ -296,6 +270,41 @@ class MyMainWindow(MainWindow):
         #* Create the bottom widgets
         actor_widget = QtWidgets.QLabel("Actors")
         display_layout.addWidget(actor_widget)
+
+        actor_grid_layout = QtWidgets.QGridLayout()
+
+        # Create the color dropdown menu (comboBox)
+        self.color_button = QtWidgets.QPushButton("Color")
+        self.color_button.clicked.connect(self.show_color_popup)
+        actor_grid_layout.addWidget(self.color_button, 0, 0)
+        
+        # Create the opacity spinbox
+        self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
+        self.opacity_spinbox.setMinimum(0.0)
+        self.opacity_spinbox.setMaximum(1.0)
+        self.opacity_spinbox.setDecimals(2)
+        self.opacity_spinbox.setSingleStep(0.05)
+        self.ignore_spinbox_value_change = True
+        self.opacity_spinbox.setValue(0.3)
+        self.ignore_spinbox_value_change = False 
+        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
+        actor_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
+
+        # Create the spacing button (comboBox)
+        self.spacing_button = QtWidgets.QPushButton("Spacing")
+        self.spacing_button.clicked.connect(self.set_spacing)
+        actor_grid_layout.addWidget(self.spacing_button, 0, 2)
+
+        # Create the hide button
+        hide_button = QtWidgets.QPushButton("toggle meshes")
+        hide_button.clicked.connect(self.toggle_hide_meshes_button)
+        actor_grid_layout.addWidget(hide_button, 0, 3)
+
+        # Create the remove button
+        remove_button = QtWidgets.QPushButton("Remove Actor")
+        remove_button.clicked.connect(self.remove_actors_button)
+        actor_grid_layout.addWidget(remove_button, 0, 4)
+        display_layout.addLayout(actor_grid_layout)
 
         # Create a scroll area for the buttons
         scroll_area = QtWidgets.QScrollArea()

@@ -162,6 +162,7 @@ class VideoPlayer(QtWidgets.QDialog):
 
         self.prev_button = QtWidgets.QPushButton('Previous Frame', self)
         self.prev_button.clicked.connect(self.prev_frame)
+        self.prev_button.setFixedSize(300, 30)
         self.button_layout.addWidget(self.prev_button)
 
         self.play = False
@@ -180,12 +181,37 @@ class VideoPlayer(QtWidgets.QDialog):
         
         self.current_frame = current_frame
 
-        self.play_pause_button = QtWidgets.QPushButton(f'Play/Pause ({self.current_frame}/{self.frame_count})', self)
+        self.playback_speeds = [0.1, 0.2, 0.5, 1.0, 4.0, 16.0, 32.0, 64.0]  # different speeds
+        self.current_playback_speed = 1  # Default speed is 1
+
+        self.play_pause_button = QtWidgets.QToolButton(self)
+        self.play_pause_button.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
+        self.play_pause_button.setText(f'Play/Pause ({self.current_frame}/{self.frame_count})')
         self.play_pause_button.clicked.connect(self.play_pause_video)
+
+        self.play_pause_menu = QtWidgets.QMenu(self)
+        self.play_action = QtWidgets.QAction('Play', self, triggered=self.play_video)
+        self.pause_action = QtWidgets.QAction('Pause', self, triggered=self.pause_video)
+        self.speed_menu = QtWidgets.QMenu('Playback Speed', self)
+
+        self.speed_action_group = QtWidgets.QActionGroup(self.speed_menu)
+        self.speed_action_group.setExclusive(True)
+        for speed in self.playback_speeds:
+            speed_action = QtWidgets.QAction(f'{speed}x', self.speed_menu, checkable=True)
+            speed_action.triggered.connect(lambda _, s=speed: self.change_speed(speed=s))
+            if speed == self.current_playback_speed: speed_action.setChecked(True)
+            self.speed_menu.addAction(speed_action)
+            self.speed_action_group.addAction(speed_action)
+
+        self.play_pause_menu.addActions([self.play_action, self.pause_action])
+        self.play_pause_menu.addMenu(self.speed_menu)
+        self.play_pause_button.setMenu(self.play_pause_menu)
+        self.play_pause_button.setFixedSize(300, 30)
         self.button_layout.addWidget(self.play_pause_button)
 
         self.next_button = QtWidgets.QPushButton('Next Frame', self)
         self.next_button.clicked.connect(self.next_frame)
+        self.next_button.setFixedSize(300, 30)
         self.button_layout.addWidget(self.next_button)
 
         self.layout.addLayout(self.button_layout)
@@ -214,20 +240,25 @@ class VideoPlayer(QtWidgets.QDialog):
         self.current_frame = value
         self.update_frame()
 
-    def play_pause_video(self):
-        self.play = not self.play
+    def change_speed(self, speed):
+        self.current_playback_speed = speed
+        self.play_video()
 
-        if self.play:
-            if not self.isPlaying:
-                self.timer.start(self.fps)  # play 30 frames per second
-                self.isPlaying = True
-                self.prev_button.setEnabled(False)
-                self.next_button.setEnabled(False)
-        else:
-            self.timer.stop()
-            self.isPlaying = False
-            self.prev_button.setEnabled(True)
-            self.next_button.setEnabled(True)
+    def play_video(self):
+        self.isPlaying = True
+        self.timer.start(int(1000 / (self.fps * self.current_playback_speed)))
+        self.prev_button.setEnabled(False)
+        self.next_button.setEnabled(False)
+
+    def pause_video(self):
+        self.isPlaying = False
+        self.timer.stop()
+        self.prev_button.setEnabled(True)
+        self.next_button.setEnabled(True)
+
+    def play_pause_video(self):
+        if self.isPlaying: self.pause_video()
+        else: self.play_video()
 
     def next_frame(self):
         current_frame = self.current_frame + 1
@@ -502,6 +533,13 @@ class LabelWindow(QtWidgets.QWidget):
         self.setFixedSize(pixmap.size())
 
         layout = QtWidgets.QVBoxLayout()
+
+        #* setContentsMargins sets the width of the outside border around the layout
+        layout.setContentsMargins(0, 0, 0, 0)
+        #* setSpacing sets the width of the inside border between widgets in the layout.
+        layout.setSpacing(0)
+        #* Both are set to zero to eliminate any space between the widgets and the layout border.
+
         self.image_label = LabelImage(pixmap)
         layout.addWidget(self.image_label)
         self.setLayout(layout)
