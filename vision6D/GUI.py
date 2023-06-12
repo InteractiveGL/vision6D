@@ -890,7 +890,8 @@ class Interface(MyMainWindow):
         if reply_export_surface == QtWidgets.QMessageBox.No: point_clouds = True
         else: point_clouds = False
 
-        segmask = self.render_mask(self.mask_actor)
+        segmask = self.render_mask()
+        if len(segmask.shape) == 2: segmask = segmask[..., None]
         if np.max(segmask) > 1: segmask = segmask / 255
         image = self.render_mesh(False, camera, point_clouds)
         image = (image * segmask).astype(np.uint8)
@@ -1131,7 +1132,7 @@ class Interface(MyMainWindow):
         else: self.set_color(text, actor_name)
 
     def load_per_frame_info(self, save=False):
-        if self.video_path is not None and self.video_path != '':
+        if self.video_path:
             self.video_player.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
             ret, frame = self.video_player.cap.read()
             if ret: 
@@ -1224,3 +1225,18 @@ class Interface(MyMainWindow):
         self.play_video_button.setText("Play Video")
         self.video_path = None
         self.current_frame = 0
+
+    def draw_mask(self):
+        def handle_output_path_change(output_path):
+            if output_path:
+                self.mask_path = output_path
+                self.add_mask(self.mask_path)
+        if self.image_path:
+            self.label_window = vis.LabelWindow(self.image_path)
+            self.label_window.show()
+            self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+        

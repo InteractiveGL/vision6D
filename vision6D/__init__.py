@@ -38,4 +38,5 @@ from .widgets_gui import (VideoSampler,
                         PopUpDialog, 
                         CameraPropsInputDialog,
                         CalibrationPopWindow, 
-                        GetTextDialog)
+                        GetTextDialog,
+                        LabelWindow)

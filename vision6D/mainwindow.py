@@ -128,6 +128,7 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Video', self.add_video_file)
         fileMenu.addAction('Add Image', self.add_image_file)
         fileMenu.addAction('Add Mask', self.add_mask_file)
+        fileMenu.addAction('Draw Mask', self.draw_mask)
         fileMenu.addAction('Add Mesh', self.add_mesh_file)
         fileMenu.addAction('Clear', self.clear_plot)
 
@@ -171,7 +172,7 @@ class MyMainWindow(MainWindow):
         RegisterMenu.addAction('Undo Pose (s)', self.undo_pose)
 
         # Add pnp algorithm related actions
-        PnPMenu = mainMenu.addMenu('Run')
+        PnPMenu = mainMenu.addMenu('PnP')
         PnPMenu.addAction('EPnP with mesh', self.epnp_mesh)
         epnp_nocs_mask = functools.partial(self.epnp_mask, True)
         PnPMenu.addAction('EPnP with nocs mask', epnp_nocs_mask)
