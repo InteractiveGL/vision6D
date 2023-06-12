@@ -272,6 +272,7 @@ class MyMainWindow(MainWindow):
         display_layout.addWidget(actor_widget)
 
         actor_grid_layout = QtWidgets.QGridLayout()
+        actor_grid_layout.setContentsMargins(10, 15, 10, 0)
 
         # Create the color dropdown menu (comboBox)
         self.color_button = QtWidgets.QPushButton("Color")
@@ -290,21 +291,21 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
         actor_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
 
-        # Create the spacing button (comboBox)
-        self.spacing_button = QtWidgets.QPushButton("Spacing")
-        self.spacing_button.clicked.connect(self.set_spacing)
-        actor_grid_layout.addWidget(self.spacing_button, 0, 2)
-
         # Create the hide button
         hide_button = QtWidgets.QPushButton("toggle meshes")
         hide_button.clicked.connect(self.toggle_hide_meshes_button)
-        actor_grid_layout.addWidget(hide_button, 0, 3)
+        actor_grid_layout.addWidget(hide_button, 0, 2)
 
         # Create the remove button
         remove_button = QtWidgets.QPushButton("Remove Actor")
         remove_button.clicked.connect(self.remove_actors_button)
-        actor_grid_layout.addWidget(remove_button, 0, 4)
+        actor_grid_layout.addWidget(remove_button, 0, 3)
         display_layout.addLayout(actor_grid_layout)
+
+        # Create the spacing button (comboBox)
+        self.spacing_button = QtWidgets.QPushButton("Spacing")
+        self.spacing_button.clicked.connect(self.set_spacing)
+        actor_grid_layout.addWidget(self.spacing_button, 1, 0)
 
         # Create a scroll area for the buttons
         scroll_area = QtWidgets.QScrollArea()
