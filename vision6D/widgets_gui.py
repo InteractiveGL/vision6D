@@ -1,6 +1,5 @@
 # General import
 import numpy as np
-import json
 import cv2
 import pathlib
 import PIL.Image
@@ -181,7 +180,7 @@ class VideoPlayer(QtWidgets.QDialog):
         
         self.current_frame = current_frame
 
-        self.playback_speeds = [0.1, 0.2, 0.5, 1.0, 4.0, 16.0, 32.0, 64.0]  # different speeds
+        self.playback_speeds = [0.1, 0.2, 0.5, 1.0, 4.0, 16.0]  # different speeds
         self.current_playback_speed = 1  # Default speed is 1
 
         self.play_pause_button = QtWidgets.QToolButton(self)
@@ -246,7 +245,7 @@ class VideoPlayer(QtWidgets.QDialog):
 
     def play_video(self):
         self.isPlaying = True
-        self.timer.start(int(1000 / (self.fps * self.current_playback_speed)))
+        self.timer.start(self.fps / self.current_playback_speed)
         self.prev_button.setEnabled(False)
         self.next_button.setEnabled(False)
 
@@ -479,6 +478,8 @@ class LabelImage(QtWidgets.QLabel):
         super().__init__()
         self.setFocusPolicy(Qt.StrongFocus)
         self.setPixmap(pixmap)
+        self.setContentsMargins(0, 0, 0, 0)
+        
         self.height = pixmap.height()
         self.width = pixmap.width()
         self.points = QtGui.QPolygon()
