@@ -402,5 +402,5 @@ def get_mesh_actor_scalars(actor):
     input = actor.GetMapper().GetInput()
     point_data = input.GetPointData()
     scalars = point_data.GetScalars()
-    if scalars is not None: scalars = vtknp.vtk_to_numpy(scalars)
+    if scalars: scalars = vtknp.vtk_to_numpy(scalars)
     return scalars

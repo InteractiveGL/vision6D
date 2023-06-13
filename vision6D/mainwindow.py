@@ -103,10 +103,13 @@ class MyMainWindow(MainWindow):
                 # Load image/mask file
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                     file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
-                    unique_values = np.unique(file_data)
-                    if len(unique_values) == 2 and set(unique_values) == {0, 255}: # binary mask
+                    unique, counts = np.unique(file_data, return_counts=True)
+                    digit_counts = dict(zip(unique, counts))
+                    # can only load binary/grey mask now
+                    if digit_counts[0] == np.max(counts) or digit_counts[0] == np.partition(counts, -2)[-2]: # 0 is the most or second most among all numbers
                         self.mask_path = file_path
                         self.add_mask_file()
+                    # image file
                     else:
                         self.image_path = file_path
                         self.add_image_file()
