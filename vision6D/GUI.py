@@ -1,4 +1,5 @@
 import os
+import re
 import numpy as np
 import pyvista as pv
 import functools
@@ -217,7 +218,7 @@ class Interface(MyMainWindow):
         self.check_button('mask')
 
     def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
-        if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1])) #if (rot is not None and trans is not None) else None
+        if matrix is None: matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
         self.initial_pose = matrix
         self.reset_gt_pose()
         self.reset_camera()
@@ -316,7 +317,7 @@ class Interface(MyMainWindow):
         picker = vtk.vtkCellPicker()
         picker.Pick(x, y, 0, self.plotter.renderer)
         picked_actor = picker.GetActor()
-        if picked_actor is not None:
+        if picked_actor:
             actor_name = picked_actor.name
             if actor_name in self.mesh_actors:        
                 if actor_name not in self.undo_poses: self.undo_poses[actor_name] = []
@@ -364,7 +365,7 @@ class Interface(MyMainWindow):
     def opacity_value_change(self, value):
         if self.ignore_spinbox_value_change: return 0
         checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button is not None:
+        if checked_button:
             actor_name = checked_button.text()
             if actor_name == 'image': 
                 self.set_image_opacity(value)
@@ -389,7 +390,7 @@ class Interface(MyMainWindow):
                     button.setChecked(True); self.opacity_value_change(0)
     
             checked_button = self.button_group_actors_names.checkedButton()
-            if checked_button is not None: 
+            if checked_button: 
                 self.ignore_spinbox_value_change = True
                 self.opacity_spinbox.setValue(0.0)
                 self.ignore_spinbox_value_change = False
@@ -402,7 +403,7 @@ class Interface(MyMainWindow):
                     self.opacity_value_change(self.store_mesh_opacity[button.text()])
 
             checked_button = self.button_group_actors_names.checkedButton()
-            if checked_button is not None:
+            if checked_button:
                 self.ignore_spinbox_value_change = True
                 if checked_button.text() in self.mesh_actors: self.opacity_spinbox.setValue(self.mesh_opacity[checked_button.text()])
                 self.ignore_spinbox_value_change = False
@@ -437,7 +438,7 @@ class Interface(MyMainWindow):
         self.plotter.camera = self.camera.copy()
 
     def camera_calibrate(self):
-        if self.image_path != '' and self.image_path is not None:
+        if self.image_path:
             original_image = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
             original_image = original_image[..., :3]
@@ -451,11 +452,11 @@ class Interface(MyMainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        calibrate_pop = vis.CalibrationPopWindow(calibrated_image, original_image)
+        calibrate_pop = vis.widgets_gui.CalibrationPopWindow(calibrated_image, original_image)
         calibrate_pop.exec_()
 
     def set_camera(self):
-        dialog = vis.CameraPropsInputDialog(
+        dialog = vis.widgets_gui.CameraPropsInputDialog(
             line1=("Fx", self.fx), 
             line2=("Fy", self.fy), 
             line3=("Cx", self.cx), 
@@ -498,23 +499,23 @@ class Interface(MyMainWindow):
         else: 
             return None
 
-    def add_workspace(self):
-        workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
-        if workspace_path != '':
-            self.clear_plot() # Clear the plot when load a workspace
+    def add_workspace(self, prompt=False):
+        if prompt:
+            self.workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
+        if self.workspace_path:
             self.hintLabel.hide()
-            with open(str(workspace_path), 'r') as f: 
+            with open(str(self.workspace_path), 'r') as f: 
                 workspace = json.load(f)
 
             if 'image_path' in workspace:
                 self.image_path = workspace['image_path']
-                self.add_image_file(prompt=False)
+                self.add_image_file()
             if 'video_path' in workspace:
                 self.video_path = workspace['video_path']
-                self.add_video_file(prompt=False)
+                self.add_video_file()
             if 'mask_path' in workspace:
                 self.mask_path = workspace['mask_path']
-                self.add_mask_file(prompt=False)
+                self.add_mask_file()
             if 'pose_path' in workspace:
                 self.pose_path = workspace['pose_path']
                 self.add_pose_file()
@@ -522,22 +523,74 @@ class Interface(MyMainWindow):
                 mesh_path = workspace['mesh_path']
                 for path in mesh_path:
                     self.mesh_path = path
-                    self.add_mesh_file(prompt=False)
+                    self.add_mesh_file()
             
             # reset camera
             self.reset_camera()
-   
-    def add_video_file(self, prompt=True):
-        if prompt:
-            if self.video_path == None or self.video_path == '':
-                self.video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
-            else:
-                self.video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
 
-        if self.video_path != '' and self.video_path is not None:
+    def get_files_from_folder(self, category):
+        dir = pathlib.Path(self.folder_path) / category
+        folders = [d for d in os.listdir(dir) if os.path.isdir(os.path.join(dir, d))]
+        if len(folders) == 1: dir = pathlib.Path(self.folder_path) / category / folders[0]
+        # Retrieve files
+        files = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+        self.total_count = len(files)
+        # Sort files
+        files.sort(key=lambda f: int(re.sub('\D', '', f)))
+        return files, dir
+   
+    def add_folder(self, prompt=False):
+        if prompt: 
+            self.folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
+        
+        if self.folder_path:
+            folders = [d for d in os.listdir(self.folder_path) if os.path.isdir(os.path.join(self.folder_path, d))]
+            flag = True
+
+            if 'images' in folders:
+                flag = False
+                image_files, image_dir = self.get_files_from_folder('images')
+                self.image_path = str(image_dir / image_files[self.current_frame])
+                if os.path.isfile(self.image_path): self.add_image_file()
+
+            if 'masks' in folders:
+                flag = False
+                mask_files, mask_dir = self.get_files_from_folder('masks')
+                self.mask_path = str(mask_dir / mask_files[self.current_frame])
+                if os.path.isfile(self.mask_path): self.add_mask_file()
+                    
+            if 'poses' in folders:
+                flag = False
+                pose_files, pose_dir = self.get_files_from_folder('poses')
+                self.pose_path = str(pose_dir / pose_files[self.current_frame])
+                if os.path.isfile(self.pose_path): self.add_pose_file()
+                    
+            if self.current_frame == 0:
+                if 'meshes' in folders:
+                    flag = False
+                    dir = pathlib.Path(self.folder_path) / "meshes"
+                    if os.path.isfile(dir / 'mesh_path.txt'):
+                        with open(dir / 'mesh_path.txt', 'r') as f: mesh_path = f.read().splitlines()
+                        for path in mesh_path:
+                            self.mesh_path = path
+                            self.add_mesh_file()
+
+            if flag:
+                self.delete_video_folder()
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                return 0
+            else:
+                self.video_path = None # make sure video_path and folder_path are exclusive
+                self.output_text.append(f"-> After reset GT pose, current slide is ({self.current_frame}/{self.total_count})")
+                self.reset_camera()
+
+    def add_video_file(self, prompt=False):
+        if prompt:
+            self.video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
+        if self.video_path:
             self.hintLabel.hide()
-            self.current_frame = 0
-            self.video_player = vis.VideoPlayer(self.video_path, self.current_frame)
+            self.folder_path = None # make sure video_path and folder_path are exclusive
+            self.video_player = vis.widgets_gui.VideoPlayer(self.video_path, self.current_frame)
             self.play_video_button.setText("Play Video")
             self.output_text.append(f"-> Load video {self.video_path} into vision6D")
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
@@ -545,39 +598,27 @@ class Interface(MyMainWindow):
             self.load_per_frame_info(True)
             self.sample_video()
             
-    def add_image_file(self, prompt=True):
+    def add_image_file(self, prompt=False):
         if prompt:
-            if self.image_path == None or self.image_path == '':
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
-            else:
-                self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.image_path).parent), "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
-
-        if self.image_path != '' and self.image_path is not None:
+            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
+        if self.image_path:
             self.hintLabel.hide()
             image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(image_source.shape) == 2: image_source = image_source[..., None]
             self.add_image(image_source)
             
-    def add_mask_file(self, prompt=True):
+    def add_mask_file(self, prompt=False):
         if prompt:
-            if self.mask_path == None or self.mask_path == '':
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
-            else:
-                self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mask_path).parent), "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
-        
-        if self.mask_path != '' and self.mask_path is not None:
+            self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
+        if self.mask_path:
             self.hintLabel.hide()
             mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
             self.add_mask(mask_source)
 
-    def add_mesh_file(self, prompt=True):
-        if prompt:
-            if self.mesh_path == None or self.mesh_path == '':
-                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)")
-            else:
-                self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", str(pathlib.Path(self.mesh_path).parent), "Files (*.mesh *.ply)")
-        
-        if self.mesh_path != '' and self.mesh_path is not None:
+    def add_mesh_file(self, prompt=False):
+        if prompt: 
+            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
+        if self.mesh_path:
             self.hintLabel.hide()
             mesh_name = pathlib.Path(self.mesh_path).stem
             self.meshdict[mesh_name] = self.mesh_path
@@ -588,7 +629,7 @@ class Interface(MyMainWindow):
             self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
                       
     def add_pose_file(self):
-        if self.pose_path != '' and self.pose_path is not None:
+        if self.pose_path:
             self.hintLabel.hide()
             transformation_matrix = np.load(self.pose_path)
             self.transformation_matrix = transformation_matrix
@@ -612,14 +653,14 @@ class Interface(MyMainWindow):
             
     def current_pose(self):
         if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
-        if self.reference is not None:
+        if self.reference:
             self.transformation_matrix = self.mesh_actors[self.reference].user_matrix
             self.output_text.append(f"-> Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.reference}</span>")
             self.output_text.append(f"Current pose is: \n{self.transformation_matrix}")
             self.register_pose(self.transformation_matrix)
 
     def undo_pose(self):
-        if self.button_group_actors_names.checkedButton() is not None:
+        if self.button_group_actors_names.checkedButton():
             actor_name = self.button_group_actors_names.checkedButton().text()
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -642,13 +683,13 @@ class Interface(MyMainWindow):
         elif direction == 'y': self.mirror_y = not self.mirror_y
 
         #^ mirror the image actor
-        if self.image_actor is not None:
+        if self.image_actor:
             original_image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
             if len(original_image_data.shape) == 2: original_image_data = original_image_data[..., None]
             self.add_image(original_image_data)
 
         #^ mirror the mask actor
-        if self.mask_actor is not None:
+        if self.mask_actor:
             original_mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
             if len(original_mask_data.shape) == 2: original_mask_data = original_mask_data[..., None]
             self.add_mask(original_mask_data)
@@ -722,8 +763,8 @@ class Interface(MyMainWindow):
         self.hintLabel.show()
 
         # Re-initial the dictionaries
-        self.video_path = None
-        self.play_video_button.setText("Play Video")
+        self.delete_video_folder()
+        self.workspace_path = None
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
@@ -789,7 +830,7 @@ class Interface(MyMainWindow):
             vertices, faces = vis.utils.get_mesh_actor_vertices_faces(mesh_actor)
             mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
             colors = vis.utils.get_mesh_actor_scalars(mesh_actor)
-            if colors is not None: 
+            if colors: 
                 assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
                 mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=mesh_name) if not point_clouds else self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='points', point_size=1, render_points_as_spheres=False, opacity=1, name=mesh_name)
             else:
@@ -905,7 +946,7 @@ class Interface(MyMainWindow):
 
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button is not None:
+        if checked_button:
             actor_name = checked_button.text()
             if actor_name in self.mesh_actors:
                 spacing, ok = self.input_dialog.getText(self, 'Input', "Set Spacing", text=str(self.mesh_spacing))
@@ -993,7 +1034,7 @@ class Interface(MyMainWindow):
 
     def epnp_mesh(self):
         if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
-        if self.reference is not None:
+        if self.reference:
             colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
             if colors is None or (np.all(colors == colors[0])):
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -1025,7 +1066,7 @@ class Interface(MyMainWindow):
             return 0
 
     def epnp_mask(self, nocs_method):
-        if self.mask_actor is not None:
+        if self.mask_actor:
             mask_data = self.render_mask()
             if len(mask_data.shape) == 2: mask_data = mask_data[..., None]
             if np.max(mask_data) > 1: mask_data = mask_data / 255
@@ -1033,7 +1074,7 @@ class Interface(MyMainWindow):
             # binary mask
             if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
                 if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
-                if self.reference is not None:
+                if self.reference:
                     colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
                     if colors is None or (np.all(colors == colors[0])):
                         QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored with nocs or latlon with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -1068,7 +1109,7 @@ class Interface(MyMainWindow):
                         QtWidgets.QMessageBox.information(self, "Information", "Please load the corresponding mesh")
                         
                         self.add_mesh_file(prompt=True)
-                        if self.mesh_path != '':
+                        if self.mesh_path:
                             checked_button = self.button_group_actors_names.checkedButton()
                             vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[checked_button.text()])
                             mesh = trimesh.Trimesh(vertices, faces, process=False)
@@ -1123,7 +1164,7 @@ class Interface(MyMainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
-        popup = vis.PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
+        popup = vis.widgets_gui.PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
         button_position = self.color_button.mapToGlobal(QPoint(0, 0))
         popup.move(button_position + QPoint(self.color_button.width(), 0))
         popup.exec_()
@@ -1153,26 +1194,34 @@ class Interface(MyMainWindow):
                     self.image_path = str(output_frame_path)
 
                     # save gt_pose for each frame
-                    self.current_pose()
                     os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses", exist_ok=True)
                     output_pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
+                    self.current_pose()
                     np.save(output_pose_path, self.transformation_matrix)
                     self.output_text.append(f"-> Save frame {self.current_frame} pose: \n{self.transformation_matrix}")
+        elif self.folder_path:
+            # save gt_pose for specific frame
+            os.makedirs(pathlib.Path(self.folder_path) / "vision6D", exist_ok=True)
+            os.makedirs(pathlib.Path(self.folder_path) / "vision6D" / "poses", exist_ok=True)
+            output_pose_path = pathlib.Path(self.folder_path) / "vision6D" / "poses" / f"{pathlib.Path(self.pose_path).stem}.npy"
+            self.current_pose()
+            np.save(output_pose_path, self.transformation_matrix)
+            self.output_text.append(f"-> Save frame {pathlib.Path(self.pose_path).stem} pose: \n{self.transformation_matrix}")
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
     
     def sample_video(self):
-        if self.video_path != '' and self.video_path is not None:
-            self.video_sampler = vis.VideoSampler(self.video_player, self.fps)
+        if self.video_path:
+            self.video_sampler = vis.widgets_gui.VideoSampler(self.video_player, self.fps)
             res = self.video_sampler.exec_()
             if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
     def play_video(self):
-        if self.video_path != None and self.video_path != '':
+        if self.video_path:
             res = self.video_player.exec_()
             if res == QtWidgets.QDialog.Accepted:
                 self.current_frame = self.video_player.current_frame
@@ -1180,11 +1229,11 @@ class Interface(MyMainWindow):
                 self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
                 self.load_per_frame_info()
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
     
     def prev_frame(self):
-        if self.video_path != None and self.video_path != '':
+        if self.video_path:
             current_frame = self.current_frame - self.fps
             if current_frame >= 0: 
                 self.current_frame = current_frame
@@ -1198,12 +1247,16 @@ class Interface(MyMainWindow):
                 self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
                 self.video_player.slider.setValue(self.current_frame)
                 self.load_per_frame_info()
+        elif self.folder_path:
+            if self.current_frame > 0:
+                self.current_frame -= 1
+                self.add_folder()
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
     def next_frame(self):
-        if self.video_path != None and self.video_path != '':
+        if self.video_path:
             current_frame = self.current_frame + self.fps
             if current_frame <= self.video_player.frame_count: 
                 # save pose from the previous frame 
@@ -1219,14 +1272,24 @@ class Interface(MyMainWindow):
                 self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
                 self.video_player.slider.setValue(self.current_frame)
                 self.load_per_frame_info()
+        elif self.folder_path:
+            if self.current_frame < self.total_count:
+                self.current_frame += 1
+                self.add_folder()
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
-    def delete_video(self):
-        self.output_text.append(f"-> Delete video {self.video_path} from vision6D")
-        self.play_video_button.setText("Play Video")
-        self.video_path = None
+    def delete_video_folder(self):
+        # self.video_path and self.folder_path should be exclusive
+        if self.video_path:
+            self.output_text.append(f"-> Delete video {self.video_path} from vision6D")
+            self.play_video_button.setText("Play Video")
+            self.video_path = None
+        elif self.folder_path:
+            self.output_text.append(f"-> Delete folder {self.folder_path} from vision6D")
+            self.folder_path = None
+            
         self.current_frame = 0
 
     def draw_mask(self):
@@ -1235,11 +1298,10 @@ class Interface(MyMainWindow):
                 self.mask_path = output_path
                 self.add_mask(self.mask_path)
         if self.image_path:
-            self.label_window = vis.LabelWindow(self.image_path)
+            self.label_window = vis.widgets_gui.LabelWindow(self.image_path)
             self.label_window.show()
             self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
-        

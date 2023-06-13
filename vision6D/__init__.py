@@ -32,11 +32,4 @@ logging.config.dictConfig(LOGGING_CONFIG)
 from .mainwindow import MyMainWindow
 from .GUI import Interface
 from . import utils
-from .widgets_gui import (VideoSampler, 
-                        VideoPlayer,
-                        YesNoBox,
-                        PopUpDialog, 
-                        CameraPropsInputDialog,
-                        CalibrationPopWindow, 
-                        GetTextDialog,
-                        LabelWindow)
+from . import widgets_gui

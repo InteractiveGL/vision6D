@@ -288,15 +288,6 @@ class VideoPlayer(QtWidgets.QDialog):
     def accept(self):
         super().accept()
 
-class YesNoBox(QtWidgets.QMessageBox):
-    def __init__(self, *args, **kwargs):
-        super(YesNoBox, self).__init__(*args, **kwargs)
-        self.canceled = False
-
-    def closeEvent(self, event: QtGui.QCloseEvent):
-        self.canceled = True
-        super(YesNoBox, self).closeEvent(event)
-
 class PopUpDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, on_button_click=None):
         super().__init__(parent)
@@ -462,7 +453,7 @@ class GetTextDialog(QtWidgets.QDialog):
     def load_from_file(self):
         file_dialog = QtWidgets.QFileDialog()
         pose_path, _ = file_dialog.getOpenFileName(None, "Open file", "", "Files (*.npy)")
-        if pose_path != '':
+        if pose_path:
             gt_pose = np.load(pose_path)
             self.textEdit.setPlainText(f"[[{np.around(gt_pose[0, 0], 8)}, {np.around(gt_pose[0, 1], 8)}, {np.around(gt_pose[0, 2], 8)}, {np.around(gt_pose[0, 3], 8)}],\n"
                                     f"[{np.around(gt_pose[1, 0], 8)}, {np.around(gt_pose[1, 1], 8)}, {np.around(gt_pose[1, 2], 8)}, {np.around(gt_pose[1, 3], 8)}],\n"

@@ -1,9 +1,8 @@
 # General import
 import numpy as np
+import PIL.Image
 import functools
-import trimesh
-import json
-import copy
+import os
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -27,7 +26,10 @@ class MyMainWindow(MainWindow):
         self.setAcceptDrops(True)
 
         # Initialize file paths
+        self.workspace_path = None
+        self.folder_path = None
         self.video_path = None
+        self.current_frame = 0
         self.image_path = None
         self.mask_path = None
         self.mesh_path = None
@@ -36,7 +38,7 @@ class MyMainWindow(MainWindow):
         # Dialogs to record users input info
         self.input_dialog = QtWidgets.QInputDialog()
         self.file_dialog = QtWidgets.QFileDialog()
-        self.get_text_dialog = vis.GetTextDialog()
+        self.get_text_dialog = vis.widgets_gui.GetTextDialog()
 
         # Set panel bar
         self.set_panel_bar()
@@ -82,35 +84,38 @@ class MyMainWindow(MainWindow):
     def dropEvent(self, e):
         for url in e.mimeData().urls():
             file_path = url.toLocalFile()
-            # Load mesh file
-            if file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):  # add mesh
-                self.mesh_path = file_path
-                self.add_mesh_file(prompt=False)
-            # Load video file
-            elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
-                self.video_path = file_path
-                self.add_video_file(prompt=False)
-            # Load image/mask file
-            elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
-                yes_no_box = vis.YesNoBox()
-                yes_no_box.setIcon(QtWidgets.QMessageBox.Question)
-                yes_no_box.setWindowTitle("Vision6D")
-                yes_no_box.setText("Do you want to load the image as mask?")
-                yes_no_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
-                button_clicked = yes_no_box.exec_()
-                if not yes_no_box.canceled:
-                    if button_clicked == QtWidgets.QMessageBox.Yes:
-                        self.mask_path = file_path
-                        self.add_mask_file(prompt=False)
-                    elif button_clicked == QtWidgets.QMessageBox.No:
-                        self.image_path = file_path
-                        self.add_image_file(prompt=False)
-            elif file_path.endswith('.npy'):
-                self.pose_path = file_path
-                self.add_pose_file()
+            if os.path.isdir(file_path):
+                self.folder_path = file_path
+                self.add_folder()
             else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
+                # Load workspace json file
+                if file_path.endswith(('.json')):
+                    self.workspace_path = file_path
+                    self.add_workspace()
+                # Load mesh file
+                elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
+                    self.mesh_path = file_path
+                    self.add_mesh_file()
+                # Load video file
+                elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
+                    self.video_path = file_path
+                    self.add_video_file()
+                # Load image/mask file
+                elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
+                    file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
+                    unique_values = np.unique(file_data)
+                    if len(unique_values) == 2 and set(unique_values) == {0, 255}: # binary mask
+                        self.mask_path = file_path
+                        self.add_mask_file()
+                    else:
+                        self.image_path = file_path
+                        self.add_image_file()
+                elif file_path.endswith('.npy'):
+                    self.pose_path = file_path
+                    self.add_pose_file()
+                else:
+                    QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    return 0
 
     def resizeEvent(self, e):
         x = (self.plotter.size().width() - self.hintLabel.width()) // 2
@@ -124,12 +129,13 @@ class MyMainWindow(MainWindow):
         
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
-        fileMenu.addAction('Add Workspace', self.add_workspace)
-        fileMenu.addAction('Add Video', self.add_video_file)
-        fileMenu.addAction('Add Image', self.add_image_file)
-        fileMenu.addAction('Add Mask', self.add_mask_file)
+        fileMenu.addAction('Add Workspace', functools.partial(self.add_workspace, prompt=True))
+        fileMenu.addAction('Add Folder', functools.partial(self.add_folder, prompt=True))
+        fileMenu.addAction('Add Video', functools.partial(self.add_video_file, prompt=True))
+        fileMenu.addAction('Add Image', functools.partial(self.add_image_file, prompt=True))
+        fileMenu.addAction('Add Mask', functools.partial(self.add_mask_file, prompt=True))
         fileMenu.addAction('Draw Mask', self.draw_mask)
-        fileMenu.addAction('Add Mesh', self.add_mesh_file)
+        fileMenu.addAction('Add Mesh', functools.partial(self.add_mesh_file, prompt=True))
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -141,12 +147,11 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
         
         # Add video related actions
-        VideoMenu = mainMenu.addMenu('Video')
+        VideoMenu = mainMenu.addMenu('Video/Folder')
         VideoMenu.addAction('Play', self.play_video)
         VideoMenu.addAction('Sample', self.sample_video)
-        VideoMenu.addAction('Delete', self.delete_video)
-        save_per_frame_info = functools.partial(self.load_per_frame_info, save=True)
-        VideoMenu.addAction('Save Frame', save_per_frame_info)
+        VideoMenu.addAction('Delete', self.delete_video_folder)
+        VideoMenu.addAction('Save Frame', functools.partial(self.load_per_frame_info, save=True))
         VideoMenu.addAction('Prev Frame', self.prev_frame)
         VideoMenu.addAction('Next Frame', self.next_frame)
                 
@@ -274,7 +279,7 @@ class MyMainWindow(MainWindow):
         actor_grid_layout = QtWidgets.QGridLayout()
         actor_grid_layout.setContentsMargins(10, 15, 10, 0)
 
-        # Create the color dropdown menu (comboBox)
+        # Create the color dropdown menu
         self.color_button = QtWidgets.QPushButton("Color")
         self.color_button.clicked.connect(self.show_color_popup)
         actor_grid_layout.addWidget(self.color_button, 0, 0)
@@ -302,7 +307,7 @@ class MyMainWindow(MainWindow):
         actor_grid_layout.addWidget(remove_button, 0, 3)
         display_layout.addLayout(actor_grid_layout)
 
-        # Create the spacing button (comboBox)
+        # Create the spacing button
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.set_spacing)
         actor_grid_layout.addWidget(self.spacing_button, 1, 0)
