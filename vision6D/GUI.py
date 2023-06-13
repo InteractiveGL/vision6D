@@ -2,7 +2,6 @@ import os
 import re
 import numpy as np
 import pyvista as pv
-import functools
 import trimesh
 import pathlib
 import PIL
@@ -129,7 +128,7 @@ class Interface(MyMainWindow):
         assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
         self.mask_opacity = mask_opacity
         self.mask_actor.GetProperty().opacity = mask_opacity
-        self.plotter.add_actor(self.mask_actor, pickable=False, name='mask')
+        self.plotter.add_actor(self.mask_actor, pickable=True, name='mask')
 
     def set_mesh_opacity(self, name: str, surface_opacity: float):
         assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
@@ -195,16 +194,19 @@ class Interface(MyMainWindow):
 
         self.mask_offset = np.hstack(((bottom_point - mask_center)*0.01, 0))
 
+        # Pad points a z dimension
         points = np.hstack((points2d*0.01, np.zeros(points2d.shape[0]).reshape((-1, 1))))
-        mask = pv.wrap(points)
-        lines = np.hstack([[points.shape[0]+1], np.arange(points.shape[0]), 0])
-        mask.lines = lines
-        self.mask_bottom_point = mask.points[np.argmax(mask.points[:, 1])]
-        mask = mask.translate(-self.mask_bottom_point+self.mask_offset, inplace=False)
+        # Find the bottom point on mask
+        self.mask_bottom_point = points[np.argmax(points[:, 1])]
 
-        # Add mask to the plot
-        mask_mesh = self.plotter.add_mesh(mask, color="blue", opacity=self.mask_opacity, line_width=2, point_size=0.01, show_edges=True)
-        actor, _ = self.plotter.add_actor(mask_mesh, pickable=False, name='mask')
+        # Create the mesh surface object
+        cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
+        mask_surface = pv.PolyData(points, cells).triangulate()
+        mask_surface = mask_surface.translate(-self.mask_bottom_point+self.mask_offset, inplace=False)
+
+        # Add mask surface object to the plot
+        mask_mesh = self.plotter.add_mesh(mask_surface, color="green", style='surface', opacity=self.mask_opacity)
+        actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
         self.mask_actor = actor
 
         mask_point_data = vis.utils.get_mask_actor_points(self.mask_actor)
@@ -347,7 +349,7 @@ class Interface(MyMainWindow):
             self.mask_opacity -= 0.05
             if self.mask_opacity < 0: self.mask_opacity = 0
         self.mask_actor.GetProperty().opacity = self.mask_opacity
-        self.plotter.add_actor(self.mask_actor, pickable=False, name="mask")
+        self.plotter.add_actor(self.mask_actor, pickable=True, name="mask")
         self.ignore_spinbox_value_change = True
         self.opacity_spinbox.setValue(self.mask_opacity)
         self.ignore_spinbox_value_change = False
