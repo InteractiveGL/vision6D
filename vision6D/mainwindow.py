@@ -13,6 +13,7 @@ from PyQt5.QtCore import Qt
 
 # self defined package import
 import vision6D as vis
+from .widgets import GetTextDialog
 
 np.set_printoptions(suppress=True)
 
@@ -40,7 +41,7 @@ class MyMainWindow(MainWindow):
         # Dialogs to record users input info
         self.input_dialog = QtWidgets.QInputDialog()
         self.file_dialog = QtWidgets.QFileDialog()
-        self.get_text_dialog = vis.widgets_gui.GetTextDialog()
+        self.get_text_dialog = GetTextDialog()
 
         # Set panel bar
         self.set_panel_bar()

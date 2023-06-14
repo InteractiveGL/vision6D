@@ -21,6 +21,7 @@ os.environ["QT_API"] = "pyqt5"
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import QPoint
 from .mainwindow import MyMainWindow
+from .widgets import CalibrationPopWindow, CameraPropsInputDialog, VideoPlayer, PopUpDialog, VideoSampler, LabelWindow
 
 np.set_printoptions(suppress=True)
 
@@ -445,11 +446,11 @@ class Interface(MyMainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        calibrate_pop = vis.widgets_gui.CalibrationPopWindow(calibrated_image, original_image)
+        calibrate_pop = CalibrationPopWindow(calibrated_image, original_image)
         calibrate_pop.exec_()
 
     def set_camera(self):
-        dialog = vis.widgets_gui.CameraPropsInputDialog(
+        dialog = CameraPropsInputDialog(
             line1=("Fx", self.fx), 
             line2=("Fy", self.fy), 
             line3=("Cx", self.cx), 
@@ -583,7 +584,7 @@ class Interface(MyMainWindow):
         if self.video_path:
             self.hintLabel.hide()
             self.folder_path = None # make sure video_path and folder_path are exclusive
-            self.video_player = vis.widgets_gui.VideoPlayer(self.video_path, self.current_frame)
+            self.video_player = VideoPlayer(self.video_path, self.current_frame)
             self.play_video_button.setText("Play Video")
             self.output_text.append(f"-> Load video {self.video_path} into vision6D")
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
@@ -1086,7 +1087,7 @@ class Interface(MyMainWindow):
         if checked_button:
             actor_name = checked_button.text()
             if actor_name in self.mesh_actors:
-                popup = vis.widgets_gui.PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
+                popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
                 popup.exec_()
@@ -1139,7 +1140,7 @@ class Interface(MyMainWindow):
     
     def sample_video(self):
         if self.video_path:
-            self.video_sampler = vis.widgets_gui.VideoSampler(self.video_player, self.fps)
+            self.video_sampler = VideoSampler(self.video_player, self.fps)
             res = self.video_sampler.exec_()
             if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
         else:
@@ -1224,7 +1225,7 @@ class Interface(MyMainWindow):
                 self.mask_path = output_path
                 self.add_mask(self.mask_path)
         if self.image_path:
-            self.label_window = vis.widgets_gui.LabelWindow(self.image_path)
+            self.label_window = LabelWindow(self.image_path)
             self.label_window.show()
             self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
         else:
