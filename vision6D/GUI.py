@@ -105,6 +105,7 @@ class Interface(MyMainWindow):
             self.color_button.setText(self.mesh_colors[text])
             # set mesh reference
             self.reference = text
+            self.current_pose()
             curr_opacity = self.mesh_actors[self.reference].GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:
@@ -317,20 +318,6 @@ class Interface(MyMainWindow):
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_actors_names.addButton(button)
         self.button_actor_name_clicked(actor_name)
-
-    def pick_callback(self, obj, *args):
-        x, y = obj.GetEventPosition()
-        picker = vtk.vtkCellPicker()
-        picker.Pick(x, y, 0, self.plotter.renderer)
-        picked_actor = picker.GetActor()
-        if picked_actor:
-            actor_name = picked_actor.name
-            if actor_name in self.mesh_actors:        
-                if actor_name not in self.undo_poses: self.undo_poses[actor_name] = []
-                self.undo_poses[actor_name].append(self.mesh_actors[actor_name].user_matrix)
-                if len(self.undo_poses[actor_name]) > 20: self.undo_poses[actor_name].pop(0)
-                # check the picked button
-                self.check_button(actor_name)
 
     def toggle_image_opacity(self, up):
         if up:
@@ -883,6 +870,7 @@ class Interface(MyMainWindow):
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
+    
     def export_mesh_render(self, save_render=True):
 
         if self.reference:

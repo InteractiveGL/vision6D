@@ -3,6 +3,8 @@ import numpy as np
 import PIL.Image
 import functools
 import os
+import vtk
+from typing import Optional
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -374,17 +376,49 @@ class MyMainWindow(MainWindow):
     def create_plotter(self):
         self.frame = QtWidgets.QFrame()
         self.frame.setFixedSize(*self.window_size)
-        self.plotter = QtInteractor(self.frame)
+        self.plotter = CustomQtInteractor(self.frame, self)
         # self.plotter.setFixedSize(*self.window_size)
         self.signal_close.connect(self.plotter.close)
 
     def show_plot(self):
         self.plotter.enable_joystick_actor_style()
         self.plotter.enable_trackball_actor_style()
-        self.plotter.iren.interactor.AddObserver("LeftButtonPressEvent", self.pick_callback)
-
+        
         self.plotter.add_axes()
         self.plotter.add_camera_orientation_widget()
 
         self.plotter.show()
         self.show()
+
+class CustomQtInteractor(QtInteractor):
+    def __init__(self, parent=None, main_window: Optional[MyMainWindow] = None):
+        super().__init__(parent)
+
+        # Save parameters
+        self.main_window = main_window
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == 1 or event.button() == 4:  # Left or middle mouse button
+            self.press_callback(self.iren.interactor)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if event.button() == 1 or event.button() == 4:  # Left or middle mouse button
+            if self.picker: self.release_callback()
+            
+    def press_callback(self, obj, *args):
+        x, y = obj.GetEventPosition()
+        picker = vtk.vtkCellPicker()
+        if picker.Pick(x, y, 0, self.renderer): self.picker = picker
+        else: self.picker = None
+
+    def release_callback(self):
+        picked_actor = self.picker.GetActor()
+        actor_name = picked_actor.name
+        if actor_name in self.main_window.mesh_actors:        
+            if actor_name not in self.main_window.undo_poses: self.main_window.undo_poses[actor_name] = []
+            self.main_window.undo_poses[actor_name].append(self.main_window.mesh_actors[actor_name].user_matrix)
+            if len(self.main_window.undo_poses[actor_name]) > 20: self.main_window.undo_poses[actor_name].pop(0)
+            # check the picked button
+            self.main_window.check_button(actor_name)
