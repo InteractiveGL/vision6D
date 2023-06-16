@@ -1,4 +1,6 @@
 from functools import partial
+import numpy as np
+import PIL.Image
 
 class MirrorMenu():
 
@@ -14,24 +16,22 @@ class MirrorMenu():
         elif direction == 'y': self.mirror_y = not self.mirror_y
 
         #^ mirror the image actor
-        if self.image_actor:
-            original_image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+        if self.pvqt_store.image_store.image_actor: 
+            original_image_data = np.array(PIL.Image.open(self.paths_store.image_path), dtype='uint8')
             if len(original_image_data.shape) == 2: original_image_data = original_image_data[..., None]
-            self.add_image(original_image_data)
+            self.pvqt_store.image_store.add_image(original_image_data)
 
         #^ mirror the mask actor
-        if self.mask_actor:
-            original_mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
+        if self.pvqt_store.mask_store.mask_actor:
+            original_mask_data = np.array(PIL.Image.open(self.paths_store.mask_path), dtype='uint8')
             if len(original_mask_data.shape) == 2: original_mask_data = original_mask_data[..., None]
-            self.add_mask(original_mask_data)
+            self.pvqt_store.mask_store.add_mask(original_mask_data)
 
         #^ mirror the mesh actors
-        if len(self.mesh_actors) != 0:
-            for actor_name, _ in self.mesh_actors.items():
-                transformation_matrix = self.transformation_matrix
-                if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                self.add_mesh(actor_name, self.meshdict[actor_name], transformation_matrix)
+        if len(self.pvqt_store.mesh_store.mesh_actors) != 0:
+            for actor_name, _ in self.pvqt_store.mesh_store.mesh_actors.items():
+                transformation_matrix = self.pvqt_store.camera_store.mirror_transformation_matrix()
+                self.pvqt_store.mesh_store.add_mesh(actor_name, self.pvqt_store.mesh_store.meshdict[actor_name], transformation_matrix)
             
             # Output the mirrored transformation matrix
-            self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
+            self.qt_store.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")

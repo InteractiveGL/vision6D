@@ -1,8 +1,8 @@
 
 from PyQt5 import QtWidgets
 
-from ..widgets import CustomQtInteractor
-from .singleton import Singleton
+from ...widgets import CustomQtInteractor
+from ..singleton import Singleton
 
 class PlotStore(metaclass=Singleton):
 

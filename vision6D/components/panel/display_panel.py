@@ -8,7 +8,7 @@ import trimesh
 import pyvista as pv
 
 from ... import utils
-from ...stores import PvQtStore, PathsStore, PlotStore, QtStore, MaskStore, VideoStore
+from ...stores import PvQtStore, PathsStore, QtStore, MainStore
 from ...widgets import GetTextDialog, CameraPropsInputDialog, PopUpDialog, LabelWindow
 
 class DisplayPanel:
@@ -19,12 +19,10 @@ class DisplayPanel:
         self.display = display
 
         # Create a reference to the store
+        self.main_store = MainStore()
         self.pvqt_store = PvQtStore()
         self.paths_store = PathsStore()
-        self.plot_store = PlotStore()
         self.qt_store = QtStore()
-        self.mask_store = MaskStore()
-        self.video_store = VideoStore()
 
         display_layout = QtWidgets.QVBoxLayout()
         display_layout.setContentsMargins(10, 15, 10, 0)
@@ -48,28 +46,27 @@ class DisplayPanel:
 
         # Create the draw mask button
         draw_mask_button = QtWidgets.QPushButton("Draw Mask")
-        draw_mask_button.clicked.connect(self.mask_store.draw_mask)
+        draw_mask_button.clicked.connect(self.pvqt_store.mask_store.draw_mask)
         top_grid_layout.addWidget(draw_mask_button, 0, 2)
 
         # Create the video related button
-        self.play_video_button = QtWidgets.QPushButton("Play Video")
-        self.play_video_button.clicked.connect(self.video_store.play_video)
-        top_grid_layout.addWidget(self.play_video_button, 0, 3)
+        
+        top_grid_layout.addWidget(self.qt_store.play_video_button, 0, 3)
 
         self.sample_video_button = QtWidgets.QPushButton("Sample Video")
-        self.sample_video_button.clicked.connect(self.video_store.sample_video)
+        self.sample_video_button.clicked.connect(self.pvqt_store.video_store.sample_video)
         top_grid_layout.addWidget(self.sample_video_button, 1, 0)
 
         self.save_frame_button = QtWidgets.QPushButton("Save Frame")
-        self.save_frame_button.clicked.connect(lambda _, save=True: self.video_store.load_per_frame_info(save))
+        self.save_frame_button.clicked.connect(lambda _, save=True: self.pvqt_store.video_store.load_per_frame_info(save))
         top_grid_layout.addWidget(self.save_frame_button, 1, 1)
 
         self.prev_frame_button = QtWidgets.QPushButton("Prev Frame")
-        self.prev_frame_button.clicked.connect(self.video_store.prev_frame)
+        self.prev_frame_button.clicked.connect(self.pvqt_store.video_store.prev_frame)
         top_grid_layout.addWidget(self.prev_frame_button, 1, 2)
 
         self.next_frame_button = QtWidgets.QPushButton("Next Frame")
-        self.next_frame_button.clicked.connect(self.video_store.next_frame)
+        self.next_frame_button.clicked.connect(self.pvqt_store.video_store.next_frame)
         top_grid_layout.addWidget(self.next_frame_button, 1, 3)
 
         top_grid_widget = QtWidgets.QWidget()
@@ -89,17 +86,7 @@ class DisplayPanel:
         actor_grid_layout.addWidget(self.qt_store.color_button, 0, 0)
         
         # Create the opacity spinbox
-        
-        self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
-        self.opacity_spinbox.setMinimum(0.0)
-        self.opacity_spinbox.setMaximum(1.0)
-        self.opacity_spinbox.setDecimals(2)
-        self.opacity_spinbox.setSingleStep(0.05)
-        self.ignore_spinbox_value_change = True
-        self.opacity_spinbox.setValue(0.3)
-        self.ignore_spinbox_value_change = False 
-        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
-        actor_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
+        actor_grid_layout.addWidget(self.qt_store.opacity_spinbox, 0, 1)
 
         # Create the hide button
         self.toggle_hide_meshes_flag = False
@@ -145,16 +132,16 @@ class DisplayPanel:
 
     def set_camera(self):
         dialog = CameraPropsInputDialog(
-            line1=("Fx", self.pvqt_store.fx), 
-            line2=("Fy", self.pvqt_store.fy), 
-            line3=("Cx", self.pvqt_store.cx), 
-            line4=("Cy", self.pvqt_store.cy), 
-            line5=("View Up", self.pvqt_store.cam_viewup), 
-            line6=("Cam Position", self.pvqt_store.cam_position))
+            line1=("Fx", self.pvqt_store.camera_store.fx), 
+            line2=("Fy", self.pvqt_store.camera_store.fy), 
+            line3=("Cx", self.pvqt_store.camera_store.cx), 
+            line4=("Cy", self.pvqt_store.camera_store.cy), 
+            line5=("View Up", self.pvqt_store.camera_store.cam_viewup), 
+            line6=("Cam Position", self.pvqt_store.camera_store.cam_position))
         if dialog.exec():
             fx, fy, cx, cy, cam_viewup, cam_position = dialog.getInputs()
             if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == '' or cam_position == ''):
-                success = self.pvqt_store.set_camera(fx, fy, cx, cy, cam_viewup, cam_position)
+                success = self.pvqt_store.camera_store.set_camera(fx, fy, cx, cy, cam_viewup, cam_position)
                 if not success:
                     QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
@@ -162,7 +149,7 @@ class DisplayPanel:
         if self.paths_store.pose_path:
             self.qt_store.hintLabel.hide()
             transformation_matrix = np.load(self.paths_store.pose_path)
-            self.pvqt_store.set_transformation_matrix(transformation_matrix)
+            self.pvqt_store.camera_store.set_transformation_matrix(transformation_matrix)
 
     def set_pose(self):
         # get the gt pose
@@ -178,7 +165,7 @@ class DisplayPanel:
                     return None
                 else:
                     self.qt_store.hintLabel.hide()
-                    self.pvqt_store.set_transformation_matrix(gt_pose)
+                    self.pvqt_store.camera_store.set_transformation_matrix(gt_pose)
                     return 0
             except: 
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -188,10 +175,8 @@ class DisplayPanel:
 
     def set_scalar(self, nocs, actor_name):
 
-        vertices, faces = utils.get_mesh_actor_vertices_faces(self.pvqt_store.mesh_actors[actor_name])
-        vertices_color = vertices
-        if self.pvqt_store.mirror_x: vertices_color = utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        if self.pvqt_store.mirror_y: vertices_color = utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        # Get the current vertices colors
+        vertices_color, vertices = self.pvqt_store.mesh_store.get_mesh_colors(actor_name)
         
         # get the corresponding color
         colors = utils.color_mesh(vertices_color, nocs=nocs)
@@ -201,26 +186,10 @@ class DisplayPanel:
         assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
         
         # color the mesh and actor
-        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plot_store.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.pvqt_store.mesh_opacity[actor_name], name=actor_name)
-        transformation_matrix = pv.array_from_vtkmatrix(self.pvqt_store.mesh_actors[actor_name].GetMatrix())
-        mesh.user_matrix = transformation_matrix
-        actor, _ = self.plot_store.plotter.add_actor(mesh, pickable=True, name=actor_name)
-        actor_colors = utils.get_mesh_actor_scalars(actor)
-        assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
-        assert actor.name == actor_name, "actor's name should equal to actor_name"
-        self.pvqt_store.mesh_actors[actor_name] = actor
+        self.pvqt_store.mesh_store.set_mesh_colors(actor_name, colors)
 
     def set_color(self, color, actor_name):
-        vertices, faces = utils.get_mesh_actor_vertices_faces(self.pvqt_store.mesh_actors[actor_name])
-        
-        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plot_store.plotter.add_mesh(mesh_data, color=color, opacity=self.pvqt_store.mesh_opacity[actor_name], name=actor_name)
-        transformation_matrix = pv.array_from_vtkmatrix(self.pvqt_store.mesh_actors[actor_name].GetMatrix())
-        mesh.user_matrix = transformation_matrix
-        actor, _ = self.plot_store.plotter.add_actor(mesh, pickable=True, name=actor_name)
-        assert actor.name == actor_name, "actor's name should equal to actor_name"
-        self.pvqt_store.mesh_actors[actor_name] = actor
+        self.pvqt_store.mesh_store.set_mesh_colors(actor_name, color)
 
     def show_color_popup(self):
 
@@ -234,7 +203,7 @@ class DisplayPanel:
                 popup.exec_()
 
                 text = self.qt_store.color_button.text()
-                self.pvqt_store.mesh_colors[actor_name] = text
+                self.pvqt_store.mesh_store.mesh_colors[actor_name] = text
                 if text == 'nocs': self.set_scalar(True, actor_name)
                 elif text == 'latlon': self.set_scalar(False, actor_name)
                 else: self.set_color(text, actor_name)
@@ -246,32 +215,11 @@ class DisplayPanel:
     def update_color_button_text(self, text, popup):
         self.qt_store.color_button.setText(text)
         popup.close() # automatically close the popup window
-
-    def opacity_value_change(self, value):
-        if self.ignore_spinbox_value_change: return 0
-        checked_button = self.qt_store.button_group_actors_names.checkedButton()
-        if checked_button:
-            actor_name = checked_button.text()
-            if actor_name == 'image': 
-                self.pvqt_store.set_image_opacity(value)
-            elif actor_name == 'mask': 
-                self.pvqt_store.set_mask_opacity(value)
-            elif actor_name in self.pvqt_store.mesh_actors: 
-                self.pvqt_store.store_mesh_opacity[actor_name] = copy.deepcopy(self.pvqt_store.mesh_opacity[actor_name])
-                self.pvqt_store.mesh_opacity[actor_name] = value
-                self.pvqt_store.set_mesh_opacity(actor_name, self.pvqt_store.mesh_opacity[actor_name])
-        else:
-            self.ignore_spinbox_value_change = True
-            self.opacity_spinbox.setValue(value)
-            self.ignore_spinbox_value_change = False
-            return 0
     
     def toggle_image_opacity(self, up):
         change = 0.05
         if not up: change *= -1
-        self.pvqt_store.update_opacity('image_opacity', change)
-        self.pvqt_store.image_actor.GetProperty().opacity = self.pvqt_store.image_opacity
-        self.plot_store.plotter.add_actor(self.pvqt_store.image_actor, pickable=False, name="image")
+        self.pvqt_store.image_store.update_image_opacity(change)
         self.ignore_spinbox_value_change = True
         self.opacity_spinbox.setValue(self.pvqt_store.image_opacity)
         self.ignore_spinbox_value_change = False
@@ -279,9 +227,7 @@ class DisplayPanel:
     def toggle_mask_opacity(self, up):
         change = 0.05
         if not up: change *= -1
-        self.pvqt_store.update_opacity('mask_opacity', change)
-        self.pvqt_store.mask_actor.GetProperty().opacity = self.pvqt_store.mask_opacity
-        self.plot_store.plotter.add_actor(self.pvqt_store.mask_actor, pickable=True, name="mask")
+        self.pvqt_store.mask_store.update_mask_opacity(change)
         self.ignore_spinbox_value_change = True
         self.opacity_spinbox.setValue(self.pvqt_store.mask_opacity)
         self.ignore_spinbox_value_change = False
@@ -300,7 +246,7 @@ class DisplayPanel:
         if self.toggle_hide_meshes_flag:
             for button in self.qt_store.button_group_actors_names.buttons():
                 if button.text() in self.pvqt_store.mesh_actors:
-                    button.setChecked(True); self.opacity_value_change(0)
+                    button.setChecked(True); self.qt_store.opacity_value_change(0)
     
             checked_button = self.qt_store.button_group_actors_names.checkedButton()
             if checked_button: 
@@ -311,50 +257,20 @@ class DisplayPanel:
         
         else:
             for button in self.qt_store.button_group_actors_names.buttons():
-                if button.text() in self.pvqt_store.mesh_actors:
+                if button.text() in self.pvqt_store.mesh_store.mesh_actors:
                     button.setChecked(True)
-                    self.opacity_value_change(self.store_mesh_opacity[button.text()])
+                    self.qt_store.opacity_value_change(self.pvqt_store.mesh_store.store_mesh_opacity[button.text()])
 
             checked_button = self.qt_store.button_group_actors_names.checkedButton()
             if checked_button:
                 self.ignore_spinbox_value_change = True
-                if checked_button.text() in self.mesh_actors: self.opacity_spinbox.setValue(self.pvqt_store.mesh_opacity[checked_button.text()])
+                if checked_button.text() in self.pvqt_store.mesh_store.mesh_actors: self.opacity_spinbox.setValue(self.pvqt_store.mesh_store.mesh_opacity[checked_button.text()])
                 self.ignore_spinbox_value_change = False
             else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
-    def add_button_actor_name(self, actor_name):
-        button = QtWidgets.QPushButton(actor_name)
-        button.setCheckable(True)  # Set the button to be checkable
-        button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
-        button.setChecked(True)
-        button.setFixedSize(self.display.size().width(), 50)
-        self.qt_store.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
-        self.qt_store.button_group_actors_names.addButton(button)
-        self.button_actor_name_clicked(actor_name)
-    
-    def button_actor_name_clicked(self, text):
-        if text in self.pvqt_store.mesh_actors:
-            # set the current mesh color
-            self.qt_store.color_button.setText(self.pvqt_store.mesh_colors[text])
-            # set mesh reference
-            self.pvqt_store.reference = text
-            self.pvqt_store.current_pose()
-            curr_opacity = self.pvqt_store.mesh_actors[self.pvqt_store.reference].GetProperty().opacity
-            self.opacity_spinbox.setValue(curr_opacity)
-        else:
-            self.qt_store.color_button.setText("Color")
-            if text == 'image': curr_opacity = self.pvqt_store.image_opacity
-            elif text == 'mask': curr_opacity = self.pvqt_store.mask_opacity
-            else: curr_opacity = self.opacity_spinbox.value()
-            self.opacity_spinbox.setValue(curr_opacity)
-            # self.reference = None
-        
-        output = f"-> Actor {text}, and its opacity is {curr_opacity}"
-        if output not in self.qt_store.output_text.toPlainText(): self.qt_store.output_text.append(output)
-
     def remove_actor(self, button):
         name = button.text()
-        self.pvqt_store.remove_actor(name)
+        self.main_store.remove_actor(name)
         self.qt_store.remove_actor_button(name, button)
           
     def remove_actors_button(self):
@@ -368,12 +284,12 @@ class DisplayPanel:
         checked_button = self.qt_store.button_group_actors_names.checkedButton()
         if checked_button:
             actor_name = checked_button.text()
-            if actor_name in self.pvqt_store.mesh_actors:
-                spacing, ok = QtWidgets.QInputDialog().getText(self, 'Input', "Set Spacing", text=str(self.pvqt_store.mesh_spacing))
+            if actor_name in self.pvqt_store.mesh_store.mesh_actors:
+                spacing, ok = QtWidgets.QInputDialog().getText(self, 'Input', "Set Spacing", text=str(self.pvqt_store.mesh_store.mesh_spacing))
                 if ok:
-                    try: self.pvqt_store.mesh_spacing = ast.literal_eval(spacing)
+                    try: self.pvqt_store.mesh_store.mesh_spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    self.add_mesh(actor_name, self.pvqt_store.meshdict[actor_name])
+                    self.add_mesh(actor_name, self.pvqt_store.mesh_store.meshdict[actor_name])
             else:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:

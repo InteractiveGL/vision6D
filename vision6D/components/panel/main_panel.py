@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets
 
 from .display_panel import DisplayPanel
 from .output_panel import OutputPanel
-from ...stores import QtStore, PlotStore
+from ...stores import QtStore
 
 class Panel():
 
@@ -13,7 +13,6 @@ class Panel():
         self.panel_widget = panel_widget
 
         # Create the store
-        self.plot_store = PlotStore()
         self.qt_store = QtStore()
 
         # Create a left panel layout
@@ -47,11 +46,11 @@ class Panel():
             # self.panel_widget width changes when the panel is visiable or hiden
             self.panel_widget_width = self.panel_widget.width()
             self.panel_widget.hide()
-            x = (self.plot_store.plotter.size().width() + self.panel_widget_width - self.qt_store.hintLabel.width()) // 2
-            y = (self.plot_store.plotter.size().height() - self.qt_store.hintLabel.height()) // 2
+            x = (self.pvqt_store.plot_store.plotter.size().width() + self.panel_widget_width - self.qt_store.hintLabel.width()) // 2
+            y = (self.pvqt_store.plot_store.plotter.size().height() - self.qt_store.hintLabel.height()) // 2
             self.qt_store.hintLabel.move(x, y)
         else:
             self.panel_widget.show()
-            x = (self.plot_store.plotter.size().width() - self.panel_widget_width - self.qt_store.hintLabel.width()) // 2
-            y = (self.plot_store.plotter.size().height() - self.qt_store.hintLabel.height()) // 2
+            x = (self.pvqt_store.plot_store.plotter.size().width() - self.panel_widget_width - self.qt_store.hintLabel.width()) // 2
+            y = (self.pvqt_store.plot_store.plotter.size().height() - self.qt_store.hintLabel.height()) // 2
             self.qt_store.hintLabel.move(x, y)

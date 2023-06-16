@@ -31,3 +31,12 @@ class VideoMenu():
         QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self.qt_store.main_window).activated.connect(self.video_store.next_frame)
         QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self.qt_store.main_window).activated.connect(self.video_store.prev_frame)
         QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self.qt_store.main_window).activated.connect(self.video_store.play_video)
+
+    def delete_video_folder(self):
+
+        if self.paths_store.video_path:
+            self.qt_store.output_text.append(f"-> Delete video {self.paths_store.video_path} from vision6D")
+        elif self.folder_path:
+            self.qt_store.output_text.append(f"-> Delete folder {self.paths_store.folder_path} from vision6D")
+
+        self.paths_store.delete_video_folder_path()

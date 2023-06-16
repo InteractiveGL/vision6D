@@ -6,30 +6,42 @@ import PIL.Image
 import numpy as np
 from PyQt5 import QtWidgets
 
-from ..widgets import LabelWindow
-from .. import utils
-from .singleton import Singleton
-from .paths_store import PathsStore
+from ...widgets import LabelWindow
+from ... import utils
+from ..singleton import Singleton
+from ..paths_store import PathsStore
 
 class MaskStore(metaclass=Singleton):
 
     def __init__(self):
+
+        self.mask_actor = None
+        self.mask_opacity = 0.3
 
         self.paths_store = PathsStore()
 
     def draw_mask(self):
         def handle_output_path_change(output_path):
             if output_path:
-                self.mask_path = output_path
-                self.add_mask(self.mask_path)
-        if self.image_path:
-            self.label_window = LabelWindow(self.image_path)
+                self.paths_store.mask_path = output_path
+                self.add_mask(self.paths_store.mask_path)
+        if self.paths_store.image_path:
+            self.label_window = LabelWindow(self.paths_store.image_path)
             self.label_window.show()
             self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
+    def change_mask_opacity(self, change):
+        self.set_mask_opacity(self.mask_opacity + change)
+
+    def set_mask_opacity(self, mask_opacity: float):
+        assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
+        self.mask_opacity = mask_opacity
+        self.mask_actor.GetProperty().opacity = mask_opacity
+        self.plot_store.add_actor(self.mask_actor, pickable=True, name='mask')
+
     def add_mask(self, mask_source):
 
         if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
@@ -70,9 +82,8 @@ class MaskStore(metaclass=Singleton):
         mask_point_data = utils.get_mask_actor_points(self.mask_actor)
         assert np.isclose(((mask_point_data+self.mask_bottom_point-self.mask_offset) - points), 0).all(), "mask_point_data and points should be equal"
 
-        # Add remove current image to removeMenu
-        if 'mask' not in self.track_actors_names:
-            self.track_actors_names.append('mask')
-            self.add_button_actor_name('mask')
-
-        self.qt_store.check_button('mask')
+    def remove_actor(self):
+        mask_actor = self.mask_actor
+        self.mask_actor = None
+        self.mask_path = None
+        return mask_actor

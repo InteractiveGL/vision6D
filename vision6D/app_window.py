@@ -38,11 +38,11 @@ class AppWindow(MainWindow):
         self.main_layout = QtWidgets.QHBoxLayout(self.main_widget)
         self.splitter = QtWidgets.QSplitter()
         self.splitter.addWidget(self.panel_widget)
-        self.splitter.addWidget(self.main_store.plot_store.plotter)
+        self.splitter.addWidget(self.main_store.pvqt_store.plot_store.plotter)
         self.main_layout.addWidget(self.splitter)
 
         # Show the plotter
-        self.main_store.plot_store.show_plot()
+        self.main_store.pvqt_store.plot_store.show_plot()
         self.show()
 
     def showMaximized(self):
