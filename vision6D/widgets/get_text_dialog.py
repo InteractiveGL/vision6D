@@ -11,6 +11,9 @@ class GetTextDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(GetTextDialog, self).__init__(parent)
 
+        # Create containers
+        self.user_text = ''
+
         layout = QtWidgets.QVBoxLayout(self)
         
         self.setWindowTitle("Vision6D")

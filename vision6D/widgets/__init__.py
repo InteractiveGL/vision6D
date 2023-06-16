@@ -5,6 +5,7 @@ from .label_window import LabelWindow
 from .popup_dialog import PopUpDialog
 from .video_player import VideoPlayer
 from .video_sampler import VideoSampler
+from .custom_qt_interactor import CustomQtInteractor
 
 __all__ = [
     'CalibrationPopWindow',
@@ -13,5 +14,6 @@ __all__ = [
     'LabelWindow',
     'PopUpDialog',
     'VideoPlayer',
-    'VideoSampler'
+    'VideoSampler',
+    'CustomQtInteractor'
 ]

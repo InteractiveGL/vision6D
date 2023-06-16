@@ -29,6 +29,7 @@ LOGGING_CONFIG = {
 # Setup the logging configuration
 logging.config.dictConfig(LOGGING_CONFIG)
 
-from .mainwindow import MyMainWindow
-from .GUI import Interface
+from .app_window import AppWindow
 from . import utils
+
+__all__ = ['AppWindow', 'utils']
