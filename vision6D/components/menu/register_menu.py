@@ -1,18 +1,19 @@
 from ...stores import QtStore
-from ...stores import PvQtStore
 from ...stores import PlotStore
 from ...stores import MeshStore
 from PyQt5 import QtWidgets
+
+from ..panel import DisplayPanel
 
 class RegisterMenu():
 
     def __init__(self):
 
-        
         self.plot_store = PlotStore()
         self.qt_store = QtStore()
-        self.pvqt_store = PvQtStore()
         self.mesh_store = MeshStore()
+
+        self.display_panel = DisplayPanel()
 
     def reset_gt_pose(self):
         self.qt_store.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.initial_pose}")
@@ -29,8 +30,8 @@ class RegisterMenu():
             self.qt_store.output_text.append(f"Current pose is: \n{self.mesh_store.transformation_matrix}")
 
     def undo_pose(self):
-        if self.pvqt_store.button_group_actors_names.checkedButton():
-            actor_name = self.pvqt_store.button_group_actors_names.checkedButton().text()
+        if self.display_panel.button_group_actors_names.checkedButton():
+            actor_name = self.display_panel.button_group_actors_names.checkedButton().text()
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0

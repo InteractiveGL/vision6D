@@ -1,3 +1,4 @@
+from .yes_no_box import YesNoBox
 from .calibration_pop_window import CalibrationPopWindow
 from .camera_props_input_dialog import CameraPropsInputDialog
 from .get_text_dialog import GetTextDialog
@@ -8,6 +9,7 @@ from .video_sampler import VideoSampler
 from .custom_qt_interactor import CustomQtInteractor
 
 __all__ = [
+    'YesNoBox',
     'CalibrationPopWindow',
     'CameraPropsInputDialog',
     'GetTextDialog',

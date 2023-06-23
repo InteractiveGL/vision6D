@@ -1,5 +1,3 @@
-from typing import Optional
-
 import vtk
 from pyvistaqt import QtInteractor
 
@@ -24,9 +22,9 @@ class CustomQtInteractor(QtInteractor):
         else: self.picker = None
 
     def release_callback(self):
-        from ..stores import PvQtStore, MeshStore
+        from ..stores import MeshStore
+        from ..components import DisplayPanel
         
-        pvqt_store = PvQtStore()
         mesh_store = MeshStore()
         picked_actor = self.picker.GetActor()
         actor_name = picked_actor.name
@@ -35,4 +33,4 @@ class CustomQtInteractor(QtInteractor):
             mesh_store.undo_poses[actor_name].append(mesh_store.mesh_actors[actor_name].user_matrix)
             if len(mesh_store.undo_poses[actor_name]) > 20: mesh_store.undo_poses[actor_name].pop(0)
             # check the picked button
-            pvqt_store.check_button(actor_name)
+            DisplayPanel().check_button(actor_name)

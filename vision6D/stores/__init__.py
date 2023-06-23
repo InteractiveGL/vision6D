@@ -8,7 +8,6 @@ from .folder_store import FolderStore
 from .workspace_store import WorkspaceStore
 
 from .qt_store import QtStore
-from .pvqt_store import PvQtStore
 
 __all__ = [
     'ImageStore',
@@ -18,6 +17,5 @@ __all__ = [
     'VideoStore',
     'FolderStore',
     'WorkspaceStore',
-    'PvQtStore',
     'QtStore'
 ]

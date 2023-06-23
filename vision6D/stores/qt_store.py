@@ -14,7 +14,11 @@ class QtStore(metaclass=Singleton):
 
         self.plot_store = PlotStore()
 
-        # * Qt elements
+        self.track_actors_names = []
+
+        # Create the color dropdown menu
+        self.color_button = QtWidgets.QPushButton("Color")
+
         self.hintLabel = QtWidgets.QLabel(self.plot_store.plotter)
         self.hintLabel.setText("Drag and drop a file here...")
         self.hintLabel.setStyleSheet("""
@@ -26,4 +30,4 @@ class QtStore(metaclass=Singleton):
         self.hintLabel.setAlignment(Qt.AlignCenter)
 
         self.output_text = QtWidgets.QTextEdit()
-        self.output_text.setReadOnly(False)
+        self.output_text.setReadOnly(True)

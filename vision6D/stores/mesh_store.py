@@ -95,7 +95,7 @@ class MeshStore(metaclass=Singleton):
 
         self.used_colors.append(mesh_color)
         self.mesh_colors[mesh_name] = mesh_color
-        self.pvqt_store.color_button.setText(self.mesh_colors[mesh_name])
+        self.qt_store.color_button.setText(self.mesh_colors[mesh_name])
         mesh = self.plot_store.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
 
         mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix

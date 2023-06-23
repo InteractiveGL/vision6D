@@ -30,8 +30,8 @@ class PlotStore(metaclass=Singleton):
         self.camera = pv.Camera()
         self.fx = 50000
         self.fy = 50000
-        self.cx = 960
-        self.cy = 540
+        self.cx = self.window_size[0] // 2
+        self.cy = self.window_size[1] // 2
         self.cam_viewup = (0, -1, 0)
         self.cam_position = -500
         self.set_camera_props()

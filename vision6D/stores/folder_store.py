@@ -32,8 +32,8 @@ class FolderStore(metaclass=Singleton):
         files.sort(key=lambda f: int(re.sub('\D', '', f)))
         return files, dir
 
-    def add_folder(self, folder_path):
-        self.folder_path = folder_path        
+    def add_folder(self, folder_path=''):
+        if folder_path: self.folder_path = folder_path        
         folders = [d for d in os.listdir(self.folder_path) if os.path.isdir(os.path.join(self.folder_path, d))]
         flag = True
 
@@ -66,11 +66,11 @@ class FolderStore(metaclass=Singleton):
         return flag
 
     def prev_frame(self):
-        np.clip(self.current_frame, 0, self.total_count)
         self.current_frame -= 1
+        np.clip(self.current_frame, 0, self.total_count)
         self.add_folder()
         
     def next_frame(self):
-        np.clip(self.current_frame, 0, self.total_count)
         self.current_frame += 1
+        np.clip(self.current_frame, 0, self.total_count)
         self.add_folder()

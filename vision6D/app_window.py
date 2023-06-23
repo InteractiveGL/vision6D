@@ -5,14 +5,12 @@ os.environ["QT_API"] = "pyqt5"
 from functools import partial
 
 import numpy as np
-import PIL.Image
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
 from pyvistaqt import MainWindow
 
 # self defined package import
-from .stores import PvQtStore
 from .stores import QtStore
 from .stores import PlotStore
 from .stores import ImageStore
@@ -35,6 +33,8 @@ from .components.menu import PnPMenu
 from .components.menu import RegisterMenu
 from .components.menu import VideoFolderMenu
 
+from .widgets import YesNoBox
+
 np.set_printoptions(suppress=True)
 
 class AppWindow(MainWindow):
@@ -48,8 +48,9 @@ class AppWindow(MainWindow):
         self.setAcceptDrops(True)
 
         frame = QtWidgets.QFrame()
-        window_size = (1920, 1080)
-        self.plot_store = PlotStore(frame, window_size)
+        # window_size = (QtWidgets.QApplication.desktop().screenGeometry().width(), 
+        #             QtWidgets.QApplication.desktop().screenGeometry().height())
+        self.plot_store = PlotStore(frame, window_size=(1920, 1080))
         self.qt_store = QtStore()
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
@@ -57,10 +58,10 @@ class AppWindow(MainWindow):
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
         self.workspace_store = WorkspaceStore()
-
+       
         # buttons
         self.button_group_actors_names = QtWidgets.QButtonGroup(self)
-        
+
         # Delegate roles and tasks
         self.panel_widget = QtWidgets.QWidget()
         self.set_panel()
@@ -80,6 +81,8 @@ class AppWindow(MainWindow):
         self.splitter = QtWidgets.QSplitter()
         self.splitter.addWidget(self.panel_widget)
         self.splitter.addWidget(self.plot_store.plotter)
+        self.splitter.setStretchFactor(0, 1) # for the self.panel_widget
+        self.splitter.setStretchFactor(1, 3) # for the self.plot_store.plotter
         self.main_layout.addWidget(self.splitter)
 
         # Show the plotter
@@ -88,13 +91,12 @@ class AppWindow(MainWindow):
         self.show()
 
         # Add shortcut to the right, left, space buttons
-        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.video_folder_menu.next_frame)
-        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.video_folder_menu.prev_frame)
-        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.video_folder_menu.play_video)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.panel_display.next_frame)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.panel_display.prev_frame)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.panel_display.play_video)
 
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.register_menu.reset_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.register_menu.update_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.register_menu.current_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.register_menu.undo_pose)
 
         # change image opacity key bindings
@@ -128,10 +130,8 @@ class AppWindow(MainWindow):
 
         # Create the display
         self.display = QtWidgets.QGroupBox("Console")
-        self.panel_display = DisplayPanel(self.display)
+        self.panel_display = DisplayPanel(self.display, self.button_group_actors_names)
 
-        self.pvqt_store = PvQtStore(button_group_actors_names=self.button_group_actors_names)
-        
         # Create the output
         self.output = QtWidgets.QGroupBox("Output")
         self.panel_output = OutputPanel(self.output)
@@ -168,9 +168,9 @@ class AppWindow(MainWindow):
         fileMenu.addAction('Add Video', partial(self.file_menu.add_video, prompt=True))
         fileMenu.addAction('Add Image', partial(self.file_menu.add_image, prompt=True))
         fileMenu.addAction('Add Mask', partial(self.file_menu.add_mask, prompt=True))
-        fileMenu.addAction('Draw Mask', self.file_menu.draw_mask)
         fileMenu.addAction('Add Mesh', partial(self.file_menu.add_mesh, prompt=True))
-        fileMenu.addAction('Clear', self.file_menu.clear_plot)
+        fileMenu.addAction('Draw Mask', self.file_menu.draw_mask)
+        fileMenu.addAction('Clear', self.panel_display.clear_plot)
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
@@ -182,12 +182,12 @@ class AppWindow(MainWindow):
         
         # Add video related actions
         VideoMenu = mainMenu.addMenu('Video/Folder')
-        VideoMenu.addAction('Play', self.video_folder_menu.play_video)
-        VideoMenu.addAction('Sample', self.video_folder_menu.sample_video)
+        VideoMenu.addAction('Play', self.panel_display.play_video)
+        VideoMenu.addAction('Sample', self.panel_display.sample_video)
         VideoMenu.addAction('Delete', self.video_folder_menu.delete)
-        VideoMenu.addAction('Save Frame', partial(self.video_folder_menu.save_frame))
-        VideoMenu.addAction('Prev Frame', self.video_folder_menu.prev_frame)
-        VideoMenu.addAction('Next Frame', self.video_folder_menu.next_frame)
+        VideoMenu.addAction('Save Frame', partial(self.panel_display.save_frame))
+        VideoMenu.addAction('Prev Frame', self.panel_display.prev_frame)
+        VideoMenu.addAction('Next Frame', self.panel_display.next_frame)
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
@@ -207,7 +207,6 @@ class AppWindow(MainWindow):
         RegisterMenu = mainMenu.addMenu('Register')
         RegisterMenu.addAction('Reset GT Pose (k)', self.register_menu.reset_gt_pose)
         RegisterMenu.addAction('Update GT Pose (l)', self.register_menu.update_gt_pose)
-        RegisterMenu.addAction('Current Pose (t)', self.register_menu.current_pose)
         RegisterMenu.addAction('Undo Pose (s)', self.register_menu.undo_pose)
 
         # Add pnp algorithm related actions
@@ -220,7 +219,6 @@ class AppWindow(MainWindow):
 
     def showMaximized(self):
         super().showMaximized()
-        self.splitter.setSizes([int(self.width() * 0.05), int(self.width() * 0.95)])
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
@@ -234,27 +232,31 @@ class AppWindow(MainWindow):
             file_path = url.toLocalFile()
             if os.path.isdir(file_path):
                 self.video_store.video_path = None
-                self.folder_store.add_folder(file_path)
+                self.file_menu.add_folder(folder_path=file_path)
             else:
                 # Load workspace json file
-                if file_path.endswith(('.json')): self.workspace_store.add_workspace(file_path)
+                if file_path.endswith(('.json')): 
+                    self.file_menu.add_workspace(workspace_path=file_path)
                 # Load mesh file
                 elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
-                    self.mesh_store.add_mesh(file_path)
+                    self.file_menu.add_mesh(mesh_path=file_path)
                 # Load video file
                 elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
                     self.folder_store.folder_path = None
-                    self.video_store.add_video(file_path)
+                    self.file_menu.add_video(video_path=file_path)
                 # Load image/mask file
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
-                    file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
-                    unique, counts = np.unique(file_data, return_counts=True)
-                    digit_counts = dict(zip(unique, counts))
-                    # binary/grey mask file
-                    if digit_counts[0] == np.max(counts) or digit_counts[0] == np.partition(counts, -2)[-2]: self.mask_store.add_mask(file_path) # 0 is the most or second most among all numbers   
-                    # image file
-                    else: self.image_store.add_image(file_path)
-                elif file_path.endswith('.npy'): self.mesh_store.add_pose(file_path)
+                    yes_no_box = YesNoBox()
+                    yes_no_box.setIcon(QtWidgets.QMessageBox.Question)
+                    yes_no_box.setWindowTitle("Vision6D")
+                    yes_no_box.setText("Do you want to load the image as mask?")
+                    yes_no_box.setStandardButtons(QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
+                    button_clicked = yes_no_box.exec_()
+                    if not yes_no_box.canceled:
+                        if button_clicked == QtWidgets.QMessageBox.Yes: self.file_menu.add_mask(mask_path=file_path)
+                        elif button_clicked == QtWidgets.QMessageBox.No: self.file_menu.add_image(image_path=file_path)
+                elif file_path.endswith('.npy'): 
+                    self.mesh_store.add_pose(file_path)
                 else:
                     QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     return 0

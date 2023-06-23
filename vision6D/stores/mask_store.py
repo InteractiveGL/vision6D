@@ -5,10 +5,9 @@ import cv2
 import PIL.Image
 import numpy as np
 
-from ..widgets import LabelWindow
-from .. import utils
 from .singleton import Singleton
-
+from .. import utils
+from ..widgets import LabelWindow
 from .plot_store import PlotStore
 
 class MaskStore(metaclass=Singleton):
