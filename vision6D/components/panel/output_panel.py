@@ -5,8 +5,11 @@ from ...stores import QtStore
 class OutputPanel:
     def __init__(self, output):
 
+        self.qt_store = QtStore()
+
         # Save reference
         self.output = output
+        self.clipboard = QtGui.QGuiApplication.clipboard()
 
         # Add a spacer to the top of the main layout
         output_layout = QtWidgets.QVBoxLayout()
@@ -35,13 +38,11 @@ class OutputPanel:
         output_layout.addLayout(top_layout)
 
         # Access to the system clipboard
-        self.qt_store = QtStore()
         output_layout.addWidget(self.qt_store.output_text)
         self.output.setLayout(output_layout)
 
-
     def copy_output_text(self):
-        self.qt_store.clipboard.setText(self.qt_store.output_text.toPlainText())
+        self.clipboard.setText(self.qt_store.output_text.toPlainText())
         
     def clear_output_text(self):
         self.qt_store.output_text.clear()

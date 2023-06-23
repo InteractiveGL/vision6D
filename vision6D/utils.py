@@ -404,3 +404,8 @@ def get_mesh_actor_scalars(actor):
     scalars = point_data.GetScalars()
     if scalars: scalars = vtknp.vtk_to_numpy(scalars)
     return scalars
+
+def create_render(w, h):
+    render = pv.Plotter(window_size=[w, h], lighting=None, off_screen=True) 
+    render.set_background('black'); assert render.background_color == "black", "render's background need to be black"
+    return render

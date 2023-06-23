@@ -1,5 +1,7 @@
-from .main_panel import Panel
+from .display_panel import DisplayPanel
+from .output_panel import OutputPanel
 
 __all__ = [
-    'Panel'
+    'DisplayPanel',
+    'OutputPanel'
 ]

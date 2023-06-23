@@ -1,15 +1,23 @@
-from .main_store import MainStore
-from .pvqt import PvQtStore
-from .pvqt.mask_store import MaskStore
-from .pvqt.video_store import VideoStore
-from .paths_store import PathsStore
+from .image_store import ImageStore
+from .mask_store import MaskStore
+from .mesh_store import MeshStore
+from .plot_store import PlotStore
+
+from .video_store import VideoStore
+from .folder_store import FolderStore
+from .workspace_store import WorkspaceStore
+
 from .qt_store import QtStore
+from .pvqt_store import PvQtStore
 
 __all__ = [
-    'MainStore',
-    'PvQtStore',
+    'ImageStore',
     'MaskStore',
+    'MeshStore',
+    'PlotStore',
     'VideoStore',
-    'PathsStore',
+    'FolderStore',
+    'WorkspaceStore',
+    'PvQtStore',
     'QtStore'
 ]

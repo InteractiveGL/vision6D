@@ -24,14 +24,15 @@ class CustomQtInteractor(QtInteractor):
         else: self.picker = None
 
     def release_callback(self):
-        from ..stores import QtStore, PvQtStore
+        from ..stores import PvQtStore, MeshStore
         
         pvqt_store = PvQtStore()
+        mesh_store = MeshStore()
         picked_actor = self.picker.GetActor()
         actor_name = picked_actor.name
-        if actor_name in pvqt_store.mesh_actors:        
-            if actor_name not in pvqt_store.undo_poses: pvqt_store.undo_poses[actor_name] = []
-            pvqt_store.undo_poses[actor_name].append(pvqt_store.mesh_actors[actor_name].user_matrix)
-            if len(pvqt_store.undo_poses[actor_name]) > 20: pvqt_store.undo_poses[actor_name].pop(0)
+        if actor_name in mesh_store.mesh_actors:        
+            if actor_name not in mesh_store.undo_poses: mesh_store.undo_poses[actor_name] = []
+            mesh_store.undo_poses[actor_name].append(mesh_store.mesh_actors[actor_name].user_matrix)
+            if len(mesh_store.undo_poses[actor_name]) > 20: mesh_store.undo_poses[actor_name].pop(0)
             # check the picked button
-            QtStore().check_button(actor_name)
+            pvqt_store.check_button(actor_name)

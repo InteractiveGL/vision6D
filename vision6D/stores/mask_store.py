@@ -4,47 +4,57 @@ import pyvista as pv
 import cv2
 import PIL.Image
 import numpy as np
-from PyQt5 import QtWidgets
 
-from ...widgets import LabelWindow
-from ... import utils
-from ..singleton import Singleton
-from ..paths_store import PathsStore
+from ..widgets import LabelWindow
+from .. import utils
+from .singleton import Singleton
+
+from .plot_store import PlotStore
 
 class MaskStore(metaclass=Singleton):
 
     def __init__(self):
 
+        self.plot_store = PlotStore()
+        self.reset()
+
+    def reset(self):
         self.mask_actor = None
         self.mask_opacity = 0.3
+        self.mask_path = None
+    
+    def render_mask(self, camera):
+        self.render.clear()
+        render_actor = self.mask_actor.copy(deep=True)
+        render_actor.GetProperty().opacity = 1
+        self.render.add_actor(render_actor, pickable=False)
+        self.render.camera = camera
+        self.render.disable()
+        self.render.show(auto_close=False)
+        image = self.render.last_image
+        return image
 
-        self.paths_store = PathsStore()
-
-    def draw_mask(self):
+    def draw_mask(self, image_path):
         def handle_output_path_change(output_path):
             if output_path:
-                self.paths_store.mask_path = output_path
-                self.add_mask(self.paths_store.mask_path)
-        if self.paths_store.image_path:
-            self.label_window = LabelWindow(self.paths_store.image_path)
-            self.label_window.show()
-            self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+                self.mask_path = output_path
+                self.add_mask(self.mask_path)
+        self.label_window = LabelWindow(image_path)
+        self.label_window.show()
+        self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
         
-    def change_mask_opacity(self, change):
-        self.set_mask_opacity(self.mask_opacity + change)
-
+    def update_mask_opacity(self, delta):
+        self.set_mask_opacity(self.mask_opacity + delta)
+        
     def set_mask_opacity(self, mask_opacity: float):
-        assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
+        np.clip(self.mask_opacity, 0, 1)
         self.mask_opacity = mask_opacity
         self.mask_actor.GetProperty().opacity = mask_opacity
-        self.plot_store.add_actor(self.mask_actor, pickable=True, name='mask')
+        self.plot_store.plotter.add_actor(self.mask_actor, pickable=True, name='mask')
 
     def add_mask(self, mask_source):
-
         if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
+            self.mask_path = str(mask_source)
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
 
         if mask_source.shape[-1] == 3: mask_source = cv2.cvtColor(mask_source, cv2.COLOR_RGB2GRAY)
@@ -55,8 +65,11 @@ class MaskStore(metaclass=Singleton):
         
         # Mirror points
         h, w = mask_source.shape[0], mask_source.shape[1]
-        if self.mirror_x: points2d[:, 0] = w - points2d[:, 0]
-        if self.mirror_y: points2d[:, 1] = h - points2d[:, 1]
+
+        self.render = utils.create_render(w, h)
+
+        if self.plot_store.mirror_x: points2d[:, 0] = w - points2d[:, 0]
+        if self.plot_store.mirror_y: points2d[:, 1] = h - points2d[:, 1]
 
         bottom_point = points2d[np.argmax(points2d[:, 1])]
 
@@ -75,8 +88,8 @@ class MaskStore(metaclass=Singleton):
         mask_surface = mask_surface.translate(-self.mask_bottom_point+self.mask_offset, inplace=False)
 
         # Add mask surface object to the plot
-        mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_opacity)
-        actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
+        mask_mesh = self.plot_store.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_opacity)
+        actor, _ = self.plot_store.plotter.add_actor(mask_mesh, pickable=True, name='mask')
         self.mask_actor = actor
 
         mask_point_data = utils.get_mask_actor_points(self.mask_actor)

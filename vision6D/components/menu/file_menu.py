@@ -1,171 +1,151 @@
 from functools import partial
-import json
-import pathlib
-import os
-import re
-
-import cv2
-import trimesh
-import pyvista as pv
 import PIL.Image
 import numpy as np
 from PyQt5 import QtWidgets
 
-from ... import utils
-from ...widgets import VideoPlayer
-from ...stores import MainStore, QtStore, PvQtStore
+from ...stores import QtStore
+from ...stores import PvQtStore
+from ...stores import FolderStore
+from ...stores import WorkspaceStore
+from ...stores import PlotStore
+from ...stores import VideoStore
+from ...stores import ImageStore
+from ...stores import MaskStore
+from ...stores import MeshStore
 
 class FileMenu():
 
-    def __init__(self, menu):
+    def __init__(self):
 
         # Create references to stores
         self.qt_store = QtStore()
         self.pvqt_store = PvQtStore()
+        self.folder_store = FolderStore()
+        self.workspace_store = WorkspaceStore()
 
-        # Save parameter
-        self.menu = menu
-        self.file_dialog = QtWidgets.QFileDialog()
+        self.plot_store = PlotStore()
+        self.image_store = ImageStore()
+        self.mask_store = MaskStore()
+        self.mesh_store = MeshStore()
+        self.video_store = VideoStore()
 
-        self.menu.addAction('Add Workspace', partial(self.pvqt_store.add_workspace, prompt=True))
-        self.menu.addAction('Add Folder', partial(self.add_folder, prompt=True))
-        self.menu.addAction('Add Video', partial(self.add_video_file, prompt=True))
-        self.menu.addAction('Add Image', partial(self.add_image_file, prompt=True))
-        self.menu.addAction('Add Mask', partial(self.add_mask_file, prompt=True))
-        self.menu.addAction('Add Mesh', partial(self.add_mesh_file, prompt=True))
-        self.menu.addAction('Draw Mask', self.draw_mask)
-        self.menu.addAction('Clear', self.clear_plot)
-    
-    def get_files_from_folder(self, category):
-        dir = pathlib.Path(self.folder_path) / category
-        folders = [d for d in os.listdir(dir) if os.path.isdir(os.path.join(dir, d))]
-        if len(folders) == 1: dir = pathlib.Path(self.folder_path) / category / folders[0]
-        # Retrieve files
-        files = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
-        self.total_count = len(files)
-        # Sort files
-        files.sort(key=lambda f: int(re.sub('\D', '', f)))
-        return files, dir
+    def add_workspace(self, prompt=False):
+        if prompt:
+            workspace_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.json)")
+        if workspace_path:
+            self.qt_store.hintLabel.hide()
+            self.workspace_store.add_workspace(workspace_path)
+            if self.video_store.video_path:
+                self.qt_store.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")
+                self.qt_store.output_text.append(f"-> Current frame is ({self.video_store.current_frame}/{self.video_store.total_frame})")
+
+            # reset camera
+            self.plot_store.reset_camera()
 
     def add_folder(self, prompt=False):
         if prompt: 
-            self.folder_path = self.file_dialog.getExistingDirectory(self, "Select Folder")
-        
-        if self.folder_path:
-            folders = [d for d in os.listdir(self.folder_path) if os.path.isdir(os.path.join(self.folder_path, d))]
-            flag = True
-
-            if 'images' in folders:
-                flag = False
-                image_files, image_dir = self.get_files_from_folder('images')
-                self.image_path = str(image_dir / image_files[self.current_frame])
-                if os.path.isfile(self.image_path): self.add_image_file()
-
-            if 'masks' in folders:
-                flag = False
-                mask_files, mask_dir = self.get_files_from_folder('masks')
-                self.mask_path = str(mask_dir / mask_files[self.current_frame])
-                if os.path.isfile(self.mask_path): self.add_mask_file()
-                    
-            if 'poses' in folders:
-                flag = False
-                pose_files, pose_dir = self.get_files_from_folder('poses')
-                self.pose_path = str(pose_dir / pose_files[self.current_frame])
-                if os.path.isfile(self.pose_path): self.add_pose_file()
-                    
-            if self.current_frame == 0:
-                if 'meshes' in folders:
-                    flag = False
-                    dir = pathlib.Path(self.folder_path) / "meshes"
-                    if os.path.isfile(dir / 'mesh_path.txt'):
-                        with open(dir / 'mesh_path.txt', 'r') as f: mesh_path = f.read().splitlines()
-                        for path in mesh_path:
-                            self.mesh_path = path
-                            self.add_mesh_file()
-
+            folder_path = QtWidgets.QFileDialog().getExistingDirectory(self, "Select Folder")
+            flag = self.folder_store.add_folder(folder_path)
             if flag:
-                self.delete_video_folder()
+                self.folder_store.reset()
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
             else:
-                self.video_path = None # make sure video_path and folder_path are exclusive
-                self.output_text.append(f"-> After reset GT pose, current slide is ({self.current_frame}/{self.total_count})")
-                self.reset_camera()
+                self.qt_store.hintLabel.hide()
+                self.video_store.video_path = None
+                self.qt_store.output_text.append(f"-> After reset GT pose, current slide is ({self.current_frame}/{self.total_count})")
+                self.plot_store.reset_camera()
 
-    def add_video_file(self, prompt=False):
+    def add_video(self, prompt=False):
         if prompt:
-            self.video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
-        if self.video_path:
-            self.hintLabel.hide()
-            self.folder_path = None # make sure video_path and folder_path are exclusive
-            self.video_player = VideoPlayer(self.video_path, self.current_frame)
-            self.play_video_button.setText("Play Video")
-            self.output_text.append(f"-> Load video {self.video_path} into vision6D")
-            self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-            self.fps = round(self.video_player.fps)
-            self.load_per_frame_info(True)
-            self.sample_video()
+            video_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
+        if video_path:
+            self.qt_store.hintLabel.hide()
+            self.folder_store.folder_path = None # make sure video_path and folder_path are exclusive
+            self.video_store.add_video(video_path)
+            video_frame = self.video_store.load_per_frame_info()
+            self.image_store.add_image(video_frame)
+            self.qt_store.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")
+            self.qt_store.output_text.append(f"-> Current frame is ({self.video_store.current_frame}/{self.video_store.total_frame})")
     
-    def add_image(self, image_source):
-        self.pvqt_store.image_store.add_image(image_source)
-        # add remove current image to removeMenu
-        if 'image' not in self.pvqt_store.track_actors_names:
-            self.pvqt_store.track_actors_names.append('image')
-            self.qt_store.add_button_actor_name('image')
-
-        self.qt_store.check_button('image')
-
-    def add_mask(self, mask_source):
-        self.pvqt_store.mask_store.add_mask(mask_source)
-        # Add remove current image to removeMenu
-        if 'mask' not in self.track_actors_names:
-            self.pvqt_store.track_actors_names.append('mask')
-            self.qt_store.add_button_actor_name('mask')
-        self.qt_store.check_button('mask')
-
-    def add_mesh(self, mesh_name, mesh_source, transformation_matrix=None):
-        """ add a mesh to the pyqt frame """
-        self.pvqt_store.mesh_store.add_mesh(mesh_source, transformation_matrix)
-
-        # add remove current mesh to removeMenu
-        if mesh_name not in self.pvqt_store.track_actors_names:
-            self.pvqt_store.track_actors_names.append(mesh_name)
-            self.qt_store.add_button_actor_name(mesh_name)
-
-        self.qt_store.check_button(mesh_name)
-            
-    def add_image_file(self, prompt=False):
+    def add_image(self, prompt=False):
         if prompt:
-            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
-        if self.image_path:
-            self.hintLabel.hide()
-            image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
-            if len(image_source.shape) == 2: image_source = image_source[..., None]
-            self.add_image(image_source)
+            image_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
+        if image_path:
+            self.qt_store.hintLabel.hide()
+            self.image_store.add_image(image_path)
+            # add remove current image to removeMenu
+            if 'image' not in self.pvqt_store.track_actors_names:
+                self.pvqt_store.track_actors_names.append('image')
+                self.pvqt_store.add_button_actor_name('image')
+            self.pvqt_store.check_button('image')
             
-    def add_mask_file(self, prompt=False):
+    def add_mask(self, prompt=False):
         if prompt:
-            self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
-        if self.mask_path:
-            self.hintLabel.hide()
-            mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
-            self.add_mask(mask_source)
+            mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
+        if mask_path:
+            self.qt_store.hintLabel.hide()
+            self.mask_store.add_mask(mask_path)
+            # Add remove current image to removeMenu
+            if 'mask' not in self.pvqt_store.track_actors_names:
+                self.pvqt_store.track_actors_names.append('mask')
+                self.pvqt_store.add_button_actor_name('mask')
+            self.pvqt_store.check_button('mask')
 
-    def add_mesh_file(self, prompt=False):
+    def add_mesh(self, prompt=False):
         if prompt: 
-            self.mesh_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
-        if self.mesh_path:
-            self.hintLabel.hide()
-            mesh_name = pathlib.Path(self.mesh_path).stem
-            self.meshdict[mesh_name] = self.mesh_path
-            self.mesh_opacity[mesh_name] = self.surface_opacity
-            transformation_matrix = self.transformation_matrix
-            if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
-            self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
+            mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
+        if mesh_path:
+            self.qt_store.hintLabel.hide()
+            # TODO
+            transformation_matrix = self.mesh_store.transformation_matrix
+            if self.plot_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if self.plot_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
+            self.mesh_store.add_mesh(mesh_path, transformation_matrix)
+            # add remove current mesh to removeMenu
+            if self.mesh_store.mesh_name:
+                if self.mesh_store.mesh_name not in self.pvqt_store.track_actors_names:
+                    self.pvqt_store.track_actors_names.append(self.mesh_store.mesh_name)
+                    self.pvqt_store.add_button_actor_name(self.mesh_store.mesh_name)
+                self.pvqt_store.check_button(self.mesh_store.mesh_name)
 
     def draw_mask(self):
-        self.pvqt_store.mask_store.draw_mask()
+        if self.image_store.image_path:
+            self.mask_store.draw_mask(self.image_store.image_path)
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+        
+    def remove_actor(self, button):
+        name = button.text()
+        if name == 'image': actor = self.image_store.remove_actor()
+        elif name == 'mask': actor =self.mask_store.remove_actor()
+        else: 
+            actor = self.mesh_store.remove_actor(name)
+            self.pvqt_store.color_button.setText("Color")
+        
+        if actor: self.mesh_store.track_actors_names.remove(name)
 
+        # clear out the plot if there is no actor
+        if len(self.pvqt_store.button_group_actors_names.buttons()) == 0: self.clear_plot()
+
+        self.pvqt_store.remove_actor_button(name, button)
+        
     def clear_plot(self):
-        MainStore().clear_plot()
+        # Clear out everything in the remove menu
+        for button in self.pvqt_store.button_group_actors_names.buttons():
+            self.remove_actor(button)
+
+        self.qt_store.hintLabel.show()
+        self.qt_store.output_text.clear()
+        self.pvqt_store.color_button.setText("Color")
+
+        self.pvqt_store.track_actors_names = []
+        # Reset stores
+        self.plot_store.reset()
+        self.image_store.reset()
+        self.mask_store.reset()
+        self.mesh_store.reset()
+        self.folder_store.reset()
+        self.video_store.reset()
+        self.workspace_store.reset()
