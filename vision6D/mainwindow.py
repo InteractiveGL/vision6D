@@ -54,6 +54,9 @@ class MyMainWindow(MainWindow):
         self.splitter = QtWidgets.QSplitter()
         self.splitter.addWidget(self.panel_widget)
         self.splitter.addWidget(self.plotter)
+        self.splitter.setStretchFactor(0, 1) # for self.panel_widget
+        self.splitter.setStretchFactor(1, 3) # for self.plotter
+
         self.main_layout.addWidget(self.splitter)
 
         # Add a QLabel as an overlay hint label
@@ -72,7 +75,6 @@ class MyMainWindow(MainWindow):
 
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
-        self.splitter.setSizes([int(self.width() * 0.05), int(self.width() * 0.95)])
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
