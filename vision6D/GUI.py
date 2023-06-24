@@ -32,7 +32,7 @@ class Interface(MyMainWindow):
         # initialize
         self.reference = None
         self.transformation_matrix = np.eye(4)
-        self.initial_pose = self.transformation_matrix
+        self.initial_pose = None
 
         self.mirror_x = False
         self.mirror_y = False
@@ -82,6 +82,9 @@ class Interface(MyMainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.reset_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.update_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.undo_pose)
+
+        # Reset the mask location
+        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.add_mask_file)
 
         # change image opacity key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.toggle_image_opacity(up))
@@ -223,14 +226,6 @@ class Interface(MyMainWindow):
 
         self.check_button('mask')
 
-    def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
-        if matrix is not None: 
-            self.initial_pose = matrix
-            self.reset_gt_pose()
-            self.reset_camera()
-        else:
-            if (rot and trans): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-
     def add_mesh(self, mesh_name, mesh_source, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
 
@@ -255,44 +250,44 @@ class Interface(MyMainWindow):
             source_faces = mesh_source.faces.reshape((-1, 4))[:, 1:]
             flag = True
 
-        if not flag:
+        if flag:
+            # consider the mesh verts spacing
+            mesh_data.points = mesh_data.points * self.mesh_spacing
+
+            # assign a color to every mesh
+            if len(self.colors) != 0: mesh_color = self.colors.pop(0)
+            else:
+                self.colors = self.used_colors
+                mesh_color = self.colors.pop(0)
+                self.used_colors = []
+
+            self.used_colors.append(mesh_color)
+            self.mesh_colors[mesh_name] = mesh_color
+            self.color_button.setText(self.mesh_colors[mesh_name])
+            mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
+
+            mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
+            if self.initial_pose is None: self.initial_pose = self.transformation_matrix
+                    
+            # Add and save the actor
+            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+
+            actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
+            assert (actor_vertices == source_verts).all(), "vertices should be the same"
+            assert (actor_faces == source_faces).all(), "faces should be the same"
+            assert actor.name == mesh_name, "actor's name should equal to mesh_name"
+            
+            self.mesh_actors[mesh_name] = actor
+
+            # add remove current mesh to removeMenu
+            if mesh_name not in self.track_actors_names:
+                self.track_actors_names.append(mesh_name)
+                self.add_button_actor_name(mesh_name)
+
+            self.check_button(mesh_name)
+        else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
-
-        # consider the mesh verts spacing
-        mesh_data.points = mesh_data.points * self.mesh_spacing
-
-        # assign a color to every mesh
-        if len(self.colors) != 0: mesh_color = self.colors.pop(0)
-        else:
-            self.colors = self.used_colors
-            mesh_color = self.colors.pop(0)
-            self.used_colors = []
-
-        self.used_colors.append(mesh_color)
-        self.mesh_colors[mesh_name] = mesh_color
-        self.color_button.setText(self.mesh_colors[mesh_name])
-        mesh = self.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
-
-        mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
-        self.initial_pose = mesh.user_matrix
-                
-        # Add and save the actor
-        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-
-        actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
-        assert (actor_vertices == source_verts).all(), "vertices should be the same"
-        assert (actor_faces == source_faces).all(), "faces should be the same"
-        assert actor.name == mesh_name, "actor's name should equal to mesh_name"
-        
-        self.mesh_actors[mesh_name] = actor
-
-        # add remove current mesh to removeMenu
-        if mesh_name not in self.track_actors_names:
-            self.track_actors_names.append(mesh_name)
-            self.add_button_actor_name(mesh_name)
-
-        self.check_button(mesh_name)
 
     def reset_camera(self):
         self.plotter.camera = self.camera.copy()
@@ -510,7 +505,7 @@ class Interface(MyMainWindow):
             if 'mask_path' in workspace:
                 self.mask_path = workspace['mask_path']
                 self.add_mask_file()
-            if 'pose_path' in workspace:
+            if 'pose_path' in workspace: # need to load pose before loading meshes
                 self.pose_path = workspace['pose_path']
                 self.add_pose_file()
             if 'mesh_path' in workspace:
@@ -621,7 +616,15 @@ class Interface(MyMainWindow):
             if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
             self.add_mesh(mesh_name, self.mesh_path, transformation_matrix)
-                      
+
+    def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
+        if matrix is not None: 
+            self.initial_pose = matrix
+            self.reset_gt_pose()
+            self.reset_camera()
+        else:
+            if (rot and trans): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
+
     def add_pose_file(self):
         if self.pose_path:
             self.hintLabel.hide()
@@ -689,13 +692,11 @@ class Interface(MyMainWindow):
             self.add_mask(original_mask_data)
 
         #^ mirror the mesh actors
-        if len(self.mesh_actors) != 0:
-            for actor_name, _ in self.mesh_actors.items():
-                transformation_matrix = self.transformation_matrix
-                if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                self.add_mesh(actor_name, self.meshdict[actor_name], transformation_matrix)
-            
+        if self.reference:
+            transformation_matrix = self.initial_pose
+            if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            self.add_mesh(self.reference, self.meshdict[self.reference], transformation_matrix)
             # Output the mirrored transformation matrix
             self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
              
