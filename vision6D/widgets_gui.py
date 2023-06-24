@@ -1,16 +1,51 @@
 # General import
+import pathlib
+
 import numpy as np
 import cv2
-import pathlib
+import vtk
 import PIL.Image
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import Qt
+from pyvistaqt import QtInteractor
 
 # self defined package import
 np.set_printoptions(suppress=True)
+
+class CustomQtInteractor(QtInteractor):
+    def __init__(self, parent=None, main_window=None):
+        super().__init__(parent)
+        # Save main_window
+        self.main_window = main_window
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == 1 or event.button() == 4:  # Left or middle mouse button
+            self.press_callback(self.iren.interactor)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if event.button() == 1 or event.button() == 4:  # Left or middle mouse button
+            if self.picker: self.release_callback()
+            
+    def press_callback(self, obj, *args):
+        x, y = obj.GetEventPosition()
+        picker = vtk.vtkCellPicker()
+        if picker.Pick(x, y, 0, self.renderer): self.picker = picker
+        else: self.picker = None
+
+    def release_callback(self):
+        picked_actor = self.picker.GetActor()
+        actor_name = picked_actor.name
+        if actor_name in self.main_window.mesh_actors:        
+            if actor_name not in self.main_window.undo_poses: self.main_window.undo_poses[actor_name] = []
+            self.main_window.undo_poses[actor_name].append(self.main_window.mesh_actors[actor_name].user_matrix)
+            if len(self.main_window.undo_poses[actor_name]) > 20: self.main_window.undo_poses[actor_name].pop(0)
+            # check the picked button
+            self.main_window.check_button(actor_name)
 
 class VideoSampler(QtWidgets.QDialog):
     def __init__(self, video_player, fps, parent=None):
