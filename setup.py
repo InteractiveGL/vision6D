@@ -9,5 +9,6 @@ setuptools.setup(
         'console_scripts':[
             'vision6D = entry.main:main',
         ]
-    }
+    },
+    url='https://github.com/ykzzyk/vision6D',
 )
