@@ -12,6 +12,7 @@ from PyQt5.QtCore import Qt
 # self defined package import
 from . import widgets_gui
 from .components import ImageStore
+from .components import MaskStore
 
 np.set_printoptions(suppress=True)
 
@@ -28,6 +29,7 @@ class MyMainWindow(MainWindow):
 
         # initial stores
         self.image_store = ImageStore()
+        self.mask_store = MaskStore()
 
         # Initialize file paths
         self.workspace_path = None
@@ -35,7 +37,6 @@ class MyMainWindow(MainWindow):
         self.video_path = None
         self.current_frame = 0
         
-        self.mask_path = None
         self.mesh_path = None
         self.pose_path = None
 
@@ -109,16 +110,10 @@ class MyMainWindow(MainWindow):
                 # Load image/mask file
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                     file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
-                    unique, counts = np.unique(file_data, return_counts=True)
-                    digit_counts = dict(zip(unique, counts))
-                    # can only load binary/grey mask now
-                    if digit_counts[0] == np.max(counts) or digit_counts[0] == np.partition(counts, -2)[-2]: # 0 is the most or second most among all numbers
-                        self.mask_path = file_path
-                        self.add_mask_file()
-                    # image file
-                    else:
-                        self.image_store.image_path = file_path
-                        self.add_image_file()
+                    unique, _ = np.unique(file_data, return_counts=True)
+                    if len(unique) > 2: self.add_image_file(image_path=file_path)
+                    else: self.add_mask_file(mask_path=file_path)
+                        
                 elif file_path.endswith('.npy'):
                     self.pose_path = file_path
                     self.add_pose_file()

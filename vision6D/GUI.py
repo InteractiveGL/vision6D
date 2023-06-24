@@ -10,7 +10,6 @@ import json
 import math
 import copy
 import cv2
-import vtk
 import pyvista as pv
 
 # Setting the Qt bindings for QtPy
@@ -37,7 +36,7 @@ class Interface(MyMainWindow):
         self.mirror_x = False
         self.mirror_y = False
 
-        self.mask_actor = None
+        
         self.mesh_actors = {}
         self.meshdict = {}
         
@@ -51,7 +50,6 @@ class Interface(MyMainWindow):
         self.mesh_opacity = {}
         self.store_mesh_opacity = {}
         
-        self.mask_opacity = 0.3
         self.surface_opacity = self.opacity_spinbox.value()
         
         # Set mesh spacing
@@ -83,7 +81,7 @@ class Interface(MyMainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.undo_pose)
 
         # Reset the mask location
-        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.add_mask_file)
+        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.reset_mask)
 
         # change image opacity key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.toggle_image_opacity(up))
@@ -114,7 +112,7 @@ class Interface(MyMainWindow):
         else:
             self.color_button.setText("Color")
             if text == 'image': curr_opacity = self.image_store.image_opacity
-            elif text == 'mask': curr_opacity = self.mask_opacity
+            elif text == 'mask': curr_opacity = self.mask_store.mask_opacity
             else: curr_opacity = self.opacity_spinbox.value()
             self.opacity_spinbox.setValue(curr_opacity)
             # self.reference = None
@@ -123,14 +121,14 @@ class Interface(MyMainWindow):
         if output not in self.output_text.toPlainText(): self.output_text.append(output)
                                             
     def set_image_opacity(self, image_opacity: float):
-        self.image_store.set_opacity(image_opacity)
+        self.image_store.image_opacity = image_opacity
+        self.image_store.image_actor.GetProperty().opacity = image_opacity
         self.plotter.add_actor(self.image_store.image_actor, pickable=False, name='image')
 
     def set_mask_opacity(self, mask_opacity: float):
-        assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
-        self.mask_opacity = mask_opacity
-        self.mask_actor.GetProperty().opacity = mask_opacity
-        self.plotter.add_actor(self.mask_actor, pickable=True, name='mask')
+        self.mask_store.mask_opacity = mask_opacity
+        self.mask_store.mask_actor.GetProperty().opacity = mask_opacity
+        self.plotter.add_actor(self.mask_store.mask_actor, pickable=True, name='mask')
 
     def set_mesh_opacity(self, name: str, surface_opacity: float):
         assert surface_opacity>=0 and surface_opacity<=1, "mesh opacity should range from 0 to 1!"
@@ -165,52 +163,29 @@ class Interface(MyMainWindow):
 
         self.check_button('image')
 
-    def add_mask(self, mask_source):
-
-        if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
-            mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
-
-        if mask_source.shape[-1] == 3: mask_source = cv2.cvtColor(mask_source, cv2.COLOR_RGB2GRAY)
-
-        # Get the segmentation contour points
-        contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        points2d = contours[0].squeeze()
-        
-        # Mirror points
-        h, w = mask_source.shape[0], mask_source.shape[1]
-        if self.mirror_x: points2d[:, 0] = w - points2d[:, 0]
-        if self.mirror_y: points2d[:, 1] = h - points2d[:, 1]
-
-        bottom_point = points2d[np.argmax(points2d[:, 1])]
-
-        mask_center = (mask_source.shape[1] // 2, mask_source.shape[0] // 2)
-
-        self.mask_offset = np.hstack(((bottom_point - mask_center)*0.01, 0))
-
-        # Pad points a z dimension
-        points = np.hstack((points2d*0.01, np.zeros(points2d.shape[0]).reshape((-1, 1))))
-        # Find the bottom point on mask
-        self.mask_bottom_point = points[np.argmax(points[:, 1])]
-
-        # Create the mesh surface object
-        cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
-        mask_surface = pv.PolyData(points, cells).triangulate()
-        mask_surface = mask_surface.translate(-self.mask_bottom_point+self.mask_offset, inplace=False)
-
+    def load_mask(self, mask_surface, points):
         # Add mask surface object to the plot
-        mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_opacity)
+        mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_store.mask_opacity)
         actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
-        self.mask_actor = actor
+        self.mask_store.mask_actor = actor
+        mask_point_data = utils.get_mask_actor_points(self.mask_store.mask_actor)
+        assert np.isclose(((mask_point_data+self.mask_store.mask_bottom_point-self.mask_store.mask_offset) - points), 0).all(), "mask_point_data and points should be equal"
 
-        mask_point_data = utils.get_mask_actor_points(self.mask_actor)
-        assert np.isclose(((mask_point_data+self.mask_bottom_point-self.mask_offset) - points), 0).all(), "mask_point_data and points should be equal"
-
+    def add_mask(self, mask_source):
+        mask_surface, points = self.mask_store.add_mask(mask_source, self.mirror_x, self.mirror_y)
+        self.load_mask(mask_surface, points)
+        
         # Add remove current image to removeMenu
         if 'mask' not in self.track_actors_names:
             self.track_actors_names.append('mask')
             self.add_button_actor_name('mask')
 
         self.check_button('mask')
+
+    def reset_mask(self):
+        if self.mask_store.mask_path:
+            mask_surface, points = self.mask_store.add_mask(self.mask_store.mask_path, self.mirror_x, self.mirror_y)
+            self.load_mask(mask_surface, points)
 
     def add_mesh(self, mesh_name, mesh_source, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
@@ -311,16 +286,12 @@ class Interface(MyMainWindow):
         self.ignore_spinbox_value_change = False
 
     def toggle_mask_opacity(self, up):
-        if up:
-            self.mask_opacity += 0.05
-            if self.mask_opacity > 1: self.mask_opacity = 1
-        else:
-            self.mask_opacity -= 0.05
-            if self.mask_opacity < 0: self.mask_opacity = 0
-        self.mask_actor.GetProperty().opacity = self.mask_opacity
-        self.plotter.add_actor(self.mask_actor, pickable=True, name="mask")
+        change = 0.05
+        if not up: change *= -1
+        self.mask_store.update_opacity(change)
+        self.plotter.add_actor(self.mask_store.mask_actor, pickable=True, name="mask")
         self.ignore_spinbox_value_change = True
-        self.opacity_spinbox.setValue(self.mask_opacity)
+        self.opacity_spinbox.setValue(self.mask_store.mask_opacity)
         self.ignore_spinbox_value_change = False
 
     def toggle_surface_opacity(self, up):
@@ -338,10 +309,8 @@ class Interface(MyMainWindow):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
             actor_name = checked_button.text()
-            if actor_name == 'image': 
-                self.set_image_opacity(value)
-            elif actor_name == 'mask': 
-                self.set_mask_opacity(value)
+            if actor_name == 'image': self.set_image_opacity(value)
+            elif actor_name == 'mask': self.set_mask_opacity(value)
             elif actor_name in self.mesh_actors: 
                 self.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_opacity[actor_name])
                 self.mesh_opacity[actor_name] = value
@@ -482,9 +451,7 @@ class Interface(MyMainWindow):
             if 'video_path' in workspace:
                 self.video_path = workspace['video_path']
                 self.add_video_file()
-            if 'mask_path' in workspace:
-                self.mask_path = workspace['mask_path']
-                self.add_mask_file()
+            if 'mask_path' in workspace: self.add_mask_file(workspace['mask_path'])
             if 'pose_path' in workspace: # need to load pose before loading meshes
                 self.pose_path = workspace['pose_path']
                 self.add_pose_file()
@@ -525,8 +492,8 @@ class Interface(MyMainWindow):
             if 'masks' in folders:
                 flag = False
                 mask_files, mask_dir = self.get_files_from_folder('masks')
-                self.mask_path = str(mask_dir / mask_files[self.current_frame])
-                if os.path.isfile(self.mask_path): self.add_mask_file()
+                mask_path = str(mask_dir / mask_files[self.current_frame])
+                if os.path.isfile(mask_path): self.add_mask_file(mask_path=mask_path)
                     
             if 'poses' in folders:
                 flag = False
@@ -574,13 +541,12 @@ class Interface(MyMainWindow):
             self.hintLabel.hide()
             self.add_image(image_path)
             
-    def add_mask_file(self, prompt=False):
+    def add_mask_file(self, mask_path='', prompt=False):
         if prompt:
-            self.mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
-        if self.mask_path:
+            mask_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
+        if mask_path:
             self.hintLabel.hide()
-            mask_source = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
-            self.add_mask(mask_source)
+            self.add_mask(mask_path)
 
     def add_mesh_file(self, prompt=False):
         if prompt: 
@@ -661,10 +627,7 @@ class Interface(MyMainWindow):
         if self.image_store.image_path: self.add_image(self.image_store.image_path)
 
         #^ mirror the mask actor
-        if self.mask_actor:
-            original_mask_data = np.array(PIL.Image.open(self.mask_path), dtype='uint8')
-            if len(original_mask_data.shape) == 2: original_mask_data = original_mask_data[..., None]
-            self.add_mask(original_mask_data)
+        if self.mask_store.mask_path: self.add_mask(self.mask_store.mask_path)
 
         #^ mirror the mesh actors
         if self.reference:
@@ -681,9 +644,8 @@ class Interface(MyMainWindow):
             actor = self.image_store.image_actor
             self.image_store.reset()
         elif name == 'mask':
-            actor = self.mask_actor
-            self.mask_actor = None
-            self.mask_path = None
+            actor = self.mask_store.mask_actor
+            self.mask_store.reset()
         elif name in self.mesh_actors: 
             actor = self.mesh_actors[name]
             del self.mesh_actors[name] # remove the item from the mesh dictionary
@@ -705,7 +667,7 @@ class Interface(MyMainWindow):
         button.deleteLater()
 
         # clear out the plot if there is no actor
-        if self.image_store.image_actor is None and self.mask_actor is None and len(self.mesh_actors) == 0: self.clear_plot()
+        if self.image_store.image_actor is None and self.mask_store.mask_actor is None and len(self.mesh_actors) == 0: self.clear_plot()
 
     def remove_actors_button(self):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -720,7 +682,7 @@ class Interface(MyMainWindow):
         for button in self.button_group_actors_names.buttons():
             name = button.text()
             if name == 'image': actor = self.image_store.image_actor
-            elif name == 'mask': actor = self.mask_actor
+            elif name == 'mask': actor = self.mask_store.mask_actor
             elif name in self.mesh_actors: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
             # remove the button from the button group
@@ -733,11 +695,11 @@ class Interface(MyMainWindow):
         self.hintLabel.show()
 
         self.image_store.reset()
+        self.mask_store.reset()
 
         # Re-initial the dictionaries
         self.delete_video_folder()
         self.workspace_path = None
-        self.mask_path = None
         self.mesh_path = None
         self.pose_path = None
         self.meshdict = {}
@@ -746,7 +708,6 @@ class Interface(MyMainWindow):
         # reset everything to original actor opacity
         self.mesh_opacity = {}
         self.store_mesh_opacity = {}
-        self.mask_opacity = 0.3
         self.surface_opacity = self.opacity_spinbox.value()
 
         self.mesh_spacing = [1, 1, 1]
@@ -756,7 +717,6 @@ class Interface(MyMainWindow):
 
         self.reference = None
         self.transformation_matrix = np.eye(4)
-        self.mask_actor = None
         self.mesh_actors = {}
         self.undo_poses = {}
         self.track_actors_names = []
@@ -766,17 +726,6 @@ class Interface(MyMainWindow):
         self.color_button.setText("Color")
 
         self.clear_output_text()
-
-    def render_mask(self, camera):
-        self.render.clear()
-        render_actor = self.mask_actor.copy(deep=True)
-        render_actor.GetProperty().opacity = 1
-        self.render.add_actor(render_actor, pickable=False)
-        self.render.camera = camera
-        self.render.disable()
-        self.render.show(auto_close=False)
-        image = self.render.last_image
-        return image
 
     def render_mesh(self, camera):
         self.render.clear()
@@ -798,7 +747,7 @@ class Interface(MyMainWindow):
 
     def export_image(self):
         if self.image_store.image_actor:
-            image = self.image_store.render(camera=self.camera.copy())
+            image = self.image_store.render_image(camera=self.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
@@ -810,8 +759,8 @@ class Interface(MyMainWindow):
             return 0
 
     def export_mask(self):
-        if self.mask_actor:
-            image = self.render_mask(camera=self.camera.copy())
+        if self.mask_store.mask_actor:
+            image = self.mask_store.render_mask(camera=self.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
@@ -852,8 +801,8 @@ class Interface(MyMainWindow):
 
     def export_segmesh_render(self):
 
-        if self.reference and self.mask_actor:
-            segmask = self.render_mask(camera=self.camera.copy())
+        if self.reference and self.mask_store.mask_actor:
+            segmask = self.mask_store.render_mask(camera=self.camera.copy())
             if np.max(segmask) > 1: segmask = segmask / 255
             image = self.render_mesh(camera=self.camera.copy())
             image = (image * segmask).astype(np.uint8)
@@ -985,8 +934,8 @@ class Interface(MyMainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def epnp_mask(self, nocs_method):
-        if self.mask_actor:
-            mask_data = self.render_mask(camera=self.camera.copy())
+        if self.mask_store.mask_actor:
+            mask_data = self.mask_store.render_mask(camera=self.camera.copy())
             if np.max(mask_data) > 1: mask_data = mask_data / 255
 
             # current shown mask is binary mask
@@ -1184,8 +1133,8 @@ class Interface(MyMainWindow):
     def draw_mask(self):
         def handle_output_path_change(output_path):
             if output_path:
-                self.mask_path = output_path
-                self.add_mask(self.mask_path)
+                self.mask_store.mask_path = output_path
+                self.mask_store.add_mask(self.mask_store.mask_path)
         if self.image_store.image_path:
             self.label_window = widgets_gui.LabelWindow(self.image_store.image_path)
             self.label_window.show()

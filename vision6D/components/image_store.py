@@ -18,11 +18,6 @@ class ImageStore(metaclass=Singleton):
         self.image_actor = None
         self.image_opacity = 0.8
 
-    def update_opacity(self, image_opacity: float):
-        np.clip(image_opacity, 0, 1)
-        self.image_opacity = image_opacity
-        self.image_actor.GetProperty().opacity = image_opacity
-
     def add_image(self, image_source, mirror_x, mirror_y):
         if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
             self.image_path = str(image_source)
@@ -42,17 +37,14 @@ class ImageStore(metaclass=Singleton):
         image = image.translate(-1 * np.array(image.center), inplace=False)
 
         return image, image_source, channel
-    
-    def set_opacity(self, image_opacity):
-        np.clip(image_opacity, 0, 1), "image opacity should range from 0 to 1!"
-        self.image_opacity = image_opacity
-        self.image_actor.GetProperty().opacity = image_opacity
-    
-    def update_opacity(self, delta):
-        image_opacity += delta
-        self.set_opacity(image_opacity)
         
-    def render(self, camera):
+    def update_opacity(self, delta):
+        self.image_opacity += delta
+        np.clip(self.image_opacity, 0, 1)
+        if self.image_opacity > 1 or self.image_opacity < 0: self.image_opacity = round(self.image_opacity)
+        self.image_actor.GetProperty().opacity = self.image_opacity
+        
+    def render_image(self, camera):
         self.render.clear()
         render_actor = self.image_actor.copy(deep=True)
         render_actor.GetProperty().opacity = 1
