@@ -12,7 +12,6 @@ import copy
 import cv2
 import vtk
 import pyvista as pv
-import vision6D as vis
 
 # Setting the Qt bindings for QtPy
 import os
@@ -21,6 +20,9 @@ os.environ["QT_API"] = "pyqt5"
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import QPoint
 from .mainwindow import MyMainWindow
+
+from . import utils
+from . import widgets_gui
 
 np.set_printoptions(suppress=True)
 
@@ -41,7 +43,7 @@ class Interface(MyMainWindow):
         self.meshdict = {}
         
         self.undo_poses = {}
-        self.latlon = vis.utils.load_latitude_longitude()
+        self.latlon = utils.load_latitude_longitude()
 
         self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "forestgreen"]
         self.used_colors = []
@@ -79,7 +81,6 @@ class Interface(MyMainWindow):
         # registration related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.reset_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.update_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.current_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.undo_pose)
 
         # change image opacity key bindings
@@ -165,7 +166,7 @@ class Interface(MyMainWindow):
         self.image_actor = actor
         
         # get the image scalar
-        image_data = vis.utils.get_image_actor_scalars(self.image_actor)
+        image_data = utils.get_image_actor_scalars(self.image_actor)
         assert (image_data == image_source).all() or (image_data*255 == image_source).all(), "image_data and image_source should be equal"
 
         # add remove current image to removeMenu
@@ -212,7 +213,7 @@ class Interface(MyMainWindow):
         actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
         self.mask_actor = actor
 
-        mask_point_data = vis.utils.get_mask_actor_points(self.mask_actor)
+        mask_point_data = utils.get_mask_actor_points(self.mask_actor)
         assert np.isclose(((mask_point_data+self.mask_bottom_point-self.mask_offset) - points), 0).all(), "mask_point_data and points should be equal"
 
         # Add remove current image to removeMenu
@@ -237,7 +238,7 @@ class Interface(MyMainWindow):
                               
         if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
             # Load the '.mesh' file
-            if pathlib.Path(mesh_source).suffix == '.mesh': mesh_source = vis.utils.load_trimesh(mesh_source)
+            if pathlib.Path(mesh_source).suffix == '.mesh': mesh_source = utils.load_trimesh(mesh_source)
             # Load the '.ply' file
             else: mesh_source = pv.read(mesh_source)
 
@@ -279,7 +280,7 @@ class Interface(MyMainWindow):
         # Add and save the actor
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
 
-        actor_vertices, actor_faces = vis.utils.get_mesh_actor_vertices_faces(actor)
+        actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
         assert (actor_vertices == source_verts).all(), "vertices should be the same"
         assert (actor_faces == source_faces).all(), "faces should be the same"
         assert actor.name == mesh_name, "actor's name should equal to mesh_name"
@@ -445,11 +446,11 @@ class Interface(MyMainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        calibrate_pop = vis.widgets_gui.CalibrationPopWindow(calibrated_image, original_image)
+        calibrate_pop = widgets_gui.CalibrationPopWindow(calibrated_image, original_image)
         calibrate_pop.exec_()
 
     def set_camera(self):
-        dialog = vis.widgets_gui.CameraPropsInputDialog(
+        dialog = widgets_gui.CameraPropsInputDialog(
             line1=("Fx", self.fx), 
             line2=("Fy", self.fy), 
             line3=("Cx", self.cx), 
@@ -583,7 +584,7 @@ class Interface(MyMainWindow):
         if self.video_path:
             self.hintLabel.hide()
             self.folder_path = None # make sure video_path and folder_path are exclusive
-            self.video_player = vis.widgets_gui.VideoPlayer(self.video_path, self.current_frame)
+            self.video_player = widgets_gui.VideoPlayer(self.video_path, self.current_frame)
             self.play_video_button.setText("Play Video")
             self.output_text.append(f"-> Load video {self.video_path} into vision6D")
             self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
@@ -816,9 +817,9 @@ class Interface(MyMainWindow):
 
     def render_mesh(self, camera):
         self.render.clear()
-        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
+        colors = utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
         if colors is not None: 
             assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
             mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference)
@@ -920,12 +921,12 @@ class Interface(MyMainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def set_scalar(self, nocs, actor_name):
-        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
+        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
         vertices_color = vertices
-        if self.mirror_x: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        if self.mirror_y: vertices_color = vis.utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.mirror_x: vertices_color = utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.mirror_y: vertices_color = utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
         # get the corresponding color
-        colors = vis.utils.color_mesh(vertices_color, nocs=nocs)
+        colors = utils.color_mesh(vertices_color, nocs=nocs)
         if colors.shape != vertices.shape: 
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
@@ -936,13 +937,13 @@ class Interface(MyMainWindow):
         transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
         mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
-        actor_colors = vis.utils.get_mesh_actor_scalars(actor)
+        actor_colors = utils.get_mesh_actor_scalars(actor)
         assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
         assert actor.name == actor_name, "actor's name should equal to actor_name"
         self.mesh_actors[actor_name] = actor
 
     def set_color(self, color, actor_name):
-        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
+        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
         mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.mesh_opacity[actor_name], name=actor_name)
         transformation_matrix = pv.array_from_vtkmatrix(self.mesh_actors[actor_name].GetMatrix())
@@ -953,15 +954,15 @@ class Interface(MyMainWindow):
         
     def nocs_epnp(self, color_mask, mesh):
         vertices = mesh.vertices
-        pts3d, pts2d = vis.utils.create_2d_3d_pairs(color_mask, vertices)
+        pts3d, pts2d = utils.create_2d_3d_pairs(color_mask, vertices)
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
         camera_intrinsics = self.camera_intrinsics.astype('float32')
-        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
         return predicted_pose
 
     def latlon_epnp(self, color_mask, mesh):
-        binary_mask = vis.utils.color2binary_mask(color_mask)
+        binary_mask = utils.color2binary_mask(color_mask)
         idx = np.where(binary_mask == 1)
         # swap the points for opencv, maybe because they handle RGB image differently (RGB -> BGR in opencv)
         idx = idx[:2][::-1]
@@ -979,7 +980,7 @@ class Interface(MyMainWindow):
         lonf = lon[mesh.faces]
         msk = (np.sum(lonf>=0, axis=1)==3) & (np.sum(lat[mesh.faces]>=0, axis=1)==3)
         for i in range(len(pts2d)):
-            pt = vis.utils.latLon2xyz(mesh, lat, lonf, msk, gx[i], gy[i])
+            pt = utils.latLon2xyz(mesh, lat, lonf, msk, gx[i], gy[i])
             pts3d.append(pt)
        
         pts3d = np.array(pts3d).reshape((len(pts3d), 3))
@@ -988,14 +989,14 @@ class Interface(MyMainWindow):
         pts3d = pts3d.astype('float32')
         camera_intrinsics = self.camera_intrinsics.astype('float32')
         
-        predicted_pose = vis.utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
 
         return predicted_pose
 
     def epnp_mesh(self):
         if len(self.mesh_actors) == 1: self.reference = list(self.mesh_actors.keys())[0]
         if self.reference:
-            colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
+            colors = utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
             if colors is not None and (not np.all(colors == colors[0])):
                 color_mask = self.export_mesh_render(save_render=False)
                 gt_pose = self.mesh_actors[self.reference].user_matrix
@@ -1004,7 +1005,7 @@ class Interface(MyMainWindow):
 
                 if np.sum(color_mask):
                     if self.mesh_colors[self.reference] == 'nocs':
-                        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+                        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
                         mesh = trimesh.Trimesh(vertices, faces, process=False)
                         predicted_pose = self.nocs_epnp(color_mask, mesh)
                         if self.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
@@ -1031,14 +1032,14 @@ class Interface(MyMainWindow):
                 if len(self.mesh_actors) == 1: 
                     self.reference = list(self.mesh_actors.keys())[0]
                 if self.reference:
-                    colors = vis.utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
+                    colors = utils.get_mesh_actor_scalars(self.mesh_actors[self.reference])
                     if colors is not None and (not np.all(colors == colors[0])):
                         color_mask = self.export_mesh_render(save_render=False)
                         nocs_color = (self.mesh_colors[self.reference] == 'nocs')
                         gt_pose = self.mesh_actors[self.reference].user_matrix
                         if self.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
                         if self.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-                        vertices, faces = vis.utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
+                        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_actors[self.reference])
                         mesh = trimesh.Trimesh(vertices, faces, process=False)
                     else:
                         QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored, with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -1086,7 +1087,7 @@ class Interface(MyMainWindow):
         if checked_button:
             actor_name = checked_button.text()
             if actor_name in self.mesh_actors:
-                popup = vis.widgets_gui.PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
+                popup = widgets_gui.PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
                 popup.exec_()
@@ -1139,7 +1140,7 @@ class Interface(MyMainWindow):
     
     def sample_video(self):
         if self.video_path:
-            self.video_sampler = vis.widgets_gui.VideoSampler(self.video_player, self.fps)
+            self.video_sampler = widgets_gui.VideoSampler(self.video_player, self.fps)
             res = self.video_sampler.exec_()
             if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
         else:
@@ -1224,7 +1225,7 @@ class Interface(MyMainWindow):
                 self.mask_path = output_path
                 self.add_mask(self.mask_path)
         if self.image_path:
-            self.label_window = vis.widgets_gui.LabelWindow(self.image_path)
+            self.label_window = widgets_gui.LabelWindow(self.image_path)
             self.label_window.show()
             self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
         else:

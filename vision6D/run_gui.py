@@ -8,8 +8,7 @@ CWD = pathlib.Path(os.path.abspath(__file__)).parent
 
 def exe():
     app = QtWidgets.QApplication(sys.argv)
-    with open(CWD / "data" / "style.qss", "r") as f: 
-        app.setStyleSheet(f.read())
+    with open(CWD / "data" / "style.qss", "r") as f: app.setStyleSheet(f.read())
     window = Interface()
     window.showMaximized()
     sys.exit(app.exec_())
