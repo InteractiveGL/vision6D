@@ -125,7 +125,9 @@ class MyMainWindow(MainWindow):
     def resizeEvent(self, e):
         x = (self.plotter.size().width() - self.hintLabel.width()) // 2
         y = (self.plotter.size().height() - self.hintLabel.height()) // 2
+        self.hintLabel.hide()
         self.hintLabel.move(x, y)
+        self.hintLabel.show()
         super().resizeEvent(e)
 
     # ^Menu
@@ -210,19 +212,22 @@ class MyMainWindow(MainWindow):
         self.panel_layout.setStretchFactor(self.output, 1)
 
     def toggle_panel(self):
-
         if self.panel_widget.isVisible():
             # self.panel_widget width changes when the panel is visiable or hiden
             self.panel_widget_width = self.panel_widget.width()
             self.panel_widget.hide()
             x = (self.plotter.size().width() + self.panel_widget_width - self.hintLabel.width()) // 2
             y = (self.plotter.size().height() - self.hintLabel.height()) // 2
+            self.hintLabel.hide()
             self.hintLabel.move(x, y)
+            self.hintLabel.show()
         else:
             self.panel_widget.show()
             x = (self.plotter.size().width() - self.panel_widget_width - self.hintLabel.width()) // 2
             y = (self.plotter.size().height() - self.hintLabel.height()) // 2
+            self.hintLabel.hide()
             self.hintLabel.move(x, y)
+            self.hintLabel.show()
         
     #^ Panel Display
     def panel_display(self):
