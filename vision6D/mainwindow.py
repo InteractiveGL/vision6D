@@ -13,6 +13,7 @@ from PyQt5.QtCore import Qt
 from . import widgets_gui
 from .components import ImageStore
 from .components import MaskStore
+from .components import CameraStore
 
 np.set_printoptions(suppress=True)
 
@@ -30,6 +31,7 @@ class MyMainWindow(MainWindow):
         # initial stores
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
+        self.camera_store = CameraStore(self.window_size)
 
         # Initialize file paths
         self.workspace_path = None

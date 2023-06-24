@@ -56,13 +56,6 @@ class Interface(MyMainWindow):
         self.mesh_spacing = [1, 1, 1]
         
         # Set the camera
-        self.camera = pv.Camera()
-        self.fx = 50000
-        self.fy = 50000
-        self.cx = self.window_size[0] // 2
-        self.cy = self.window_size[1] // 2
-        self.cam_viewup = (0, -1, 0)
-        self.cam_position = -500
         self.set_camera_props()
 
         self.track_actors_names = []
@@ -251,7 +244,7 @@ class Interface(MyMainWindow):
             return 0
 
     def reset_camera(self):
-        self.plotter.camera = self.camera.copy()
+        self.plotter.camera = self.camera_store.camera.copy()
 
     def zoom_in(self):
         self.plotter.camera.zoom(2)
@@ -348,34 +341,11 @@ class Interface(MyMainWindow):
                 if checked_button.text() in self.mesh_actors: self.opacity_spinbox.setValue(self.mesh_opacity[checked_button.text()])
                 self.ignore_spinbox_value_change = False
             else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
-    def set_camera_extrinsics(self):
-        self.camera.SetPosition((0,0,self.cam_position))
-        self.camera.SetFocalPoint((*self.camera.GetWindowCenter(),0)) # Get the camera window center
-        self.camera.SetViewUp(self.cam_viewup)
-    
-    def set_camera_intrinsics(self):
-        
-        # Set camera intrinsic attribute
-        self.camera_intrinsics = np.array([
-            [self.fx, 0, self.cx],
-            [0, self.fy, self.cy],
-            [0, 0, 1]
-        ])
-                
-        # convert the principal point to window center (normalized coordinate system) and set it
-        wcx = -2*(self.cx - float(self.window_size[0])/2) / self.window_size[0]
-        wcy =  2*(self.cy - float(self.window_size[1])/2) / self.window_size[1]
-        self.camera.SetWindowCenter(wcx, wcy) # (0,0)
-        
-        # Setting the view angle in degrees
-        view_angle = (180 / math.pi) * (2.0 * math.atan2(self.window_size[1]/2.0, self.fx)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
-        self.camera.SetViewAngle(view_angle) # view angle should be in degrees
  
     def set_camera_props(self):
-        self.set_camera_intrinsics()
-        self.set_camera_extrinsics()
-        self.plotter.camera = self.camera.copy()
+        self.camera_store.set_camera_intrinsics()
+        self.camera_store.set_camera_extrinsics()
+        self.plotter.camera = self.camera_store.camera.copy()
 
     def camera_calibrate(self):
         if self.image_store.image_path:
@@ -397,21 +367,21 @@ class Interface(MyMainWindow):
 
     def set_camera(self):
         dialog = widgets_gui.CameraPropsInputDialog(
-            line1=("Fx", self.fx), 
-            line2=("Fy", self.fy), 
-            line3=("Cx", self.cx), 
-            line4=("Cy", self.cy), 
-            line5=("View Up", self.cam_viewup), 
-            line6=("Cam Position", self.cam_position))
+            line1=("Fx", self.camera_store.fx), 
+            line2=("Fy", self.camera_store.fy), 
+            line3=("Cx", self.camera_store.cx), 
+            line4=("Cy", self.camera_store.cy), 
+            line5=("View Up", self.camera_store.cam_viewup), 
+            line6=("Cam Position", self.camera_store.cam_position))
         if dialog.exec():
             fx, fy, cx, cy, cam_viewup, cam_position = dialog.getInputs()
-            pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position = self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position
+            pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position = self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position
             if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == '' or cam_position == ''):
                 try:
-                    self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
+                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
                     self.set_camera_props()
                 except:
-                    self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
+                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
                     QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def set_pose(self):
@@ -696,6 +666,7 @@ class Interface(MyMainWindow):
 
         self.image_store.reset()
         self.mask_store.reset()
+        self.camera_store.reset()
 
         # Re-initial the dictionaries
         self.delete_video_folder()
@@ -747,7 +718,7 @@ class Interface(MyMainWindow):
 
     def export_image(self):
         if self.image_store.image_actor:
-            image = self.image_store.render_image(camera=self.camera.copy())
+            image = self.image_store.render_image(camera=self.camera_store.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
@@ -760,7 +731,7 @@ class Interface(MyMainWindow):
 
     def export_mask(self):
         if self.mask_store.mask_actor:
-            image = self.mask_store.render_mask(camera=self.camera.copy())
+            image = self.mask_store.render_mask(camera=self.camera_store.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
@@ -786,7 +757,7 @@ class Interface(MyMainWindow):
     def export_mesh_render(self, save_render=True):
 
         if self.reference:
-            image = self.render_mesh(camera=self.camera.copy())
+            image = self.render_mesh(camera=self.camera_store.camera.copy())
             if save_render:
                 output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mesh Files (*.png)")
                 if output_path:
@@ -802,9 +773,9 @@ class Interface(MyMainWindow):
     def export_segmesh_render(self):
 
         if self.reference and self.mask_store.mask_actor:
-            segmask = self.mask_store.render_mask(camera=self.camera.copy())
+            segmask = self.mask_store.render_mask(camera=self.camera_store.camera.copy())
             if np.max(segmask) > 1: segmask = segmask / 255
-            image = self.render_mesh(camera=self.camera.copy())
+            image = self.render_mesh(camera=self.camera_store.camera.copy())
             image = (image * segmask).astype(np.uint8)
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "SegMesh Files (*.png)")
             if output_path:
@@ -868,8 +839,8 @@ class Interface(MyMainWindow):
         pts3d, pts2d = utils.create_2d_3d_pairs(color_mask, vertices)
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
-        camera_intrinsics = self.camera_intrinsics.astype('float32')
-        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+        camera_intrinsics = self.camera_store.camera_intrinsics.astype('float32')
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera_store.camera.position)
         return predicted_pose
 
     def latlon_epnp(self, color_mask, mesh):
@@ -898,9 +869,9 @@ class Interface(MyMainWindow):
 
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
-        camera_intrinsics = self.camera_intrinsics.astype('float32')
+        camera_intrinsics = self.camera_store.camera_intrinsics.astype('float32')
         
-        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera.position)
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera_store.camera.position)
 
         return predicted_pose
 
@@ -935,7 +906,7 @@ class Interface(MyMainWindow):
 
     def epnp_mask(self, nocs_method):
         if self.mask_store.mask_actor:
-            mask_data = self.mask_store.render_mask(camera=self.camera.copy())
+            mask_data = self.mask_store.render_mask(camera=self.camera_store.camera.copy())
             if np.max(mask_data) > 1: mask_data = mask_data / 255
 
             # current shown mask is binary mask
