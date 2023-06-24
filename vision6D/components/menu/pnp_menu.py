@@ -78,14 +78,12 @@ class PnPMenu():
                         error = np.sum(np.abs(predicted_pose - gt_pose))
                         self.qt_store.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
                         self.qt_store.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
-                    else:
-                        QtWidgets.QMessageBox.warning(self, 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                else:
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored, with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    else: return "Only works using EPnP with latlon mask"
+                else: return "The color mask is blank (maybe set the reference mesh wrong)"
+            else: return "The mesh need to be colored, with gradient color"
+        else: return "A mesh need to be loaded/mesh reference need to be set"
+
+        return ""
 
     def epnp_mask(self, nocs_method):
         if self.mask_store.mask_actor:
@@ -106,12 +104,8 @@ class PnPMenu():
                         if self.plot_store.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
                         vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.mesh_actors[self.mesh_store.reference])
                         mesh = trimesh.Trimesh(vertices, faces, process=False)
-                    else:
-                        QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh need to be colored, with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                        return 0
-                else: 
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    return 0
+                    else: return "The mesh need to be colored, with gradient color"
+                else: return "A mesh need to be loaded/mesh reference need to be set"
                 color_mask = (color_mask * mask_data).astype(np.uint8)
             
             if np.sum(color_mask):
@@ -129,9 +123,8 @@ class PnPMenu():
                     error = np.sum(np.abs(predicted_pose - gt_pose))
                     self.qt_store.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
                     self.qt_store.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
-                else:
-                    QtWidgets.QMessageBox.warning(self,"vision6D", "Clicked the wrong method")
-            else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else:
-            QtWidgets.QMessageBox.warning(self,"vision6D", "please load a mask first")
+                else: return "Clicked the wrong method"
+            else: return "The color mask is blank (maybe set the reference mesh wrong)"
+        else: return "please load a mask first"
+        
+        return ''

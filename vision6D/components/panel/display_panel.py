@@ -22,11 +22,12 @@ from ...widgets import GetTextDialog, CameraPropsInputDialog, PopUpDialog
 
 class DisplayPanel(metaclass=Singleton):
     
-    def __init__(self, display, button_group_actors_names):
+    def __init__(self, main_window):
 
         # Save references
-        self.display = display
-        self.button_group_actors_names = button_group_actors_names
+        self.main_window = main_window
+        self.display = self.main_window.display
+        self.button_group_actors_names = self.main_window.button_group_actors_names
         
         # Create a reference to the store
         self.plot_store = PlotStore()
@@ -179,9 +180,7 @@ class DisplayPanel(metaclass=Singleton):
     def remove_select_actor(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button: self.remove_actor(checked_button)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def remove_actor(self, button):
         name = button.text()
@@ -268,7 +267,7 @@ class DisplayPanel(metaclass=Singleton):
                     self.plot_store.set_camera_props()
                 except:
                     self.fx, self.fy, self.cx, self.cy, self.cam_viewup, self.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
     def set_pose(self):
         # get the gt pose
@@ -280,24 +279,20 @@ class DisplayPanel(metaclass=Singleton):
                 gt_pose = ast.literal_eval(get_text_dialog.user_text)
                 gt_pose = np.array(gt_pose)
                 if gt_pose.shape != (4, 4): 
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
+                    QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
                     return None
                 else:
                     self.qt_store.hintLabel.hide()
                     self.mesh_store.set_transformation_matrix(gt_pose)
                     return 0
             except: 
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return None
         else: 
             return None
 
     def draw_mask(self):
-        if self.image_store.image_path:
-            self.mask_store.draw_mask(self.image_store.image_path)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        if self.image_store.image_path: self.mask_store.draw_mask(self.image_store.image_path)
 
     def set_scalar(self, nocs, actor_name):
 
@@ -307,7 +302,7 @@ class DisplayPanel(metaclass=Singleton):
         # get the corresponding color
         colors = utils.color_mesh(vertices_color, nocs=nocs)
         if colors.shape != vertices.shape: 
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
         
@@ -334,9 +329,9 @@ class DisplayPanel(metaclass=Singleton):
                 elif text == 'latlon': self.set_scalar(False, actor_name)
                 else: self.set_color(text, actor_name)
             else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
     def update_color_button_text(self, text, popup):
         self.qt_store.color_button.setText(text)
@@ -379,7 +374,7 @@ class DisplayPanel(metaclass=Singleton):
                 self.ignore_spinbox_value_change = True
                 self.opacity_spinbox.setValue(0.0)
                 self.ignore_spinbox_value_change = False
-            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            else: QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         
         else:
             for button in self.button_group_actors_names.buttons():
@@ -392,7 +387,7 @@ class DisplayPanel(metaclass=Singleton):
                 self.ignore_spinbox_value_change = True
                 if checked_button.text() in self.mesh_store.mesh_actors: self.opacity_spinbox.setValue(self.mesh_store.mesh_opacity[checked_button.text()])
                 self.ignore_spinbox_value_change = False
-            else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            else: QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
           
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -402,12 +397,12 @@ class DisplayPanel(metaclass=Singleton):
                 spacing, ok = QtWidgets.QInputDialog().getText(self, 'Input', "Set Spacing", text=str(self.mesh_store.mesh_spacing))
                 if ok:
                     try: self.mesh_store.mesh_spacing = ast.literal_eval(spacing)
-                    except: QtWidgets.QMessageBox.warning(self, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    self.add_mesh(actor_name, self.mesh_store.meshdict[actor_name])
+                    except: QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    self.mesh_store.add_mesh(self.mesh_store.meshdict[actor_name])
             else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def play_video(self):
         if self.video_store.video_path:
@@ -418,7 +413,7 @@ class DisplayPanel(metaclass=Singleton):
                 video_frame = self.video_store.load_per_frame_info()
                 self.image_store.add_image(video_frame)
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
     
     def sample_video(self):
@@ -428,7 +423,7 @@ class DisplayPanel(metaclass=Singleton):
             if res == QtWidgets.QDialog.Accepted: 
                 self.video_store.fps = round(video_sampler.fps)
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
     def save_frame(self):
@@ -459,7 +454,7 @@ class DisplayPanel(metaclass=Singleton):
             np.save(output_pose_path, self.mesh_store.transformation_matrix)
             self.qt_store.output_text.append(f"-> Save frame {pathlib.Path(self.mesh_store.pose_path).stem} pose: \n{self.mesh_store.transformation_matrix}")
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         return 0
         
     def prev_frame(self):
@@ -478,7 +473,7 @@ class DisplayPanel(metaclass=Singleton):
         elif self.folder_store.folder_path:
             self.folder_store.prev_frame()
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
     def next_frame(self):
@@ -499,5 +494,5 @@ class DisplayPanel(metaclass=Singleton):
         elif self.folder_store.folder_path:
             self.folder_store.next_frame()
         else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0

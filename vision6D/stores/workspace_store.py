@@ -11,7 +11,7 @@ class WorkspaceStore(metaclass=Singleton):
 
         self.reset()
 
-        self.imaga_store = ImageStore()
+        self.image_store = ImageStore()
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
         self.video_store = VideoStore()

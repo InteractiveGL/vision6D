@@ -5,6 +5,7 @@ os.environ["QT_API"] = "pyqt5"
 from functools import partial
 
 import numpy as np
+import trimesh
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -97,7 +98,7 @@ class AppWindow(MainWindow):
 
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.register_menu.reset_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.register_menu.update_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.register_menu.undo_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.undo_pose)
 
         # change image opacity key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.panel_display.toggle_image_opacity(up))
@@ -130,7 +131,7 @@ class AppWindow(MainWindow):
 
         # Create the display
         self.display = QtWidgets.QGroupBox("Console")
-        self.panel_display = DisplayPanel(self.display, self.button_group_actors_names)
+        self.panel_display = DisplayPanel(self)
 
         # Create the output
         self.output = QtWidgets.QGroupBox("Output")
@@ -164,21 +165,21 @@ class AppWindow(MainWindow):
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
         fileMenu.addAction('Add Workspace', partial(self.file_menu.add_workspace, prompt=True))
-        fileMenu.addAction('Add Folder', partial(self.file_menu.add_folder, prompt=True))
+        fileMenu.addAction('Add Folder', partial(self.add_folder))
         fileMenu.addAction('Add Video', partial(self.file_menu.add_video, prompt=True))
         fileMenu.addAction('Add Image', partial(self.file_menu.add_image, prompt=True))
         fileMenu.addAction('Add Mask', partial(self.file_menu.add_mask, prompt=True))
-        fileMenu.addAction('Add Mesh', partial(self.file_menu.add_mesh, prompt=True))
-        fileMenu.addAction('Draw Mask', self.file_menu.draw_mask)
+        fileMenu.addAction('Add Mesh', partial(self.add_mesh, prompt=True))
+        fileMenu.addAction('Draw Mask', self.panel_display.draw_mask)
         fileMenu.addAction('Clear', self.panel_display.clear_plot)
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
-        exportMenu.addAction('Image', self.export_menu.export_image)
-        exportMenu.addAction('Mask', self.export_menu.export_mask)
-        exportMenu.addAction('Pose', self.export_menu.export_pose)
-        exportMenu.addAction('Mesh Render', self.export_menu.export_mesh_render)
-        exportMenu.addAction('SegMesh Render', self.export_menu.export_segmesh_render)
+        exportMenu.addAction('Image', self.export_image)
+        exportMenu.addAction('Mask', self.export_mask)
+        exportMenu.addAction('Pose', self.export_pose)
+        exportMenu.addAction('Mesh Render', self.export_mesh_render)
+        exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
         
         # Add video related actions
         VideoMenu = mainMenu.addMenu('Video/Folder')
@@ -191,7 +192,7 @@ class AppWindow(MainWindow):
                 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
-        CameraMenu.addAction('Calibrate', self.camera_menu.calibrate)
+        CameraMenu.addAction('Calibrate', self.calibrate)
         CameraMenu.addAction('Reset Camera (d)', self.plot_store.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.plot_store.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.plot_store.zoom_out)
@@ -207,15 +208,13 @@ class AppWindow(MainWindow):
         RegisterMenu = mainMenu.addMenu('Register')
         RegisterMenu.addAction('Reset GT Pose (k)', self.register_menu.reset_gt_pose)
         RegisterMenu.addAction('Update GT Pose (l)', self.register_menu.update_gt_pose)
-        RegisterMenu.addAction('Undo Pose (s)', self.register_menu.undo_pose)
+        RegisterMenu.addAction('Undo Pose (s)', self.undo_pose)
 
         # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('PnP')
-        PnPMenu.addAction('EPnP with mesh', self.pnp_menu.epnp_mesh)
-        epnp_nocs_mask = partial(self.pnp_menu.epnp_mask, True)
-        PnPMenu.addAction('EPnP with nocs mask', epnp_nocs_mask)
-        epnp_latlon_mask = partial(self.pnp_menu.epnp_mask, False)
-        PnPMenu.addAction('EPnP with latlon mask', epnp_latlon_mask)
+        PnPMenu.addAction('EPnP with mesh', self.epnp_mesh)
+        PnPMenu.addAction('EPnP with nocs mask', partial(self.epnp_mask, True))
+        PnPMenu.addAction('EPnP with latlon mask', partial(self.epnp_mask, False))
 
     def showMaximized(self):
         super().showMaximized()
@@ -239,7 +238,7 @@ class AppWindow(MainWindow):
                     self.file_menu.add_workspace(workspace_path=file_path)
                 # Load mesh file
                 elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
-                    self.file_menu.add_mesh(mesh_path=file_path)
+                    self.add_mesh(mesh_path=file_path)
                 # Load video file
                 elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
                     self.folder_store.folder_path = None
@@ -269,3 +268,73 @@ class AppWindow(MainWindow):
     def resizeEvent(self, e):
         self.resize()
         super().resizeEvent(e)
+
+    def add_folder(self):
+        flag = self.file_menu.add_folder(prompt=True)
+        if flag:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+    # FileMenu
+    def add_mesh(self, file_path='', prompt=False):
+        flag = self.file_menu.add_mesh(file_path, prompt)
+        if not flag:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a mesh first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
+    # Camera Menu
+    def calibrate(self):
+        msg = self.camera_menu.calibrate()
+        if not msg:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', msg, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
+    # Export Menu
+    def export_image(self):
+        if self.image_store.image_actor: self.export_menu.export_image()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+    def export_mask(self):
+        if self.mask_store.mask_actor: self.export_menu.export_mask()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a mask first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+        
+    def export_pose(self):
+        if self.mesh_store.reference: 
+            self.export_menu.export_pose()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+        
+    def export_mesh_render(self):
+        if self.mesh_store.reference: 
+            self.export_menu.export_mesh_render()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+        
+    def export_segmesh_render(self):
+        if self.mesh_store.reference and self.mask_store.mask_actor:
+            self.export_menu.export_segmesh_render()
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a mesh or mask first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+    # PnP Menu
+    def epnp_mesh(self):
+        msg = self.pnp_menu.epnp_mesh()
+        if msg: QtWidgets.QMessageBox.warning(self, 'vision6D', msg, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
+    def epnp_mask(self, nocs_method):
+        msg = self.pnp_menu.epnp_mask(nocs_method)
+        if msg: QtWidgets.QMessageBox.warning(self, 'vision6D', msg, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                
+    # Register Menu
+    def undo_pose(self):
+        checked_button = self.display_panel.button_group_actors_names.checkedButton()
+        if not checked_button:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else:
+            actor_name = checked_button.text()
+            self.register_menu.undo_pose(actor_name)

@@ -78,46 +78,45 @@ class MeshStore(metaclass=Singleton):
             source_faces = mesh_source.faces.reshape((-1, 4))[:, 1:]
             flag = True
 
-        if not flag:
-            self.mesh_name = None
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
-
-        # consider the mesh verts spacing
-        mesh_data.points = mesh_data.points * self.mesh_spacing
-
-        # assign a color to every mesh
-        if len(self.colors) != 0: mesh_color = self.colors.pop(0)
+        if not flag: self.mesh_name = None
         else:
-            self.colors = self.used_colors
-            mesh_color = self.colors.pop(0)
-            self.used_colors = []
+            # consider the mesh verts spacing
+            mesh_data.points = mesh_data.points * self.mesh_spacing
 
-        self.used_colors.append(mesh_color)
-        self.mesh_colors[mesh_name] = mesh_color
-        self.qt_store.color_button.setText(self.mesh_colors[mesh_name])
-        mesh = self.plot_store.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
+            # assign a color to every mesh
+            if len(self.colors) != 0: mesh_color = self.colors.pop(0)
+            else:
+                self.colors = self.used_colors
+                mesh_color = self.colors.pop(0)
+                self.used_colors = []
 
-        mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
-        self.initial_pose = mesh.user_matrix
-                
-        # Add and save the actor
-        actor, _ = self.plot_store.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+            self.used_colors.append(mesh_color)
+            self.mesh_colors[mesh_name] = mesh_color
+            self.mesh_opacity[mesh_name] = self.surface_opacity
+            mesh = self.plot_store.plotter.add_mesh(mesh_data, color=mesh_color, opacity=self.mesh_opacity[mesh_name], name=mesh_name)
 
-        actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
-        assert (actor_vertices == source_verts).all(), "vertices should be the same"
-        assert (actor_faces == source_faces).all(), "faces should be the same"
-        assert actor.name == mesh_name, "actor's name should equal to mesh_name"
-        
-        self.mesh_actors[mesh_name] = actor
-        self.meshdict[mesh_name] = self.mesh_path
-        self.mesh_opacity[mesh_name] = self.surface_opacity
+            mesh.user_matrix = self.transformation_matrix if transformation_matrix is None else transformation_matrix
+            self.initial_pose = mesh.user_matrix
+                    
+            # Add and save the actor
+            actor, _ = self.plot_store.plotter.add_actor(mesh, pickable=True, name=mesh_name)
 
-        # TODO
-        if self.image_store.image_path:
-            self.render = utils.create_render(self.image_store.w, self.image_store.h)
-        else:
-            self.render = utils.create_render(self.plot_store.window_size[0], self.plot_store.window_size[1])
+            actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
+            assert (actor_vertices == source_verts).all(), "vertices should be the same"
+            assert (actor_faces == source_faces).all(), "faces should be the same"
+            assert actor.name == mesh_name, "actor's name should equal to mesh_name"
+            
+            self.mesh_actors[mesh_name] = actor
+            self.meshdict[mesh_name] = self.mesh_path
+            self.mesh_opacity[mesh_name] = self.surface_opacity
+
+            # TODO
+            if self.image_store.image_path:
+                self.render = utils.create_render(self.image_store.w, self.image_store.h)
+            else:
+                self.render = utils.create_render(self.plot_store.window_size[0], self.plot_store.window_size[1])
+
+        return flag
 
     def get_mesh_colors(self, actor_name):
         vertices, _ = utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
@@ -198,11 +197,10 @@ class MeshStore(metaclass=Singleton):
         self.current_pose()
             
     def undo_pose(self, actor_name):
-        if len(self.undo_poses[actor_name]) != 0: 
-            self.transformation_matrix = self.undo_poses[actor_name].pop()
-            if (self.transformation_matrix == self.mesh_actors[actor_name].user_matrix).all():
-                if len(self.undo_poses[actor_name]) != 0: 
-                    self.transformation_matrix = self.undo_poses[actor_name].pop()
+        self.transformation_matrix = self.undo_poses[actor_name].pop()
+        if (self.transformation_matrix == self.mesh_actors[actor_name].user_matrix).all():
+            if len(self.undo_poses[actor_name]) != 0: 
+                self.transformation_matrix = self.undo_poses[actor_name].pop()
 
     def set_transformation_matrix(self, transformation_matrix):
         self.transformation_matrix = transformation_matrix

@@ -29,18 +29,10 @@ class RegisterMenu():
             self.qt_store.output_text.append(f"-> Current reference mesh is: <span style='background-color:yellow; color:black;'>{self.mesh_store.reference}</span>")
             self.qt_store.output_text.append(f"Current pose is: \n{self.mesh_store.transformation_matrix}")
 
-    def undo_pose(self):
-        if self.display_panel.button_group_actors_names.checkedButton():
-            actor_name = self.display_panel.button_group_actors_names.checkedButton().text()
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+    def undo_pose(self, actor_name):
         if len(self.mesh_store.undo_poses[actor_name]) != 0: 
-            self.mesh_store.transformation_matrix = self.mesh_store.undo_poses[actor_name].pop()
-            if (self.mesh_store.transformation_matrix == self.mesh_store.mesh_actors[actor_name].user_matrix).all():
-                if len(self.mesh_store.undo_poses[actor_name]) != 0: 
-                    self.mesh_store.transformation_matrix = self.mesh_store.undo_poses[actor_name].pop()
-    
+            self.mesh_store.undo_pose(actor_name)
+            
             self.mesh_store.mesh_actors[actor_name].user_matrix = self.mesh_store.transformation_matrix
             self.plot_store.plotter.add_actor(self.mesh_store.mesh_actors[actor_name], pickable=True, name=actor_name)
             

@@ -47,15 +47,13 @@ class FileMenu():
             folder_path = QtWidgets.QFileDialog().getExistingDirectory(self, "Select Folder")
         if folder_path:
             flag = self.folder_store.add_folder(folder_path)
-            if flag:
-                self.folder_store.reset()
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
+            if flag: self.folder_store.reset()
             else:
                 self.qt_store.hintLabel.hide()
                 self.video_store.video_path = None
                 self.qt_store.output_text.append(f"-> After reset GT pose, current slide is ({self.folder_store.current_frame}/{self.folder_store.total_count})")
                 self.plot_store.reset_camera()
+            return flag
 
     def add_video(self, video_path='', prompt=False):
         if prompt:
@@ -98,21 +96,14 @@ class FileMenu():
             mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_path:
             self.qt_store.hintLabel.hide()
-            # TODO
             transformation_matrix = self.mesh_store.transformation_matrix
             if self.plot_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             if self.plot_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
-            self.mesh_store.add_mesh(mesh_path, transformation_matrix)
+            flag = self.mesh_store.add_mesh(mesh_path, transformation_matrix)
             # add remove current mesh to removeMenu
-            if self.mesh_store.mesh_name:
+            if flag:
                 if self.mesh_store.mesh_name not in self.qt_store.track_actors_names:
                     self.qt_store.track_actors_names.append(self.mesh_store.mesh_name)
                     self.display_panel.add_button_actor_name(self.mesh_store.mesh_name)
                 self.display_panel.check_button(self.mesh_store.mesh_name)
-
-    def draw_mask(self):
-        if self.image_store.image_path:
-            self.mask_store.draw_mask(self.image_store.image_path)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+            return flag
