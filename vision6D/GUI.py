@@ -37,7 +37,6 @@ class Interface(MyMainWindow):
         self.mirror_x = False
         self.mirror_y = False
 
-        self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
         self.meshdict = {}
@@ -51,7 +50,7 @@ class Interface(MyMainWindow):
 
         self.mesh_opacity = {}
         self.store_mesh_opacity = {}
-        self.image_opacity = 0.8
+        
         self.mask_opacity = 0.3
         self.surface_opacity = self.opacity_spinbox.value()
         
@@ -114,7 +113,7 @@ class Interface(MyMainWindow):
             self.opacity_spinbox.setValue(curr_opacity)
         else:
             self.color_button.setText("Color")
-            if text == 'image': curr_opacity = self.image_opacity
+            if text == 'image': curr_opacity = self.image_store.image_opacity
             elif text == 'mask': curr_opacity = self.mask_opacity
             else: curr_opacity = self.opacity_spinbox.value()
             self.opacity_spinbox.setValue(curr_opacity)
@@ -124,10 +123,8 @@ class Interface(MyMainWindow):
         if output not in self.output_text.toPlainText(): self.output_text.append(output)
                                             
     def set_image_opacity(self, image_opacity: float):
-        assert image_opacity>=0 and image_opacity<=1, "image opacity should range from 0 to 1!"
-        self.image_opacity = image_opacity
-        self.image_actor.GetProperty().opacity = image_opacity
-        self.plotter.add_actor(self.image_actor, pickable=False, name='image')
+        self.image_store.set_opacity(image_opacity)
+        self.plotter.add_actor(self.image_store.image_actor, pickable=False, name='image')
 
     def set_mask_opacity(self, mask_opacity: float):
         assert mask_opacity>=0 and mask_opacity<=1, "image opacity should range from 0 to 1!"
@@ -144,34 +141,23 @@ class Interface(MyMainWindow):
 
     def add_image(self, image_source):
 
-        if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
-            image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
-        if len(image_source.shape) == 2: image_source = image_source[..., None]
-
-        if self.mirror_x: image_source = image_source[:, ::-1, :]
-        if self.mirror_y: image_source = image_source[::-1, :, :]
-
-        dim = image_source.shape
-        h, w, channel = dim[0], dim[1], dim[2]
-
-        # Create the render based on the image size
-        self.render = pv.Plotter(window_size=[w, h], lighting=None, off_screen=True) 
-        self.render.set_background('black'); assert self.render.background_color == "black", "render's background need to be black"
-
-        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01, 0.01, 1], origin=(0.0, 0.0, 0.0))
-        image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
-        image = image.translate(-1 * np.array(image.center), inplace=False)
+        image, original_image, channel = self.image_store.add_image(image_source, self.mirror_x, self.mirror_y)
 
         # Then add it to the plotter
-        image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_opacity, name='image') if channel == 1 else self.plotter.add_mesh(image, rgb=True, opacity=self.image_opacity, name='image')
-        actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
-        # Save actor for later
-        self.image_actor = actor
+        if channel == 1: 
+            image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
+        else: 
+            image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
         
-        # get the image scalar
-        image_data = utils.get_image_actor_scalars(self.image_actor)
-        assert (image_data == image_source).all() or (image_data*255 == image_source).all(), "image_data and image_source should be equal"
+        actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
 
+        # Save actor for later
+        self.image_store.image_actor = actor
+
+        # get the image scalar
+        image_data = utils.get_image_actor_scalars(self.image_store.image_actor)
+        assert (image_data == original_image).all() or (image_data*255 == original_image).all(), "image_data and image_source should be equal"
+        
         # add remove current image to removeMenu
         if 'image' not in self.track_actors_names:
             self.track_actors_names.append('image')
@@ -316,16 +302,12 @@ class Interface(MyMainWindow):
         self.button_actor_name_clicked(actor_name)
 
     def toggle_image_opacity(self, up):
-        if up:
-            self.image_opacity += 0.05
-            if self.image_opacity > 1: self.image_opacity = 1
-        else:
-            self.image_opacity -= 0.05
-            if self.image_opacity < 0: self.image_opacity = 0
-        self.image_actor.GetProperty().opacity = self.image_opacity
-        self.plotter.add_actor(self.image_actor, pickable=False, name="image")
+        change = 0.05
+        if not up: change *= -1
+        self.image_store.update_opacity(change)
+        self.plotter.add_actor(self.image_store.image_actor, pickable=False, name="image")
         self.ignore_spinbox_value_change = True
-        self.opacity_spinbox.setValue(self.image_opacity)
+        self.opacity_spinbox.setValue(self.image_store.image_opacity)
         self.ignore_spinbox_value_change = False
 
     def toggle_mask_opacity(self, up):
@@ -427,8 +409,8 @@ class Interface(MyMainWindow):
         self.plotter.camera = self.camera.copy()
 
     def camera_calibrate(self):
-        if self.image_path:
-            original_image = np.array(PIL.Image.open(self.image_path), dtype='uint8')
+        if self.image_store.image_path:
+            original_image = np.array(PIL.Image.open(self.image_store.image_path), dtype='uint8')
             # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
             original_image = original_image[..., :3]
             if len(original_image.shape) == 2: original_image = original_image[..., None]
@@ -496,9 +478,7 @@ class Interface(MyMainWindow):
             with open(str(self.workspace_path), 'r') as f: 
                 workspace = json.load(f)
 
-            if 'image_path' in workspace:
-                self.image_path = workspace['image_path']
-                self.add_image_file()
+            if 'image_path' in workspace: self.add_image_file(image_path=workspace['image_path'])
             if 'video_path' in workspace:
                 self.video_path = workspace['video_path']
                 self.add_video_file()
@@ -539,8 +519,8 @@ class Interface(MyMainWindow):
             if 'images' in folders:
                 flag = False
                 image_files, image_dir = self.get_files_from_folder('images')
-                self.image_path = str(image_dir / image_files[self.current_frame])
-                if os.path.isfile(self.image_path): self.add_image_file()
+                image_path = str(image_dir / image_files[self.current_frame])
+                if os.path.isfile(image_path): self.add_image_file(image_path=image_path)
 
             if 'masks' in folders:
                 flag = False
@@ -587,14 +567,12 @@ class Interface(MyMainWindow):
             self.load_per_frame_info(True)
             self.sample_video()
             
-    def add_image_file(self, prompt=False):
+    def add_image_file(self, image_path='', prompt=False):
         if prompt:
-            self.image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
-        if self.image_path:
+            image_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
+        if image_path:
             self.hintLabel.hide()
-            image_source = np.array(PIL.Image.open(self.image_path), dtype='uint8')
-            if len(image_source.shape) == 2: image_source = image_source[..., None]
-            self.add_image(image_source)
+            self.add_image(image_path)
             
     def add_mask_file(self, prompt=False):
         if prompt:
@@ -680,10 +658,7 @@ class Interface(MyMainWindow):
         elif direction == 'y': self.mirror_y = not self.mirror_y
 
         #^ mirror the image actor
-        if self.image_actor:
-            original_image_data = np.array(PIL.Image.open(self.image_path), dtype='uint8')
-            if len(original_image_data.shape) == 2: original_image_data = original_image_data[..., None]
-            self.add_image(original_image_data)
+        if self.image_store.image_path: self.add_image(self.image_store.image_path)
 
         #^ mirror the mask actor
         if self.mask_actor:
@@ -703,9 +678,8 @@ class Interface(MyMainWindow):
     def remove_actor(self, button):
         name = button.text()
         if name == 'image': 
-            actor = self.image_actor
-            self.image_actor = None
-            self.image_path = None
+            actor = self.image_store.image_actor
+            self.image_store.reset()
         elif name == 'mask':
             actor = self.mask_actor
             self.mask_actor = None
@@ -731,7 +705,7 @@ class Interface(MyMainWindow):
         button.deleteLater()
 
         # clear out the plot if there is no actor
-        if self.image_actor is None and self.mask_actor is None and len(self.mesh_actors) == 0: self.clear_plot()
+        if self.image_store.image_actor is None and self.mask_actor is None and len(self.mesh_actors) == 0: self.clear_plot()
 
     def remove_actors_button(self):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -745,7 +719,7 @@ class Interface(MyMainWindow):
         # Clear out everything in the remove menu
         for button in self.button_group_actors_names.buttons():
             name = button.text()
-            if name == 'image': actor = self.image_actor
+            if name == 'image': actor = self.image_store.image_actor
             elif name == 'mask': actor = self.mask_actor
             elif name in self.mesh_actors: actor = self.mesh_actors[name]
             self.plotter.remove_actor(actor)
@@ -758,10 +732,11 @@ class Interface(MyMainWindow):
 
         self.hintLabel.show()
 
+        self.image_store.reset()
+
         # Re-initial the dictionaries
         self.delete_video_folder()
         self.workspace_path = None
-        self.image_path = None
         self.mask_path = None
         self.mesh_path = None
         self.pose_path = None
@@ -771,7 +746,6 @@ class Interface(MyMainWindow):
         # reset everything to original actor opacity
         self.mesh_opacity = {}
         self.store_mesh_opacity = {}
-        self.image_opacity = 0.8
         self.mask_opacity = 0.3
         self.surface_opacity = self.opacity_spinbox.value()
 
@@ -782,7 +756,6 @@ class Interface(MyMainWindow):
 
         self.reference = None
         self.transformation_matrix = np.eye(4)
-        self.image_actor = None
         self.mask_actor = None
         self.mesh_actors = {}
         self.undo_poses = {}
@@ -794,17 +767,6 @@ class Interface(MyMainWindow):
 
         self.clear_output_text()
 
-    def render_image(self, camera):
-        self.render.clear()
-        render_actor = self.image_actor.copy(deep=True)
-        render_actor.GetProperty().opacity = 1
-        self.render.add_actor(render_actor, pickable=False)
-        self.render.camera = camera
-        self.render.disable()
-        self.render.show(auto_close=False)
-        image = self.render.last_image
-        return image
-    
     def render_mask(self, camera):
         self.render.clear()
         render_actor = self.mask_actor.copy(deep=True)
@@ -835,9 +797,8 @@ class Interface(MyMainWindow):
         return image
 
     def export_image(self):
-
-        if self.image_actor:
-            image = self.render_image(camera=self.camera.copy())
+        if self.image_store.image_actor:
+            image = self.image_store.render(camera=self.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Image Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
@@ -1119,7 +1080,7 @@ class Interface(MyMainWindow):
                     # save each frame
                     save_frame.save(output_frame_path)
                     self.output_text.append(f"-> Save frame {self.current_frame}: ({self.current_frame}/{self.video_player.frame_count})")
-                    self.image_path = str(output_frame_path)
+                    self.image_store.image_path = str(output_frame_path)
 
                     # save gt_pose for each frame
                     os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses", exist_ok=True)
@@ -1225,8 +1186,8 @@ class Interface(MyMainWindow):
             if output_path:
                 self.mask_path = output_path
                 self.add_mask(self.mask_path)
-        if self.image_path:
-            self.label_window = widgets_gui.LabelWindow(self.image_path)
+        if self.image_store.image_path:
+            self.label_window = widgets_gui.LabelWindow(self.image_store.image_path)
             self.label_window.show()
             self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
         else:

@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt
 
 # self defined package import
 from . import widgets_gui
+from .components import ImageStore
 
 np.set_printoptions(suppress=True)
 
@@ -25,12 +26,15 @@ class MyMainWindow(MainWindow):
         self.setCentralWidget(self.main_widget)
         self.setAcceptDrops(True)
 
+        # initial stores
+        self.image_store = ImageStore()
+
         # Initialize file paths
         self.workspace_path = None
         self.folder_path = None
         self.video_path = None
         self.current_frame = 0
-        self.image_path = None
+        
         self.mask_path = None
         self.mesh_path = None
         self.pose_path = None
@@ -113,7 +117,7 @@ class MyMainWindow(MainWindow):
                         self.add_mask_file()
                     # image file
                     else:
-                        self.image_path = file_path
+                        self.image_store.image_path = file_path
                         self.add_image_file()
                 elif file_path.endswith('.npy'):
                     self.pose_path = file_path

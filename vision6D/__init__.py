@@ -33,3 +33,4 @@ from .mainwindow import MyMainWindow
 from .GUI import Interface
 from . import utils
 from . import widgets_gui
+from . import components
