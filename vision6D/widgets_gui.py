@@ -40,11 +40,8 @@ class CustomQtInteractor(QtInteractor):
     def release_callback(self):
         picked_actor = self.picker.GetActor()
         actor_name = picked_actor.name
-        if actor_name in self.main_window.mesh_actors:        
-            if actor_name not in self.main_window.undo_poses: self.main_window.undo_poses[actor_name] = []
-            self.main_window.undo_poses[actor_name].append(self.main_window.mesh_actors[actor_name].user_matrix)
-            if len(self.main_window.undo_poses[actor_name]) > 20: self.main_window.undo_poses[actor_name].pop(0)
-            # check the picked button
+        if actor_name in self.main_window.mesh_store.mesh_actors:
+            # check the picked mesh button and register the rest to the mesh reference's current pose
             self.main_window.check_button(actor_name)
 
 class VideoSampler(QtWidgets.QDialog):

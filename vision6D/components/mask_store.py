@@ -21,7 +21,7 @@ class MaskStore(metaclass=Singleton):
     
     def add_mask(self, mask_source, mirror_x, mirror_y):
         if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
-            self.mask_path = mask_source
+            self.mask_path = str(mask_source)
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
 
         # if len(mask_source.shape) == 2: mask_source = mask_source[..., None]

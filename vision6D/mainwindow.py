@@ -14,6 +14,7 @@ from . import widgets_gui
 from .components import ImageStore
 from .components import MaskStore
 from .components import CameraStore
+from .components import MeshStore
 
 np.set_printoptions(suppress=True)
 
@@ -32,6 +33,7 @@ class MyMainWindow(MainWindow):
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
         self.camera_store = CameraStore(self.window_size)
+        self.mesh_store = MeshStore(self.window_size)
 
         # Initialize file paths
         self.workspace_path = None
@@ -39,9 +41,6 @@ class MyMainWindow(MainWindow):
         self.video_path = None
         self.current_frame = 0
         
-        self.mesh_path = None
-        self.pose_path = None
-
         # Dialogs to record users input info
         self.input_dialog = QtWidgets.QInputDialog()
         self.file_dialog = QtWidgets.QFileDialog()
@@ -103,8 +102,7 @@ class MyMainWindow(MainWindow):
                     self.add_workspace()
                 # Load mesh file
                 elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
-                    self.mesh_path = file_path
-                    self.add_mesh_file()
+                    self.add_mesh_file(mesh_path=file_path)
                 # Load video file
                 elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
                     self.video_path = file_path
@@ -116,9 +114,7 @@ class MyMainWindow(MainWindow):
                     if len(unique) > 2: self.add_image_file(image_path=file_path)
                     else: self.add_mask_file(mask_path=file_path)
                         
-                elif file_path.endswith('.npy'):
-                    self.pose_path = file_path
-                    self.add_pose_file()
+                elif file_path.endswith('.npy'): self.add_pose_file(pose_path=file_path)
                 else:
                     QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     return 0
@@ -170,10 +166,8 @@ class MyMainWindow(MainWindow):
 
         # add mirror actors related actions
         mirrorMenu = mainMenu.addMenu('Mirror')
-        mirror_x = functools.partial(self.mirror_actors, direction='x')
-        mirrorMenu.addAction('Mirror X axis', mirror_x)
-        mirror_y = functools.partial(self.mirror_actors, direction='y')
-        mirrorMenu.addAction('Mirror Y axis', mirror_y)
+        mirrorMenu.addAction('Mirror X axis', functools.partial(self.mirror_actors, direction='x'))
+        mirrorMenu.addAction('Mirror Y axis', functools.partial(self.mirror_actors, direction='y'))
         
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Register')
@@ -185,10 +179,8 @@ class MyMainWindow(MainWindow):
         # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('PnP')
         PnPMenu.addAction('EPnP with mesh', self.epnp_mesh)
-        epnp_nocs_mask = functools.partial(self.epnp_mask, True)
-        PnPMenu.addAction('EPnP with nocs mask', epnp_nocs_mask)
-        epnp_latlon_mask = functools.partial(self.epnp_mask, False)
-        PnPMenu.addAction('EPnP with latlon mask', epnp_latlon_mask)
+        PnPMenu.addAction('EPnP with nocs mask', functools.partial(self.epnp_mask, True))
+        PnPMenu.addAction('EPnP with latlon mask', functools.partial(self.epnp_mask, False))
 
     # ^Panel
     def set_panel_bar(self):
