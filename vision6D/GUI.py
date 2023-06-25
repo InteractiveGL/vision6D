@@ -346,14 +346,12 @@ class Interface(MyMainWindow):
         else: 
             return None
 
-    def add_workspace(self, prompt=False):
+    def add_workspace(self, workspace_path='', prompt=False):
         if prompt:
-            self.workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
-        if self.workspace_path:
+            workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
+        if workspace_path:
             self.hintLabel.hide()
-            with open(str(self.workspace_path), 'r') as f: 
-                workspace = json.load(f)
-
+            with open(str(workspace_path), 'r') as f: workspace = json.load(f)
             if 'image_path' in workspace: self.add_image_file(image_path=workspace['image_path'])
             if 'video_path' in workspace:
                 self.video_path = workspace['video_path']
@@ -583,12 +581,10 @@ class Interface(MyMainWindow):
 
         self.image_store.reset()
         self.mask_store.reset()
-        self.camera_store.reset()
         self.mesh_store.reset()
 
         # Re-initial the dictionaries
         self.delete_video_folder()
-        self.workspace_path = None
         
         self.mirror_x = False
         self.mirror_y = False

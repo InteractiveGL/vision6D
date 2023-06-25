@@ -36,7 +36,6 @@ class MyMainWindow(MainWindow):
         self.mesh_store = MeshStore(self.window_size)
 
         # Initialize file paths
-        self.workspace_path = None
         self.folder_path = None
         self.video_path = None
         self.current_frame = 0
@@ -97,9 +96,7 @@ class MyMainWindow(MainWindow):
                 self.add_folder()
             else:
                 # Load workspace json file
-                if file_path.endswith(('.json')):
-                    self.workspace_path = file_path
-                    self.add_workspace()
+                if file_path.endswith(('.json')): self.add_workspace(workspace_path=file_path)
                 # Load mesh file
                 elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
                     self.add_mesh_file(mesh_path=file_path)
