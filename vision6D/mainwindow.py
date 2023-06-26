@@ -22,8 +22,6 @@ from . import utils
 
 from .widgets import GetTextDialog
 from .widgets import CustomQtInteractor
-from .widgets import CalibrationPopWindow
-from .widgets import CameraPropsInputDialog
 from .widgets import PopUpDialog
 from .widgets import LabelWindow
 
@@ -33,6 +31,8 @@ from .components import CameraStore
 from .components import MeshStore
 from .components import VideoStore
 from .components import FolderStore
+
+from .containers import CameraContainer
 
 np.set_printoptions(suppress=True)
 
@@ -46,6 +46,11 @@ class MyMainWindow(MainWindow):
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
         self.setAcceptDrops(True)
+
+        # Dialogs to record users input info
+        self.input_dialog = QtWidgets.QInputDialog()
+        self.file_dialog = QtWidgets.QFileDialog()
+        self.get_text_dialog = GetTextDialog()
 
         # initialize
         self.mirror_x = False
@@ -61,23 +66,19 @@ class MyMainWindow(MainWindow):
         self.mesh_store = MeshStore(self.window_size)
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
-        
-        # Dialogs to record users input info
-        self.input_dialog = QtWidgets.QInputDialog()
-        self.file_dialog = QtWidgets.QFileDialog()
-        self.get_text_dialog = GetTextDialog()
 
+        # Create the plotter
+        self.create_plotter()
+
+        # create containers
+        self.camera_container = CameraContainer(self.plotter, MainWindow)
+        self.camera_container.set_camera_props()
+        
         # Set panel bar
         self.set_panel_bar()
         
         # Set menu bar
         self.set_menu_bars()
-
-        # Create the plotter
-        self.create_plotter()
-
-        # Set up camera after create plotter
-        self.set_camera_props()
 
         # Set up the main layout with the left panel and the render window using QSplitter
         self.main_layout = QtWidgets.QHBoxLayout(self.main_widget)
@@ -108,9 +109,9 @@ class MyMainWindow(MainWindow):
 
     def key_bindings(self):
         # camera related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.reset_camera)
-        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.zoom_out)
-        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.zoom_in)
+        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.camera_container.reset_camera)
+        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.camera_container.zoom_out)
+        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.camera_container.zoom_in)
 
         # registration related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.reset_gt_pose)
@@ -211,10 +212,10 @@ class MyMainWindow(MainWindow):
 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
-        CameraMenu.addAction('Calibrate', self.camera_calibrate)
-        CameraMenu.addAction('Reset Camera (d)', self.reset_camera)
-        CameraMenu.addAction('Zoom In (x)', self.zoom_in)
-        CameraMenu.addAction('Zoom Out (z)', self.zoom_out)
+        CameraMenu.addAction('Calibrate', self.camera_container.camera_calibrate)
+        CameraMenu.addAction('Reset Camera (d)', self.camera_container.reset_camera)
+        CameraMenu.addAction('Zoom In (x)', self.camera_container.zoom_in)
+        CameraMenu.addAction('Zoom Out (z)', self.camera_container.zoom_out)
 
         # add mirror actors related actions
         mirrorMenu = mainMenu.addMenu('Mirror')
@@ -283,7 +284,7 @@ class MyMainWindow(MainWindow):
 
         # Create the set camera button
         set_camera_button = QtWidgets.QPushButton("Set Camera")
-        set_camera_button.clicked.connect(self.set_camera)
+        set_camera_button.clicked.connect(self.camera_container.set_camera)
         top_grid_layout.addWidget(set_camera_button, 0, 0)
 
         # Create the actor pose button
@@ -625,7 +626,7 @@ class MyMainWindow(MainWindow):
                 for path in mesh_paths: self.add_mesh_file(mesh_path=path)
             
             # reset camera
-            self.reset_camera()
+            self.camera_container.reset_camera()
    
    #~ Folder related
     def add_folder(self, folder_path='', prompt=False):
@@ -645,62 +646,10 @@ class MyMainWindow(MainWindow):
                 self.sample_video_button.setEnabled(False)
                 self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
                 self.output_text.append(f"-> Current frame is ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
-                self.reset_camera()
+                self.camera_container.reset_camera()
             else:
                 self.folder_store.reset()
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
-    #~ Camera related
-    def set_camera_props(self):
-        self.camera_store.set_camera_intrinsics()
-        self.camera_store.set_camera_extrinsics()
-        self.plotter.camera = self.camera_store.camera.copy()
-
-    def camera_calibrate(self):
-        if self.image_store.image_path:
-            original_image = np.array(PIL.Image.open(self.image_store.image_path), dtype='uint8')
-            # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
-            original_image = original_image[..., :3]
-            if len(original_image.shape) == 2: original_image = original_image[..., None]
-            if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
-            calibrated_image = np.array(self.image_store.render_image(self.plotter.camera.copy()), dtype='uint8')
-            if original_image.shape != calibrated_image.shape:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Original image shape is not equal to calibrated image shape!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
-        
-        calibrate_pop = CalibrationPopWindow(calibrated_image, original_image)
-        calibrate_pop.exec_()
-
-    def set_camera(self):
-        dialog = CameraPropsInputDialog(
-            line1=("Fx", self.camera_store.fx), 
-            line2=("Fy", self.camera_store.fy), 
-            line3=("Cx", self.camera_store.cx), 
-            line4=("Cy", self.camera_store.cy), 
-            line5=("View Up", self.camera_store.cam_viewup), 
-            line6=("Cam Position", self.camera_store.cam_position))
-        if dialog.exec():
-            fx, fy, cx, cy, cam_viewup, cam_position = dialog.getInputs()
-            pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position = self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position
-            if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == '' or cam_position == ''):
-                try:
-                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
-                    self.set_camera_props()
-                except:
-                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
-    def reset_camera(self):
-        self.plotter.camera = self.camera_store.camera.copy()
-
-    def zoom_in(self):
-        self.plotter.camera.zoom(2)
-
-    def zoom_out(self):
-        self.plotter.camera.zoom(0.5)
 
     # ~ Image related
     def add_image_file(self, image_path='', prompt=False):
@@ -970,7 +919,7 @@ class MyMainWindow(MainWindow):
             self.reset_gt_pose()
         else:
             if (rot and trans): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-        self.reset_camera()
+        self.camera_container.reset_camera()
 
     def set_pose(self):
         # get the gt pose
