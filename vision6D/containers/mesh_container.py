@@ -1,0 +1,3 @@
+class MeshContainer:
+    def __init__(self):
+        ...

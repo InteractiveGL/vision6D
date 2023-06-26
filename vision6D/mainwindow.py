@@ -519,6 +519,136 @@ class MyMainWindow(MainWindow):
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        
+    #~ Mirroring
+    def mirror_actors(self, direction):
+
+        if direction == 'x': self.mirror_x = not self.mirror_x
+        elif direction == 'y': self.mirror_y = not self.mirror_y
+
+        #^ mirror the image actor
+        if self.image_store.image_path: self.add_image(self.image_store.image_path)
+
+        #^ mirror the mask actor
+        if self.mask_store.mask_path: self.add_mask(self.mask_store.mask_path)
+
+        #^ mirror the mesh actors
+        if self.mesh_store.reference:
+            transformation_matrix = self.mesh_store.initial_pose
+            if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            self.add_mesh(self.mesh_store.meshdict[self.mesh_store.reference], transformation_matrix)
+            self.mesh_store.undo_poses = {}
+            # Output the mirrored transformation matrix
+            self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
+    
+    # ~Clean plot     
+    def remove_actor(self, button):
+        name = button.text()
+        if name == 'image': 
+            actor = self.image_store.image_actor
+            self.image_store.reset()
+        elif name == 'mask':
+            actor = self.mask_store.mask_actor
+            self.mask_store.reset()
+        elif name in self.mesh_store.mesh_actors: 
+            actor = self.mesh_store.mesh_actors[name]
+            self.mesh_store.remove_mesh(name)
+            self.color_button.setText("Color")
+
+        self.plotter.remove_actor(actor)
+        self.track_actors_names.remove(name)
+        self.output_text.append(f"-> Remove actor: {name}")
+        # remove the button from the button group
+        self.button_group_actors_names.removeButton(button)
+        # remove the button from the self.button_layout widget
+        self.button_layout.removeWidget(button)
+        # offically delete the button
+        button.deleteLater()
+
+        # clear out the plot if there is no actor
+        if self.image_store.image_actor is None and self.mask_store.mask_actor is None and len(self.mesh_store.mesh_actors) == 0: self.clear_plot()
+
+    def remove_actors_button(self):
+        checked_button = self.button_group_actors_names.checkedButton()
+        if checked_button: self.remove_actor(checked_button)
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            return 0
+
+    def clear_plot(self):
+        # Clear out everything in the remove menu
+        for button in self.button_group_actors_names.buttons():
+            name = button.text()
+            if name == 'image': actor = self.image_store.image_actor
+            elif name == 'mask': actor = self.mask_store.mask_actor
+            elif name in self.mesh_store.mesh_actors: actor = self.mesh_store.mesh_actors[name]
+            self.plotter.remove_actor(actor)
+            # remove the button from the button group
+            self.button_group_actors_names.removeButton(button)
+            # remove the button from the self.button_layout widget
+            self.button_layout.removeWidget(button)
+            # offically delete the button
+            button.deleteLater()
+
+        self.image_store.reset()
+        self.mask_store.reset()
+        self.mesh_store.reset()
+        self.video_store.reset()
+        self.folder_store.reset()
+
+        # Re-initial the dictionaries
+        self.mirror_x = False
+        self.mirror_y = False
+
+        self.track_actors_names = []
+        self.color_button.setText("Color")
+        self.play_video_button.setText("Play Video")
+        self.clear_output_text()
+
+        self.hintLabel.show()
+        
+    #~ Workspace related
+    def add_workspace(self, workspace_path='', prompt=False):
+        if prompt:
+            workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
+        if workspace_path:
+            self.hintLabel.hide()
+            with open(str(workspace_path), 'r') as f: workspace = json.load(f)
+            if 'image_path' in workspace: self.add_image_file(image_path=workspace['image_path'])
+            if 'video_path' in workspace: self.add_video_file(video_path=workspace['video_path'])
+            if 'mask_path' in workspace: self.add_mask_file(mask_path=workspace['mask_path'])
+            # need to load pose before loading meshes
+            if 'pose_path' in workspace: self.add_pose_file(pose_path=workspace['pose_path'])
+            if 'mesh_path' in workspace:
+                mesh_paths = workspace['mesh_path']
+                for path in mesh_paths: self.add_mesh_file(mesh_path=path)
+            
+            # reset camera
+            self.reset_camera()
+   
+   #~ Folder related
+    def add_folder(self, folder_path='', prompt=False):
+        if prompt: 
+            folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            if self.video_store.video_path: self.clear_plot() # main goal is to set video_path to None
+            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path)
+            if image_path or mask_path or pose_path or mesh_path:
+                if image_path: self.add_image_file(image_path=image_path)
+                if mask_path: self.add_mask_file(mask_path=mask_path)
+                if pose_path: self.add_pose_file(pose_path=pose_path)
+                if mesh_path: 
+                    with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
+                    for path in mesh_path: self.add_mesh_file(path)
+                self.play_video_button.setEnabled(False)
+                self.sample_video_button.setEnabled(False)
+                self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
+                self.output_text.append(f"-> Current frame is ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
+                self.reset_camera()
+            else:
+                self.folder_store.reset()
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     #~ Camera related
     def set_camera_props(self):
@@ -571,48 +701,6 @@ class MyMainWindow(MainWindow):
 
     def zoom_out(self):
         self.plotter.camera.zoom(0.5)
-    
-    #~ Workspace related
-    def add_workspace(self, workspace_path='', prompt=False):
-        if prompt:
-            workspace_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.json)")
-        if workspace_path:
-            self.hintLabel.hide()
-            with open(str(workspace_path), 'r') as f: workspace = json.load(f)
-            if 'image_path' in workspace: self.add_image_file(image_path=workspace['image_path'])
-            if 'video_path' in workspace: self.add_video_file(video_path=workspace['video_path'])
-            if 'mask_path' in workspace: self.add_mask_file(mask_path=workspace['mask_path'])
-            # need to load pose before loading meshes
-            if 'pose_path' in workspace: self.add_pose_file(pose_path=workspace['pose_path'])
-            if 'mesh_path' in workspace:
-                mesh_paths = workspace['mesh_path']
-                for path in mesh_paths: self.add_mesh_file(mesh_path=path)
-            
-            # reset camera
-            self.reset_camera()
-   
-   #~ Folder related
-    def add_folder(self, folder_path='', prompt=False):
-        if prompt: 
-            folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
-        if folder_path:
-            if self.video_store.video_path: self.clear_plot() # main goal is to set video_path to None
-            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path)
-            if image_path or mask_path or pose_path or mesh_path:
-                if image_path: self.add_image_file(image_path=image_path)
-                if mask_path: self.add_mask_file(mask_path=mask_path)
-                if pose_path: self.add_pose_file(pose_path=pose_path)
-                if mesh_path: 
-                    with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
-                    for path in mesh_path: self.add_mesh_file(path)
-                self.play_video_button.setEnabled(False)
-                self.sample_video_button.setEnabled(False)
-                self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
-                self.output_text.append(f"-> Current frame is ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
-                self.reset_camera()
-            else:
-                self.folder_store.reset()
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     # ~ Image related
     def add_image_file(self, image_path='', prompt=False):
@@ -1103,95 +1191,6 @@ class MyMainWindow(MainWindow):
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
             QtWidgets.QMessageBox.warning(self,"vision6D", "please load a mask first")
-    
-    #~ Mirroring
-    def mirror_actors(self, direction):
-
-        if direction == 'x': self.mirror_x = not self.mirror_x
-        elif direction == 'y': self.mirror_y = not self.mirror_y
-
-        #^ mirror the image actor
-        if self.image_store.image_path: self.add_image(self.image_store.image_path)
-
-        #^ mirror the mask actor
-        if self.mask_store.mask_path: self.add_mask(self.mask_store.mask_path)
-
-        #^ mirror the mesh actors
-        if self.mesh_store.reference:
-            transformation_matrix = self.mesh_store.initial_pose
-            if self.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            if self.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            self.add_mesh(self.mesh_store.meshdict[self.mesh_store.reference], transformation_matrix)
-            self.mesh_store.undo_poses = {}
-            # Output the mirrored transformation matrix
-            self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
-    
-    # ~Clean plot     
-    def remove_actor(self, button):
-        name = button.text()
-        if name == 'image': 
-            actor = self.image_store.image_actor
-            self.image_store.reset()
-        elif name == 'mask':
-            actor = self.mask_store.mask_actor
-            self.mask_store.reset()
-        elif name in self.mesh_store.mesh_actors: 
-            actor = self.mesh_store.mesh_actors[name]
-            self.mesh_store.remove_mesh(name)
-            self.color_button.setText("Color")
-
-        self.plotter.remove_actor(actor)
-        self.track_actors_names.remove(name)
-        self.output_text.append(f"-> Remove actor: {name}")
-        # remove the button from the button group
-        self.button_group_actors_names.removeButton(button)
-        # remove the button from the self.button_layout widget
-        self.button_layout.removeWidget(button)
-        # offically delete the button
-        button.deleteLater()
-
-        # clear out the plot if there is no actor
-        if self.image_store.image_actor is None and self.mask_store.mask_actor is None and len(self.mesh_store.mesh_actors) == 0: self.clear_plot()
-
-    def remove_actors_button(self):
-        checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button: self.remove_actor(checked_button)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
-
-    def clear_plot(self):
-        
-        # Clear out everything in the remove menu
-        for button in self.button_group_actors_names.buttons():
-            name = button.text()
-            if name == 'image': actor = self.image_store.image_actor
-            elif name == 'mask': actor = self.mask_store.mask_actor
-            elif name in self.mesh_store.mesh_actors: actor = self.mesh_store.mesh_actors[name]
-            self.plotter.remove_actor(actor)
-            # remove the button from the button group
-            self.button_group_actors_names.removeButton(button)
-            # remove the button from the self.button_layout widget
-            self.button_layout.removeWidget(button)
-            # offically delete the button
-            button.deleteLater()
-
-        self.image_store.reset()
-        self.mask_store.reset()
-        self.mesh_store.reset()
-        self.video_store.reset()
-        self.folder_store.reset()
-
-        # Re-initial the dictionaries
-        self.mirror_x = False
-        self.mirror_y = False
-
-        self.track_actors_names = []
-        self.color_button.setText("Color")
-        self.play_video_button.setText("Play Video")
-        self.clear_output_text()
-
-        self.hintLabel.show()
     
     #~ Video and Folder related
     def add_video_file(self, video_path='', prompt=False):

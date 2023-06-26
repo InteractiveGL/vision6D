@@ -1,0 +1,3 @@
+class CameraContainer:
+    def __init__(self):
+        ...

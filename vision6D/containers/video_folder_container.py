@@ -1,0 +1,3 @@
+class VideoFolderContainer:
+    def __init__(self):
+        ...

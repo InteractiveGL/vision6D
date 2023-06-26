@@ -33,11 +33,13 @@ from .mainwindow import MyMainWindow
 from . import utils
 from . import widgets
 from . import components
+from . import containers
 
 all = [
     'MyMainWindow',
     'Interface',
     'utils',
     'widgets',
-    'components'
+    'components',
+    'containers'
 ]

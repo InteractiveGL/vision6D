@@ -1,0 +1,3 @@
+class MaskContainer:
+    def __init__(self):
+        ...
