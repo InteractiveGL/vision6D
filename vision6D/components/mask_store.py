@@ -59,8 +59,7 @@ class MaskStore(metaclass=Singleton):
 
     def update_opacity(self, delta):
         self.mask_opacity += delta
-        np.clip(self.mask_opacity, 0, 1)
-        if self.mask_opacity > 1 or self.mask_opacity < 0: self.mask_opacity = round(self.mask_opacity)
+        self.mask_opacity = np.clip(self.mask_opacity, 0, 1)
         self.mask_actor.GetProperty().opacity = self.mask_opacity
 
     def render_mask(self, camera):

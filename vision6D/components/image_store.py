@@ -40,8 +40,7 @@ class ImageStore(metaclass=Singleton):
         
     def update_opacity(self, delta):
         self.image_opacity += delta
-        np.clip(self.image_opacity, 0, 1)
-        if self.image_opacity > 1 or self.image_opacity < 0: self.image_opacity = round(self.image_opacity)
+        self.image_opacity = np.clip(self.image_opacity, 0, 1)
         self.image_actor.GetProperty().opacity = self.image_opacity
         
     def render_image(self, camera):

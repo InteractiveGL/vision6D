@@ -15,6 +15,8 @@ from .components import ImageStore
 from .components import MaskStore
 from .components import CameraStore
 from .components import MeshStore
+from .components import VideoStore
+from .components import FolderStore
 
 np.set_printoptions(suppress=True)
 
@@ -34,11 +36,8 @@ class MyMainWindow(MainWindow):
         self.mask_store = MaskStore()
         self.camera_store = CameraStore(self.window_size)
         self.mesh_store = MeshStore(self.window_size)
-
-        # Initialize file paths
-        self.folder_path = None
-        self.video_path = None
-        self.current_frame = 0
+        self.video_store = VideoStore()
+        self.folder_store = FolderStore()
         
         # Dialogs to record users input info
         self.input_dialog = QtWidgets.QInputDialog()
@@ -91,9 +90,7 @@ class MyMainWindow(MainWindow):
     def dropEvent(self, e):
         for url in e.mimeData().urls():
             file_path = url.toLocalFile()
-            if os.path.isdir(file_path):
-                self.folder_path = file_path
-                self.add_folder()
+            if os.path.isdir(file_path): self.add_folder(folder_path=file_path)
             else:
                 # Load workspace json file
                 if file_path.endswith(('.json')): self.add_workspace(workspace_path=file_path)
@@ -102,8 +99,7 @@ class MyMainWindow(MainWindow):
                     self.add_mesh_file(mesh_path=file_path)
                 # Load video file
                 elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
-                    self.video_path = file_path
-                    self.add_video_file()
+                    self.add_video_file(video_path=file_path)
                 # Load image/mask file
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                     file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
@@ -146,14 +142,13 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
         
         # Add video related actions
-        VideoMenu = mainMenu.addMenu('Video/Folder')
-        VideoMenu.addAction('Play', self.play_video)
-        VideoMenu.addAction('Sample', self.sample_video)
-        VideoMenu.addAction('Delete', self.delete_video_folder)
-        VideoMenu.addAction('Save Frame', functools.partial(self.load_per_frame_info, save=True))
-        VideoMenu.addAction('Prev Frame', self.prev_frame)
-        VideoMenu.addAction('Next Frame', self.next_frame)
-                
+        VideoFolderMenu = mainMenu.addMenu('Video/Folder')
+        VideoFolderMenu.addAction('Play', self.play_video)
+        VideoFolderMenu.addAction('Sample', self.sample_video)
+        VideoFolderMenu.addAction('Save Frame', self.save_frame)
+        VideoFolderMenu.addAction('Prev Frame', self.prev_frame)
+        VideoFolderMenu.addAction('Next Frame', self.next_frame)
+
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
         CameraMenu.addAction('Calibrate', self.camera_calibrate)
@@ -251,7 +246,7 @@ class MyMainWindow(MainWindow):
         top_grid_layout.addWidget(self.sample_video_button, 1, 0)
 
         self.save_frame_button = QtWidgets.QPushButton("Save Frame")
-        self.save_frame_button.clicked.connect(lambda _, save=True: self.load_per_frame_info(save))
+        self.save_frame_button.clicked.connect(self.save_frame)
         top_grid_layout.addWidget(self.save_frame_button, 1, 1)
 
         self.prev_frame_button = QtWidgets.QPushButton("Prev Frame")

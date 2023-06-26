@@ -230,8 +230,7 @@ class Interface(MyMainWindow):
         if not up: change *= -1
         current_opacity = self.opacity_spinbox.value()
         current_opacity += change
-        np.clip(current_opacity, 0, 1)
-        if current_opacity > 1 or current_opacity < 0: current_opacity = round(current_opacity)
+        current_opacity = np.clip(current_opacity, 0, 1)
         self.opacity_spinbox.setValue(current_opacity)
 
     def opacity_value_change(self, value):
@@ -353,85 +352,53 @@ class Interface(MyMainWindow):
             self.hintLabel.hide()
             with open(str(workspace_path), 'r') as f: workspace = json.load(f)
             if 'image_path' in workspace: self.add_image_file(image_path=workspace['image_path'])
-            if 'video_path' in workspace:
-                self.video_path = workspace['video_path']
-                self.add_video_file()
-            if 'mask_path' in workspace: self.add_mask_file(workspace['mask_path'])
+            if 'video_path' in workspace: self.add_video_file(video_path=workspace['video_path'])
+            if 'mask_path' in workspace: self.add_mask_file(mask_path=workspace['mask_path'])
             # need to load pose before loading meshes
-            if 'pose_path' in workspace: self.add_pose_file(workspace['pose_path'])
+            if 'pose_path' in workspace: self.add_pose_file(pose_path=workspace['pose_path'])
             if 'mesh_path' in workspace:
-                mesh_path = workspace['mesh_path']
-                for path in mesh_path: self.add_mesh_file(path)
+                mesh_paths = workspace['mesh_path']
+                for path in mesh_paths: self.add_mesh_file(mesh_path=path)
             
             # reset camera
             self.reset_camera()
-
-    def get_files_from_folder(self, category):
-        dir = pathlib.Path(self.folder_path) / category
-        folders = [d for d in os.listdir(dir) if os.path.isdir(os.path.join(dir, d))]
-        if len(folders) == 1: dir = pathlib.Path(self.folder_path) / category / folders[0]
-        # Retrieve files
-        files = [f for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
-        self.total_count = len(files)
-        # Sort files
-        files.sort(key=lambda f: int(re.sub('\D', '', f)))
-        return files, dir
    
-    def add_folder(self, prompt=False):
+    def add_folder(self, folder_path='', prompt=False):
         if prompt: 
-            self.folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
-        
-        if self.folder_path:
-            folders = [d for d in os.listdir(self.folder_path) if os.path.isdir(os.path.join(self.folder_path, d))]
-            flag = True
-
-            if 'images' in folders:
-                flag = False
-                image_files, image_dir = self.get_files_from_folder('images')
-                image_path = str(image_dir / image_files[self.current_frame])
-                if os.path.isfile(image_path): self.add_image_file(image_path=image_path)
-
-            if 'masks' in folders:
-                flag = False
-                mask_files, mask_dir = self.get_files_from_folder('masks')
-                mask_path = str(mask_dir / mask_files[self.current_frame])
-                if os.path.isfile(mask_path): self.add_mask_file(mask_path=mask_path)
-                    
-            if 'poses' in folders:
-                flag = False
-                pose_files, pose_dir = self.get_files_from_folder('poses')
-                pose_path = str(pose_dir / pose_files[self.current_frame])
-                if os.path.isfile(pose_path): self.add_pose_file(pose_path=pose_path)
-                    
-            if self.current_frame == 0:
-                if 'meshes' in folders:
-                    flag = False
-                    dir = pathlib.Path(self.folder_path) / "meshes"
-                    if os.path.isfile(dir / 'mesh_path.txt'):
-                        with open(dir / 'mesh_path.txt', 'r') as f: mesh_path = f.read().splitlines()
-                        for path in mesh_path: self.add_mesh_file(path)
-
-            if flag:
-                self.delete_video_folder()
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
-            else:
-                self.video_path = None # make sure video_path and folder_path are exclusive
-                self.output_text.append(f"-> After reset GT pose, current slide is ({self.current_frame}/{self.total_count})")
+            folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
+        if folder_path:
+            if self.video_store.video_path: self.clear_plot() # main goal is to set video_path to None
+            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path)
+            if image_path or mask_path or pose_path or mesh_path:
+                if image_path: self.add_image_file(image_path=image_path)
+                if mask_path: self.add_mask_file(mask_path=mask_path)
+                if pose_path: self.add_pose_file(pose_path=pose_path)
+                if mesh_path: 
+                    with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
+                    for path in mesh_path: self.add_mesh_file(path)
+                self.play_video_button.setEnabled(False)
+                self.sample_video_button.setEnabled(False)
+                self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
+                self.output_text.append(f"-> Current frame is ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
                 self.reset_camera()
+            else:
+                self.folder_store.reset()
+                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
-    def add_video_file(self, prompt=False):
+    def add_video_file(self, video_path='', prompt=False):
         if prompt:
-            self.video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
-        if self.video_path:
+            video_path, _ = self.file_dialog.getOpenFileName(None, "Open file", "", "Files (*.avi *.mp4 *.mkv *.mov *.fly *.wmv *.mpeg *.asf *.webm)")
+        if video_path:
+            if self.folder_store.folder_path: self.clear_plot() # main goal is to set folder_path to None
             self.hintLabel.hide()
-            self.folder_path = None # make sure video_path and folder_path are exclusive
-            self.video_player = widgets_gui.VideoPlayer(self.video_path, self.current_frame)
-            self.play_video_button.setText("Play Video")
-            self.output_text.append(f"-> Load video {self.video_path} into vision6D")
-            self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-            self.fps = round(self.video_player.fps)
-            self.load_per_frame_info(True)
+            # self.folder_store.reset()
+            self.video_store.add_video(video_path)
+            self.play_video_button.setEnabled(True)
+            self.sample_video_button.setEnabled(True)
+            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            self.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")
+            self.output_text.append(f"-> Current frame is ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            self.load_per_frame_info()
             self.sample_video()
             
     def add_image_file(self, image_path='', prompt=False):
@@ -577,21 +544,22 @@ class Interface(MyMainWindow):
             # offically delete the button
             button.deleteLater()
 
-        self.hintLabel.show()
-
         self.image_store.reset()
         self.mask_store.reset()
         self.mesh_store.reset()
+        self.video_store.reset()
+        self.folder_store.reset()
 
         # Re-initial the dictionaries
-        self.delete_video_folder()
-        
         self.mirror_x = False
         self.mirror_y = False
 
         self.track_actors_names = []
         self.color_button.setText("Color")
+        self.play_video_button.setText("Play Video")
         self.clear_output_text()
+
+        self.hintLabel.show()
 
     def export_image(self):
         if self.image_store.image_actor:
@@ -853,122 +821,101 @@ class Interface(MyMainWindow):
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
-    def load_per_frame_info(self, save=False):
-        if self.video_path:
-            self.video_player.cap.set(cv2.CAP_PROP_POS_FRAMES, self.current_frame)
-            ret, frame = self.video_player.cap.read()
-            if ret: 
-                video_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                self.add_image(video_frame)
-                if save:
-                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D", exist_ok=True)
-                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "frames", exist_ok=True)
-                    output_frame_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "frames" / f"frame_{self.current_frame}.png"
-                    save_frame = PIL.Image.fromarray(video_frame)
-                    
-                    # save each frame
-                    save_frame.save(output_frame_path)
-                    self.output_text.append(f"-> Save frame {self.current_frame}: ({self.current_frame}/{self.video_player.frame_count})")
-                    self.image_store.image_path = str(output_frame_path)
+    def load_per_frame_info(self):
+        video_frame = self.video_store.load_per_frame_info()
+        if video_frame is not None: 
+            self.add_image(video_frame)
+            return video_frame
+        else: return None
+                
+    def save_frame(self):
+        if self.video_store.video_path:
+            video_frame = self.load_per_frame_info()
+            if video_frame is not None:
+                os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D", exist_ok=True)
+                os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "frames", exist_ok=True)
+                output_frame_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "frames" / f"frame_{self.video_store.current_frame}.png"
+                save_frame = PIL.Image.fromarray(video_frame)
+                
+                # save each frame
+                save_frame.save(output_frame_path)
+                self.output_text.append(f"-> Save frame {self.video_store.current_frame}: ({self.video_store.current_frame}/{self.video_store.total_frame}) to <span style='background-color:yellow; color:black;'>{str(output_frame_path)}</span>")
+                self.image_store.image_path = str(output_frame_path)
 
-                    # save gt_pose for each frame
-                    os.makedirs(pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses", exist_ok=True)
-                    output_pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
-                    self.current_pose()
-                    np.save(output_pose_path, self.mesh_store.transformation_matrix)
-                    self.output_text.append(f"-> Save frame {self.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
-        elif self.folder_path:
+                # save gt_pose for each frame
+                os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses", exist_ok=True)
+                output_pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
+                self.current_pose()
+                np.save(output_pose_path, self.mesh_store.transformation_matrix)
+                self.output_text.append(f"-> Save frame {self.video_store.current_frame} pose to <span style='background-color:yellow; color:black;'>{str(output_pose_path)}</span>:")
+                self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+        elif self.folder_store.folder_path:
             # save gt_pose for specific frame
-            os.makedirs(pathlib.Path(self.folder_path) / "vision6D", exist_ok=True)
-            os.makedirs(pathlib.Path(self.folder_path) / "vision6D" / "poses", exist_ok=True)
-            output_pose_path = pathlib.Path(self.folder_path) / "vision6D" / "poses" / f"{pathlib.Path(self.mesh_store.pose_path).stem}.npy"
+            os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D", exist_ok=True)
+            os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses", exist_ok=True)
+            output_pose_path = pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses" / f"{pathlib.Path(self.mesh_store.pose_path).stem}.npy"
             self.current_pose()
             np.save(output_pose_path, self.mesh_store.transformation_matrix)
-            self.output_text.append(f"-> Save frame {pathlib.Path(self.mesh_store.pose_path).stem} pose: \n{self.mesh_store.transformation_matrix}")
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
-    
+            self.output_text.append(f"-> Save frame {pathlib.Path(self.mesh_store.pose_path).stem} pose to <span style='background-color:yellow; color:black;'>{str(output_pose_path)}</span>:")
+            self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+        else: 
+            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
     def sample_video(self):
-        if self.video_path:
-            self.video_sampler = widgets_gui.VideoSampler(self.video_player, self.fps)
-            res = self.video_sampler.exec_()
-            if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
-        else:
+        if self.video_store.video_path: 
+            self.video_store.sample_video()
+        else: 
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
 
     def play_video(self):
-        if self.video_path:
-            res = self.video_player.exec_()
-            if res == QtWidgets.QDialog.Accepted:
-                self.current_frame = self.video_player.current_frame
-                self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-                self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
-                self.load_per_frame_info()
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        if self.video_store.video_path:
+            self.video_store.play_video()
+            self.output_text.append(f"-> Current frame is ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            self.load_per_frame_info()
+        else: QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
     def prev_frame(self):
-        if self.video_path:
-            current_frame = self.current_frame - self.fps
-            if current_frame >= 0: 
-                self.current_frame = current_frame
-                self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
-                if os.path.isfile(pose_path): 
-                    self.mesh_store.transformation_matrix = np.load(pose_path)
-                    self.register_pose(self.mesh_store.transformation_matrix)
-                    self.output_text.append(f"-> Load saved frame {self.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
-                else: self.output_text.append(f"-> No saved pose for frame {self.current_frame}")
-                self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
-                self.video_player.slider.setValue(self.current_frame)
-                self.load_per_frame_info()
-        elif self.folder_path:
-            if self.current_frame > 0:
-                self.current_frame -= 1
-                self.add_folder()
+        if self.video_store.video_path:
+            self.video_store.prev_frame()
+            self.output_text.append(f"-> Current frame is ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
+            if os.path.isfile(pose_path): 
+                self.mesh_store.transformation_matrix = np.load(pose_path)
+                self.register_pose(self.mesh_store.transformation_matrix)
+                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+            else: 
+                self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
+            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            self.load_per_frame_info()
+        elif self.folder_store.folder_path:
+            self.folder_store.prev_frame()
+            self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
+            self.add_folder(self.folder_store.folder_path)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
 
     def next_frame(self):
-        if self.video_path:
-            current_frame = self.current_frame + self.fps
-            if current_frame <= self.video_player.frame_count: 
-                # save pose from the previous frame 
-                self.load_per_frame_info(save=True)
-                self.current_frame = current_frame
-                self.output_text.append(f"-> Current frame is ({self.current_frame}/{self.video_player.frame_count})")
-                # load pose for the current frame if the pose exist
-                pose_path = pathlib.Path(self.video_path).parent / f"{pathlib.Path(self.video_path).stem}_vision6D" / "poses" / f"pose_{self.current_frame}.npy"
-                if os.path.isfile(pose_path): 
-                    self.mesh_store.transformation_matrix = np.load(pose_path)
-                    self.register_pose(self.mesh_store.transformation_matrix)
-                    self.output_text.append(f"-> Load saved frame {self.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
-                self.play_video_button.setText(f"Play ({self.current_frame}/{self.video_player.frame_count})")
-                self.video_player.slider.setValue(self.current_frame)
-                self.load_per_frame_info()
-        elif self.folder_path:
-            if self.current_frame < self.total_count:
-                self.current_frame += 1
-                self.add_folder()
+        if self.video_store.video_path:
+            self.save_frame()
+            self.video_store.next_frame()
+            self.output_text.append(f"-> Current frame is ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            # load pose for the current frame if the pose exist
+            pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
+            if os.path.isfile(pose_path): 
+                self.mesh_store.transformation_matrix = np.load(pose_path)
+                self.register_pose(self.mesh_store.transformation_matrix)
+                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            self.load_per_frame_info()
+        elif self.folder_store.folder_path:
+            self.folder_store.next_frame()
+            self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
+            self.add_folder(self.folder_store.folder_path)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
-
-    def delete_video_folder(self):
-        # self.video_path and self.folder_path should be exclusive
-        if self.video_path:
-            self.output_text.append(f"-> Delete video {self.video_path} from vision6D")
-            self.play_video_button.setText("Play Video")
-            self.video_path = None
-        elif self.folder_path:
-            self.output_text.append(f"-> Delete folder {self.folder_path} from vision6D")
-            self.folder_path = None
-            
-        self.current_frame = 0
 
     def draw_mask(self):
         def handle_output_path_change(output_path):
