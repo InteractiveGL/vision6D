@@ -1,6 +1,5 @@
 import __future__
 import copy
-from typing import Type
 import logging
 
 import numpy as np
@@ -12,7 +11,7 @@ from easydict import EasyDict
 import trimesh
 from PIL import Image
 import cv2
-import pygeodesic.geodesic as geodesic
+# import pygeodesic.geodesic as geodesic
 import vtk.util.numpy_support as vtknp
 import json
 
