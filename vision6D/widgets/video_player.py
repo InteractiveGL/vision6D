@@ -163,5 +163,3 @@ class VideoPlayer(QtWidgets.QDialog):
 
     def accept(self):
         super().accept()
-
-        super().accept()
