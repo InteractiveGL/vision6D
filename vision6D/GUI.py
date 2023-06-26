@@ -1,5 +1,4 @@
 import os
-import re
 import numpy as np
 import pyvista as pv
 import trimesh
@@ -8,7 +7,6 @@ import PIL
 import ast
 import json
 import copy
-import cv2
 import pyvista as pv
 
 # Setting the Qt bindings for QtPy
@@ -20,7 +18,10 @@ from PyQt5.QtCore import QPoint
 from .mainwindow import MyMainWindow
 
 from . import utils
-from . import widgets_gui
+from .widgets import CalibrationPopWindow
+from .widgets import CameraPropsInputDialog
+from .widgets import PopUpDialog
+from .widgets import LabelWindow
 
 np.set_printoptions(suppress=True)
 
@@ -290,7 +291,7 @@ class Interface(MyMainWindow):
             original_image = original_image[..., :3]
             if len(original_image.shape) == 2: original_image = original_image[..., None]
             if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
-            calibrated_image = np.array(self.render_image(self.plotter.camera.copy()), dtype='uint8')
+            calibrated_image = np.array(self.image_store.render_image(self.plotter.camera.copy()), dtype='uint8')
             if original_image.shape != calibrated_image.shape:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Original image shape is not equal to calibrated image shape!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
@@ -298,11 +299,11 @@ class Interface(MyMainWindow):
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        calibrate_pop = widgets_gui.CalibrationPopWindow(calibrated_image, original_image)
+        calibrate_pop = CalibrationPopWindow(calibrated_image, original_image)
         calibrate_pop.exec_()
 
     def set_camera(self):
-        dialog = widgets_gui.CameraPropsInputDialog(
+        dialog = CameraPropsInputDialog(
             line1=("Fx", self.camera_store.fx), 
             line2=("Fy", self.camera_store.fy), 
             line3=("Cx", self.camera_store.cx), 
@@ -806,7 +807,7 @@ class Interface(MyMainWindow):
         if checked_button:
             actor_name = checked_button.text()
             if actor_name in self.mesh_store.mesh_actors:
-                popup = widgets_gui.PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
+                popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
                 popup.exec_()
@@ -859,7 +860,7 @@ class Interface(MyMainWindow):
             self.output_text.append(f"-> Save frame {pathlib.Path(self.mesh_store.pose_path).stem} pose to <span style='background-color:yellow; color:black;'>{str(output_pose_path)}</span>:")
             self.output_text.append(f"{self.mesh_store.transformation_matrix}")
         else: 
-            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def sample_video(self):
         if self.video_store.video_path: 
@@ -923,7 +924,7 @@ class Interface(MyMainWindow):
                 self.mask_store.mask_path = output_path
                 self.add_mask(self.mask_store.mask_path)
         if self.image_store.image_path:
-            self.label_window = widgets_gui.LabelWindow(self.image_store.image_path)
+            self.label_window = LabelWindow(self.image_store.image_path)
             self.label_window.show()
             self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
         else:

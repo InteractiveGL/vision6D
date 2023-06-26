@@ -10,7 +10,8 @@ from pyvistaqt import MainWindow
 from PyQt5.QtCore import Qt
 
 # self defined package import
-from . import widgets_gui
+from .widgets import GetTextDialog
+from .widgets import CustomQtInteractor
 from .components import ImageStore
 from .components import MaskStore
 from .components import CameraStore
@@ -42,7 +43,7 @@ class MyMainWindow(MainWindow):
         # Dialogs to record users input info
         self.input_dialog = QtWidgets.QInputDialog()
         self.file_dialog = QtWidgets.QFileDialog()
-        self.get_text_dialog = widgets_gui.GetTextDialog()
+        self.get_text_dialog = GetTextDialog()
 
         # Set panel bar
         self.set_panel_bar()
@@ -129,8 +130,8 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Video', functools.partial(self.add_video_file, prompt=True))
         fileMenu.addAction('Add Image', functools.partial(self.add_image_file, prompt=True))
         fileMenu.addAction('Add Mask', functools.partial(self.add_mask_file, prompt=True))
-        fileMenu.addAction('Draw Mask', self.draw_mask)
         fileMenu.addAction('Add Mesh', functools.partial(self.add_mesh_file, prompt=True))
+        fileMenu.addAction('Draw Mask', self.draw_mask)
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -164,8 +165,8 @@ class MyMainWindow(MainWindow):
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Register')
         RegisterMenu.addAction('Reset GT Pose (k)', self.reset_gt_pose)
+        RegisterMenu.addAction('Reset Mask (t)', self.reset_mask)
         RegisterMenu.addAction('Update GT Pose (l)', self.update_gt_pose)
-        RegisterMenu.addAction('Current Pose (t)', self.current_pose)
         RegisterMenu.addAction('Undo Pose (s)', self.undo_pose)
 
         # Add pnp algorithm related actions
@@ -362,7 +363,7 @@ class MyMainWindow(MainWindow):
     def create_plotter(self):
         self.frame = QtWidgets.QFrame()
         self.frame.setFixedSize(*self.window_size)
-        self.plotter = widgets_gui.CustomQtInteractor(self.frame, self)
+        self.plotter = CustomQtInteractor(self.frame, self)
         # self.plotter.setFixedSize(*self.window_size)
         self.signal_close.connect(self.plotter.close)
 

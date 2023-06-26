@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 
 from . import Singleton
-from .. import widgets_gui
+from ..widgets import VideoPlayer
+from ..widgets import VideoSampler
 
 from PyQt5 import QtWidgets
 
@@ -21,7 +22,7 @@ class VideoStore(metaclass=Singleton):
     def add_video(self, video_path):
         self.video_path = video_path
         try:
-            self.video_player = widgets_gui.VideoPlayer(self.video_path, self.current_frame)
+            self.video_player = VideoPlayer(self.video_path, self.current_frame)
             self.total_frame = self.video_player.frame_count
             self.fps = round(self.video_player.fps)
         except:
@@ -33,7 +34,7 @@ class VideoStore(metaclass=Singleton):
             self.current_frame = self.video_player.current_frame
 
     def sample_video(self):
-        self.video_sampler = widgets_gui.VideoSampler(self.video_player, self.fps)
+        self.video_sampler = VideoSampler(self.video_player, self.fps)
         res = self.video_sampler.exec_()
         if res == QtWidgets.QDialog.Accepted: self.fps = round(self.video_sampler.fps)
 
