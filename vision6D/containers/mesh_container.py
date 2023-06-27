@@ -156,10 +156,15 @@ class MeshContainer:
     def toggle_hide_meshes_button(self):
         self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
         if self.toggle_hide_meshes_flag:
+
+            checked_button = self.button_group_actors_names.checkedButton()
+            if checked_button: self.checked_button_name = checked_button.text()
+            else: self.checked_button_name = None
+
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
                 if actor_name in self.mesh_store.mesh_actors:
-                    button.setChecked(True)
+                    if actor_name == self.checked_button_name: continue
                     self.ignore_opacity_change = True
                     self.opacity_spinbox.setValue(0)
                     self.ignore_opacity_change = False
@@ -170,7 +175,7 @@ class MeshContainer:
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
                 if actor_name in self.mesh_store.mesh_actors:
-                    button.setChecked(True)
+                    if actor_name == self.checked_button_name: continue
                     self.ignore_opacity_change = True
                     self.opacity_spinbox.setValue(self.mesh_store.store_mesh_opacity[actor_name])
                     self.ignore_opacity_change = False
