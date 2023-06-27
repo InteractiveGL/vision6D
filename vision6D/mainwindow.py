@@ -206,8 +206,8 @@ class MyMainWindow(MainWindow):
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                     file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
                     unique, _ = np.unique(file_data, return_counts=True)
-                    if len(unique) > 2: self.image_container.add_image_file(image_path=file_path)
-                    else: self.mask_container.add_mask_file(mask_path=file_path)
+                    if len(unique) == 2: self.mask_container.add_mask_file(mask_path=file_path)
+                    else: self.image_container.add_image_file(image_path=file_path) 
                         
                 elif file_path.endswith('.npy'): self.mesh_container.add_pose_file(pose_path=file_path)
                 else:
