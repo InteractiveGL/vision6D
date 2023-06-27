@@ -15,11 +15,14 @@ class MaskStore(metaclass=Singleton):
         self.reset()
 
     def reset(self):
+        self.mirror_x = False
+        self.mirror_y = False
+
         self.mask_path = None
         self.mask_actor = None
         self.mask_opacity = 0.3
     
-    def add_mask(self, mask_source, mirror_x, mirror_y):
+    def add_mask(self, mask_source):
         if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
             self.mask_path = str(mask_source)
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
@@ -36,8 +39,8 @@ class MaskStore(metaclass=Singleton):
         
         self.render = utils.create_render(w, h)
         
-        if mirror_x: points2d[:, 0] = w - points2d[:, 0]
-        if mirror_y: points2d[:, 1] = h - points2d[:, 1]
+        if self.mirror_x: points2d[:, 0] = w - points2d[:, 0]
+        if self.mirror_y: points2d[:, 1] = h - points2d[:, 1]
 
         bottom_point = points2d[np.argmax(points2d[:, 1])]
 

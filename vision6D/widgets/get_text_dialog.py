@@ -39,8 +39,7 @@ class GetTextDialog(QtWidgets.QDialog):
         self.accept()
 
     def load_from_file(self):
-        file_dialog = QtWidgets.QFileDialog()
-        pose_path, _ = file_dialog.getOpenFileName(None, "Open file", "", "Files (*.npy)")
+        pose_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy)")
         if pose_path:
             gt_pose = np.load(pose_path)
             self.textEdit.setPlainText(f"[[{np.around(gt_pose[0, 0], 8)}, {np.around(gt_pose[0, 1], 8)}, {np.around(gt_pose[0, 2], 8)}, {np.around(gt_pose[0, 3], 8)}],\n"

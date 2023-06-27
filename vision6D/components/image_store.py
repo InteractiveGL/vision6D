@@ -14,18 +14,21 @@ class ImageStore(metaclass=Singleton):
         self.reset()
 
     def reset(self):
+        self.mirror_x = False
+        self.mirror_y = False
+
         self.image_path = None
         self.image_actor = None
         self.image_opacity = 0.8
 
-    def add_image(self, image_source, mirror_x, mirror_y):
+    def add_image(self, image_source):
         if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
         if len(image_source.shape) == 2: image_source = image_source[..., None]
 
-        if mirror_x: image_source = image_source[:, ::-1, :]
-        if mirror_y: image_source = image_source[::-1, :, :]
+        if self.mirror_x: image_source = image_source[:, ::-1, :]
+        if self.mirror_y: image_source = image_source[::-1, :, :]
 
         dim = image_source.shape
         h, w, channel = dim[0], dim[1], dim[2]

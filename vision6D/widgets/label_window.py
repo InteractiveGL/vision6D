@@ -36,7 +36,7 @@ class LabelImage(QtWidgets.QLabel):
         points = np.array(points).astype('int32')
         mask = np.zeros((self.height, self.width), dtype=np.uint8)
         image = cv2.fillPoly(mask, [points], 255)
-        self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
+        self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
         if self.output_path:
             if pathlib.Path(self.output_path).suffix == '': self.output_path = self.output_path.parent / (self.output_path.stem + '.png')
             rendered_image = PIL.Image.fromarray(image)

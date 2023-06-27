@@ -7,14 +7,12 @@ from PyQt5 import QtWidgets
 
 from ..components import CameraStore
 from ..components import ImageStore
-
 from ..widgets import CalibrationPopWindow
 from ..widgets import CameraPropsInputDialog
 
 class CameraContainer:
-    def __init__(self, plotter, main_window):
+    def __init__(self, plotter):
         self.plotter = plotter
-        self.main_window = main_window
         self.camera_store = CameraStore()
         self.image_store = ImageStore()
 
@@ -32,10 +30,10 @@ class CameraContainer:
             if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
             calibrated_image = np.array(self.image_store.render_image(self.plotter.camera.copy()), dtype='uint8')
             if original_image.shape != calibrated_image.shape:
-                QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Original image shape is not equal to calibrated image shape!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Original image shape is not equal to calibrated image shape!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
         else:
-            QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
         calibrate_pop = CalibrationPopWindow(calibrated_image, original_image)
@@ -58,7 +56,7 @@ class CameraContainer:
                     self.set_camera_props()
                 except:
                     self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
-                    QtWidgets.QMessageBox.warning(self.main_window, 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def reset_camera(self):
         self.plotter.camera = self.camera_store.camera.copy()

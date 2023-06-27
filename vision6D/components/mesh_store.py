@@ -15,6 +15,9 @@ class MeshStore(metaclass=Singleton):
         self.render = utils.create_render(window_size[0], window_size[1])
 
     def reset(self):
+        self.mirror_x = False
+        self.mirror_y = False
+
         self.reference = None
         self.mesh_path = None
         self.mesh_name = None
@@ -112,11 +115,11 @@ class MeshStore(metaclass=Singleton):
         image = self.render.last_image
         return image
     
-    def set_scalar(self, nocs, actor_name, mirror_x, mirror_y):
+    def set_scalar(self, nocs, actor_name):
         vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_actors[actor_name])
         vertices_color = vertices
-        if mirror_x: vertices_color = utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        if mirror_y: vertices_color = utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.mirror_x: vertices_color = utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.mirror_y: vertices_color = utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
         # get the corresponding color
         colors = utils.color_mesh(vertices_color, nocs=nocs)
         if colors.shape == vertices.shape: 
