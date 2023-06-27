@@ -486,10 +486,7 @@ class MyMainWindow(MainWindow):
             elif text == 'mask': curr_opacity = self.mask_store.mask_opacity
             else: curr_opacity = self.opacity_spinbox.value()
             self.opacity_spinbox.setValue(curr_opacity)
-        
-        output = f"-> Actor {text}, and its opacity is {curr_opacity}"
-        if output not in self.output_text.toPlainText(): self.output_text.append(output)
-    
+            
     def check_button(self, actor_name):
         for button in self.button_group_actors_names.buttons():
             if button.text() == actor_name: 
