@@ -221,13 +221,15 @@ class MeshContainer:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
     def reset_gt_pose(self):
-        self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.initial_pose}")
-        self.register_pose(self.mesh_store.initial_pose)
+        if self.mesh_store.initial_pose is not None:
+            self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.initial_pose}")
+            self.register_pose(self.mesh_store.initial_pose)
 
     def update_gt_pose(self):
-        self.mesh_store.initial_pose = self.mesh_store.transformation_matrix
-        self.current_pose()
-        self.output_text.append(f"-> Update the GT pose to: \n{self.mesh_store.initial_pose}")
+        if self.mesh_store.initial_pose is not None:
+            self.mesh_store.initial_pose = self.mesh_store.transformation_matrix
+            self.current_pose()
+            self.output_text.append(f"-> Update the GT pose to: \n{self.mesh_store.initial_pose}")
 
     def undo_pose(self):
         if self.button_group_actors_names.checkedButton():
