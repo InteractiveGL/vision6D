@@ -469,7 +469,7 @@ class MyMainWindow(MainWindow):
 
     def current_pose(self):
         self.mesh_store.current_pose()
-        self.output_text.append(f"Current pose is:")
+        self.output_text.append(f"--> Current pose is:")
         self.output_text.append(f"{self.mesh_store.transformation_matrix}")
         self.register_pose(self.mesh_store.transformation_matrix)
 
