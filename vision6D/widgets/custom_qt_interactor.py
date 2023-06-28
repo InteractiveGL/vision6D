@@ -21,11 +21,14 @@ class CustomQtInteractor(QtInteractor):
         x, y = obj.GetEventPosition()
         picker = vtk.vtkCellPicker()
         if picker.Pick(x, y, 0, self.renderer): self.picker = picker
-        else: self.picker = None
+        else: 
+            self.picker = None
+            if self.main_window.image_store.image_actor: 
+                self.main_window.check_button('image')
 
     def release_callback(self):
         picked_actor = self.picker.GetActor()
         actor_name = picked_actor.name
-        if actor_name in self.main_window.mesh_store.mesh_actors:
+        if (actor_name in self.main_window.mesh_store.mesh_actors) or (actor_name == 'mask'):
             # check the picked mesh button and register the rest to the mesh reference's current pose
             self.main_window.check_button(actor_name)
