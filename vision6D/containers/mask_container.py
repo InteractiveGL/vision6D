@@ -1,6 +1,7 @@
 import pathlib
 
 import numpy as np
+import pyvista as pv
 import PIL.Image
 
 from PyQt5 import QtWidgets
@@ -93,7 +94,15 @@ class MaskContainer:
 
     def export_mask(self):
         if self.mask_store.mask_actor:
-            image = self.mask_store.render_mask(camera=self.camera_store.camera.copy())
+            # Store the transformed mask actor if there is any transformation
+            tranformed_points = utils.get_mask_actor_points(self.mask_store.mask_actor)
+            cells = np.hstack([[tranformed_points.shape[0]], np.arange(tranformed_points.shape[0]), 0])
+            mask_surface = pv.PolyData(tranformed_points, cells).triangulate()
+            mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_store.mask_opacity)
+            actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
+            self.mask_store.mask_actor = actor
+
+            image = self.mask_store.render_mask(camera=self.plotter.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')

@@ -1,6 +1,7 @@
 
 import trimesh
 import numpy as np
+import math
 
 from PyQt5 import QtWidgets
 
@@ -10,7 +11,8 @@ from ..components import MaskStore
 from ..components import MeshStore
 
 class PnPContainer:
-    def __init__(self, export_mesh_render, output_text):
+    def __init__(self, plotter, export_mesh_render, output_text):
+        self.plotter = plotter
         self.export_mesh_render = export_mesh_render
         self.output_text = output_text
         
@@ -24,7 +26,10 @@ class PnPContainer:
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
         camera_intrinsics = self.camera_store.camera_intrinsics.astype('float32')
-        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera_store.camera.position)
+        focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+        camera_intrinsics[0, 0] = focal_length
+        camera_intrinsics[1, 1] = focal_length
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.plotter.camera.position)
         return predicted_pose
 
     def latlon_epnp(self, color_mask, mesh):
@@ -54,8 +59,10 @@ class PnPContainer:
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
         camera_intrinsics = self.camera_store.camera_intrinsics.astype('float32')
-        
-        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.camera_store.camera.position)
+        focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+        camera_intrinsics[0, 0] = focal_length
+        camera_intrinsics[1, 1] = focal_length
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.plotter.camera.position)
 
         return predicted_pose
 
@@ -78,7 +85,11 @@ class PnPContainer:
                         if self.mesh_store.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                         error = np.sum(np.abs(predicted_pose - gt_pose))
                         self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
-                        self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+                        self.output_text.append(f"{predicted_pose}")
+                        self.output_text.append(f"GT POSE: ")
+                        self.output_text.append(f"{gt_pose}")
+                        self.output_text.append(f"ERROR: ")
+                        self.output_text.append(f"{error}")
                     else:
                         QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 else:
@@ -90,7 +101,7 @@ class PnPContainer:
 
     def epnp_mask(self, nocs_method):
         if self.mask_store.mask_actor:
-            mask_data = self.mask_store.render_mask(camera=self.camera_store.camera.copy())
+            mask_data = self.mask_store.render_mask(camera=self.plotter.camera.copy())
             if np.max(mask_data) > 1: mask_data = mask_data / 255
 
             # current shown mask is binary mask
@@ -133,7 +144,11 @@ class PnPContainer:
                         predicted_pose = self.latlon_epnp(color_mask, mesh)
                     error = np.sum(np.abs(predicted_pose - gt_pose))
                     self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
-                    self.output_text.append(f"{predicted_pose}\nGT POSE: \n{gt_pose}\nERROR: \n{error}")
+                    self.output_text.append(f"{predicted_pose}")
+                    self.output_text.append(f"GT POSE: ")
+                    self.output_text.append(f"{gt_pose}")
+                    self.output_text.append(f"ERROR: ")
+                    self.output_text.append(f"{error}")
                 else:
                     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(),"vision6D", "Clicked the wrong method")
             else:

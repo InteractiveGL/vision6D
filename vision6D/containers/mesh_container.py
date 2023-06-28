@@ -255,7 +255,7 @@ class MeshContainer:
     def export_mesh_render(self, save_render=True):
         image = None
         if self.mesh_store.reference:
-            image = self.mesh_store.render_mesh(camera=self.camera_store.camera.copy())
+            image = self.mesh_store.render_mesh(camera=self.plotter.camera.copy())
             if save_render:
                 output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.png)")
                 if output_path:
@@ -269,9 +269,9 @@ class MeshContainer:
 
     def export_segmesh_render(self):
         if self.mesh_store.reference and self.mask_store.mask_actor:
-            segmask = self.mask_store.render_mask(camera=self.camera_store.camera.copy())
+            segmask = self.mask_store.render_mask(camera=self.plotter.camera.copy())
             if np.max(segmask) > 1: segmask = segmask / 255
-            image = self.mesh_store.render_mesh(camera=self.camera_store.camera.copy())
+            image = self.mesh_store.render_mesh(camera=self.plotter.camera.copy())
             image = (image * segmask).astype(np.uint8)
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "SegMesh Files (*.png)")
             if output_path:

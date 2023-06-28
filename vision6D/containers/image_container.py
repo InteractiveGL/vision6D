@@ -77,7 +77,7 @@ class ImageContainer:
 
     def export_image(self):
         if self.image_store.image_actor:
-            image = self.image_store.render_image(camera=self.camera_store.camera.copy())
+            image = self.image_store.render_image(camera=self.plotter.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Image Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')

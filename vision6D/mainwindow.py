@@ -139,7 +139,8 @@ class MyMainWindow(MainWindow):
                                             register_pose=self.register_pose,
                                             output_text=self.output_text)
         
-        self.pnp_container = PnPContainer(export_mesh_render=self.mesh_container.export_mesh_render,
+        self.pnp_container = PnPContainer(plotter=self.plotter,
+                                        export_mesh_render=self.mesh_container.export_mesh_render,
                                         output_text=self.output_text)
         
         self.video_folder_container = VideoFolderContainer(play_video_button=self.play_video_button, 
