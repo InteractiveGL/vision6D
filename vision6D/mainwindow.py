@@ -469,19 +469,19 @@ class MyMainWindow(MainWindow):
             actor.user_matrix = pose
             self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
-    def current_pose(self, text=None):
+    def current_pose(self, text=None, output_text=True):
         self.mesh_store.current_pose()
-        if text: 
+        if text and output_text: 
             self.output_text.append(f"--> Current <span style='background-color:yellow; color:black;'>{text}</span> pose is:")
             self.output_text.append(f"{self.mesh_store.transformation_matrix}")
             self.output_text.append(f"\n************************************************************\n")
         self.register_pose(self.mesh_store.transformation_matrix)
 
-    def button_actor_name_clicked(self, text):
+    def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.mesh_actors:
             self.color_button.setText(self.mesh_store.mesh_colors[text])
             self.mesh_store.reference = text
-            self.current_pose(text)
+            self.current_pose(text=text, output_text=output_text)
             curr_opacity = self.mesh_store.mesh_actors[self.mesh_store.reference].GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:
@@ -491,11 +491,11 @@ class MyMainWindow(MainWindow):
             else: curr_opacity = self.opacity_spinbox.value()
             self.opacity_spinbox.setValue(curr_opacity)
             
-    def check_button(self, actor_name):
+    def check_button(self, actor_name, output_text=True):
         for button in self.button_group_actors_names.buttons():
             if button.text() == actor_name: 
                 button.setChecked(True)
-                self.button_actor_name_clicked(actor_name)
+                self.button_actor_name_clicked(text=actor_name, output_text=output_text)
                 break     
 
     def add_button_actor_name(self, actor_name):
@@ -506,7 +506,7 @@ class MyMainWindow(MainWindow):
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_actors_names.addButton(button)
-        self.button_actor_name_clicked(actor_name)
+        self.button_actor_name_clicked(text=actor_name)
     
     def opacity_value_change(self, value):
         if self.mesh_container.ignore_opacity_change: return 0
@@ -555,6 +555,7 @@ class MyMainWindow(MainWindow):
         if prompt:
             workspace_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path:
+            if self.workspace_path: self.clear_plot()
             self.workspace_path = workspace_path
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)

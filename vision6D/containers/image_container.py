@@ -72,7 +72,7 @@ class ImageContainer:
         if not up: change *= -1
         self.image_store.update_opacity(change)
         self.plotter.add_actor(self.image_store.image_actor, pickable=False, name="image")
-        self.check_button('image')
+        self.check_button(actor_name='image')
 
     def export_image(self):
         if self.image_store.image_actor:

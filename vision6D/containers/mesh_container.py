@@ -94,6 +94,7 @@ class MeshContainer:
             if self.mesh_store.mesh_name not in self.track_actors_names:
                 self.track_actors_names.append(self.mesh_store.mesh_name)
                 self.add_button_actor_name(self.mesh_store.mesh_name)
+            self.check_button(actor_name=self.mesh_store.mesh_name, output_text=False) #* very important for mirroring
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
@@ -239,7 +240,7 @@ class MeshContainer:
             if self.mesh_store.undo_poses and len(self.mesh_store.undo_poses[actor_name]) != 0: 
                 self.mesh_store.undo_pose(actor_name)
                 # register the rest meshes' pose to current undoed pose
-                self.check_button(actor_name)
+                self.check_button(actor_name=actor_name)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 

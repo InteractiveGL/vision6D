@@ -76,7 +76,7 @@ class MaskContainer:
         if not up: change *= -1
         self.mask_store.update_opacity(change)
         self.plotter.add_actor(self.mask_store.mask_actor, pickable=True, name="mask")
-        self.check_button('mask')
+        self.check_button(actor_name='mask')
     
     def draw_mask(self):
         def handle_output_path_change(output_path):

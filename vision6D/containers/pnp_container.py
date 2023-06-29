@@ -30,6 +30,7 @@ class PnPContainer:
         camera_intrinsics[0, 0] = focal_length
         camera_intrinsics[1, 1] = focal_length
         predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.plotter.camera.position)
+        self.output_text.append(f"-> Focal length is {focal_length}: ")
         return predicted_pose
 
     def latlon_epnp(self, color_mask, mesh):
@@ -63,7 +64,7 @@ class PnPContainer:
         camera_intrinsics[0, 0] = focal_length
         camera_intrinsics[1, 1] = focal_length
         predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.plotter.camera.position)
-
+        self.output_text.append(f"-> Focal length is {focal_length}: ")
         return predicted_pose
 
     def epnp_mesh(self):
@@ -85,7 +86,7 @@ class PnPContainer:
                         if self.mesh_store.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                         angular_distance = utils.angler_distance(predicted_pose[:3, :3], gt_pose[:3, :3])
                         translation_error = np.linalg.norm(predicted_pose[:3, 3] - gt_pose[:3, 3])
-                        self.output_text.append(f"-> Predicted pose with <span style='background-color:yellow; color:black;'>NOCS color</span>: ")
+                        self.output_text.append(f"Predicted pose with <span style='background-color:yellow; color:black;'>NOCS color</span>: ")
                         self.output_text.append(f"{predicted_pose}")
                         self.output_text.append(f"GT Pose: ")
                         self.output_text.append(f"{gt_pose}")
@@ -146,7 +147,7 @@ class PnPContainer:
                         predicted_pose = self.latlon_epnp(color_mask, mesh)
                     angular_distance = utils.angler_distance(predicted_pose[:3, :3], gt_pose[:3, :3])
                     translation_error = np.linalg.norm(predicted_pose[:3, 3] - gt_pose[:3, 3])
-                    self.output_text.append(f"-> Predicted pose with <span style='background-color:yellow; color:black;'>{color_theme} color (masked)</span>: ")
+                    self.output_text.append(f"Predicted pose with <span style='background-color:yellow; color:black;'>{color_theme} color (masked)</span>: ")
                     self.output_text.append(f"{predicted_pose}")
                     self.output_text.append(f"GT Pose: ")
                     self.output_text.append(f"{gt_pose}")
