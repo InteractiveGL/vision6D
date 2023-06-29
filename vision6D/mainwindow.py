@@ -474,6 +474,7 @@ class MyMainWindow(MainWindow):
         if text: 
             self.output_text.append(f"--> Current <span style='background-color:yellow; color:black;'>{text}</span> pose is:")
             self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+            self.output_text.append(f"\n************************************************************\n")
         self.register_pose(self.mesh_store.transformation_matrix)
 
     def button_actor_name_clicked(self, text):
