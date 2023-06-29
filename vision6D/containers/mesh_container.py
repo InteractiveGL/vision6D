@@ -71,6 +71,7 @@ class MeshContainer:
         self.add_mesh(self.mesh_store.meshdict[self.mesh_store.reference], transformation_matrix)
         self.mesh_store.undo_poses.clear()
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
+        self.output_text.append(f"\n************************************************************\n")
 
     def add_mesh(self, mesh_source, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
@@ -93,7 +94,6 @@ class MeshContainer:
             if self.mesh_store.mesh_name not in self.track_actors_names:
                 self.track_actors_names.append(self.mesh_store.mesh_name)
                 self.add_button_actor_name(self.mesh_store.mesh_name)
-            self.check_button(self.mesh_store.mesh_name)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
@@ -223,6 +223,7 @@ class MeshContainer:
     def reset_gt_pose(self):
         if self.mesh_store.initial_pose is not None:
             self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.initial_pose}")
+            self.output_text.append(f"\n************************************************************\n")
             self.register_pose(self.mesh_store.initial_pose)
 
     def update_gt_pose(self):
@@ -230,6 +231,7 @@ class MeshContainer:
             self.mesh_store.initial_pose = self.mesh_store.transformation_matrix
             self.current_pose()
             self.output_text.append(f"-> Update the GT pose to: \n{self.mesh_store.initial_pose}")
+            self.output_text.append(f"\n************************************************************\n")
 
     def undo_pose(self):
         if self.button_group_actors_names.checkedButton():
@@ -249,6 +251,7 @@ class MeshContainer:
                 if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.npy')
                 np.save(output_path, self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Saved:\n{self.mesh_store.transformation_matrix}\nExport to:\n {str(output_path)}")
+                self.output_text.append(f"\n************************************************************\n")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
@@ -263,6 +266,7 @@ class MeshContainer:
                     rendered_image = PIL.Image.fromarray(image)
                     rendered_image.save(output_path)
                     self.output_text.append(f"-> Export mesh render to:\n {str(output_path)}")
+                    self.output_text.append(f"\n************************************************************\n")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         return image
@@ -279,6 +283,7 @@ class MeshContainer:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export segmask render:\n to {str(output_path)}")
+                self.output_text.append(f"\n************************************************************\n")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mesh or mask first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0

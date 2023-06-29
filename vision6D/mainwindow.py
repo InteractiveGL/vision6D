@@ -45,6 +45,7 @@ class MyMainWindow(MainWindow):
         self.setAcceptDrops(True)
 
         # Initialize
+        self.workspace_path = ''
         self.track_actors_names = []
         self.button_group_actors_names = QtWidgets.QButtonGroup(self)
 
@@ -468,17 +469,18 @@ class MyMainWindow(MainWindow):
             actor.user_matrix = pose
             self.plotter.add_actor(actor, pickable=True, name=actor_name)
 
-    def current_pose(self):
+    def current_pose(self, text=None):
         self.mesh_store.current_pose()
-        self.output_text.append(f"--> Current pose is:")
-        self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+        if text: 
+            self.output_text.append(f"--> Current <span style='background-color:yellow; color:black;'>{text}</span> pose is:")
+            self.output_text.append(f"{self.mesh_store.transformation_matrix}")
         self.register_pose(self.mesh_store.transformation_matrix)
 
     def button_actor_name_clicked(self, text):
         if text in self.mesh_store.mesh_actors:
             self.color_button.setText(self.mesh_store.mesh_colors[text])
             self.mesh_store.reference = text
-            self.current_pose()
+            self.current_pose(text)
             curr_opacity = self.mesh_store.mesh_actors[self.mesh_store.reference].GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:
@@ -552,8 +554,9 @@ class MyMainWindow(MainWindow):
         if prompt:
             workspace_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path:
+            self.workspace_path = workspace_path
             self.hintLabel.hide()
-            with open(str(workspace_path), 'r') as f: workspace = json.load(f)
+            with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
             if 'image_path' in workspace: self.image_container.add_image_file(image_path=workspace['image_path'])
             if 'video_path' in workspace: self.video_folder_container.add_video_file(video_path=workspace['video_path'])
             if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=workspace['mask_path'])
@@ -570,7 +573,7 @@ class MyMainWindow(MainWindow):
         if prompt: 
             folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
-            if self.video_store.video_path: self.clear_plot() # main goal is to set video_path to None
+            if self.video_store.video_path or self.workspace_path: self.clear_plot() # main goal is to set video_path to None
             image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path)
             if image_path or mask_path or pose_path or mesh_path:
                 if image_path: self.image_container.add_image_file(image_path=image_path)
@@ -646,6 +649,7 @@ class MyMainWindow(MainWindow):
         self.folder_store.reset()
 
         # Re-initial the dictionaries
+        self.workspace_path = ''
         self.track_actors_names.clear()
 
         self.color_button.setText("Color")

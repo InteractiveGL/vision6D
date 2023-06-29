@@ -12,7 +12,7 @@ from ..components import VideoStore
 from ..components import FolderStore
 
 class VideoFolderContainer:
-    def __init__(self, 
+    def __init__(self,
                 play_video_button, 
                 sample_video_button, 
                 hintLabel, 
@@ -49,6 +49,7 @@ class VideoFolderContainer:
             self.sample_video_button.setEnabled(True)
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")
+            self.output_text.append(f"\n************************************************************\n")
             self.load_per_frame_info()
             self.sample_video()
 
@@ -72,6 +73,7 @@ class VideoFolderContainer:
                 # save each frame
                 save_frame.save(output_frame_path)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame}: ({self.video_store.current_frame}/{self.video_store.total_frame}) to <span style='background-color:yellow; color:black;'>{str(output_frame_path)}</span>")
+                self.output_text.append(f"\n************************************************************\n")
                 self.image_store.image_path = str(output_frame_path)
 
                 # save gt_pose for each frame
@@ -81,6 +83,7 @@ class VideoFolderContainer:
                 np.save(output_pose_path, self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} pose to <span style='background-color:yellow; color:black;'>{str(output_pose_path)}</span>:")
                 self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+                self.output_text.append(f"\n************************************************************\n")
         elif self.folder_store.folder_path:
             # save gt_pose for specific frame
             os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D", exist_ok=True)
@@ -90,6 +93,7 @@ class VideoFolderContainer:
             np.save(output_pose_path, self.mesh_store.transformation_matrix)
             self.output_text.append(f"-> Save frame {pathlib.Path(self.mesh_store.pose_path).stem} pose to <span style='background-color:yellow; color:black;'>{str(output_pose_path)}</span>:")
             self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+            self.output_text.append(f"\n************************************************************\n")
         else: 
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video or a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
@@ -114,8 +118,10 @@ class VideoFolderContainer:
                 self.mesh_store.transformation_matrix = np.load(pose_path)
                 self.register_pose(self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+                self.output_text.append(f"\n************************************************************\n")
             else: 
                 self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
+                self.output_text.append(f"\n************************************************************\n")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         elif self.folder_store.folder_path:
@@ -136,6 +142,7 @@ class VideoFolderContainer:
                 self.mesh_store.transformation_matrix = np.load(pose_path)
                 self.register_pose(self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+                self.output_text.append(f"\n************************************************************\n")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         elif self.folder_store.folder_path:

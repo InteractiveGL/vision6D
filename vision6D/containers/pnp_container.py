@@ -83,13 +83,15 @@ class PnPContainer:
                         predicted_pose = self.nocs_epnp(color_mask, mesh)
                         if self.mesh_store.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                         if self.mesh_store.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                        error = np.sum(np.abs(predicted_pose - gt_pose))
-                        self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>NOCS COLOR</span>: ")
+                        angular_distance = utils.angler_distance(predicted_pose[:3, :3], gt_pose[:3, :3])
+                        translation_error = np.linalg.norm(predicted_pose[:3, 3] - gt_pose[:3, 3])
+                        self.output_text.append(f"-> Predicted pose with <span style='background-color:yellow; color:black;'>NOCS color</span>: ")
                         self.output_text.append(f"{predicted_pose}")
-                        self.output_text.append(f"GT POSE: ")
+                        self.output_text.append(f"GT Pose: ")
                         self.output_text.append(f"{gt_pose}")
-                        self.output_text.append(f"ERROR: ")
-                        self.output_text.append(f"{error}")
+                        self.output_text.append(f"Angular Error (in degree): {angular_distance}")
+                        self.output_text.append(f"Translation Error: {translation_error}")
+                        self.output_text.append(f"\n************************************************************\n")
                     else:
                         QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 else:
@@ -142,13 +144,15 @@ class PnPContainer:
                         if self.mesh_store.mirror_x: color_mask = color_mask[:, ::-1, :]
                         if self.mesh_store.mirror_y: color_mask = color_mask[::-1, :, :]
                         predicted_pose = self.latlon_epnp(color_mask, mesh)
-                    error = np.sum(np.abs(predicted_pose - gt_pose))
-                    self.output_text.append(f"-> PREDICTED POSE WITH <span style='background-color:yellow; color:black;'>{color_theme} COLOR (MASKED)</span>: ")
+                    angular_distance = utils.angler_distance(predicted_pose[:3, :3], gt_pose[:3, :3])
+                    translation_error = np.linalg.norm(predicted_pose[:3, 3] - gt_pose[:3, 3])
+                    self.output_text.append(f"-> Predicted pose with <span style='background-color:yellow; color:black;'>{color_theme} color (masked)</span>: ")
                     self.output_text.append(f"{predicted_pose}")
-                    self.output_text.append(f"GT POSE: ")
+                    self.output_text.append(f"GT Pose: ")
                     self.output_text.append(f"{gt_pose}")
-                    self.output_text.append(f"ERROR: ")
-                    self.output_text.append(f"{error}")
+                    self.output_text.append(f"Angular Error (in degree): {angular_distance}")
+                    self.output_text.append(f"Translation Error: {translation_error}")
+                    self.output_text.append(f"\n************************************************************\n")
                 else:
                     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(),"vision6D", "Clicked the wrong method")
             else:

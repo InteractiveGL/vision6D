@@ -61,7 +61,6 @@ class ImageContainer:
         if 'image' not in self.track_actors_names:
             self.track_actors_names.append('image')
             self.add_button_actor_name('image')
-        self.check_button('image')
                                           
     def set_image_opacity(self, image_opacity: float):
         self.image_store.image_opacity = image_opacity
@@ -84,6 +83,7 @@ class ImageContainer:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export image render to:\n {str(output_path)}")
+                self.output_text.append(f"\n************************************************************\n")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0

@@ -409,3 +409,10 @@ def create_render(w, h):
     render.set_background('black')
     assert render.background_color == "black", "render's background need to be black"
     return render
+
+# Calculate the rotation error
+def angler_distance(R_a, R_b):
+    R_diff = np.dot(R_a, R_b.T)
+    angle_diff_rad = np.arccos(np.clip((np.trace(R_diff) - 1) / 2, -1, 1))
+    angle_diff_deg = np.degrees(angle_diff_rad)
+    return angle_diff_deg

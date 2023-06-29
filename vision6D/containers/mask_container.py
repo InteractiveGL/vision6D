@@ -60,7 +60,6 @@ class MaskContainer:
         if 'mask' not in self.track_actors_names:
             self.track_actors_names.append('mask')
             self.add_button_actor_name('mask')
-        self.check_button('mask')
     
     def reset_mask(self):
         if self.mask_store.mask_path:
@@ -109,6 +108,7 @@ class MaskContainer:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export mask render to:\n {str(output_path)}")
+                self.output_text.append(f"\n************************************************************\n")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mask first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
