@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name = "vision6D",
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages() + ['vision6D.data'],
     include_package_data=True,
     entry_points = {
         'console_scripts':[
