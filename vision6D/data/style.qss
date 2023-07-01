@@ -164,11 +164,6 @@ QComboBox::drop-down
      border-bottom-right-radius: 3px;
  }
 
-QComboBox::down-arrow
-{
-     image: url(:/dark_orange/img/down_arrow.png);
-}
-
 QGroupBox
 {
     border: 1px solid darkgray;
@@ -348,7 +343,6 @@ QMainWindow::separator:hover
 QToolBar::handle
 {
      spacing: 3px; /* spacing between items in the tool bar */
-     background: url(:/dark_orange/img/handle.png);
 }
 
 QMenu::separator
@@ -466,16 +460,10 @@ QRadioButton::indicator:hover, QCheckBox::indicator:hover
     border: 1px solid #ffaa00;
 }
 
-QCheckBox::indicator:checked
-{
-    image:url(:/dark_orange/img/checkbox.png);
-}
-
 QCheckBox::indicator:disabled, QRadioButton::indicator:disabled
 {
     border: 1px solid #444;
 }
-
 
 QSlider::groove:horizontal {
     border: 1px solid #3A3939;

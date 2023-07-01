@@ -1,7 +1,8 @@
+import math
 
 import trimesh
 import numpy as np
-import math
+import matplotlib.pyplot as plt
 
 from PyQt5 import QtWidgets
 
