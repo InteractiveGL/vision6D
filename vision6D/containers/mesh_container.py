@@ -57,10 +57,7 @@ class MeshContainer:
             mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_path:
             self.hintLabel.hide()
-            transformation_matrix = self.mesh_store.transformation_matrix
-            if self.mesh_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            if self.mesh_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix                   
-            self.add_mesh(mesh_path, transformation_matrix)
+            self.add_mesh(mesh_path)
 
     def mirror_mesh(self, direction):
         if direction == 'x': self.mesh_store.mirror_x = not self.mesh_store.mirror_x
@@ -94,7 +91,8 @@ class MeshContainer:
             if self.mesh_store.mesh_name not in self.track_actors_names:
                 self.track_actors_names.append(self.mesh_store.mesh_name)
                 self.add_button_actor_name(self.mesh_store.mesh_name)
-            self.check_button(actor_name=self.mesh_store.mesh_name, output_text=False) #* very important for mirroring
+            #* very important for mirroring
+            self.check_button(actor_name=self.mesh_store.mesh_name, output_text=False) 
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     

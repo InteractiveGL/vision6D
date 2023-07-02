@@ -15,12 +15,11 @@ class MeshStore(metaclass=Singleton):
         self.render = utils.create_render(window_size[0], window_size[1])
 
     def reset(self):
-        self.mirror_x = False
-        self.mirror_y = False
-
         self.reference = None
         self.mesh_path = None
         self.mesh_name = None
+        self.mirror_x = False
+        self.mirror_y = False
         self.mesh_actors = {}
         self.meshdict = {}
         self.latlon = utils.load_latitude_longitude()

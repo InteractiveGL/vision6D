@@ -13,11 +13,10 @@ from .. import utils
 class MaskStore(metaclass=Singleton):
     def __init__(self):
         self.reset()
-
-    def reset(self):
         self.mirror_x = False
         self.mirror_y = False
 
+    def reset(self):
         self.mask_path = None
         self.mask_actor = None
         self.mask_opacity = 0.3

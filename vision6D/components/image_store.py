@@ -12,11 +12,10 @@ from .. import utils
 class ImageStore(metaclass=Singleton):
     def __init__(self):
         self.reset()
-
-    def reset(self):
         self.mirror_x = False
         self.mirror_y = False
 
+    def reset(self):
         self.image_path = None
         self.image_actor = None
         self.image_opacity = 0.8

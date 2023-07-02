@@ -159,6 +159,10 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.camera_container.reset_camera)
         QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.camera_container.zoom_out)
         QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.camera_container.zoom_in)
+
+        # Mirror related key bindings
+        QtWidgets.QShortcut(QtGui.QKeySequence("o"), self).activated.connect(lambda direction='x': self.mirror_actors(direction))
+        QtWidgets.QShortcut(QtGui.QKeySequence("p"), self).activated.connect(lambda direction='y': self.mirror_actors(direction))
         
         # Image related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.image_container.toggle_image_opacity(up))
@@ -259,11 +263,6 @@ class MyMainWindow(MainWindow):
         CameraMenu.addAction('Reset Camera (d)', self.camera_container.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.camera_container.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.camera_container.zoom_out)
-
-        # add mirror actors related actions
-        mirrorMenu = mainMenu.addMenu('Mirror')
-        mirrorMenu.addAction('Mirror X axis', functools.partial(self.mirror_actors, direction='x'))
-        mirrorMenu.addAction('Mirror Y axis', functools.partial(self.mirror_actors, direction='y'))
         
         # Add register related actions
         RegisterMenu = mainMenu.addMenu('Register')
@@ -391,6 +390,16 @@ class MyMainWindow(MainWindow):
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
         actor_grid_layout.addWidget(self.spacing_button, 1, 0)
+
+        # Create the mirror x button
+        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
+        self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
+        actor_grid_layout.addWidget(self.mirror_x_button, 1, 1)
+
+        # Create the mirror y button
+        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
+        self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
+        actor_grid_layout.addWidget(self.mirror_y_button, 1, 2)
 
         # Create a scroll area for the buttons
         scroll_area = QtWidgets.QScrollArea()
@@ -593,10 +602,18 @@ class MyMainWindow(MainWindow):
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def mirror_actors(self, direction):
-        if self.image_store.image_path: self.image_container.mirror_image(direction)
-        if self.mask_store.mask_path: self.mask_container.mirror_mask(direction)
-        if self.mesh_store.reference: self.mesh_container.mirror_mesh(direction)
-   
+        checked_button = self.button_group_actors_names.checkedButton()
+        if checked_button:
+            actor_name = checked_button.text()
+            if actor_name == 'image':
+                self.image_container.mirror_image(direction)
+            elif actor_name == 'mask':
+                self.mask_container.mirror_mask(direction)
+            elif actor_name in self.mesh_store.mesh_actors:
+                self.mesh_container.mirror_mesh(direction)
+        else:
+            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+
     def remove_actor(self, button):
         name = button.text()
         if name == 'image': 
@@ -635,7 +652,10 @@ class MyMainWindow(MainWindow):
             name = button.text()
             if name == 'image': actor = self.image_store.image_actor
             elif name == 'mask': actor = self.mask_store.mask_actor
-            elif name in self.mesh_store.mesh_actors: actor = self.mesh_store.mesh_actors[name]
+            elif name in self.mesh_store.mesh_actors: 
+                actor = self.mesh_store.mesh_actors[name]
+                self.mesh_store.remove_mesh(name)
+                self.color_button.setText("Color")
             self.plotter.remove_actor(actor)
             # remove the button from the button group
             self.button_group_actors_names.removeButton(button)
@@ -645,8 +665,15 @@ class MyMainWindow(MainWindow):
             button.deleteLater()
 
         self.image_store.reset()
+        self.image_store.mirror_x = False
+        self.image_store.mirror_y = False
+
         self.mask_store.reset()
+        self.mask_store.mirror_x = False
+        self.mask_store.mirror_y = False
+
         self.mesh_store.reset()
+
         self.video_store.reset()
         self.folder_store.reset()
 
