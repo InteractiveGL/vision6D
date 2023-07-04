@@ -133,3 +133,5 @@ output/
 workspace/
 test/
 .vscode/
+
+docs/build
