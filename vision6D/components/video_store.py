@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: video_store.py
+@time: 2023-07-03 20:25
+@desc: create store for video related functions
+'''
+
 import cv2
 import numpy as np
 

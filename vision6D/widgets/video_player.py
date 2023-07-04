@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: video_player.py
+@time: 2023-07-03 20:33
+@desc: create the video player
+'''
+
 # General import
 import numpy as np
 import cv2

@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: mask_container.py
+@time: 2023-07-03 20:26
+@desc: create container for mask related actions in application
+'''
+
 import pathlib
 
 import numpy as np

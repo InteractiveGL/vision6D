@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: custom_qt_interactor.py
+@time: 2023-07-03 20:30
+@desc: custom overwrite default qt interactor to include the mouse press and release related events.
+'''
+
 import vtk
 from pyvistaqt import QtInteractor
 

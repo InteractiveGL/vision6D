@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: camera_container.py
+@time: 2023-07-03 20:25
+@desc: create container for camera related actions in application
+'''
+
 import ast
 
 import numpy as np

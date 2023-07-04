@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: popup_dialog.py
+@time: 2023-07-03 20:32
+@desc: create the dialog for popup window
+'''
+
 # General import
 import numpy as np
 

@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: main.py
+@time: 2023-07-03 20:29
+@desc: the entry to run the program
+'''
+
 import sys
 import os
 import pathlib

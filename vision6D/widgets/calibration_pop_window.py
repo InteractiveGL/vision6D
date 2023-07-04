@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: calibration_pop_window.py
+@time: 2023-07-03 20:29
+@desc: pop window for camera calibration
+'''
+
 # General import
 import numpy as np
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity

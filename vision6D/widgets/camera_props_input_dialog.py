@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: camera_props_input_dialog.py
+@time: 2023-07-03 20:30
+@desc: pop window for camera props input dialog
+'''
+
 # General import
 import numpy as np
 

@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: folder_store.py
+@time: 2023-07-03 20:23
+@desc: create store for folder related base functions
+'''
+
 import os
 import re
 import pathlib

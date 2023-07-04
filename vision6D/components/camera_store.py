@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: camera_store.py
+@time: 2023-07-03 20:22
+@desc: create store for camera related base functions
+'''
+
 import math
 import pyvista as pv
 import numpy as np

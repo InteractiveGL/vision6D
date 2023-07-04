@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: get_text_dialog.py
+@time: 2023-07-03 20:31
+@desc: get the text dialog for user input
+'''
+
 # General import
 import numpy as np
 

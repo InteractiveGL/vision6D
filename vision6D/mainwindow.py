@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: mainwindow.py
+@time: 2023-07-03 20:33
+@desc: the mainwindow to run application
+'''
+
 # General import
 import os
 os.environ["QT_API"] = "pyqt5" # Setting the Qt bindings for QtPy

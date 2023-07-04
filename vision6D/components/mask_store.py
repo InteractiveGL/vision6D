@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: mask_store.py
+@time: 2023-07-03 20:24
+@desc: create store for mask related functions
+'''
+
 import pathlib
 
 import cv2

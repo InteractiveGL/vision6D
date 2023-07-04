@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: video_folder_container.py
+@time: 2023-07-03 20:28
+@desc: create container for video/folder related actions in application
+'''
+
 import os
 import pathlib
 

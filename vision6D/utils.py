@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: utils.py
+@time: 2023-07-03 20:34
+@desc: the util functions for whole application
+'''
+
 import __future__
 import copy
 import logging

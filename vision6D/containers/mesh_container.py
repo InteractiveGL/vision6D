@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: mesh_container.py
+@time: 2023-07-03 20:27
+@desc: create container for mesh related actions in application
+'''
+
 import ast
 import copy
 import pathlib

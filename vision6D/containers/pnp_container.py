@@ -1,3 +1,13 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: pnp_container.py
+@time: 2023-07-03 20:27
+@desc: create container for PnP related algorithms in application
+'''
+
 import math
 
 import trimesh
