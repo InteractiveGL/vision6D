@@ -1,22 +1,29 @@
+'''
+@author: Yike (Nicole) Zhang
+@license: (C) Copyright.
+@contact: yike.zhang@vanderbilt.edu
+@software: Vision6D
+@file: utils.py
+@time: 2023-07-03 20:34
+@desc: the util functions for whole application
+'''
+
 import __future__
 import copy
-from typing import Type
 import logging
 
 import numpy as np
 import pathlib
-import os
+
 import pyvista as pv
 import matplotlib.pyplot as plt
 from easydict import EasyDict
 import trimesh
 from PIL import Image
 import cv2
-import pygeodesic.geodesic as geodesic
+# import pygeodesic.geodesic as geodesic
 import vtk.util.numpy_support as vtknp
 import json
-
-CWD = pathlib.Path(os.path.abspath(__file__)).parent
 logger = logging.getLogger("vision6D")
 
 def fread(fid, _len, _type):
@@ -281,7 +288,8 @@ def rigid_transform_3D(A, B):
 
 def load_latitude_longitude():
     # get the latitude and longitude
-    with open(CWD / "data" / "ossiclesCoordinateMapping.json", "r") as f: data = json.load(f)
+    latlon_path = pathlib.Path.cwd() / "vision6D" / "data" / "ossiclesCoordinateMapping.json" # latlon_map_path = pkg_resources.resource_filename('vision6D', 'data/ossiclesCoordinateMapping.json')
+    with open(latlon_path, "r") as f: data = json.load(f)
     
     latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
     longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
@@ -404,3 +412,16 @@ def get_mesh_actor_scalars(actor):
     scalars = point_data.GetScalars()
     if scalars: scalars = vtknp.vtk_to_numpy(scalars)
     return scalars
+
+def create_render(w, h):
+    render = pv.Plotter(window_size=[w, h], lighting=None, off_screen=True) 
+    render.set_background('black')
+    assert render.background_color == "black", "render's background need to be black"
+    return render
+
+# Calculate the rotation error
+def angler_distance(R_a, R_b):
+    R_diff = np.dot(R_a, R_b.T)
+    angle_diff_rad = np.arccos(np.clip((np.trace(R_diff) - 1) / 2, -1, 1))
+    angle_diff_deg = np.degrees(angle_diff_rad)
+    return angle_diff_deg

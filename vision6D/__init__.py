@@ -30,6 +30,16 @@ LOGGING_CONFIG = {
 logging.config.dictConfig(LOGGING_CONFIG)
 
 from .mainwindow import MyMainWindow
-from .GUI import Interface
-from . import utils
-from . import widgets_gui
+from . import tools
+from . import widgets
+from . import components
+from . import containers
+
+all = [
+    'MyMainWindow',
+    'Interface',
+    'tools',
+    'widgets',
+    'components',
+    'containers'
+]
