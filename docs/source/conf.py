@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Vision6D'
-copyright = '2023, Yike (Nicole) Zhang'
+copyright = '2023, Vanderbilt Biomedical Image Analysis for Image Guided Interventions Laboratory (BAGL) Lab'
 author = 'Yike (Nicole) Zhang'
 
 # The full version, including alpha/beta/rc tags
