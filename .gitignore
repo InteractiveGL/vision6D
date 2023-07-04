@@ -131,7 +131,6 @@ dmypy.json
 temp/
 output/
 workspace/
-test/
 .vscode/
 
 docs/build
