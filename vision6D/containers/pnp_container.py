@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 from PyQt5 import QtWidgets
 
-from .. import utils
+from ..tools import utils
 from ..components import CameraStore
 from ..components import MaskStore
 from ..components import MeshStore

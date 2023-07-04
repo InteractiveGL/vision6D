@@ -15,7 +15,7 @@ import pyvista as pv
 import numpy as np
 
 from . import Singleton
-from .. import utils
+from ..tools import utils
 
 # contains mesh objects
 

@@ -16,7 +16,7 @@ import PIL.Image
 
 from PyQt5 import QtWidgets
 
-from .. import utils
+from ..tools import utils
 from ..components import CameraStore
 from ..components import ImageStore
 from ..components import MaskStore

@@ -15,7 +15,7 @@ import PIL.Image
 
 
 from . import Singleton
-from .. import utils
+from ..tools import utils
 
 # contains mesh objects
 
