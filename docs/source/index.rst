@@ -9,7 +9,7 @@ Vision6D: Interactive tool for 6D pose annotation
 Vision6D is a interactive toolkit for annotating 6D pose (3D rotation and 3D translation) of an object in a scene. It provides an intuitive and convient way to annotate pose labels and build a dataset.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 8
    :caption: ⭐ Tutorial
 
    GUI
