@@ -1,4 +1,4 @@
-|:dart:| GUI
+🎯 GUI
 ==================================================
 
 The GUI(Graphic User Interface) consists of three parts: app menu, display panel and user interactive elements.
