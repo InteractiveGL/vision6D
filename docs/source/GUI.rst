@@ -24,17 +24,16 @@ Click the "Panel" button to fold and unfold the left widget.
 Left widget view
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The top of the left widget is the app manu. The block below the menu consists of "Console", which are the functional buttons, and "Actors", which perform actions to all actors in the interactive plot. The bottom block consists of all the output from the program.
 
 .. image:: images/left_side.PNG
-
-The top of the left widget is the app manu. The block below the menu consists of "Console", which are the functional buttons, and "Actors", which perform actions to all actors in the interactive plot. The bottom block consists of all the output from the program.
 
 Right widget view
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. image:: images/right_side.PNG
-
 This is an interactive plot, and user can move the camera or move the targets in the plot. Additionally, users can drag and drop files in the right widget.
+
+.. image:: images/right_side.PNG
 
 Shortcuts
 --------------------------------------------------

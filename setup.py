@@ -11,4 +11,7 @@ setuptools.setup(
         ]
     },
     url='https://github.com/ykzzyk/vision6D',
+    project_urls={
+        'Documentation': 'https://vision6d.readthedocs.io/en/latest/',
+    },
 )
