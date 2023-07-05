@@ -43,7 +43,6 @@ html_theme_options = {
 }
 
 extensions = [
-    'groundwork_sphinx_theme'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
