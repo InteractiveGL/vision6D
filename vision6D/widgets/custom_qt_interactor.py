@@ -14,8 +14,8 @@ from pyvistaqt import QtInteractor
 class CustomQtInteractor(QtInteractor):
     def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
-        # Save main_window
         self.main_window = main_window
+        self.cell_picker = None
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
@@ -25,20 +25,21 @@ class CustomQtInteractor(QtInteractor):
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         if event.button() == 1 or event.button() == 4:  # Left or middle mouse button
-            if self.picker: self.release_callback()
+            self.release_callback()
             
     def press_callback(self, obj, *args):
         x, y = obj.GetEventPosition()
-        picker = vtk.vtkCellPicker()
-        if picker.Pick(x, y, 0, self.renderer): self.picker = picker
-        else: 
-            self.picker = None
+        cell_picker = vtk.vtkCellPicker()
+        if cell_picker.Pick(x, y, 0, self.renderer): 
+            self.cell_picker = cell_picker
+        else:
             if self.main_window.image_store.image_actor: 
                 self.main_window.check_button('image')
 
     def release_callback(self):
-        picked_actor = self.picker.GetActor()
-        actor_name = picked_actor.name
-        if (actor_name in self.main_window.mesh_store.mesh_actors) or (actor_name == 'mask'):
-            # check the picked mesh button and register the rest to the mesh reference's current pose
-            self.main_window.check_button(actor_name)
+        if self.cell_picker: 
+            picked_actor = self.cell_picker.GetActor()
+            actor_name = picked_actor.name
+            if (actor_name in self.main_window.mesh_store.mesh_actors) or (actor_name == 'mask'):
+                self.main_window.check_button(actor_name)
+        self.cell_picker = None
