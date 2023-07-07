@@ -31,6 +31,7 @@ from .components import ImageStore
 from .components import MaskStore
 from .components import CameraStore
 from .components import MeshStore
+from .components import PointStore
 from .components import VideoStore
 from .components import FolderStore
 
@@ -38,6 +39,7 @@ from .containers import CameraContainer
 from .containers import ImageContainer
 from .containers import MaskContainer
 from .containers import MeshContainer
+from .containers import PointContainer
 from .containers import PnPContainer
 from .containers import VideoFolderContainer
 
@@ -63,6 +65,7 @@ class MyMainWindow(MainWindow):
         self.mask_store = MaskStore()
         self.camera_store = CameraStore(self.window_size)
         self.mesh_store = MeshStore(self.window_size)
+        self.point_store = PointStore()
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
 
@@ -135,6 +138,13 @@ class MyMainWindow(MainWindow):
                                             add_button_actor_name=self.add_button_actor_name, 
                                             check_button=self.check_button, 
                                             output_text=self.output_text)
+        
+        self.point_container = PointContainer(plotter=self.plotter,
+                                            hintLabel=self.hintLabel,
+                                            track_actors_names=self.track_actors_names, 
+                                            add_button_actor_name=self.add_button_actor_name,
+                                            output_text=self.output_text,
+                                            )
         
         self.mesh_container = MeshContainer(color_button=self.color_button,
                                             plotter=self.plotter,
@@ -248,6 +258,7 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
         fileMenu.addAction('Add Mask', functools.partial(self.mask_container.add_mask_file, prompt=True))
         fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
+        fileMenu.addAction('Add Points', functools.partial(self.point_container.load_points_file, prompt=True))
         fileMenu.addAction('Draw Mask', self.mask_container.draw_mask)
         fileMenu.addAction('Clear', self.clear_plot)
 
@@ -386,7 +397,7 @@ class MyMainWindow(MainWindow):
         actor_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
 
         # Create the hide button
-        hide_button = QtWidgets.QPushButton("toggle meshes")
+        hide_button = QtWidgets.QPushButton("Toggle Meshes")
         hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
         actor_grid_layout.addWidget(hide_button, 0, 2)
 
@@ -636,6 +647,9 @@ class MyMainWindow(MainWindow):
             actor = self.mesh_store.mesh_actors[name]
             self.mesh_store.remove_mesh(name)
             self.color_button.setText("Color")
+        elif name in self.point_store.point_actors:
+            actor = self.point_store.point_actors[name]
+            self.point_store.remove_point(name)
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
@@ -647,7 +661,8 @@ class MyMainWindow(MainWindow):
         button.deleteLater()
 
         # clear out the plot if there is no actor
-        if self.image_store.image_actor is None and self.mask_store.mask_actor is None and len(self.mesh_store.mesh_actors) == 0: self.clear_plot()
+        if (self.image_store.image_actor is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.mesh_actors) == 0) and (len(self.point_store.point_actors) == 0): 
+            self.clear_plot()
 
     def remove_actors_button(self):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -660,12 +675,24 @@ class MyMainWindow(MainWindow):
         # Clear out everything in the remove menu
         for button in self.button_group_actors_names.buttons():
             name = button.text()
-            if name == 'image': actor = self.image_store.image_actor
-            elif name == 'mask': actor = self.mask_store.mask_actor
+            if name == 'image': 
+                actor = self.image_store.image_actor
+                self.image_store.reset()
+                self.image_store.mirror_x = False
+                self.image_store.mirror_y = False
+            elif name == 'mask': 
+                actor = self.mask_store.mask_actor
+                self.mask_store.reset()
+                self.mask_store.mirror_x = False
+                self.mask_store.mirror_y = False
             elif name in self.mesh_store.mesh_actors: 
                 actor = self.mesh_store.mesh_actors[name]
                 self.mesh_store.remove_mesh(name)
                 self.color_button.setText("Color")
+            elif name in self.point_store.point_actors:
+                actor = self.point_store.point_actors[name]
+                self.point_store.remove_point(name)
+
             self.plotter.remove_actor(actor)
             # remove the button from the button group
             self.button_group_actors_names.removeButton(button)
@@ -674,26 +701,16 @@ class MyMainWindow(MainWindow):
             # offically delete the button
             button.deleteLater()
 
-        self.image_store.reset()
-        self.image_store.mirror_x = False
-        self.image_store.mirror_y = False
-
-        self.mask_store.reset()
-        self.mask_store.mirror_x = False
-        self.mask_store.mirror_y = False
-
         self.mesh_store.reset()
-
+        self.point_store.reset()
         self.video_store.reset()
         self.folder_store.reset()
-
-        # Re-initial the dictionaries
         self.workspace_path = ''
         self.track_actors_names.clear()
+        self.clear_output_text()
 
         self.color_button.setText("Color")
         self.play_video_button.setText("Play Video")
         self.opacity_spinbox.setValue(0.3)
-        self.clear_output_text()
-
+        
         self.hintLabel.show()

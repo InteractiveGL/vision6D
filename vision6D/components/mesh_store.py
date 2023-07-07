@@ -21,13 +21,10 @@ from ..tools import utils
 
 class MeshStore(metaclass=Singleton):
     def __init__(self, window_size):
-        self.reset()
-        self.render = utils.create_render(window_size[0], window_size[1])
-
-    def reset(self):
         self.reference = None
         self.mesh_path = None
         self.mesh_name = None
+        self.mesh_info = None
         self.mirror_x = False
         self.mirror_y = False
         self.mesh_actors = {}
@@ -51,35 +48,60 @@ class MeshStore(metaclass=Singleton):
         self.initial_pose = None
         self.undo_poses = {}
 
+        self.render = utils.create_render(window_size[0], window_size[1])
+
+    def reset(self):
+        self.reference = None
+        self.mesh_path = None
+        self.mesh_name = None
+        self.mesh_info = None
+        self.mirror_x = False
+        self.mirror_y = False
+        self.mesh_actors.clear()
+        self.meshdict.clear()
+        self.latlon = utils.load_latitude_longitude()
+        
+        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
+        self.used_colors.clear()
+        self.mesh_colors.clear()
+
+        self.surface_opacity = 0.3
+        self.mesh_opacity.clear()
+        self.store_mesh_opacity.clear()
+        
+        # Set mesh spacing
+        self.mesh_spacing = [1, 1, 1]
+
+        # Pose as meshes' attributes
+        self.pose_path = None
+        self.transformation_matrix = np.eye(4)
+        self.initial_pose = None
+        self.undo_poses.clear()
+
     #^ Mesh related
-    def add_mesh(self, mesh_source):
-        flag = False
-                              
+    def add_mesh(self, mesh_source):                        
         if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
             self.mesh_path = str(mesh_source)
             if pathlib.Path(mesh_source).suffix == '.mesh': mesh_source = utils.load_trimesh(mesh_source)
             else: mesh_source = pv.read(mesh_source)
 
-        self.mesh_name = pathlib.Path(self.mesh_path).stem
-        self.meshdict[self.mesh_name] = self.mesh_path
-        self.mesh_opacity[self.mesh_name] = self.surface_opacity
-
         if isinstance(mesh_source, trimesh.Trimesh):
             assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
-            mesh_data = pv.wrap(mesh_source)
+            self.mesh_info = pv.wrap(mesh_source)
             source_verts = mesh_source.vertices * self.mesh_spacing
             source_faces = mesh_source.faces
-            flag = True
 
         if isinstance(mesh_source, pv.PolyData):
-            mesh_data = mesh_source
+            self.mesh_info = mesh_source
             source_verts = mesh_source.points * self.mesh_spacing
             source_faces = mesh_source.faces.reshape((-1, 4))[:, 1:]
-            flag = True
 
-        if flag:
-            # consider the mesh verts spacing
-            mesh_data.points = mesh_data.points * self.mesh_spacing
+        if self.mesh_info is not None:
+            # set mesh attributes
+            self.mesh_name = pathlib.Path(self.mesh_path).stem + "_mesh"
+            self.meshdict[self.mesh_name] = self.mesh_path
+            self.mesh_opacity[self.mesh_name] = self.surface_opacity
+            self.mesh_info.points = self.mesh_info.points * self.mesh_spacing
             if self.initial_pose is None: self.initial_pose = self.transformation_matrix
 
             # assign a color to every mesh
@@ -93,11 +115,10 @@ class MeshStore(metaclass=Singleton):
             self.used_colors.append(mesh_color)
             # store neccessary attributes
             self.mesh_colors[self.mesh_name] = mesh_color
-                        
-            return mesh_data, source_verts, source_faces
+            return source_verts, source_faces
         else:
             self.reset()
-            return None, None, None
+            return None, None
 
     def remove_mesh(self, name):
         del self.mesh_actors[name] # remove the item from the mesh dictionary

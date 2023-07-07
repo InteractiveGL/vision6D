@@ -82,10 +82,9 @@ class MeshContainer:
 
     def add_mesh(self, mesh_source, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
-        mesh_data, source_verts, source_faces = self.mesh_store.add_mesh(mesh_source)
-
-        if mesh_data:      
-            mesh = self.plotter.add_mesh(mesh_data, color=self.mesh_store.mesh_colors[self.mesh_store.mesh_name], opacity=self.mesh_store.mesh_opacity[self.mesh_store.mesh_name], name=self.mesh_store.mesh_name)
+        source_verts, source_faces = self.mesh_store.add_mesh(mesh_source)
+        if self.mesh_store.mesh_info:
+            mesh = self.plotter.add_mesh(self.mesh_store.mesh_info, color=self.mesh_store.mesh_colors[self.mesh_store.mesh_name], opacity=self.mesh_store.mesh_opacity[self.mesh_store.mesh_name], name=self.mesh_store.mesh_name)
             mesh.user_matrix = self.mesh_store.transformation_matrix if transformation_matrix is None else transformation_matrix
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=self.mesh_store.mesh_name)
 
@@ -173,7 +172,8 @@ class MeshContainer:
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
                 if actor_name in self.mesh_store.mesh_actors:
-                    if actor_name == self.checked_button_name: continue
+                    if len(self.mesh_store.mesh_actors) != 1 and actor_name == self.checked_button_name: 
+                        continue
                     self.ignore_opacity_change = True
                     self.opacity_spinbox.setValue(0)
                     self.ignore_opacity_change = False
@@ -184,7 +184,8 @@ class MeshContainer:
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
                 if actor_name in self.mesh_store.mesh_actors:
-                    if actor_name == self.checked_button_name: continue
+                    if len(self.mesh_store.mesh_actors) != 1 and actor_name == self.checked_button_name: 
+                        continue
                     self.ignore_opacity_change = True
                     self.opacity_spinbox.setValue(self.mesh_store.store_mesh_opacity[actor_name])
                     self.ignore_opacity_change = False
