@@ -519,6 +519,7 @@ class MyMainWindow(MainWindow):
             if text == 'image': curr_opacity = self.image_store.image_opacity
             elif text == 'mask': curr_opacity = self.mask_store.mask_opacity
             else: curr_opacity = self.opacity_spinbox.value()
+            self.mesh_store.reference = None
             self.opacity_spinbox.setValue(curr_opacity)
             
     def check_button(self, actor_name, output_text=True):
