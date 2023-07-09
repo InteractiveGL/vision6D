@@ -74,6 +74,12 @@ class MaskStore(metaclass=Singleton):
         self.mask_opacity = np.clip(self.mask_opacity, 0, 1)
         self.mask_actor.GetProperty().opacity = self.mask_opacity
 
+    def update_mask(self):
+        tranformed_points = utils.get_mask_actor_points(self.mask_actor)
+        cells = np.hstack([[tranformed_points.shape[0]], np.arange(tranformed_points.shape[0]), 0])
+        mask_surface = pv.PolyData(tranformed_points, cells).triangulate()
+        return mask_surface
+
     def render_mask(self, camera):
         self.render.clear()
         render_actor = self.mask_actor.copy(deep=True)

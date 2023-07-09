@@ -283,9 +283,7 @@ class MeshContainer:
 
     def export_segmesh_render(self):
         if self.mesh_store.reference and self.mask_store.mask_actor:
-            tranformed_points = utils.get_mask_actor_points(self.mask_store.mask_actor)
-            cells = np.hstack([[tranformed_points.shape[0]], np.arange(tranformed_points.shape[0]), 0])
-            mask_surface = pv.PolyData(tranformed_points, cells).triangulate()
+            mask_surface = self.mask_store.update_mask()
             mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_store.mask_opacity)
             actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
             self.mask_store.mask_actor = actor
