@@ -26,10 +26,13 @@ class CameraContainer:
         self.camera_store = CameraStore()
         self.image_store = ImageStore()
 
+    def reset_camera(self):
+        self.plotter.camera = self.camera_store.camera.copy()
+
     def set_camera_props(self):
         self.camera_store.set_camera_intrinsics()
         self.camera_store.set_camera_extrinsics()
-        self.plotter.camera = self.camera_store.camera.copy()
+        self.reset_camera()
 
     def camera_calibrate(self):
         if self.image_store.image_path:
@@ -67,9 +70,6 @@ class CameraContainer:
                 except:
                     self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
                     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
-    def reset_camera(self):
-        self.plotter.camera = self.camera_store.camera.copy()
 
     def zoom_in(self):
         self.plotter.camera.zoom(2)

@@ -4,7 +4,8 @@ from .mask_container import MaskContainer
 from .mesh_container import MeshContainer
 from .point_container import PointContainer
 from .pnp_container import PnPContainer
-from .video_folder_container import VideoFolderContainer
+from .video_container import VideoContainer
+from .folder_container import FolderContainer
 
 all = [
     'CameraContainer',
@@ -13,5 +14,6 @@ all = [
     'MeshContainer',
     'PointContainer',
     'PnPContainer',
-    'VideoFolderContainer'
+    'VideoContainer',
+    'FolderContainer'
 ]

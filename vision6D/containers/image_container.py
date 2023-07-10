@@ -45,7 +45,7 @@ class ImageContainer:
     def mirror_image(self, direction):
         if direction == 'x': self.image_store.mirror_x = not self.image_store.mirror_x
         elif direction == 'y': self.image_store.mirror_y = not self.image_store.mirror_y
-        self.add_image(self.image_store.image_path)
+        self.add_image(self.image_store.image_source)
 
     def add_image(self, image_source):
 

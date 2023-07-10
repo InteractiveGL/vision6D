@@ -208,8 +208,9 @@ class MeshContainer:
             self.reset_gt_pose()
         else:
             if (rot and trans): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-        self.reset_camera()
-
+            self.mesh_store.initial_pose = matrix
+            self.reset_gt_pose()
+        
     def set_pose(self):
         # get the gt pose
         get_text_dialog = GetTextDialog()
@@ -235,6 +236,7 @@ class MeshContainer:
             self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.initial_pose}")
             self.output_text.append(f"\n************************************************************\n")
             self.register_pose(self.mesh_store.initial_pose)
+            self.reset_camera()
 
     def update_gt_pose(self):
         if self.mesh_store.initial_pose is not None:

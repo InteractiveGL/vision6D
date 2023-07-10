@@ -7,6 +7,7 @@
 @time: 2023-07-03 20:23
 @desc: create store for image related base functions
 '''
+import copy
 
 import numpy as np
 import pathlib
@@ -27,6 +28,7 @@ class ImageStore(metaclass=Singleton):
 
     def reset(self):
         self.image_path = None
+        self.image_source = None
         self.image_actor = None
         self.image_opacity = 0.8
 
@@ -34,6 +36,9 @@ class ImageStore(metaclass=Singleton):
         if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
+        
+        self.image_source = copy.deepcopy(image_source)
+        
         if len(image_source.shape) == 2: image_source = image_source[..., None]
 
         if self.mirror_x: image_source = image_source[:, ::-1, :]

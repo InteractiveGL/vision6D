@@ -41,7 +41,8 @@ from .containers import MaskContainer
 from .containers import MeshContainer
 from .containers import PointContainer
 from .containers import PnPContainer
-from .containers import VideoFolderContainer
+from .containers import VideoContainer
+from .containers import FolderContainer
 
 np.set_printoptions(suppress=True)
 
@@ -73,7 +74,6 @@ class MyMainWindow(MainWindow):
         self.color_button = QtWidgets.QPushButton("Color")
         self.color_button.clicked.connect(self.show_color_popup)
         self.play_video_button = QtWidgets.QPushButton("Play Video")
-        self.sample_video_button = QtWidgets.QPushButton("Sample Video")
         self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
         self.opacity_spinbox.setMinimum(0.0)
         self.opacity_spinbox.setMaximum(1.0)
@@ -164,15 +164,18 @@ class MyMainWindow(MainWindow):
                                         export_mesh_render=self.mesh_container.export_mesh_render,
                                         output_text=self.output_text)
         
-        self.video_folder_container = VideoFolderContainer(play_video_button=self.play_video_button, 
-                                                        sample_video_button=self.sample_video_button, 
-                                                        hintLabel=self.hintLabel, 
-                                                        register_pose=self.register_pose,
-                                                        current_pose=self.current_pose,
-                                                        add_image=self.image_container.add_image,
-                                                        add_folder=self.add_folder,
-                                                        clear_plot=self.clear_plot,
-                                                        output_text=self.output_text)
+        self.video_container = VideoContainer(play_video_button=self.play_video_button, 
+                                            hintLabel=self.hintLabel, 
+                                            register_pose=self.register_pose,
+                                            current_pose=self.current_pose,
+                                            add_image=self.image_container.add_image,
+                                            clear_plot=self.clear_plot,
+                                            output_text=self.output_text)
+        
+        self.folder_container = FolderContainer(play_video_button=self.play_video_button, 
+                                                current_pose=self.current_pose,
+                                                add_folder=self.add_folder,
+                                                output_text=self.output_text)
 
     def key_bindings(self):
         # Camera related key bindings
@@ -200,10 +203,14 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.mesh_container.toggle_surface_opacity(up))
         QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.mesh_container.toggle_surface_opacity(up))
 
-        # Video Folder related key bindings 
-        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.video_folder_container.next_frame)
-        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.video_folder_container.prev_frame)
-        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.video_folder_container.play_video)
+        # Video related key bindings 
+        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.video_container.next_info)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.video_container.prev_info)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.video_container.play_video)
+
+        # Folder related key bindings 
+        QtWidgets.QShortcut(QtGui.QKeySequence("a"), self).activated.connect(self.folder_container.prev_info)
+        QtWidgets.QShortcut(QtGui.QKeySequence("d"), self).activated.connect(self.folder_container.next_info)
 
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
@@ -227,7 +234,7 @@ class MyMainWindow(MainWindow):
                     self.mesh_container.add_mesh_file(mesh_path=file_path)
                 # Load video file
                 elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
-                    self.video_folder_container.add_video_file(video_path=file_path)
+                    self.video_container.add_video_file(video_path=file_path)
                 # Load image/mask file
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                     file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
@@ -254,7 +261,7 @@ class MyMainWindow(MainWindow):
         fileMenu = mainMenu.addMenu('File')
         fileMenu.addAction('Add Workspace', functools.partial(self.add_workspace, prompt=True))
         fileMenu.addAction('Add Folder', functools.partial(self.add_folder, prompt=True))
-        fileMenu.addAction('Add Video', functools.partial(self.video_folder_container.add_video_file, prompt=True))
+        fileMenu.addAction('Add Video', functools.partial(self.video_container.add_video_file, prompt=True))
         fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
         fileMenu.addAction('Add Mask', functools.partial(self.mask_container.add_mask_file, prompt=True))
         fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
@@ -269,18 +276,31 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Pose', self.mesh_container.export_pose)
         exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
         exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
+
+        # Add draw related actions
+        DrawMenu = mainMenu.addMenu('Draw')
+        # DrawMenu.addAction('BBox', self.bbox_container.draw_bbox)
+        DrawMenu.addAction('Mask', self.mask_container.draw_mask)
+        # DrawMenu.addAction('Points', self.point_container.draw_point)
         
         # Add video related actions
-        VideoFolderMenu = mainMenu.addMenu('Video/Folder')
-        VideoFolderMenu.addAction('Play', self.video_folder_container.play_video)
-        VideoFolderMenu.addAction('Sample', self.video_folder_container.sample_video)
-        VideoFolderMenu.addAction('Save Frame', self.video_folder_container.save_frame)
-        VideoFolderMenu.addAction('Prev Frame', self.video_folder_container.prev_frame)
-        VideoFolderMenu.addAction('Next Frame', self.video_folder_container.next_frame)
+        VideoMenu = mainMenu.addMenu('Video')
+        VideoMenu.addAction('Play', self.video_container.play_video)
+        VideoMenu.addAction('Sample', self.video_container.sample_video)
+        VideoMenu.addAction('Save', self.video_container.save_info)
+        VideoMenu.addAction('Prev', self.video_container.prev_info)
+        VideoMenu.addAction('Next', self.video_container.next_info)
+
+        # Add folder related actions
+        FolderMenu = mainMenu.addMenu('Folder')
+        FolderMenu.addAction('Save', self.folder_container.save_info)
+        FolderMenu.addAction('Prev', self.folder_container.prev_info)
+        FolderMenu.addAction('Next', self.folder_container.next_info)
 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
         CameraMenu.addAction('Calibrate', self.camera_container.camera_calibrate)
+        CameraMenu.addAction('Set Camera', self.camera_container.set_camera)
         CameraMenu.addAction('Reset Camera (d)', self.camera_container.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.camera_container.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.camera_container.zoom_out)
@@ -344,40 +364,42 @@ class MyMainWindow(MainWindow):
 
         # Create Grid layout for function buttons
         top_grid_layout = QtWidgets.QGridLayout()
-
-        # Create the set camera button
-        set_camera_button = QtWidgets.QPushButton("Set Camera")
-        set_camera_button.clicked.connect(self.camera_container.set_camera)
-        top_grid_layout.addWidget(set_camera_button, 0, 0)
+        top_grid_layout.addWidget(self.color_button, 0, 0)
+        top_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
 
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
         actor_pose_button.clicked.connect(self.mesh_container.set_pose)
-        top_grid_layout.addWidget(actor_pose_button, 0, 1)
+        top_grid_layout.addWidget(actor_pose_button, 0, 2)
 
-        # Create the draw mask button
-        draw_mask_button = QtWidgets.QPushButton("Draw Mask")
-        draw_mask_button.clicked.connect(self.mask_container.draw_mask)
-        top_grid_layout.addWidget(draw_mask_button, 0, 2)
+        # Create the spacing button
+        self.spacing_button = QtWidgets.QPushButton("Spacing")
+        self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
+        top_grid_layout.addWidget(self.spacing_button, 0, 3)
+
+        # Create the hide button
+        hide_button = QtWidgets.QPushButton("Toggle Meshes")
+        hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
+        top_grid_layout.addWidget(hide_button, 1, 0)
+
+        # Create the mirror x button
+        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
+        self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
+        top_grid_layout.addWidget(self.mirror_x_button, 1, 1)
+
+        # Create the mirror y button
+        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
+        self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
+        top_grid_layout.addWidget(self.mirror_y_button, 1, 2)
+
+        # Create the remove button
+        remove_button = QtWidgets.QPushButton("Remove Actor")
+        remove_button.clicked.connect(self.remove_actors_button)
+        top_grid_layout.addWidget(remove_button, 1, 3)
 
         # Create the video related button
-        self.play_video_button.clicked.connect(self.video_folder_container.play_video)
-        top_grid_layout.addWidget(self.play_video_button, 0, 3)
-
-        self.sample_video_button.clicked.connect(self.video_folder_container.sample_video)
-        top_grid_layout.addWidget(self.sample_video_button, 1, 0)
-
-        self.save_frame_button = QtWidgets.QPushButton("Save Frame")
-        self.save_frame_button.clicked.connect(self.video_folder_container.save_frame)
-        top_grid_layout.addWidget(self.save_frame_button, 1, 1)
-
-        self.prev_frame_button = QtWidgets.QPushButton("Prev Frame")
-        self.prev_frame_button.clicked.connect(self.video_folder_container.prev_frame)
-        top_grid_layout.addWidget(self.prev_frame_button, 1, 2)
-
-        self.next_frame_button = QtWidgets.QPushButton("Next Frame")
-        self.next_frame_button.clicked.connect(self.video_folder_container.next_frame)
-        top_grid_layout.addWidget(self.next_frame_button, 1, 3)
+        self.play_video_button.clicked.connect(self.video_container.play_video)
+        top_grid_layout.addWidget(self.play_video_button, 2, 0)
 
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
@@ -387,40 +409,6 @@ class MyMainWindow(MainWindow):
         #* Create the bottom widgets
         actor_widget = QtWidgets.QLabel("Actors")
         display_layout.addWidget(actor_widget)
-
-        actor_grid_layout = QtWidgets.QGridLayout()
-        actor_grid_layout.setContentsMargins(10, 5, 10, 10)
-
-        # Create the color dropdown menu
-        actor_grid_layout.addWidget(self.color_button, 0, 0)
-        
-        actor_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
-
-        # Create the hide button
-        hide_button = QtWidgets.QPushButton("Toggle Meshes")
-        hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
-        actor_grid_layout.addWidget(hide_button, 0, 2)
-
-        # Create the remove button
-        remove_button = QtWidgets.QPushButton("Remove Actor")
-        remove_button.clicked.connect(self.remove_actors_button)
-        actor_grid_layout.addWidget(remove_button, 0, 3)
-        display_layout.addLayout(actor_grid_layout)
-
-        # Create the spacing button
-        self.spacing_button = QtWidgets.QPushButton("Spacing")
-        self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
-        actor_grid_layout.addWidget(self.spacing_button, 1, 0)
-
-        # Create the mirror x button
-        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
-        self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
-        actor_grid_layout.addWidget(self.mirror_x_button, 1, 1)
-
-        # Create the mirror y button
-        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
-        self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
-        actor_grid_layout.addWidget(self.mirror_y_button, 1, 2)
 
         # Create a scroll area for the buttons
         scroll_area = QtWidgets.QScrollArea()
@@ -591,7 +579,7 @@ class MyMainWindow(MainWindow):
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
             if 'image_path' in workspace: self.image_container.add_image_file(image_path=workspace['image_path'])
-            if 'video_path' in workspace: self.video_folder_container.add_video_file(video_path=workspace['video_path'])
+            if 'video_path' in workspace: self.video_container.add_video_file(video_path=workspace['video_path'])
             if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=workspace['mask_path'])
             # need to load pose before loading meshes
             if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=workspace['pose_path'])
@@ -616,7 +604,6 @@ class MyMainWindow(MainWindow):
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
                     for path in mesh_path: self.mesh_container.add_mesh_file(path)
                 self.play_video_button.setEnabled(False)
-                self.sample_video_button.setEnabled(False)
                 self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
                 self.camera_container.reset_camera()
             else:
