@@ -37,6 +37,7 @@ class ImageStore(metaclass=Singleton):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
         
+        #^ save the image_source for mirroring image in the video
         self.image_source = copy.deepcopy(image_source)
         
         if len(image_source.shape) == 2: image_source = image_source[..., None]
