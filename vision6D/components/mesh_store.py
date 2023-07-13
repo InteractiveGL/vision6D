@@ -17,8 +17,6 @@ import numpy as np
 from . import Singleton
 from ..tools import utils
 
-# contains mesh objects
-
 class MeshStore(metaclass=Singleton):
     def __init__(self, window_size):
         self.reference = None

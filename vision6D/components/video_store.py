@@ -17,8 +17,6 @@ from ..widgets import VideoSampler
 
 from PyQt5 import QtWidgets
 
-# contains mesh objects
-
 class VideoStore(metaclass=Singleton):
     def __init__(self):
         self.reset()

@@ -13,8 +13,6 @@ import pyvista as pv
 import numpy as np
 from . import Singleton
 
-# contains mesh objects
-
 class CameraStore(metaclass=Singleton):
     def __init__(self, window_size):
         self.window_size = window_size

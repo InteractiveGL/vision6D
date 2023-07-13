@@ -1,6 +1,7 @@
 from .camera_container import CameraContainer
 from .image_container import ImageContainer
 from .mask_container import MaskContainer
+from .bbox_container import BboxContainer
 from .mesh_container import MeshContainer
 from .point_container import PointContainer
 from .pnp_container import PnPContainer
@@ -15,5 +16,6 @@ all = [
     'PointContainer',
     'PnPContainer',
     'VideoContainer',
-    'FolderContainer'
+    'FolderContainer',
+    'BboxContainer'
 ]

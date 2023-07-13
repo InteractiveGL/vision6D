@@ -27,9 +27,10 @@ from PyQt5.QtCore import Qt, QPoint
 from .widgets import CustomQtInteractor
 from .widgets import PopUpDialog
 
+from .components import CameraStore
 from .components import ImageStore
 from .components import MaskStore
-from .components import CameraStore
+from .components import BboxStore
 from .components import MeshStore
 from .components import PointStore
 from .components import VideoStore
@@ -38,6 +39,7 @@ from .components import FolderStore
 from .containers import CameraContainer
 from .containers import ImageContainer
 from .containers import MaskContainer
+from .containers import BboxContainer
 from .containers import MeshContainer
 from .containers import PointContainer
 from .containers import PnPContainer
@@ -62,9 +64,10 @@ class MyMainWindow(MainWindow):
         self.track_actors_names = []
         self.button_group_actors_names = QtWidgets.QButtonGroup(self)
 
+        self.camera_store = CameraStore(self.window_size)
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
-        self.camera_store = CameraStore(self.window_size)
+        self.bbox_store = BboxStore()
         self.mesh_store = MeshStore(self.window_size)
         self.point_store = PointStore()
         self.video_store = VideoStore()
@@ -158,6 +161,7 @@ class MyMainWindow(MainWindow):
                                             reset_camera=self.camera_container.reset_camera,
                                             current_pose=self.current_pose,
                                             register_pose=self.register_pose,
+                                            load_mask = self.mask_container.load_mask,
                                             output_text=self.output_text)
         
         self.pnp_container = PnPContainer(plotter=self.plotter,
@@ -176,6 +180,13 @@ class MyMainWindow(MainWindow):
                                                 current_pose=self.current_pose,
                                                 add_folder=self.add_folder,
                                                 output_text=self.output_text)
+        
+        self.bbox_container = BboxContainer(plotter=self.plotter,
+                                            hintLabel=self.hintLabel, 
+                                            track_actors_names=self.track_actors_names, 
+                                            add_button_actor_name=self.add_button_actor_name, 
+                                            check_button=self.check_button, 
+                                            output_text=self.output_text)
 
     def key_bindings(self):
         # Camera related key bindings
@@ -195,6 +206,9 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.mask_container.reset_mask)
         QtWidgets.QShortcut(QtGui.QKeySequence("g"), self).activated.connect(lambda up=True: self.mask_container.toggle_mask_opacity(up))
         QtWidgets.QShortcut(QtGui.QKeySequence("h"), self).activated.connect(lambda up=False: self.mask_container.toggle_mask_opacity(up))
+
+        # Bbox related key bindings
+        QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.bbox_container.reset_bbox)
 
         # Mesh related key bindings 
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.mesh_container.reset_gt_pose)
@@ -264,24 +278,27 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Video', functools.partial(self.video_container.add_video_file, prompt=True))
         fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
         fileMenu.addAction('Add Mask', functools.partial(self.mask_container.add_mask_file, prompt=True))
+        fileMenu.addAction('Add Bbox', functools.partial(self.bbox_container.add_bbox_file, prompt=True))
         fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
         fileMenu.addAction('Add Points', functools.partial(self.point_container.load_points_file, prompt=True))
-        fileMenu.addAction('Draw Mask', self.mask_container.draw_mask)
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
         exportMenu.addAction('Image', self.image_container.export_image)
         exportMenu.addAction('Mask', self.mask_container.export_mask)
+        exportMenu.addAction('Bbox', self.bbox_container.export_bbox)
         exportMenu.addAction('Pose', self.mesh_container.export_pose)
         exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
         exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
 
         # Add draw related actions
         DrawMenu = mainMenu.addMenu('Draw')
-        # DrawMenu.addAction('BBox', self.bbox_container.draw_bbox)
         DrawMenu.addAction('Mask', self.mask_container.draw_mask)
+        DrawMenu.addAction('BBox', self.bbox_container.draw_bbox)
         # DrawMenu.addAction('Points', self.point_container.draw_point)
+        DrawMenu.addAction('Reset Mask (t)', self.mask_container.reset_mask)
+        DrawMenu.addAction('Reset Bbox (f)', self.bbox_container.reset_bbox)
         
         # Add video related actions
         VideoMenu = mainMenu.addMenu('Video')
@@ -305,12 +322,11 @@ class MyMainWindow(MainWindow):
         CameraMenu.addAction('Zoom In (x)', self.camera_container.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.camera_container.zoom_out)
         
-        # Add register related actions
-        RegisterMenu = mainMenu.addMenu('Register')
-        RegisterMenu.addAction('Reset GT Pose (k)', self.mesh_container.reset_gt_pose)
-        RegisterMenu.addAction('Reset Mask (t)', self.mask_container.reset_mask)
-        RegisterMenu.addAction('Update GT Pose (l)', self.mesh_container.update_gt_pose)
-        RegisterMenu.addAction('Undo Pose (s)', self.mesh_container.undo_pose)
+        # Add pose related actions
+        PoseMenu = mainMenu.addMenu('Pose')
+        PoseMenu.addAction('Reset GT Pose (k)', self.mesh_container.reset_gt_pose)
+        PoseMenu.addAction('Update GT Pose (l)', self.mesh_container.update_gt_pose)
+        PoseMenu.addAction('Undo Pose (s)', self.mesh_container.undo_pose)
 
         # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('PnP')
@@ -481,7 +497,7 @@ class MyMainWindow(MainWindow):
 
         self.plotter.show()
         self.show()
-   
+
     def register_pose(self, pose):
         for actor_name, actor in self.mesh_store.mesh_actors.items():
             actor.user_matrix = pose
@@ -581,6 +597,7 @@ class MyMainWindow(MainWindow):
             if 'image_path' in workspace: self.image_container.add_image_file(image_path=workspace['image_path'])
             if 'video_path' in workspace: self.video_container.add_video_file(video_path=workspace['video_path'])
             if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=workspace['mask_path'])
+            if 'bbox_path' in workspace: self.bbox_container.add_bbox_file(bbox_path=workspace['bbox_path'])
             # need to load pose before loading meshes
             if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=workspace['pose_path'])
             if 'mesh_path' in workspace:
@@ -618,6 +635,8 @@ class MyMainWindow(MainWindow):
                 self.image_container.mirror_image(direction)
             elif actor_name == 'mask':
                 self.mask_container.mirror_mask(direction)
+            elif actor_name == 'bbox':
+                self.bbox_container.mirror_bbox(direction)
             elif actor_name in self.mesh_store.mesh_actors:
                 self.mesh_container.mirror_mesh(direction)
         else:
@@ -631,6 +650,9 @@ class MyMainWindow(MainWindow):
         elif name == 'mask':
             actor = self.mask_store.mask_actor
             self.mask_store.reset()
+        elif name == 'bbox':
+            actor = self.bbox_store.bbox_actor
+            self.bbox_store.reset()
         elif name in self.mesh_store.mesh_actors: 
             actor = self.mesh_store.mesh_actors[name]
             self.mesh_store.remove_mesh(name)
@@ -673,6 +695,11 @@ class MyMainWindow(MainWindow):
                 self.mask_store.reset()
                 self.mask_store.mirror_x = False
                 self.mask_store.mirror_y = False
+            elif name == 'bbox':
+                actor = self.bbox_store.bbox_actor
+                self.bbox_store.reset()
+                self.bbox_store.mirror_x = False
+                self.bbox_store.mirror_y = False
             elif name in self.mesh_store.mesh_actors: 
                 actor = self.mesh_store.mesh_actors[name]
                 self.mesh_store.remove_mesh(name)

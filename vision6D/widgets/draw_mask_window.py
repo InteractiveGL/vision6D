@@ -3,7 +3,7 @@
 @license: (C) Copyright.
 @contact: yike.zhang@vanderbilt.edu
 @software: Vision6D
-@file: label_window.py
+@file: draw_mask_window.py
 @time: 2023-07-03 20:32
 @desc: create the window for mask labeling/drawing
 '''
@@ -21,7 +21,7 @@ from PyQt5.QtCore import Qt
 # self defined package import
 np.set_printoptions(suppress=True)
 
-class LabelImage(QtWidgets.QLabel):
+class MaskLabel(QtWidgets.QLabel):
     output_path_changed = QtCore.pyqtSignal(str)
     def __init__(self, pixmap):
         super().__init__()
@@ -74,10 +74,11 @@ class LabelImage(QtWidgets.QLabel):
             painter.drawEllipse(self.points.point(0), 2, 2)
             painter.drawPolyline(complete_points)
 
-class LabelWindow(QtWidgets.QWidget):
+class MaskWindow(QtWidgets.QWidget):
     def __init__(self, image_source):
         super().__init__()
-        image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
+        if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
+            image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
         image = QtGui.QImage(image_source.tobytes(), image_source.shape[1], image_source.shape[0], image_source.shape[2]*image_source.shape[1], QtGui.QImage.Format_RGB888)
         pixmap = QtGui.QPixmap.fromImage(image)
         self.setFixedSize(pixmap.size())
@@ -90,6 +91,7 @@ class LabelWindow(QtWidgets.QWidget):
         layout.setSpacing(0)
         #* Both are set to zero to eliminate any space between the widgets and the layout border.
 
-        self.image_label = LabelImage(pixmap)
-        layout.addWidget(self.image_label)
+        self.mask_label = MaskLabel(pixmap)
+        layout.addWidget(self.mask_label)
         self.setLayout(layout)
+        self.show()

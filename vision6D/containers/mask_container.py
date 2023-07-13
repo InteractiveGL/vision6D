@@ -11,7 +11,6 @@
 import pathlib
 
 import numpy as np
-import pyvista as pv
 import PIL.Image
 
 from PyQt5 import QtWidgets
@@ -20,7 +19,7 @@ from ..tools import utils
 from ..components import CameraStore
 from ..components import ImageStore
 from ..components import MaskStore
-from ..widgets import LabelWindow
+from ..widgets import MaskWindow
 
 class MaskContainer:
     def __init__(self, 
@@ -54,17 +53,15 @@ class MaskContainer:
         elif direction == 'y': self.mask_store.mirror_y = not self.mask_store.mirror_y
         self.add_mask(self.mask_store.mask_path)
 
-    def load_mask(self, mask_surface, points):
+    def load_mask(self, mask_surface):
         # Add mask surface object to the plot
         mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_store.mask_opacity)
         actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
         self.mask_store.mask_actor = actor
-        mask_point_data = utils.get_mask_actor_points(self.mask_store.mask_actor)
-        assert np.isclose(((mask_point_data+self.mask_store.mask_bottom_point-self.mask_store.mask_offset) - points), 0).all(), "mask_point_data and points should be equal"
-
+        
     def add_mask(self, mask_source):
-        mask_surface, points = self.mask_store.add_mask(mask_source)
-        self.load_mask(mask_surface, points)
+        mask_surface = self.mask_store.add_mask(mask_source)
+        self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu
         if 'mask' not in self.track_actors_names:
@@ -73,8 +70,10 @@ class MaskContainer:
     
     def reset_mask(self):
         if self.mask_store.mask_path:
-            mask_surface, points = self.mask_store.add_mask(self.mask_store.mask_path)
-            self.load_mask(mask_surface, points)
+            self.mask_store.mirror_x = False
+            self.mask_store.mirror_y = False
+            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path)
+            self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):
         self.mask_store.mask_opacity = mask_opacity
@@ -94,9 +93,11 @@ class MaskContainer:
                 self.mask_store.mask_path = output_path
                 self.add_mask(self.mask_store.mask_path)
         if self.image_store.image_path:
-            self.label_window = LabelWindow(self.image_store.image_path)
-            self.label_window.show()
-            self.label_window.image_label.output_path_changed.connect(handle_output_path_change)
+            self.mask_window = MaskWindow(self.image_store.image_path)
+            self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
+        elif self.image_store.image_source is not None:
+            self.mask_window = MaskWindow(self.image_store.image_source)
+            self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
@@ -105,18 +106,16 @@ class MaskContainer:
         if self.mask_store.mask_actor:
             # Store the transformed mask actor if there is any transformation
             mask_surface = self.mask_store.update_mask()
-            mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_store.mask_opacity)
-            actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
-            self.mask_store.mask_actor = actor
-
+            self.load_mask(mask_surface)
             image = self.mask_store.render_mask(camera=self.plotter.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
             if output_path:
-                if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
-                self.output_text.append(f"-> Export mask render to:\n {str(output_path)}")
+                self.output_text.append(f"-> Export mask render to:\n {output_path}")
                 self.output_text.append(f"\n************************************************************\n")
+            self.mask_store.mask_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mask first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0

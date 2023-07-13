@@ -18,8 +18,6 @@ import PIL.Image
 from . import Singleton
 from ..tools import utils
 
-# contains mesh objects
-
 class ImageStore(metaclass=Singleton):
     def __init__(self):
         self.reset()
@@ -31,6 +29,8 @@ class ImageStore(metaclass=Singleton):
         self.image_source = None
         self.image_actor = None
         self.image_opacity = 0.8
+        self.width = None
+        self.height = None
 
     def add_image(self, image_source):
         if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
@@ -39,22 +39,23 @@ class ImageStore(metaclass=Singleton):
         
         #^ save the image_source for mirroring image in the video
         self.image_source = copy.deepcopy(image_source)
-        
+
         if len(image_source.shape) == 2: image_source = image_source[..., None]
+        dim = image_source.shape
+        self.height, self.width, channel = dim[0], dim[1], dim[2]
 
         if self.mirror_x: image_source = image_source[:, ::-1, :]
         if self.mirror_y: image_source = image_source[::-1, :, :]
 
-        dim = image_source.shape
-        h, w, channel = dim[0], dim[1], dim[2]
-
-        self.render = utils.create_render(w, h)
-
-        image = pv.UniformGrid(dimensions=(w, h, 1), spacing=[0.01, 0.01, 1], origin=(0.0, 0.0, 0.0))
-        image.point_data["values"] = image_source.reshape((w * h, channel)) # order = 'C
-        image = image.translate(-1 * np.array(image.center), inplace=False)
-
+        self.render = utils.create_render(self.width, self.height)
+        image = self.update_image(image_source, channel)
         return image, image_source, channel
+    
+    def update_image(self, image_source, channel):
+        image = pv.UniformGrid(dimensions=(self.width, self.height, 1), spacing=[0.01, 0.01, 1], origin=(0.0, 0.0, 0.0))
+        image.point_data["values"] = image_source.reshape((self.width * self.height, channel)) # order = 'C
+        image = image.translate(-1 * np.array(image.center), inplace=False)
+        return image
         
     def update_opacity(self, delta):
         self.image_opacity += delta

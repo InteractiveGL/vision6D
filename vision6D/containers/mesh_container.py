@@ -39,6 +39,7 @@ class MeshContainer:
                 reset_camera,
                 current_pose,
                 register_pose,
+                load_mask,
                 output_text):
         
         self.ignore_opacity_change = False
@@ -54,8 +55,9 @@ class MeshContainer:
         self.opacity_spinbox = opacity_spinbox
         self.opacity_value_change = opacity_value_change
         self.reset_camera = reset_camera
-        self.register_pose = register_pose
         self.current_pose = current_pose
+        self.register_pose = register_pose
+        self.load_mask = load_mask
         self.output_text = output_text
         
         self.camera_store = CameraStore()
@@ -248,10 +250,11 @@ class MeshContainer:
     def undo_pose(self):
         if self.button_group_actors_names.checkedButton():
             actor_name = self.button_group_actors_names.checkedButton().text()
-            if self.mesh_store.undo_poses and len(self.mesh_store.undo_poses[actor_name]) != 0: 
-                self.mesh_store.undo_pose(actor_name)
-                # register the rest meshes' pose to current undoed pose
-                self.check_button(actor_name=actor_name)
+            if actor_name in self.mesh_store.mesh_actors:
+                if self.mesh_store.undo_poses and len(self.mesh_store.undo_poses[actor_name]) != 0: 
+                    self.mesh_store.undo_pose(actor_name)
+                    # register the rest meshes' pose to current undoed pose
+                    self.check_button(actor_name=actor_name)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
@@ -260,10 +263,11 @@ class MeshContainer:
             self.update_gt_pose()
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Pose Files (*.npy)")
             if output_path:
-                if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.npy')
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.npy')
                 np.save(output_path, self.mesh_store.transformation_matrix)
-                self.output_text.append(f"-> Saved:\n{self.mesh_store.transformation_matrix}\nExport to:\n {str(output_path)}")
+                self.output_text.append(f"-> Saved:\n{self.mesh_store.transformation_matrix}\nExport to:\n {output_path}")
                 self.output_text.append(f"\n************************************************************\n")
+            self.mesh_store.pose_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
@@ -274,10 +278,10 @@ class MeshContainer:
             if save_render:
                 output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.png)")
                 if output_path:
-                    if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
+                    if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
                     rendered_image = PIL.Image.fromarray(image)
                     rendered_image.save(output_path)
-                    self.output_text.append(f"-> Export mesh render to:\n {str(output_path)}")
+                    self.output_text.append(f"-> Export mesh render to:\n {output_path}")
                     self.output_text.append(f"\n************************************************************\n")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -286,19 +290,17 @@ class MeshContainer:
     def export_segmesh_render(self):
         if self.mesh_store.reference and self.mask_store.mask_actor:
             mask_surface = self.mask_store.update_mask()
-            mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_store.mask_opacity)
-            actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
-            self.mask_store.mask_actor = actor
+            self.load_mask(mask_surface)
             segmask = self.mask_store.render_mask(camera=self.plotter.camera.copy())
             if np.max(segmask) > 1: segmask = segmask / 255
             image = self.mesh_store.render_mesh(camera=self.plotter.camera.copy())
             image = (image * segmask).astype(np.uint8)
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "SegMesh Files (*.png)")
             if output_path:
-                if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
-                self.output_text.append(f"-> Export segmask render:\n to {str(output_path)}")
+                self.output_text.append(f"-> Export segmask render:\n to {output_path}")
                 self.output_text.append(f"\n************************************************************\n")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mesh or mask first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

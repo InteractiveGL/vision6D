@@ -85,14 +85,21 @@ class ImageContainer:
 
     def export_image(self):
         if self.image_store.image_actor:
-            image = self.image_store.render_image(camera=self.plotter.camera.copy())
+            image_rendered = self.image_store.render_image(camera=self.plotter.camera.copy())
+            self.image_store.image_source = image_rendered
+            self.image_store.height, self.image_store.width, channel = image_rendered.shape[0], image_rendered.shape[1], image_rendered.shape[2]
+            image_updated = self.image_store.update_image(self.image_store.image_source, channel)
+            image_mesh = self.plotter.add_mesh(image_updated, rgb=True, opacity=self.image_store.image_opacity, name='image')
+            actor, _ = self.plotter.add_actor(image_mesh, pickable=False, name='image')
+            self.image_store.image_actor = actor
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Image Files (*.png)")
             if output_path:
-                if pathlib.Path(output_path).suffix == '': output_path = output_path.parent / (output_path.stem + '.png')
-                rendered_image = PIL.Image.fromarray(image)
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                rendered_image = PIL.Image.fromarray(image_rendered)
                 rendered_image.save(output_path)
-                self.output_text.append(f"-> Export image render to:\n {str(output_path)}")
+                self.output_text.append(f"-> Export image render to:\n {output_path}")
                 self.output_text.append(f"\n************************************************************\n")
+            self.image_store.image_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0

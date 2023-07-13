@@ -18,8 +18,6 @@ import pyvista as pv
 from . import Singleton
 from ..tools import utils
 
-# contains mesh objects
-
 class MaskStore(metaclass=Singleton):
     def __init__(self):
         self.reset()
@@ -41,33 +39,28 @@ class MaskStore(metaclass=Singleton):
 
         # Get the segmentation contour points
         contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        points2d = contours[0].squeeze()
+        points = contours[0].squeeze()
+        points = points * 0.01
+        points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
         
         # Mirror points
         h, w = mask_source.shape[0], mask_source.shape[1]
         
         self.render = utils.create_render(w, h)
         
-        if self.mirror_x: points2d[:, 0] = w - points2d[:, 0]
-        if self.mirror_y: points2d[:, 1] = h - points2d[:, 1]
+        if self.mirror_x: points[:, 0] = w*0.01 - points[:, 0]
+        if self.mirror_y: points[:, 1] = h*0.01 - points[:, 1]
 
-        bottom_point = points2d[np.argmax(points2d[:, 1])]
-
-        mask_center = (mask_source.shape[1] // 2, mask_source.shape[0] // 2)
-
-        self.mask_offset = np.hstack(((bottom_point - mask_center)*0.01, 0))
-
-        # Pad points a z dimension
-        points = np.hstack((points2d*0.01, np.zeros(points2d.shape[0]).reshape((-1, 1))))
-        # Find the bottom point on mask
         self.mask_bottom_point = points[np.argmax(points[:, 1])]
+        mask_center = np.array([mask_source.shape[1] // 2, mask_source.shape[0] // 2, 0]) * 0.01
+        self.mask_offset = self.mask_bottom_point - mask_center
 
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
         mask_surface = pv.PolyData(points, cells).triangulate()
         mask_surface = mask_surface.translate(-self.mask_bottom_point+self.mask_offset, inplace=False)
 
-        return mask_surface, points
+        return mask_surface
 
     def update_opacity(self, delta):
         self.mask_opacity += delta
