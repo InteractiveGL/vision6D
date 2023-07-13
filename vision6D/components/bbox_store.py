@@ -39,7 +39,6 @@ class BboxStore(metaclass=Singleton):
         # find the center of the image
         image_center = np.array([width // 2, height // 2, 0]) * 0.01
 
-        # todo: Mirroring function has a bug
         if bbox_source.shape == (4, ):
             points = np.array([[bbox_source[0], bbox_source[1], 0], 
                                [bbox_source[0], bbox_source[3], 0], 
