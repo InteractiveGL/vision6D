@@ -168,17 +168,21 @@ class MyMainWindow(MainWindow):
                                         export_mesh_render=self.mesh_container.export_mesh_render,
                                         output_text=self.output_text)
         
-        self.video_container = VideoContainer(play_video_button=self.play_video_button, 
+        self.video_container = VideoContainer(plotter=self.plotter,
+                                            play_video_button=self.play_video_button, 
                                             hintLabel=self.hintLabel, 
                                             register_pose=self.register_pose,
                                             current_pose=self.current_pose,
                                             add_image=self.image_container.add_image,
+                                            load_mask=self.mask_container.load_mask,
                                             clear_plot=self.clear_plot,
                                             output_text=self.output_text)
         
-        self.folder_container = FolderContainer(play_video_button=self.play_video_button, 
+        self.folder_container = FolderContainer(plotter=self.plotter,
+                                                play_video_button=self.play_video_button, 
                                                 current_pose=self.current_pose,
                                                 add_folder=self.add_folder,
+                                                load_mask=self.mask_container.load_mask,
                                                 output_text=self.output_text)
         
         self.bbox_container = BboxContainer(plotter=self.plotter,
@@ -612,7 +616,7 @@ class MyMainWindow(MainWindow):
             folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
             if self.video_store.video_path or self.workspace_path: self.clear_plot() # main goal is to set video_path to None
-            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path)
+            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path, mesh_actors=self.mesh_store.mesh_actors)
             if image_path or mask_path or pose_path or mesh_path:
                 if image_path: self.image_container.add_image_file(image_path=image_path)
                 if mask_path: self.mask_container.add_mask_file(mask_path=mask_path)
@@ -621,7 +625,7 @@ class MyMainWindow(MainWindow):
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
                     for path in mesh_path: self.mesh_container.add_mesh_file(path)
                 self.play_video_button.setEnabled(False)
-                self.play_video_button.setText(f"Frame ({self.folder_store.current_frame}/{self.folder_store.total_frame})")
+                self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
                 self.camera_container.reset_camera()
             else:
                 self.folder_store.reset()
