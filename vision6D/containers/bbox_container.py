@@ -99,10 +99,6 @@ class BboxContainer:
         if self.bbox_store.bbox_actor:
             # Store the transformed bbox actor if there is any transformation
             points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.bbox_bottom_point, self.bbox_store.bbox_offset)
-            self.bbox_store.mirror_x = False
-            self.bbox_store.mirror_y = False
-            bbox = self.bbox_store.add_bbox(points, self.image_store.width, self.image_store.height)
-            self.load_bbox(bbox)
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Bbox Files (*.npy)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
