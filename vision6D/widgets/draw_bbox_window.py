@@ -115,8 +115,6 @@ class BboxLabel(QtWidgets.QLabel):
 class BboxWindow(QtWidgets.QWidget):
     def __init__(self, image_source):
         super().__init__()
-        if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
-            image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
         image = QtGui.QImage(image_source.tobytes(), image_source.shape[1], image_source.shape[0], image_source.shape[2]*image_source.shape[1], QtGui.QImage.Format_RGB888)
         pixmap = QtGui.QPixmap.fromImage(image)
         self.setFixedSize(pixmap.size())

@@ -61,7 +61,7 @@ class BboxContainer:
         self.bbox_store.bbox_actor = actor
                 
     def add_bbox(self, bbox_source):
-        if (self.image_store.image_path) or (self.image_store.image_source is not None):
+        if self.image_store.image_actor:
             bbox = self.bbox_store.add_bbox(bbox_source, self.image_store.width, self.image_store.height)
             self.load_bbox(bbox)
             
@@ -78,11 +78,9 @@ class BboxContainer:
             if output_path:
                 self.bbox_store.bbox_path = output_path
                 self.add_bbox(self.bbox_store.bbox_path)
-        if self.image_store.image_path:
-            self.bbox_window = BboxWindow(self.image_store.image_path)
-            self.bbox_window.bbox_label.output_path_changed.connect(handle_output_path_change)
-        elif self.image_store.image_source is not None:
-            self.bbox_window = BboxWindow(self.image_store.image_source)
+        if self.image_store.image_actor:
+            image = utils.get_image_actor_scalars(self.image_store.image_actor)
+            self.bbox_window = BboxWindow(image)
             self.bbox_window.bbox_label.output_path_changed.connect(handle_output_path_change)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

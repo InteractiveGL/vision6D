@@ -92,11 +92,9 @@ class MaskContainer:
             if output_path:
                 self.mask_store.mask_path = output_path
                 self.add_mask(self.mask_store.mask_path)
-        if self.image_store.image_path:
-            self.mask_window = MaskWindow(self.image_store.image_path)
-            self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
-        elif self.image_store.image_source is not None:
-            self.mask_window = MaskWindow(self.image_store.image_source)
+        if self.image_store.image_actor:
+            image = utils.get_image_actor_scalars(self.image_store.image_actor)
+            self.mask_window = MaskWindow(image)
             self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
