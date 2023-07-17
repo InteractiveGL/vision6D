@@ -15,6 +15,7 @@ class CustomQtInteractor(QtInteractor):
     def __init__(self, parent=None, main_window=None):
         super().__init__(parent)
         self.main_window = main_window
+        self.set_background("4c4c4c")
         self.cell_picker = None
 
     def mousePressEvent(self, event):
