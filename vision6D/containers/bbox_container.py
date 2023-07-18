@@ -95,11 +95,11 @@ class BboxContainer:
 
     def export_bbox(self):
         if self.bbox_store.bbox_actor:
-            # Store the transformed bbox actor if there is any transformation
-            points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.bbox_bottom_point, self.bbox_store.bbox_offset)
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Bbox Files (*.npy)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                # Store the transformed bbox actor if there is any transformation
+                points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.bbox_bottom_point, self.bbox_store.bbox_offset)
                 np.save(output_path, points)
                 self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
                 self.output_text.append(f"\n************************************************************\n")

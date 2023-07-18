@@ -295,6 +295,7 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Pose', self.mesh_container.export_pose)
         exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
         exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
+        exportMenu.addAction('Camera Info', self.camera_container.export_camera_info)
 
         # Add draw related actions
         DrawMenu = mainMenu.addMenu('Draw')

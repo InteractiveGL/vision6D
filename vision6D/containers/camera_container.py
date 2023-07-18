@@ -9,6 +9,9 @@
 '''
 
 import ast
+import math
+import pickle
+import pathlib
 
 import numpy as np
 import PIL.Image
@@ -76,3 +79,15 @@ class CameraContainer:
 
     def zoom_out(self):
         self.plotter.camera.zoom(0.5)
+
+    def export_camera_info(self):
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Camera Info Files (*.pkl)")
+        if output_path:
+            if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.pkl')
+            camera_intrinsics = self.camera_store.camera_intrinsics.astype('float32')
+            focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+            camera_intrinsics[0, 0] = focal_length
+            camera_intrinsics[1, 1] = focal_length
+            camera_position = self.plotter.camera.position
+            camera_info = {'camera_intrinsics': camera_intrinsics, 'camera_position': np.array(camera_position)}
+            with open(output_path,"wb") as f: pickle.dump(camera_info, f)

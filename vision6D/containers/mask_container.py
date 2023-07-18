@@ -102,13 +102,13 @@ class MaskContainer:
 
     def export_mask(self):
         if self.mask_store.mask_actor:
-            # Store the transformed mask actor if there is any transformation
-            mask_surface = self.mask_store.update_mask()
-            self.load_mask(mask_surface)
-            image = self.mask_store.render_mask(camera=self.plotter.camera.copy())
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                # Store the transformed mask actor if there is any transformation
+                mask_surface = self.mask_store.update_mask()
+                self.load_mask(mask_surface)
+                image = self.mask_store.render_mask(camera=self.plotter.camera.copy())
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export mask render to:\n {output_path}")

@@ -259,11 +259,11 @@ class MeshContainer:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def export_pose(self):
-        if self.mesh_store.reference: 
-            self.update_gt_pose()
+        if self.mesh_store.reference:
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Pose Files (*.npy)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.npy')
+                self.update_gt_pose()
                 np.save(output_path, self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Saved:\n{self.mesh_store.transformation_matrix}\nExport to:\n {output_path}")
                 self.output_text.append(f"\n************************************************************\n")
@@ -289,15 +289,15 @@ class MeshContainer:
 
     def export_segmesh_render(self):
         if self.mesh_store.reference and self.mask_store.mask_actor:
-            mask_surface = self.mask_store.update_mask()
-            self.load_mask(mask_surface)
-            segmask = self.mask_store.render_mask(camera=self.plotter.camera.copy())
-            if np.max(segmask) > 1: segmask = segmask / 255
-            image = self.mesh_store.render_mesh(camera=self.plotter.camera.copy())
-            image = (image * segmask).astype(np.uint8)
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "SegMesh Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                mask_surface = self.mask_store.update_mask()
+                self.load_mask(mask_surface)
+                segmask = self.mask_store.render_mask(camera=self.plotter.camera.copy())
+                if np.max(segmask) > 1: segmask = segmask / 255
+                image = self.mesh_store.render_mesh(camera=self.plotter.camera.copy())
+                image = (image * segmask).astype(np.uint8)
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export segmask render:\n to {output_path}")
