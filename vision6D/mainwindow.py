@@ -497,7 +497,7 @@ class MyMainWindow(MainWindow):
         self.plotter.enable_joystick_actor_style()
         self.plotter.enable_trackball_actor_style()
         
-        self.plotter.add_axes()
+        self.plotter.add_axes(color='white')
         self.plotter.add_camera_orientation_widget()
 
         self.plotter.show()
