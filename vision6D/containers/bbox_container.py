@@ -102,7 +102,6 @@ class BboxContainer:
                 points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.bbox_bottom_point, self.bbox_store.bbox_offset)
                 np.save(output_path, points)
                 self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
-                self.output_text.append(f"\n************************************************************\n")
             self.bbox_store.bbox_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a bounding box first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

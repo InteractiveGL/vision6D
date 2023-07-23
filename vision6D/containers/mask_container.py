@@ -112,7 +112,6 @@ class MaskContainer:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export mask render to:\n {output_path}")
-                self.output_text.append(f"\n************************************************************\n")
             self.mask_store.mask_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mask first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

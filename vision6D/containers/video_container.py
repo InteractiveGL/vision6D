@@ -64,7 +64,6 @@ class VideoContainer:
             self.play_video_button.setEnabled(True)
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")
-            self.output_text.append(f"\n************************************************************\n")
             self.load_per_frame_info()
             self.sample_video()
 
@@ -101,7 +100,6 @@ class VideoContainer:
                 save_frame.save(output_frame_path)
                 self.image_store.image_path = str(output_frame_path)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} to {str(output_frame_path)}")
-                self.output_text.append(f"\n************************************************************\n")
         
             # save gt_pose for each frame if there are any meshes
             if len(self.mesh_store.mesh_actors) > 0:
@@ -111,7 +109,6 @@ class VideoContainer:
                 np.save(output_pose_path, self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} pose to {str(output_pose_path)}:")
                 self.output_text.append(f"{self.mesh_store.transformation_matrix}")
-                self.output_text.append(f"\n************************************************************\n")
 
             # save mask if there is a mask  
             if self.mask_store.mask_actor is not None:
@@ -124,7 +121,6 @@ class VideoContainer:
                 rendered_image.save(output_mask_path)
                 self.mask_store.mask_path = output_mask_path
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} mask render to {output_mask_path}")
-                self.output_text.append(f"\n************************************************************\n")
 
             # save bbox if there is a bbox  
             if self.bbox_store.bbox_actor is not None:
@@ -134,7 +130,6 @@ class VideoContainer:
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} bbox points to {output_bbox_path}")
-                self.output_text.append(f"\n************************************************************\n")
     
         else: 
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -147,10 +142,8 @@ class VideoContainer:
                 self.mesh_store.transformation_matrix = np.load(pose_path)
                 self.register_pose(self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
-                self.output_text.append(f"\n************************************************************\n")
             else: 
                 self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
-                self.output_text.append(f"\n************************************************************\n")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         else:
@@ -167,7 +160,6 @@ class VideoContainer:
                 self.mesh_store.transformation_matrix = np.load(pose_path)
                 self.register_pose(self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
-                self.output_text.append(f"\n************************************************************\n")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         else:

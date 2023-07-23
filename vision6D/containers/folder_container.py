@@ -60,7 +60,6 @@ class FolderContainer:
                 save_image.save(output_image_path)
                 self.image_store.image_path = str(output_image_path)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} to {str(output_image_path)}")
-                self.output_text.append(f"\n************************************************************\n")
 
             if len(self.mesh_store.mesh_actors) > 0:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses", exist_ok=True)
@@ -69,7 +68,6 @@ class FolderContainer:
                 np.save(output_pose_path, self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} pose to {str(output_pose_path)}:")
                 self.output_text.append(f"{self.mesh_store.transformation_matrix}")
-                self.output_text.append(f"\n************************************************************\n")
         
             # save mask if there is a mask  
             if self.mask_store.mask_actor is not None:
@@ -82,7 +80,6 @@ class FolderContainer:
                 rendered_image.save(output_mask_path)
                 self.mask_store.mask_path = output_mask_path
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} mask render to {output_mask_path}")
-                self.output_text.append(f"\n************************************************************\n")
 
             # save bbox if there is a bbox  
             if self.bbox_store.bbox_actor is not None:
@@ -92,7 +89,6 @@ class FolderContainer:
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} bbox points to {output_bbox_path}")
-                self.output_text.append(f"\n************************************************************\n")
         else: 
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
   

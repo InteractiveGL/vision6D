@@ -103,7 +103,6 @@ class PnPContainer:
                         self.output_text.append(f"{gt_pose}")
                         self.output_text.append(f"Angular Error (in degree): {angular_distance}")
                         self.output_text.append(f"Translation Error: {translation_error}")
-                        self.output_text.append(f"\n************************************************************\n")
                     else:
                         QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 else:
@@ -164,7 +163,6 @@ class PnPContainer:
                     self.output_text.append(f"{gt_pose}")
                     self.output_text.append(f"Angular Error (in degree): {angular_distance}")
                     self.output_text.append(f"Translation Error: {translation_error}")
-                    self.output_text.append(f"\n************************************************************\n")
                 else:
                     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(),"vision6D", "Clicked the wrong method")
             else:

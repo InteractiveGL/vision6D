@@ -135,3 +135,5 @@ test/
 .vscode/
 
 docs/build
+
+.pylintrc

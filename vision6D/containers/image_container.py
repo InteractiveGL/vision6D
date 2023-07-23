@@ -92,7 +92,6 @@ class ImageContainer:
                 rendered_image = PIL.Image.fromarray(image_rendered)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export image render to:\n {output_path}")
-                self.output_text.append(f"\n************************************************************\n")
             self.image_store.image_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
