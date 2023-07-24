@@ -814,7 +814,7 @@ class MyMainWindow(MainWindow):
         self.folder_store.reset()
         self.workspace_path = ''
         self.track_actors_names.clear()
-        self.clear_output_text()
+        self.reset_output_text()
 
         self.color_button.setText("Color")
         self.play_video_button.setText("Play Video")
