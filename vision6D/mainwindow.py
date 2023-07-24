@@ -26,6 +26,7 @@ from PyQt5.QtCore import Qt, QPoint
 # self defined package import
 from .widgets import CustomQtInteractor
 from .widgets import PopUpDialog
+from .widgets import SearchBar
 
 from .components import CameraStore
 from .components import ImageStore
@@ -45,6 +46,8 @@ from .containers import PointContainer
 from .containers import PnPContainer
 from .containers import VideoContainer
 from .containers import FolderContainer
+
+from .path import ICON_PATH
 
 np.set_printoptions(suppress=True)
 
@@ -463,16 +466,33 @@ class MyMainWindow(MainWindow):
 
         # Create Grid layout for function buttons
         grid_layout = QtWidgets.QGridLayout()
+        
+        # Create a SearchBar for search bar
+        self.search_bar = SearchBar()
+        self.search_bar.setPlaceholderText("Search...")
 
+        # Add a signal to the QLineEdit object to connect to a function
+        self.search_bar.textChanged.connect(self.handle_search)
+        self.search_bar.returnPressedSignal.connect(self.find_next)
+
+        # Add the search bar to the layout
+        grid_layout.addWidget(self.search_bar, 0, 0)
+        
         # Create the set camera button
-        copy_text_button = QtWidgets.QPushButton("Copy")
+        copy_pixmap = QtGui.QPixmap(str(ICON_PATH / "copy.png"))
+        copy_icon = QtGui.QIcon(copy_pixmap)
+        copy_text_button = QtWidgets.QPushButton()
+        copy_text_button.setIcon(copy_icon)  # Set copy icon
         copy_text_button.clicked.connect(self.copy_output_text)
-        grid_layout.addWidget(copy_text_button, 0, 2, 1, 1)
-
+        grid_layout.addWidget(copy_text_button, 0, 1)
+        
         # Create the actor pose button
-        clear_text_button = QtWidgets.QPushButton("Clear")
-        clear_text_button.clicked.connect(self.clear_output_text)
-        grid_layout.addWidget(clear_text_button, 0, 3, 1, 1)
+        reset_pixmap = QtGui.QPixmap(str(ICON_PATH / "reset.png"))
+        reset_icon = QtGui.QIcon(reset_pixmap)
+        reset_text_button = QtWidgets.QPushButton()
+        reset_text_button.setIcon(reset_icon) # Set reset icon
+        reset_text_button.clicked.connect(self.reset_output_text)
+        grid_layout.addWidget(reset_text_button, 0, 2)
 
         grid_widget = QtWidgets.QWidget()
         grid_widget.setLayout(grid_layout)
@@ -484,6 +504,74 @@ class MyMainWindow(MainWindow):
         output_layout.addWidget(self.output_text)
         self.output.setLayout(output_layout)
         self.panel_layout.addWidget(self.output)
+        
+    def handle_search(self, text):
+        # If there's text in the search bar
+        if text: self.highlight_keyword(text)
+        # If the search bar is empty
+        else: self.clear_highlight()
+        
+    def highlight_keyword(self, keyword):
+        # Get QTextDocument from QTextEdit
+        doc = self.output_text.document()
+
+        # Default text format
+        default_format = QtGui.QTextCharFormat()
+
+        # Text format for highlighted words
+        highlight_format = QtGui.QTextCharFormat()
+        highlight_format.setBackground(QtGui.QBrush(QtGui.QColor("yellow")))
+        highlight_format.setForeground(QtGui.QBrush(QtGui.QColor("black")))
+
+        # Clear all previous highlights
+        cursor = QtGui.QTextCursor(doc)
+        cursor.beginEditBlock()
+        block_format = cursor.blockFormat()
+        cursor.select(QtGui.QTextCursor.Document)
+        cursor.setBlockFormat(block_format)
+        cursor.setCharFormat(default_format)
+        cursor.clearSelection()
+        cursor.endEditBlock()
+        cursor.setPosition(0)
+
+        # Loop through each occurrence of the keyword
+        occurrence_found = False
+        while not cursor.isNull() and not cursor.atEnd():
+            cursor = doc.find(keyword, cursor)
+            if not cursor.isNull():
+                if not occurrence_found:
+                    self.output_text.setTextCursor(cursor)
+                    occurrence_found = True
+                cursor.mergeCharFormat(highlight_format)
+                
+        if not occurrence_found:
+            cursor.setPosition(0)
+            self.output_text.setTextCursor(cursor)  # Set QTextEdit cursor to the beginning if no match found
+    
+    def find_next(self):
+        keyword = self.search_bar.text()
+        # Get the QTextCursor from the QTextEdit
+        cursor = self.output_text.textCursor()
+        # Move the cursor to the position after the current selection
+        cursor.setPosition(cursor.position() + cursor.selectionEnd() - cursor.selectionStart())
+        # Use the QTextDocument's find method to find the next occurrence
+        found_cursor = self.output_text.document().find(keyword, cursor)
+        if not found_cursor.isNull(): 
+            self.output_text.setTextCursor(found_cursor)
+
+    def clear_highlight(self):
+        doc = self.output_text.document()
+        default_format = QtGui.QTextCharFormat()
+        cursor = QtGui.QTextCursor(doc)
+        cursor.beginEditBlock()
+        block_format = cursor.blockFormat()
+        cursor.select(QtGui.QTextCursor.Document)
+        cursor.setBlockFormat(block_format)
+        cursor.setCharFormat(default_format)
+        cursor.clearSelection()
+        cursor.endEditBlock()
+        cursor.setPosition(0)
+        self.output_text.setTextCursor(cursor)  # Set QTextEdit cursor to the beginning
 
     #^ Plotter
     def create_plotter(self):
@@ -511,7 +599,7 @@ class MyMainWindow(MainWindow):
     def current_pose(self, text=None, output_text=True):
         self.mesh_store.current_pose()
         if text and output_text: 
-            self.output_text.append(f"--> Current <span style='background-color:yellow; color:black;'>{text}</span> pose is:")
+            self.output_text.append(f"--> Current {text} pose is:")
             self.output_text.append(f"{self.mesh_store.transformation_matrix}")
         self.register_pose(self.mesh_store.transformation_matrix)
 
@@ -587,7 +675,7 @@ class MyMainWindow(MainWindow):
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
         
-    def clear_output_text(self):
+    def reset_output_text(self):
         self.output_text.clear()
 
     def add_workspace(self, workspace_path='', prompt=False):

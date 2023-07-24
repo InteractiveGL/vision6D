@@ -9,12 +9,13 @@
 '''
 
 import __future__
+import os
 import copy
+import json
 import logging
-
-import numpy as np
 import pathlib
 
+import numpy as np
 import pyvista as pv
 import matplotlib.pyplot as plt
 from easydict import EasyDict
@@ -23,7 +24,9 @@ from PIL import Image
 import cv2
 # import pygeodesic.geodesic as geodesic
 import vtk.util.numpy_support as vtknp
-import json
+
+from ..path import LATLON_PATH
+
 logger = logging.getLogger("vision6D")
 
 def fread(fid, _len, _type):
@@ -288,8 +291,8 @@ def rigid_transform_3D(A, B):
 
 def load_latitude_longitude():
     # get the latitude and longitude
-    latlon_path = pathlib.Path.cwd() / "vision6D" / "data" / "ossiclesCoordinateMapping.json" # latlon_map_path = pkg_resources.resource_filename('vision6D', 'data/ossiclesCoordinateMapping.json')
-    with open(latlon_path, "r") as f: data = json.load(f)
+    # latlon_map_path = pkg_resources.resource_filename('vision6D', 'data/ossiclesCoordinateMapping.json')
+    with open(LATLON_PATH, "r") as f: data = json.load(f)
     
     latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
     longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)

@@ -7,6 +7,8 @@ from .draw_bbox_window import BboxWindow
 from .popup_dialog import PopUpDialog
 from .video_player import VideoPlayer
 from .video_sampler import VideoSampler
+from .search_bar import SearchBar
+
 
 __all__ = [
     'CalibrationPopWindow',
@@ -18,4 +20,5 @@ __all__ = [
     'PopUpDialog',
     'VideoPlayer',
     'VideoSampler',
+    'SearchBar'
 ]
