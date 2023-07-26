@@ -218,6 +218,9 @@ class MeshContainer:
         res = get_text_dialog.exec_()
         if res == QtWidgets.QDialog.Accepted:
             try:
+                if "," not in get_text_dialog.user_text:
+                    get_text_dialog.user_text = get_text_dialog.user_text.replace(" ", ",")
+                    get_text_dialog.user_text = get_text_dialog.user_text.strip().replace("[,", "[")
                 gt_pose = ast.literal_eval(get_text_dialog.user_text)
                 gt_pose = np.array(gt_pose)
                 if gt_pose.shape == (4, 4):
