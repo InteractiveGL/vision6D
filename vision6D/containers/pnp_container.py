@@ -79,18 +79,18 @@ class PnPContainer:
         return predicted_pose
 
     def epnp_mesh(self):
-        if len(self.mesh_store.mesh_actors) == 1: self.mesh_store.reference = list(self.mesh_store.mesh_actors.keys())[0]
+        if len(self.mesh_store.meshes) == 1: self.mesh_store.reference = list(self.mesh_store.meshes.keys())[0]
         if self.mesh_store.reference:
-            colors = utils.get_mesh_actor_scalars(self.mesh_store.mesh_actors[self.mesh_store.reference])
+            colors = utils.get_mesh_actor_scalars(self.mesh_store.meshes[self.mesh_store.reference].actor)
             if colors is not None and (not np.all(colors == colors[0])):
                 color_mask = self.export_mesh_render(save_render=False)
-                gt_pose = self.mesh_store.mesh_actors[self.mesh_store.reference].user_matrix
+                gt_pose = self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix
                 if self.mesh_store.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
                 if self.mesh_store.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
 
                 if color_mask is not None and np.sum(color_mask):
                     if self.mesh_store.mesh_colors[self.mesh_store.reference] == 'nocs':
-                        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.mesh_actors[self.mesh_store.reference])
+                        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[self.mesh_store.reference].actor)
                         mesh = trimesh.Trimesh(vertices, faces, process=False)
                         predicted_pose = self.nocs_epnp(color_mask, mesh)
                         if self.mesh_store.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
@@ -119,17 +119,17 @@ class PnPContainer:
 
             # current shown mask is binary mask
             if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
-                if len(self.mesh_store.mesh_actors) == 1: 
-                    self.mesh_store.reference = list(self.mesh_store.mesh_actors.keys())[0]
+                if len(self.mesh_store.meshes) == 1: 
+                    self.mesh_store.reference = list(self.mesh_store.meshes.keys())[0]
                 if self.mesh_store.reference:
-                    colors = utils.get_mesh_actor_scalars(self.mesh_store.mesh_actors[self.mesh_store.reference])
+                    colors = utils.get_mesh_actor_scalars(self.mesh_store.meshes[self.mesh_store.reference].actor)
                     if colors is not None and (not np.all(colors == colors[0])):
                         color_mask = self.export_mesh_render(save_render=False)
                         nocs_color = (self.mesh_store.mesh_colors[self.mesh_store.reference] == 'nocs')
-                        gt_pose = self.mesh_store.mesh_actors[self.mesh_store.reference].user_matrix
+                        gt_pose = self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix
                         if self.mesh_store.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
                         if self.mesh_store.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-                        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.mesh_actors[self.mesh_store.reference])
+                        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[self.mesh_store.reference].actor)
                         mesh = trimesh.Trimesh(vertices, faces, process=False)
                     else:
                         QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh need to be colored, with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

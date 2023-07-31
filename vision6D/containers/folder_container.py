@@ -48,7 +48,7 @@ class FolderContainer:
         if self.folder_store.folder_path:
             os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D", exist_ok=True)
 
-            if self.mesh_store.pose_path is not None: id = pathlib.Path(self.mesh_store.pose_path).stem
+            if self.mesh_store.meshes[self.mesh_store.reference].pose_path is not None: id = pathlib.Path(self.mesh_store.meshes[self.mesh_store.reference].pose_path).stem
             else: id = self.folder_store.current_image
 
             # save each image in the folder
@@ -61,7 +61,7 @@ class FolderContainer:
                 self.image_store.image_path = str(output_image_path)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} to {str(output_image_path)}")
 
-            if len(self.mesh_store.mesh_actors) > 0:
+            if len(self.mesh_store.meshes) > 0:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses" / f"{id}.npy"
                 self.current_pose()

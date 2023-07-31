@@ -35,7 +35,7 @@ class FolderStore(metaclass=Singleton):
         files.sort(key=lambda f: int(re.sub('\D', '', f)))
         return files, dir
 
-    def add_folder(self, folder_path, mesh_actors):
+    def add_folder(self, folder_path, meshes):
         self.folder_path = folder_path
         folders = [d for d in os.listdir(self.folder_path) if os.path.isdir(os.path.join(self.folder_path, d))] 
         image_path = ''
@@ -54,7 +54,7 @@ class FolderStore(metaclass=Singleton):
             pose_files, pose_dir = self.get_files_from_folder('poses')
             path = str(pose_dir / pose_files[self.current_image])
             if os.path.isfile(path): pose_path = path
-        if self.current_image == 0 or len(mesh_actors) == 0:
+        if self.current_image == 0 or len(meshes) == 0:
             if 'meshes' in folders:
                 dir = pathlib.Path(self.folder_path) / "meshes"
                 path = dir / 'mesh_path.txt'

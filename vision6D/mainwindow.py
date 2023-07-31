@@ -592,9 +592,10 @@ class MyMainWindow(MainWindow):
         self.show()
 
     def register_pose(self, pose):
-        for actor_name, actor in self.mesh_store.mesh_actors.items():
-            actor.user_matrix = pose
-            self.plotter.add_actor(actor, pickable=True, name=actor_name)
+        for name in self.mesh_store.meshes.keys():
+            self.mesh_store.meshes[name].actor.user_matrix = pose
+            self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
+            self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
 
     def current_pose(self, text=None, output_text=True):
         self.mesh_store.current_pose()
@@ -604,11 +605,11 @@ class MyMainWindow(MainWindow):
         self.register_pose(self.mesh_store.transformation_matrix)
 
     def button_actor_name_clicked(self, text, output_text=True):
-        if text in self.mesh_store.mesh_actors:
-            self.color_button.setText(self.mesh_store.mesh_colors[text])
+        if text in self.mesh_store.meshes.keys():
+            self.color_button.setText(self.mesh_store.meshes[text].color)
             self.mesh_store.reference = text
             self.current_pose(text=text, output_text=output_text)
-            curr_opacity = self.mesh_store.mesh_actors[self.mesh_store.reference].GetProperty().opacity
+            curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:
             self.color_button.setText("Color")
@@ -642,10 +643,10 @@ class MyMainWindow(MainWindow):
             actor_name = checked_button.text()
             if actor_name == 'image': self.image_container.set_image_opacity(value)
             elif actor_name == 'mask': self.mask_container.set_mask_opacity(value)
-            elif actor_name in self.mesh_store.mesh_actors:
-                self.mesh_store.mesh_opacity[actor_name] = value
-                self.mesh_store.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_store.mesh_opacity[actor_name])
-                self.mesh_container.set_mesh_opacity(actor_name, self.mesh_store.mesh_opacity[actor_name])
+            elif actor_name in self.mesh_store.meshes.keys():
+                self.mesh_store.meshes[actor_name].opacity = value
+                self.mesh_store.meshes[actor_name].previous_opacity = value
+                self.mesh_container.set_mesh_opacity(actor_name, self.mesh_store.meshes[actor_name].opacity)
     
     def update_color_button_text(self, text, popup):
         self.color_button.setText(text)
@@ -655,18 +656,18 @@ class MyMainWindow(MainWindow):
 
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            actor_name = checked_button.text()
-            if actor_name in self.mesh_store.mesh_actors:
+            name = checked_button.text()
+            if name in self.mesh_store.meshes.keys():
                 popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
                 popup.exec_()
 
                 text = self.color_button.text()
-                self.mesh_store.mesh_colors[actor_name] = text
-                if text == 'nocs': self.mesh_container.set_scalar(True, actor_name)
-                elif text == 'latlon': self.mesh_container.set_scalar(False, actor_name)
-                else: self.mesh_container.set_color(text, actor_name)
+                self.mesh_store.meshes[name].color = text
+                if text == 'nocs': self.mesh_container.set_scalar(True, name)
+                elif text == 'latlon': self.mesh_container.set_scalar(False, name)
+                else: self.mesh_container.set_color(text, name)
             else:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
@@ -704,7 +705,7 @@ class MyMainWindow(MainWindow):
             folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
             if self.video_store.video_path or self.workspace_path: self.clear_plot() # main goal is to set video_path to None
-            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path, mesh_actors=self.mesh_store.mesh_actors)
+            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path, meshes=self.mesh_store.meshes)
             if image_path or mask_path or pose_path or mesh_path:
                 if image_path: self.image_container.add_image_file(image_path=image_path)
                 if mask_path: self.mask_container.add_mask_file(mask_path=mask_path)
@@ -722,14 +723,14 @@ class MyMainWindow(MainWindow):
     def mirror_actors(self, direction):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            actor_name = checked_button.text()
-            if actor_name == 'image':
+            name = checked_button.text()
+            if name == 'image':
                 self.image_container.mirror_image(direction)
-            elif actor_name == 'mask':
+            elif name == 'mask':
                 self.mask_container.mirror_mask(direction)
-            elif actor_name == 'bbox':
+            elif name == 'bbox':
                 self.bbox_container.mirror_bbox(direction)
-            elif actor_name in self.mesh_store.mesh_actors:
+            elif name in self.mesh_store.meshes.keys():
                 self.mesh_container.mirror_mesh(direction)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -745,8 +746,8 @@ class MyMainWindow(MainWindow):
         elif name == 'bbox':
             actor = self.bbox_store.bbox_actor
             self.bbox_store.reset()
-        elif name in self.mesh_store.mesh_actors: 
-            actor = self.mesh_store.mesh_actors[name]
+        elif name in self.mesh_store.meshes: 
+            actor = self.mesh_store.meshes[name].actor
             self.mesh_store.remove_mesh(name)
             self.color_button.setText("Color")
         elif name in self.point_store.point_actors:
@@ -763,7 +764,7 @@ class MyMainWindow(MainWindow):
         button.deleteLater()
 
         # clear out the plot if there is no actor
-        if (self.image_store.image_actor is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.mesh_actors) == 0) and (len(self.point_store.point_actors) == 0): 
+        if (self.image_store.image_actor is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.meshes) == 0) and (len(self.point_store.point_actors) == 0): 
             self.clear_plot()
 
     def remove_actors_button(self):
@@ -792,8 +793,8 @@ class MyMainWindow(MainWindow):
                 self.bbox_store.reset()
                 self.bbox_store.mirror_x = False
                 self.bbox_store.mirror_y = False
-            elif name in self.mesh_store.mesh_actors: 
-                actor = self.mesh_store.mesh_actors[name]
+            elif name in self.mesh_store.meshes.keys(): 
+                actor = self.mesh_store.meshes[name].actor
                 self.mesh_store.remove_mesh(name)
                 self.color_button.setText("Color")
             elif name in self.point_store.point_actors:

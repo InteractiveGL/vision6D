@@ -102,7 +102,7 @@ class VideoContainer:
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} to {str(output_frame_path)}")
         
             # save gt_pose for each frame if there are any meshes
-            if len(self.mesh_store.mesh_actors) > 0:
+            if len(self.mesh_store.meshes) > 0:
                 os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
                 self.current_pose()

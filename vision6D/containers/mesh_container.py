@@ -72,37 +72,44 @@ class MeshContainer:
             self.add_mesh(mesh_path)
 
     def mirror_mesh(self, direction):
-        if direction == 'x': self.mesh_store.mirror_x = not self.mesh_store.mirror_x
+        if direction == 'x': self.mesh_store.meshes[self.mesh_store.reference].mirror_x = not self.mesh_store.meshes[self.mesh_store.reference].mirror_x
         elif direction == 'y': self.mesh_store.mirror_y = not self.mesh_store.mirror_y
         transformation_matrix = self.mesh_store.initial_pose
         if self.mesh_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         if self.mesh_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        self.add_mesh(self.mesh_store.meshdict[self.mesh_store.reference], transformation_matrix)
+        self.add_mesh(self.mesh_store.mesh_paths[self.mesh_store.reference], transformation_matrix)
         self.mesh_store.undo_poses.clear()
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
     def add_mesh(self, mesh_source, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
-        source_verts, source_faces = self.mesh_store.add_mesh(mesh_source)
-        if self.mesh_store.mesh_info:
-            mesh = self.plotter.add_mesh(self.mesh_store.mesh_info, color=self.mesh_store.mesh_colors[self.mesh_store.mesh_name], opacity=self.mesh_store.mesh_opacity[self.mesh_store.mesh_name], name=self.mesh_store.mesh_name)
+        # source_verts, source_faces = self.mesh_store.add_mesh(mesh_source)
+        mesh_data = self.mesh_store.add_mesh(mesh_source)
+        if mesh_data:
+            mesh = self.plotter.add_mesh(self.mesh_store.meshes[mesh_data.name].mesh, 
+                                        color=self.mesh_store.meshes[mesh_data.name].color, 
+                                        opacity=self.mesh_store.meshes[mesh_data.name].opacity, 
+                                        name=self.mesh_store.meshes[mesh_data.name].name)
+            
             mesh.user_matrix = self.mesh_store.transformation_matrix if transformation_matrix is None else transformation_matrix
-            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=self.mesh_store.mesh_name)
+            actor, _ = self.plotter.add_actor(mesh, 
+                                            pickable=True, 
+                                            name=self.mesh_store.meshes[mesh_data.name].name)
 
             actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
-            assert (actor_vertices == source_verts).all(), "vertices should be the same"
-            assert (actor_faces == source_faces).all(), "faces should be the same"
+            assert (actor_vertices == self.mesh_store.meshes[mesh_data.name].source_verts).all(), "vertices should be the same"
+            assert (actor_faces == self.mesh_store.meshes[mesh_data.name].source_faces).all(), "faces should be the same"
             assert actor.name == self.mesh_store.mesh_name, "actor's name should equal to mesh_name"
             
-            self.mesh_store.mesh_actors[self.mesh_store.mesh_name] = actor
-            self.color_button.setText(self.mesh_store.mesh_colors[self.mesh_store.mesh_name])
+            self.mesh_store.meshes[mesh_data.name].actor = actor
+            self.color_button.setText(self.mesh_store.meshes[mesh_data.name].color)
 
             # add remove current mesh to removeMenu
-            if self.mesh_store.mesh_name not in self.track_actors_names:
-                self.track_actors_names.append(self.mesh_store.mesh_name)
-                self.add_button_actor_name(self.mesh_store.mesh_name)
+            if self.mesh_store.meshes[mesh_data.name].name not in self.track_actors_names:
+                self.track_actors_names.append(self.mesh_store.meshes[mesh_data.name].name)
+                self.add_button_actor_name(self.mesh_store.meshes[mesh_data.name].name)
             #* very important for mirroring
-            self.check_button(actor_name=self.mesh_store.mesh_name, output_text=False) 
+            self.check_button(actor_name=self.mesh_store.meshes[mesh_data.name].name, output_text=False) 
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
@@ -110,12 +117,12 @@ class MeshContainer:
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
             actor_name = checked_button.text()
-            if actor_name in self.mesh_store.mesh_actors:
-                spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(self.mesh_store.mesh_spacing))
+            if actor_name in self.mesh_store.meshes.keys():
+                spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(self.mesh_store.meshes[actor_name].spacing))
                 if ok:
-                    try: self.mesh_store.mesh_spacing = ast.literal_eval(spacing)
+                    try: self.mesh_store.meshes[actor_name].spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    self.add_mesh(self.mesh_store.meshdict[actor_name])
+                    self.add_mesh(self.mesh_store.meshes[actor_name].path)
             else:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
@@ -124,37 +131,37 @@ class MeshContainer:
     def set_scalar(self, nocs, actor_name):
         mesh_data, colors = self.mesh_store.set_scalar(nocs, actor_name)
         if mesh_data:
-            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.mesh_store.mesh_opacity[actor_name], name=actor_name)
-            transformation_matrix = pv.array_from_vtkmatrix(self.mesh_store.mesh_actors[actor_name].GetMatrix())
+            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
+            transformation_matrix = pv.array_from_vtkmatrix(self.mesh_store.meshes[actor_name].actor.GetMatrix())
             mesh.user_matrix = transformation_matrix
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
             actor_colors = utils.get_mesh_actor_scalars(actor)
             assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
             assert actor.name == actor_name, "actor's name should equal to actor_name"
-            self.mesh_store.mesh_actors[actor_name] = actor
+            self.mesh_store.meshes[actor_name].actor = actor
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def set_color(self, color, actor_name):
-        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.mesh_actors[actor_name])
+        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[actor_name].actor)
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.mesh_store.mesh_opacity[actor_name], name=actor_name)
-        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_store.mesh_actors[actor_name].GetMatrix())
+        mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
+        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_store.meshes[actor_name].actor.GetMatrix())
         mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
         assert actor.name == actor_name, "actor's name should equal to actor_name"
-        self.mesh_store.mesh_actors[actor_name] = actor
+        self.mesh_store.meshes[actor_name].actor = actor
 
     def set_mesh_opacity(self, name: str, surface_opacity: float):
-        self.mesh_store.mesh_opacity[name] = surface_opacity
-        self.mesh_store.mesh_actors[name].user_matrix = pv.array_from_vtkmatrix(self.mesh_store.mesh_actors[name].GetMatrix())
-        self.mesh_store.mesh_actors[name].GetProperty().opacity = surface_opacity
-        self.plotter.add_actor(self.mesh_store.mesh_actors[name], pickable=True, name=name)
+        self.mesh_store.meshes[name].opacity = surface_opacity
+        self.mesh_store.meshes[name].actor.user_matrix = pv.array_from_vtkmatrix(self.mesh_store.meshes[name].actor.GetMatrix())
+        self.mesh_store.meshes[name].actor.GetProperty().opacity = surface_opacity
+        self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
 
     def toggle_surface_opacity(self, up):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            if checked_button.text() in self.mesh_store.mesh_actors: 
+            if checked_button.text() in self.mesh_store.meshes.keys(): 
                 change = 0.05
                 if not up: change *= -1
                 current_opacity = self.opacity_spinbox.value()
@@ -172,32 +179,32 @@ class MeshContainer:
 
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
-                if actor_name in self.mesh_store.mesh_actors:
-                    if len(self.mesh_store.mesh_actors) != 1 and actor_name == self.checked_button_name: 
+                if actor_name in self.mesh_store.meshes.keys():
+                    if len(self.mesh_store.meshes) != 1 and actor_name == self.checked_button_name: 
                         continue
                     self.ignore_opacity_change = True
                     self.opacity_spinbox.setValue(0)
                     self.ignore_opacity_change = False
-                    self.mesh_store.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_store.mesh_opacity[actor_name])
-                    self.mesh_store.mesh_opacity[actor_name] = 0
-                    self.set_mesh_opacity(actor_name, self.mesh_store.mesh_opacity[actor_name])
+                    self.mesh_store.meshes[actor_name].previous_opacity = copy.deepcopy(self.mesh_store.meshes[actor_name].opacity)
+                    self.mesh_store.meshes[actor_name].opacity = 0
+                    self.set_mesh_opacity(actor_name, self.mesh_store.meshes[actor_name].opacity)
         else:
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
-                if actor_name in self.mesh_store.mesh_actors:
-                    if len(self.mesh_store.mesh_actors) != 1 and actor_name == self.checked_button_name: 
+                if actor_name in self.mesh_store.meshes.keys():
+                    if len(self.mesh_store.meshes) != 1 and actor_name == self.checked_button_name: 
                         continue
                     self.ignore_opacity_change = True
-                    self.opacity_spinbox.setValue(self.mesh_store.store_mesh_opacity[actor_name])
+                    self.opacity_spinbox.setValue(self.mesh_store.meshes[actor_name].previous_opacity)
                     self.ignore_opacity_change = False
-                    self.set_mesh_opacity(actor_name, self.mesh_store.store_mesh_opacity[actor_name])
-                    self.mesh_store.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_store.mesh_opacity[actor_name])
+                    self.set_mesh_opacity(actor_name, self.mesh_store.meshes[actor_name].previous_opacity)
+                    self.mesh_store.meshes[actor_name].previous_opacity = copy.deepcopy(self.mesh_store.meshes[actor_name].opacity)
                             
     def add_pose_file(self, pose_path):
         if pose_path:
             self.hintLabel.hide()
-            self.mesh_store.pose_path = pose_path
-            transformation_matrix = np.load(self.mesh_store.pose_path)
+            self.mesh_store.meshes[self.mesh_store.reference].pose_path = pose_path
+            transformation_matrix = np.load(self.mesh_store.meshes[self.mesh_store.reference].pose_path)
             self.mesh_store.transformation_matrix = transformation_matrix
             if self.mesh_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             if self.mesh_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
@@ -250,8 +257,8 @@ class MeshContainer:
     def undo_pose(self):
         if self.button_group_actors_names.checkedButton():
             actor_name = self.button_group_actors_names.checkedButton().text()
-            if actor_name in self.mesh_store.mesh_actors:
-                if self.mesh_store.undo_poses and len(self.mesh_store.undo_poses[actor_name]) != 0: 
+            if actor_name in self.mesh_store.meshes.keys():
+                if self.mesh_store.meshes[actor_name].undo_poses and len(self.mesh_store.meshes[actor_name].undo_poses) != 0: 
                     self.mesh_store.undo_pose(actor_name)
                     # register the rest meshes' pose to current undoed pose
                     self.check_button(actor_name=actor_name)
@@ -266,7 +273,7 @@ class MeshContainer:
                 self.update_gt_pose()
                 np.save(output_path, self.mesh_store.transformation_matrix)
                 self.output_text.append(f"-> Saved:\n{self.mesh_store.transformation_matrix}\nExport to:\n {output_path}")
-            self.mesh_store.pose_path = output_path
+            self.mesh_store.meshes[self.mesh_store.reference].pose_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
