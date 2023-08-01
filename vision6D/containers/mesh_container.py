@@ -73,12 +73,11 @@ class MeshContainer:
 
     def mirror_mesh(self, direction):
         if direction == 'x': self.mesh_store.meshes[self.mesh_store.reference].mirror_x = not self.mesh_store.meshes[self.mesh_store.reference].mirror_x
-        elif direction == 'y': self.mesh_store.mirror_y = not self.mesh_store.mirror_y
-        transformation_matrix = self.mesh_store.initial_pose
-        if self.mesh_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        if self.mesh_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        self.add_mesh(self.mesh_store.mesh_paths[self.mesh_store.reference], transformation_matrix)
-        self.mesh_store.undo_poses.clear()
+        elif direction == 'y': self.mesh_store.meshes[self.mesh_store.reference].mirror_y = not self.mesh_store.meshes[self.mesh_store.reference].mirror_y
+        transformation_matrix = self.mesh_store.meshes[self.mesh_store.reference].initial_pose
+        if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        self.add_mesh(self.mesh_store.meshes[self.mesh_store.reference].mesh_path, transformation_matrix)
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
     def add_mesh(self, mesh_source, transformation_matrix=None):
@@ -91,7 +90,7 @@ class MeshContainer:
                                         opacity=self.mesh_store.meshes[mesh_data.name].opacity, 
                                         name=self.mesh_store.meshes[mesh_data.name].name)
             
-            mesh.user_matrix = self.mesh_store.transformation_matrix if transformation_matrix is None else transformation_matrix
+            mesh.user_matrix = self.mesh_store.meshes[mesh_data.name].transformation_matrix if transformation_matrix is None else transformation_matrix
             actor, _ = self.plotter.add_actor(mesh, 
                                             pickable=True, 
                                             name=self.mesh_store.meshes[mesh_data.name].name)
@@ -99,7 +98,7 @@ class MeshContainer:
             actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
             assert (actor_vertices == self.mesh_store.meshes[mesh_data.name].source_verts).all(), "vertices should be the same"
             assert (actor_faces == self.mesh_store.meshes[mesh_data.name].source_faces).all(), "faces should be the same"
-            assert actor.name == self.mesh_store.mesh_name, "actor's name should equal to mesh_name"
+            assert actor.name == self.mesh_store.meshes[mesh_data.name].name, "actor's name should equal to mesh name"
             
             self.mesh_store.meshes[mesh_data.name].actor = actor
             self.color_button.setText(self.mesh_store.meshes[mesh_data.name].color)
@@ -205,18 +204,18 @@ class MeshContainer:
             self.hintLabel.hide()
             self.mesh_store.meshes[self.mesh_store.reference].pose_path = pose_path
             transformation_matrix = np.load(self.mesh_store.meshes[self.mesh_store.reference].pose_path)
-            self.mesh_store.transformation_matrix = transformation_matrix
-            if self.mesh_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            if self.mesh_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix = transformation_matrix
+            if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.add_pose(matrix=transformation_matrix)
 
     def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
         if matrix is not None: 
-            self.mesh_store.initial_pose = matrix
+            self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
             self.reset_gt_pose()
         else:
             if (rot and trans): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-            self.mesh_store.initial_pose = matrix
+            self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
             self.reset_gt_pose()
         
     def set_pose(self):
@@ -233,9 +232,9 @@ class MeshContainer:
                 if gt_pose.shape == (4, 4):
                     self.hintLabel.hide()
                     transformation_matrix = gt_pose
-                    self.mesh_store.transformation_matrix = transformation_matrix
-                    if self.mesh_store.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                    if self.mesh_store.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix = transformation_matrix
+                    if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                     self.add_pose(matrix=transformation_matrix)
                 else:
                     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
@@ -243,16 +242,16 @@ class MeshContainer:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
     def reset_gt_pose(self):
-        if self.mesh_store.initial_pose is not None:
-            self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.initial_pose}")
-            self.register_pose(self.mesh_store.initial_pose)
+        if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
+            self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
+            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].initial_pose)
             self.reset_camera()
 
     def update_gt_pose(self):
-        if self.mesh_store.initial_pose is not None:
-            self.mesh_store.initial_pose = self.mesh_store.transformation_matrix
+        if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
+            self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix
             self.current_pose()
-            self.output_text.append(f"-> Update the GT pose to: \n{self.mesh_store.initial_pose}")
+            self.output_text.append(f"-> Update the GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
 
     def undo_pose(self):
         if self.button_group_actors_names.checkedButton():
@@ -271,8 +270,8 @@ class MeshContainer:
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.npy')
                 self.update_gt_pose()
-                np.save(output_path, self.mesh_store.transformation_matrix)
-                self.output_text.append(f"-> Saved:\n{self.mesh_store.transformation_matrix}\nExport to:\n {output_path}")
+                np.save(output_path, self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
+                self.output_text.append(f"-> Saved:\n{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}\nExport to:\n {output_path}")
             self.mesh_store.meshes[self.mesh_store.reference].pose_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

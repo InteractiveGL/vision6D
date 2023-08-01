@@ -29,7 +29,7 @@ class MeshData:
     actor: pv.Actor
     color: str
     spacing: List[float]
-    pose_path: str
+    pose_path: str = ''
     mirror_x: bool = False
     mirror_y: bool = False
     opacity: float = 0.3
@@ -40,17 +40,13 @@ class MeshData:
 
 class MeshStore(metaclass=Singleton):
     def __init__(self, window_size):
-
-        # Logic
         self.reference: Optional[str] = None
         self.render = utils.create_render(window_size[0], window_size[1])
-        self.latlon = utils.load_latitude_longitude()
-
-        # Data
         self.meshes: Dict[str, MeshData] = {}
         self.color_counter = 0
         self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
-        
+        self.latlon = utils.load_latitude_longitude()
+
     def reset(self): 
         self.color_counter = 0
         self.meshes.clear()
@@ -60,6 +56,9 @@ class MeshStore(metaclass=Singleton):
 
         source_verts, source_faces = None, None
 
+        # todo: fix the bug here!
+        mesh_data = MeshData()
+
         if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
             mesh_path = str(mesh_source)
             if pathlib.Path(mesh_path).suffix == '.mesh': mesh_source = utils.load_trimesh(mesh_source)
@@ -68,16 +67,16 @@ class MeshStore(metaclass=Singleton):
         if isinstance(mesh_source, trimesh.Trimesh):
             assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
             mesh = pv.wrap(mesh_source)
-            source_verts = mesh_source.vertices * self.mesh_spacing
+            source_verts = mesh_source.vertices * spacing
             source_faces = mesh_source.faces
 
         if isinstance(mesh_source, pv.PolyData):
             mesh = mesh_source
-            source_verts = mesh_source.points * self.mesh_spacing
+            source_verts = mesh_source.points * spacing
             source_faces = mesh_source.faces.reshape((-1, 4))[:, 1:]
 
         if source_verts is not None and source_faces is not None:
-            mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", path=mesh_path, mesh=mesh, source_verts=source_verts, source_faces=source_faces)
+            # mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", path=mesh_path, mesh=mesh, spacing=spacing, source_verts=source_verts, source_faces=source_faces)
             self.meshes[mesh_data.name] = mesh_data
 
             # assign a color to every mesh
@@ -114,8 +113,8 @@ class MeshStore(metaclass=Singleton):
     def set_scalar(self, nocs, actor_name):
         vertices, faces = utils.get_mesh_actor_vertices_faces(self.meshes[actor_name].actor)
         vertices_color = vertices
-        if self.self.meshes[actor_name].mirror_x: vertices_color = utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        if self.self.meshes[actor_name].mirror_y: vertices_color = utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.meshes[actor_name].mirror_x: vertices_color = utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
+        if self.meshes[actor_name].mirror_y: vertices_color = utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
         # get the corresponding color
         colors = utils.color_mesh(vertices_color, nocs=nocs)
         if colors.shape == vertices.shape: 
@@ -129,14 +128,14 @@ class MeshStore(metaclass=Singleton):
         if len(self.meshes) == 1: 
             self.reference = list(self.meshes.keys())[0]
         if self.reference:
-            self.transformation_matrix = self.meshes[self.reference].actor.user_matrix
+            self.meshes[self.reference].transformation_matrix = self.meshes[self.reference].actor.user_matrix
             self.meshes[self.reference].undo_poses.append(self.meshes[self.reference].actor.user_matrix)
             if len(self.meshes[self.reference].undo_poses) > 20: self.meshes[self.reference].undo_poses.pop(0)
             
     def undo_pose(self, actor_name):
-        self.transformation_matrix = self.meshes[actor_name].undo_poses.pop()
-        if (self.transformation_matrix == self.meshes[actor_name].actor.user_matrix).all():
+        self.meshes[actor_name].transformation_matrix = self.meshes[actor_name].undo_poses.pop()
+        if (self.meshes[actor_name].transformation_matrix == self.meshes[actor_name].actor.user_matrix).all():
             if len(self.meshes[actor_name].undo_poses) != 0: 
-                self.transformation_matrix = self.meshes[actor_name].undo_poses.pop()
-        self.meshes[self.reference].actor.user_matrix = self.transformation_matrix
+                self.meshes[actor_name].transformation_matrix = self.meshes[actor_name].undo_poses.pop()
+        self.meshes[self.reference].actor.user_matrix = self.meshes[actor_name].transformation_matrix
 

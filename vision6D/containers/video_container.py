@@ -106,9 +106,9 @@ class VideoContainer:
                 os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
                 self.current_pose()
-                np.save(output_pose_path, self.mesh_store.transformation_matrix)
+                np.save(output_pose_path, self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} pose to {str(output_pose_path)}:")
-                self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+                self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
 
             # save mask if there is a mask  
             if self.mask_store.mask_actor is not None:
@@ -139,9 +139,9 @@ class VideoContainer:
             self.video_store.prev_frame()
             pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
             if os.path.isfile(pose_path): 
-                self.mesh_store.transformation_matrix = np.load(pose_path)
-                self.register_pose(self.mesh_store.transformation_matrix)
-                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+                self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix = np.load(pose_path)
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
+                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
             else: 
                 self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
@@ -157,9 +157,9 @@ class VideoContainer:
             # load pose for the current frame if the pose exist
             pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
             if os.path.isfile(pose_path): 
-                self.mesh_store.transformation_matrix = np.load(pose_path)
-                self.register_pose(self.mesh_store.transformation_matrix)
-                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+                self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix = np.load(pose_path)
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
+                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         else:

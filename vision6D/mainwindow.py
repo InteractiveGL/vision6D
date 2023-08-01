@@ -601,8 +601,8 @@ class MyMainWindow(MainWindow):
         self.mesh_store.current_pose()
         if text and output_text: 
             self.output_text.append(f"--> Current {text} pose is:")
-            self.output_text.append(f"{self.mesh_store.transformation_matrix}")
-        self.register_pose(self.mesh_store.transformation_matrix)
+            self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
+        self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
 
     def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.meshes.keys():
@@ -691,12 +691,11 @@ class MyMainWindow(MainWindow):
             if 'video_path' in workspace: self.video_container.add_video_file(video_path=workspace['video_path'])
             if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=workspace['mask_path'])
             if 'bbox_path' in workspace: self.bbox_container.add_bbox_file(bbox_path=workspace['bbox_path'])
-            # need to load pose before loading meshes
-            if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=workspace['pose_path'])
             if 'mesh_path' in workspace:
                 mesh_paths = workspace['mesh_path']
                 for path in mesh_paths: self.mesh_container.add_mesh_file(mesh_path=path)
-            
+            if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=workspace['pose_path'])
+
             # reset camera
             self.camera_container.reset_camera()
 
