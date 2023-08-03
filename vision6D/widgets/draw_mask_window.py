@@ -48,7 +48,7 @@ class MaskLabel(QtWidgets.QLabel):
         image = cv2.fillPoly(mask, [points], 255)
         self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
         if self.output_path:
-            if pathlib.Path(self.output_path).suffix == '': self.output_path = self.output_path.parent / (self.output_path.stem + '.png')
+            if pathlib.Path(self.output_path).suffix == '': self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.png'))
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(self.output_path)
             self.output_path_changed.emit(self.output_path)
