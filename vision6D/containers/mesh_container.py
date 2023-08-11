@@ -82,10 +82,9 @@ class MeshContainer:
 
     def add_mesh(self, mesh_source, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
-        # source_verts, source_faces = self.mesh_store.add_mesh(mesh_source)
         mesh_data = self.mesh_store.add_mesh(mesh_source)
         if mesh_data:
-            mesh = self.plotter.add_mesh(self.mesh_store.meshes[mesh_data.name].mesh, 
+            mesh = self.plotter.add_mesh(self.mesh_store.meshes[mesh_data.name].pv_mesh, 
                                         color=self.mesh_store.meshes[mesh_data.name].color, 
                                         opacity=self.mesh_store.meshes[mesh_data.name].opacity, 
                                         name=self.mesh_store.meshes[mesh_data.name].name)
@@ -96,8 +95,8 @@ class MeshContainer:
                                             name=self.mesh_store.meshes[mesh_data.name].name)
 
             actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
-            assert (actor_vertices == self.mesh_store.meshes[mesh_data.name].source_verts).all(), "vertices should be the same"
-            assert (actor_faces == self.mesh_store.meshes[mesh_data.name].source_faces).all(), "faces should be the same"
+            assert (actor_vertices == self.mesh_store.meshes[mesh_data.name].source_mesh.vertices).all(), "vertices should be the same"
+            assert (actor_faces == self.mesh_store.meshes[mesh_data.name].source_mesh.faces).all(), "faces should be the same"
             assert actor.name == self.mesh_store.meshes[mesh_data.name].name, "actor's name should equal to mesh name"
             
             self.mesh_store.meshes[mesh_data.name].actor = actor

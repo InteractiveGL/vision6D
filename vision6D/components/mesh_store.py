@@ -23,12 +23,11 @@ from ..tools import utils
 class MeshData:
     name: str
     path: str
-    source_verts: trimesh.Trimesh
-    source_faces: trimesh.Trimesh
-    mesh: pv.PolyData
+    source_mesh: trimesh.Trimesh
+    pv_mesh: pv.PolyData
     actor: pv.Actor
     color: str
-    spacing: List[float]
+    spacing: List[float] = field(default_factory=list)
     pose_path: str = ''
     mirror_x: bool = False
     mirror_y: bool = False
@@ -54,10 +53,7 @@ class MeshStore(metaclass=Singleton):
     #^ Mesh related
     def add_mesh(self, mesh_source) -> Optional[MeshData]:
 
-        source_verts, source_faces = None, None
-
-        # todo: fix the bug here!
-        mesh_data = MeshData()
+        source_mesh = None
 
         if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
             mesh_path = str(mesh_source)
@@ -65,24 +61,28 @@ class MeshStore(metaclass=Singleton):
             else: mesh_source = pv.read(mesh_path)
 
         if isinstance(mesh_source, trimesh.Trimesh):
-            assert (mesh_source.vertices.shape[1] == 3 and mesh_source.faces.shape[1] == 3), "it should be N by 3 matrix"
-            mesh = pv.wrap(mesh_source)
-            source_verts = mesh_source.vertices * spacing
-            source_faces = mesh_source.faces
+            source_mesh = mesh_source
+            assert (source_mesh.vertices.shape[1] == 3 and source_mesh.faces.shape[1] == 3), "it should be N by 3 matrix"
+            pv_mesh = pv.wrap(mesh_source)
 
         if isinstance(mesh_source, pv.PolyData):
-            mesh = mesh_source
-            source_verts = mesh_source.points * spacing
-            source_faces = mesh_source.faces.reshape((-1, 4))[:, 1:]
-
-        if source_verts is not None and source_faces is not None:
-            # mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", path=mesh_path, mesh=mesh, spacing=spacing, source_verts=source_verts, source_faces=source_faces)
+            source_mesh = trimesh.Trimesh(mesh_source.points, mesh_source.faces.reshape((-1, 4))[:, 1:], process=False)
+            assert (source_mesh.vertices.shape[1] == 3 and source_mesh.faces.shape[1] == 3), "it should be N by 3 matrix"
+            pv_mesh = mesh_source
+        
+        if source_mesh is not None:
+            mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", 
+                                path=mesh_path, 
+                                source_mesh=source_mesh, 
+                                pv_mesh=pv_mesh,
+                                actor=None,
+                                color=self.colors[self.color_counter])
+            
             self.meshes[mesh_data.name] = mesh_data
 
-            # assign a color to every mesh
-            self.meshes[mesh_data.name].color = self.colors.index(self.color_counter)
+            # assign a color to every mesh 
             self.color_counter += 1
-            self.color_counter %= len(self.color)
+            self.color_counter %= len(self.colors)
 
             return mesh_data
 
