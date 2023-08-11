@@ -389,42 +389,46 @@ class MyMainWindow(MainWindow):
 
         # Create Grid layout for function buttons
         top_grid_layout = QtWidgets.QGridLayout()
-        top_grid_layout.addWidget(self.color_button, 0, 0)
-        top_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
-
+        anchor_button = QtWidgets.QPushButton("Anchor")
+        anchor_button.setCheckable(True)
+        anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
+        top_grid_layout.addWidget(anchor_button, 0, 0)
+        top_grid_layout.addWidget(self.color_button, 0, 1)
+        top_grid_layout.addWidget(self.opacity_spinbox, 0, 2)
+        
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
         actor_pose_button.clicked.connect(self.mesh_container.set_pose)
-        top_grid_layout.addWidget(actor_pose_button, 0, 2)
+        top_grid_layout.addWidget(actor_pose_button, 0, 3)
 
         # Create the spacing button
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
-        top_grid_layout.addWidget(self.spacing_button, 0, 3)
+        top_grid_layout.addWidget(self.spacing_button, 1, 0)
 
         # Create the hide button
         hide_button = QtWidgets.QPushButton("Toggle Meshes")
         hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
-        top_grid_layout.addWidget(hide_button, 1, 0)
+        top_grid_layout.addWidget(hide_button, 1, 1)
 
         # Create the mirror x button
         self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
         self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
-        top_grid_layout.addWidget(self.mirror_x_button, 1, 1)
+        top_grid_layout.addWidget(self.mirror_x_button, 1, 2)
 
         # Create the mirror y button
         self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
         self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
-        top_grid_layout.addWidget(self.mirror_y_button, 1, 2)
+        top_grid_layout.addWidget(self.mirror_y_button, 1, 3)
 
         # Create the remove button
         remove_button = QtWidgets.QPushButton("Remove Actor")
         remove_button.clicked.connect(self.remove_actors_button)
-        top_grid_layout.addWidget(remove_button, 1, 3)
+        top_grid_layout.addWidget(remove_button, 2, 0)
 
         # Create the video related button
         self.play_video_button.clicked.connect(self.video_container.play_video)
-        top_grid_layout.addWidget(self.play_video_button, 2, 0)
+        top_grid_layout.addWidget(self.play_video_button, 2, 1)
 
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)

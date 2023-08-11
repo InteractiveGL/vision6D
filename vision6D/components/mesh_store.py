@@ -45,6 +45,7 @@ class MeshStore(metaclass=Singleton):
         self.color_counter = 0
         self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
         self.latlon = utils.load_latitude_longitude()
+        self.toggle_anchor_mesh = False
 
     def reset(self): 
         self.color_counter = 0

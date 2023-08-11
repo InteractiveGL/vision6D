@@ -111,6 +111,9 @@ class MeshContainer:
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
+    def anchor_mesh(self):
+        self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
+    
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
