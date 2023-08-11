@@ -12,7 +12,7 @@
 import os
 os.environ["QT_API"] = "pyqt5" # Setting the Qt bindings for QtPy
 import json
-import copy
+import pathlib
 import functools
 
 import PIL.Image
@@ -48,6 +48,7 @@ from .containers import VideoContainer
 from .containers import FolderContainer
 
 from .path import ICON_PATH
+from .path import PKG_ROOT
 
 np.set_printoptions(suppress=True)
 
@@ -687,15 +688,15 @@ class MyMainWindow(MainWindow):
             self.workspace_path = workspace_path
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
-            if 'image_path' in workspace: self.image_container.add_image_file(image_path=workspace['image_path'])
-            if 'video_path' in workspace: self.video_container.add_video_file(video_path=workspace['video_path'])
-            if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=workspace['mask_path'])
-            if 'bbox_path' in workspace: self.bbox_container.add_bbox_file(bbox_path=workspace['bbox_path'])
+            root = PKG_ROOT.parent.parent.parent
+            if 'image_path' in workspace: self.image_container.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
+            if 'video_path' in workspace: self.video_container.add_video_file(video_path=root / pathlib.Path(*workspace['video_path'].split("\\")))
+            if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=root / pathlib.Path(*workspace['mask_path'].split("\\")))
+            if 'bbox_path' in workspace: self.bbox_container.add_bbox_file(bbox_path=root / pathlib.Path(*workspace['bbox_path'].split("\\")))
             if 'mesh_path' in workspace:
                 mesh_paths = workspace['mesh_path']
-                for path in mesh_paths: self.mesh_container.add_mesh_file(mesh_path=path)
-            if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=workspace['pose_path'])
-
+                for path in mesh_paths: self.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*path.split("\\")))
+            if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=root / pathlib.Path(*workspace['pose_path'].split("\\")))
             # reset camera
             self.camera_container.reset_camera()
 
