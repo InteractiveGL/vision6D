@@ -595,7 +595,7 @@ class MyMainWindow(MainWindow):
         self.show()
 
     def register_pose(self, pose):
-        for name in self.mesh_store.meshes.keys():
+        for name in self.mesh_store.meshes:
             self.mesh_store.meshes[name].actor.user_matrix = pose
             self.mesh_store.meshes[name].transformation_matrix = pose
             # set up the initial pose if it was set to None
@@ -604,7 +604,7 @@ class MyMainWindow(MainWindow):
             self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
 
     def button_actor_name_clicked(self, text, output_text=True):
-        if text in self.mesh_store.meshes.keys():
+        if text in self.mesh_store.meshes:
             self.color_button.setText(self.mesh_store.meshes[text].color)
             self.mesh_store.reference = text
             # register to the reference's pose
@@ -646,7 +646,7 @@ class MyMainWindow(MainWindow):
             actor_name = checked_button.text()
             if actor_name == 'image': self.image_container.set_image_opacity(value)
             elif actor_name == 'mask': self.mask_container.set_mask_opacity(value)
-            elif actor_name in self.mesh_store.meshes.keys():
+            elif actor_name in self.mesh_store.meshes:
                 self.mesh_store.meshes[actor_name].opacity = value
                 self.mesh_store.meshes[actor_name].previous_opacity = value
                 self.mesh_container.set_mesh_opacity(actor_name, self.mesh_store.meshes[actor_name].opacity)
@@ -659,7 +659,7 @@ class MyMainWindow(MainWindow):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
             name = checked_button.text()
-            if name in self.mesh_store.meshes.keys():
+            if name in self.mesh_store.meshes:
                 popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
@@ -728,7 +728,7 @@ class MyMainWindow(MainWindow):
             if name == 'image': self.image_container.mirror_image(direction)
             elif name == 'mask': self.mask_container.mirror_mask(direction)
             elif name == 'bbox': self.bbox_container.mirror_bbox(direction)
-            elif name in self.mesh_store.meshes.keys(): self.mesh_container.mirror_mesh(name, direction)
+            elif name in self.mesh_store.meshes: self.mesh_container.mirror_mesh(name, direction)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
@@ -790,7 +790,7 @@ class MyMainWindow(MainWindow):
                 self.bbox_store.reset()
                 self.bbox_store.mirror_x = False
                 self.bbox_store.mirror_y = False
-            elif name in self.mesh_store.meshes.keys(): 
+            elif name in self.mesh_store.meshes: 
                 actor = self.mesh_store.meshes[name].actor
                 self.mesh_store.remove_mesh(name)
                 self.color_button.setText("Color")

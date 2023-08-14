@@ -110,7 +110,7 @@ class MeshContainer:
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
             actor_name = checked_button.text()
-            if actor_name in self.mesh_store.meshes.keys():
+            if actor_name in self.mesh_store.meshes:
                 spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(self.mesh_store.meshes[actor_name].spacing))
                 if ok:
                     try: self.mesh_store.meshes[actor_name].spacing = ast.literal_eval(spacing)
@@ -157,7 +157,7 @@ class MeshContainer:
     def toggle_surface_opacity(self, up):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            if checked_button.text() in self.mesh_store.meshes.keys(): 
+            if checked_button.text() in self.mesh_store.meshes: 
                 change = 0.05
                 if not up: change *= -1
                 current_opacity = self.opacity_spinbox.value()
@@ -175,7 +175,7 @@ class MeshContainer:
 
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
-                if actor_name in self.mesh_store.meshes.keys():
+                if actor_name in self.mesh_store.meshes:
                     if len(self.mesh_store.meshes) != 1 and actor_name == self.checked_button_name: 
                         continue
                     self.ignore_opacity_change = True
@@ -187,7 +187,7 @@ class MeshContainer:
         else:
             for button in self.button_group_actors_names.buttons():
                 actor_name = button.text()
-                if actor_name in self.mesh_store.meshes.keys():
+                if actor_name in self.mesh_store.meshes:
                     if len(self.mesh_store.meshes) != 1 and actor_name == self.checked_button_name: 
                         continue
                     self.ignore_opacity_change = True
@@ -254,7 +254,7 @@ class MeshContainer:
     def undo_pose(self):
         if self.button_group_actors_names.checkedButton():
             actor_name = self.button_group_actors_names.checkedButton().text()
-            if actor_name in self.mesh_store.meshes.keys():
+            if actor_name in self.mesh_store.meshes:
                 if self.mesh_store.meshes[actor_name].undo_poses and len(self.mesh_store.meshes[actor_name].undo_poses) != 0: 
                     self.mesh_store.undo_pose(actor_name)
                     # register the rest meshes' pose to current undoed pose
