@@ -239,17 +239,23 @@ class MeshContainer:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     
     def reset_gt_pose(self):
-        if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
-            self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
-            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].initial_pose)
-            self.reset_camera()
+        if self.mesh_store.reference:
+            if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
+                self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].initial_pose)
+                self.reset_camera()
+        else:
+            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def update_gt_pose(self):
-        if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
-            self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix
-            self.mesh_store.reference_pose()
-            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
-            self.output_text.append(f"-> Update the GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
+        if self.mesh_store.reference:
+            if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
+                self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix
+                self.mesh_store.reference_pose()
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
+                self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
+        else:
+            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def undo_pose(self):
         if self.button_group_actors_names.checkedButton():

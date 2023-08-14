@@ -79,7 +79,6 @@ class PnPContainer:
         return predicted_pose
 
     def epnp_mesh(self):
-        if len(self.mesh_store.meshes) == 1: self.mesh_store.reference = list(self.mesh_store.meshes.keys())[0]
         if self.mesh_store.reference:
             colors = utils.get_mesh_actor_scalars(self.mesh_store.meshes[self.mesh_store.reference].actor)
             if colors is not None and (not np.all(colors == colors[0])):
@@ -119,8 +118,6 @@ class PnPContainer:
 
             # current shown mask is binary mask
             if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
-                if len(self.mesh_store.meshes) == 1: 
-                    self.mesh_store.reference = list(self.mesh_store.meshes.keys())[0]
                 if self.mesh_store.reference:
                     colors = utils.get_mesh_actor_scalars(self.mesh_store.meshes[self.mesh_store.reference].actor)
                     if colors is not None and (not np.all(colors == colors[0])):

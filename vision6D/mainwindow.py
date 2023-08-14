@@ -389,6 +389,7 @@ class MyMainWindow(MainWindow):
         top_grid_layout = QtWidgets.QGridLayout()
         anchor_button = QtWidgets.QPushButton("Anchor")
         anchor_button.setCheckable(True)
+        anchor_button.setChecked(True)
         anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
         top_grid_layout.addWidget(anchor_button, 0, 0)
         top_grid_layout.addWidget(self.color_button, 0, 1)
@@ -595,23 +596,22 @@ class MyMainWindow(MainWindow):
         self.show()
 
     def register_pose(self, pose):
-        for name in self.mesh_store.meshes:
-            self.mesh_store.meshes[name].actor.user_matrix = pose
-            self.mesh_store.meshes[name].transformation_matrix = pose
-            # set up the initial pose if it was set to None
-            if self.mesh_store.meshes[name].initial_pose is None: self.mesh_store.meshes[name].initial_pose = pose
-            self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
-            self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
+        if self.mesh_store.toggle_anchor_mesh:
+            for name in self.mesh_store.meshes:
+                self.mesh_store.meshes[name].actor.user_matrix = pose
+                self.mesh_store.meshes[name].transformation_matrix = pose
+                # set up the initial pose if it was set to None
+                if self.mesh_store.meshes[name].initial_pose is None: self.mesh_store.meshes[name].initial_pose = pose
+                self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
+                self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
 
     def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.meshes:
             self.color_button.setText(self.mesh_store.meshes[text].color)
             self.mesh_store.reference = text
-            # register to the reference's pose
-            if self.mesh_store.toggle_anchor_mesh: 
-                self.mesh_store.reference_pose()
-                if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
-                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
+            self.mesh_store.reference_pose()
+            if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
+            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
             curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:

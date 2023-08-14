@@ -44,7 +44,7 @@ class MeshStore(metaclass=Singleton):
         self.color_counter = 0
         self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
         self.latlon = utils.load_latitude_longitude()
-        self.toggle_anchor_mesh = False
+        self.toggle_anchor_mesh = True
 
     def reset(self): 
         self.color_counter = 0
@@ -125,11 +125,9 @@ class MeshStore(metaclass=Singleton):
         
     #^ Pose related 
     def reference_pose(self):
-        if len(self.meshes) == 1: self.reference = list(self.meshes.keys())[0]
-        if self.reference:
-            self.meshes[self.reference].transformation_matrix = self.meshes[self.reference].actor.user_matrix
-            self.meshes[self.reference].undo_poses.append(self.meshes[self.reference].actor.user_matrix)
-            if len(self.meshes[self.reference].undo_poses) > 20: self.meshes[self.reference].undo_poses.pop(0)
+        self.meshes[self.reference].transformation_matrix = self.meshes[self.reference].actor.user_matrix
+        self.meshes[self.reference].undo_poses.append(self.meshes[self.reference].actor.user_matrix)
+        if len(self.meshes[self.reference].undo_poses) > 20: self.meshes[self.reference].undo_poses.pop(0)
             
     def undo_pose(self, actor_name):
         self.meshes[actor_name].transformation_matrix = self.meshes[actor_name].undo_poses.pop()
