@@ -33,7 +33,7 @@ class MeshData:
     opacity: float = 0.3
     previous_opacity: float = 0.3
     transformation_matrix: np.ndarray = np.eye(4)
-    initial_pose: np.ndarray = np.eye(4)
+    initial_pose: np.ndarray = None
     undo_poses: List[np.ndarray] = field(default_factory=list)
 
 class MeshStore(metaclass=Singleton):
@@ -80,7 +80,7 @@ class MeshStore(metaclass=Singleton):
             
             self.meshes[mesh_data.name] = mesh_data
 
-            # assign a color to every mesh 
+            # assign a color to every mesh
             self.color_counter += 1
             self.color_counter %= len(self.colors)
 
@@ -125,8 +125,7 @@ class MeshStore(metaclass=Singleton):
         
     #^ Pose related 
     def reference_pose(self):
-        if len(self.meshes) == 1: 
-            self.reference = list(self.meshes.keys())[0]
+        if len(self.meshes) == 1: self.reference = list(self.meshes.keys())[0]
         if self.reference:
             self.meshes[self.reference].transformation_matrix = self.meshes[self.reference].actor.user_matrix
             self.meshes[self.reference].undo_poses.append(self.meshes[self.reference].actor.user_matrix)

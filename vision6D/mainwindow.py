@@ -598,6 +598,8 @@ class MyMainWindow(MainWindow):
         for name in self.mesh_store.meshes.keys():
             self.mesh_store.meshes[name].actor.user_matrix = pose
             self.mesh_store.meshes[name].transformation_matrix = pose
+            # set up the initial pose if it was set to None
+            if self.mesh_store.meshes[name].initial_pose is None: self.mesh_store.meshes[name].initial_pose = pose
             self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
             self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
 
@@ -708,10 +710,10 @@ class MyMainWindow(MainWindow):
             if image_path or mask_path or pose_path or mesh_path:
                 if image_path: self.image_container.add_image_file(image_path=image_path)
                 if mask_path: self.mask_container.add_mask_file(mask_path=mask_path)
-                if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
                 if mesh_path: 
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
                     for path in mesh_path: self.mesh_container.add_mesh_file(path)
+                if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
                 self.play_video_button.setEnabled(False)
                 self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
                 self.camera_container.reset_camera()
@@ -723,14 +725,10 @@ class MyMainWindow(MainWindow):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
             name = checked_button.text()
-            if name == 'image':
-                self.image_container.mirror_image(direction)
-            elif name == 'mask':
-                self.mask_container.mirror_mask(direction)
-            elif name == 'bbox':
-                self.bbox_container.mirror_bbox(direction)
-            elif name in self.mesh_store.meshes.keys():
-                self.mesh_container.mirror_mesh(direction)
+            if name == 'image': self.image_container.mirror_image(direction)
+            elif name == 'mask': self.mask_container.mirror_mask(direction)
+            elif name == 'bbox': self.bbox_container.mirror_bbox(direction)
+            elif name in self.mesh_store.meshes.keys(): self.mesh_container.mirror_mesh(name, direction)
         else:
             QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 

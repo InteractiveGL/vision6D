@@ -71,14 +71,14 @@ class MeshContainer:
             if mesh_data: self.add_mesh(mesh_data)
             else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
-    def mirror_mesh(self, direction):
-        if direction == 'x': self.mesh_store.meshes[self.mesh_store.reference].mirror_x = not self.mesh_store.meshes[self.mesh_store.reference].mirror_x
-        elif direction == 'y': self.mesh_store.meshes[self.mesh_store.reference].mirror_y = not self.mesh_store.meshes[self.mesh_store.reference].mirror_y
-        transformation_matrix = self.mesh_store.meshes[self.mesh_store.reference].initial_pose
-        if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        mesh_data = None
-        self.add_mesh(mesh_data, transformation_matrix)
+    def mirror_mesh(self, name, direction):
+        if self.mesh_store.toggle_anchor_mesh: name = self.mesh_store.reference
+        if direction == 'x': self.mesh_store.meshes[name].mirror_x = not self.mesh_store.meshes[name].mirror_x
+        elif direction == 'y': self.mesh_store.meshes[name].mirror_y = not self.mesh_store.meshes[name].mirror_y
+        transformation_matrix = self.mesh_store.meshes[name].initial_pose
+        if self.mesh_store.meshes[name].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        if self.mesh_store.meshes[name].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+        self.add_mesh(self.mesh_store.meshes[name], transformation_matrix)
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
     def add_mesh(self, mesh_data, transformation_matrix=None):
@@ -199,8 +199,8 @@ class MeshContainer:
     def add_pose_file(self, pose_path):
         if pose_path:
             self.hintLabel.hide()
+            transformation_matrix = np.load(pose_path)
             self.mesh_store.meshes[self.mesh_store.reference].pose_path = pose_path
-            transformation_matrix = np.load(self.mesh_store.meshes[self.mesh_store.reference].pose_path)
             self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix = transformation_matrix
             if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
