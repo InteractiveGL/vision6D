@@ -26,14 +26,14 @@ class FolderContainer:
     def __init__(self,
                 plotter,
                 play_video_button,
-                current_pose,
+                register_pose,
                 add_folder,
                 load_mask,
                 output_text):
         
         self.plotter = plotter
         self.play_video_button = play_video_button
-        self.current_pose = current_pose
+        self.register_pose = register_pose
         self.add_folder = add_folder
         self.load_mask = load_mask
         self.output_text = output_text
@@ -64,7 +64,8 @@ class FolderContainer:
             if len(self.mesh_store.meshes) > 0:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses" / f"{id}.npy"
-                self.current_pose()
+                self.mesh_store.reference_pose()
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
                 np.save(output_pose_path, self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} pose to {str(output_pose_path)}:")
                 self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")

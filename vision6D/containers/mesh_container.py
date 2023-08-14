@@ -37,7 +37,6 @@ class MeshContainer:
                 opacity_spinbox, 
                 opacity_value_change,
                 reset_camera,
-                current_pose,
                 register_pose,
                 load_mask,
                 output_text):
@@ -55,7 +54,6 @@ class MeshContainer:
         self.opacity_spinbox = opacity_spinbox
         self.opacity_value_change = opacity_value_change
         self.reset_camera = reset_camera
-        self.current_pose = current_pose
         self.register_pose = register_pose
         self.load_mask = load_mask
         self.output_text = output_text
@@ -69,7 +67,9 @@ class MeshContainer:
             mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_path:
             self.hintLabel.hide()
-            self.add_mesh(mesh_path)
+            mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path)
+            if mesh_data: self.add_mesh(mesh_data)
+            else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def mirror_mesh(self, direction):
         if direction == 'x': self.mesh_store.meshes[self.mesh_store.reference].mirror_x = not self.mesh_store.meshes[self.mesh_store.reference].mirror_x
@@ -77,40 +77,32 @@ class MeshContainer:
         transformation_matrix = self.mesh_store.meshes[self.mesh_store.reference].initial_pose
         if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        self.add_mesh(self.mesh_store.meshes[self.mesh_store.reference].mesh_path, transformation_matrix)
+        mesh_data = None
+        self.add_mesh(mesh_data, transformation_matrix)
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
-    def add_mesh(self, mesh_source, transformation_matrix=None):
+    def add_mesh(self, mesh_data, transformation_matrix=None):
         """ add a mesh to the pyqt frame """
-        mesh_data = self.mesh_store.add_mesh(mesh_source)
-        if mesh_data:
-            mesh = self.plotter.add_mesh(self.mesh_store.meshes[mesh_data.name].pv_mesh, 
-                                        color=self.mesh_store.meshes[mesh_data.name].color, 
-                                        opacity=self.mesh_store.meshes[mesh_data.name].opacity, 
-                                        name=self.mesh_store.meshes[mesh_data.name].name)
-            
-            mesh.user_matrix = self.mesh_store.meshes[mesh_data.name].transformation_matrix if transformation_matrix is None else transformation_matrix
-            actor, _ = self.plotter.add_actor(mesh, 
-                                            pickable=True, 
-                                            name=self.mesh_store.meshes[mesh_data.name].name)
+        mesh = self.plotter.add_mesh(mesh_data.pv_mesh, color=mesh_data.color, opacity=mesh_data.opacity, name=mesh_data.name)
+        mesh.user_matrix = mesh_data.transformation_matrix if transformation_matrix is None else transformation_matrix
+        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_data.name)
+        """
+        #* assertion
+        actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
+        assert (actor_vertices == mesh_data.source_mesh.vertices).all(), "vertices should be the same"
+        assert (actor_faces == mesh_data.source_mesh.faces).all(), "faces should be the same"
+        assert actor.name == mesh_data.name, "actor's name should equal to mesh name"
+        """
+        mesh_data.actor = actor
+        self.color_button.setText(mesh_data.color)
 
-            actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
-            assert (actor_vertices == self.mesh_store.meshes[mesh_data.name].source_mesh.vertices).all(), "vertices should be the same"
-            assert (actor_faces == self.mesh_store.meshes[mesh_data.name].source_mesh.faces).all(), "faces should be the same"
-            assert actor.name == self.mesh_store.meshes[mesh_data.name].name, "actor's name should equal to mesh name"
-            
-            self.mesh_store.meshes[mesh_data.name].actor = actor
-            self.color_button.setText(self.mesh_store.meshes[mesh_data.name].color)
-
-            # add remove current mesh to removeMenu
-            if self.mesh_store.meshes[mesh_data.name].name not in self.track_actors_names:
-                self.track_actors_names.append(self.mesh_store.meshes[mesh_data.name].name)
-                self.add_button_actor_name(self.mesh_store.meshes[mesh_data.name].name)
-            #* very important for mirroring
-            self.check_button(actor_name=self.mesh_store.meshes[mesh_data.name].name, output_text=False) 
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-    
+        # add remove current mesh to removeMenu
+        if mesh_data.name not in self.track_actors_names:
+            self.track_actors_names.append(mesh_data.name)
+            self.add_button_actor_name(mesh_data.name)
+        #* very important for mirroring
+        self.check_button(actor_name=mesh_data.name, output_text=False) 
+        
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
     
@@ -123,7 +115,10 @@ class MeshContainer:
                 if ok:
                     try: self.mesh_store.meshes[actor_name].spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    self.add_mesh(self.mesh_store.meshes[actor_name].path)
+                    vertices = self.mesh_store.meshes[actor_name].source_mesh.vertices * self.mesh_store.meshes[actor_name].spacing
+                    mesh = trimesh.Trimesh(vertices=vertices, faces=self.mesh_store.meshes[actor_name].source_mesh.faces, process=False)
+                    self.mesh_store.meshes[actor_name].pv_mesh = pv.wrap(mesh)
+                    self.add_mesh(self.mesh_store.meshes[actor_name])
             else:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
@@ -252,7 +247,8 @@ class MeshContainer:
     def update_gt_pose(self):
         if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
             self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix
-            self.current_pose()
+            self.mesh_store.reference_pose()
+            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
             self.output_text.append(f"-> Update the GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
 
     def undo_pose(self):

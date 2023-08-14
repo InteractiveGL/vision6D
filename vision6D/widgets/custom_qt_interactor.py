@@ -38,7 +38,7 @@ class CustomQtInteractor(QtInteractor):
                 self.main_window.check_button('image')
 
     def release_callback(self):
-        if self.cell_picker and self.main_window.mesh_store.toggle_anchor_mesh: 
+        if self.cell_picker: 
             picked_actor = self.cell_picker.GetActor()
             name = picked_actor.name
             if (name in self.main_window.mesh_store.meshes.keys()) or (name == 'mask'):

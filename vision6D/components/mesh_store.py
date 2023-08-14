@@ -22,12 +22,11 @@ from ..tools import utils
 @dataclass
 class MeshData:
     name: str
-    path: str
     source_mesh: trimesh.Trimesh
     pv_mesh: pv.PolyData
     actor: pv.Actor
     color: str
-    spacing: List[float] = field(default_factory=list)
+    spacing: List[float] = field(default_factory=[1, 1, 1])
     pose_path: str = ''
     mirror_x: bool = False
     mirror_y: bool = False
@@ -73,11 +72,11 @@ class MeshStore(metaclass=Singleton):
         
         if source_mesh is not None:
             mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", 
-                                path=mesh_path, 
                                 source_mesh=source_mesh, 
                                 pv_mesh=pv_mesh,
                                 actor=None,
-                                color=self.colors[self.color_counter])
+                                color=self.colors[self.color_counter],
+                                spacing=[1, 1, 1])
             
             self.meshes[mesh_data.name] = mesh_data
 
@@ -125,7 +124,7 @@ class MeshStore(metaclass=Singleton):
             return None, None
         
     #^ Pose related 
-    def current_pose(self):
+    def reference_pose(self):
         if len(self.meshes) == 1: 
             self.reference = list(self.meshes.keys())[0]
         if self.reference:

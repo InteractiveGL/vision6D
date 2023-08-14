@@ -31,7 +31,6 @@ class VideoContainer:
                 play_video_button,
                 hintLabel, 
                 register_pose,
-                current_pose,
                 add_image,
                 load_mask,
                 clear_plot,
@@ -41,7 +40,6 @@ class VideoContainer:
         self.play_video_button = play_video_button
         self.hintLabel = hintLabel
         self.register_pose = register_pose
-        self.current_pose = current_pose
         self.add_image = add_image
         self.load_mask = load_mask
         self.clear_plot = clear_plot
@@ -105,7 +103,8 @@ class VideoContainer:
             if len(self.mesh_store.meshes) > 0:
                 os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
-                self.current_pose()
+                self.mesh_store.reference_pose()
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
                 np.save(output_pose_path, self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} pose to {str(output_pose_path)}:")
                 self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")

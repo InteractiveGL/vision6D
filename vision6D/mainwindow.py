@@ -163,7 +163,6 @@ class MyMainWindow(MainWindow):
                                             opacity_spinbox=self.opacity_spinbox,
                                             opacity_value_change=self.opacity_value_change,
                                             reset_camera=self.camera_container.reset_camera,
-                                            current_pose=self.current_pose,
                                             register_pose=self.register_pose,
                                             load_mask = self.mask_container.load_mask,
                                             output_text=self.output_text)
@@ -176,7 +175,6 @@ class MyMainWindow(MainWindow):
                                             play_video_button=self.play_video_button, 
                                             hintLabel=self.hintLabel, 
                                             register_pose=self.register_pose,
-                                            current_pose=self.current_pose,
                                             add_image=self.image_container.add_image,
                                             load_mask=self.mask_container.load_mask,
                                             clear_plot=self.clear_plot,
@@ -184,7 +182,7 @@ class MyMainWindow(MainWindow):
         
         self.folder_container = FolderContainer(plotter=self.plotter,
                                                 play_video_button=self.play_video_button, 
-                                                current_pose=self.current_pose,
+                                                register_pose=self.register_pose,
                                                 add_folder=self.add_folder,
                                                 load_mask=self.mask_container.load_mask,
                                                 output_text=self.output_text)
@@ -599,21 +597,19 @@ class MyMainWindow(MainWindow):
     def register_pose(self, pose):
         for name in self.mesh_store.meshes.keys():
             self.mesh_store.meshes[name].actor.user_matrix = pose
+            self.mesh_store.meshes[name].transformation_matrix = pose
             self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
             self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
-
-    def current_pose(self, text=None, output_text=True):
-        self.mesh_store.current_pose()
-        if text and output_text: 
-            self.output_text.append(f"--> Current {text} pose is:")
-            self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
-        self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
 
     def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.meshes.keys():
             self.color_button.setText(self.mesh_store.meshes[text].color)
             self.mesh_store.reference = text
-            self.current_pose(text=text, output_text=output_text)
+            # register to the reference's pose
+            if self.mesh_store.toggle_anchor_mesh: 
+                self.mesh_store.reference_pose()
+                if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
             curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:
@@ -658,7 +654,6 @@ class MyMainWindow(MainWindow):
         popup.close() # automatically close the popup window
 
     def show_color_popup(self):
-
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
             name = checked_button.text()
