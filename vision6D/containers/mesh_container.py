@@ -81,10 +81,10 @@ class MeshContainer:
         self.add_mesh(self.mesh_store.meshes[name], transformation_matrix)
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
-    def add_mesh(self, mesh_data, transformation_matrix=None):
+    def add_mesh(self, mesh_data, transformation_matrix=np.eye(4)):
         """ add a mesh to the pyqt frame """
         mesh = self.plotter.add_mesh(mesh_data.pv_mesh, color=mesh_data.color, opacity=mesh_data.opacity, name=mesh_data.name)
-        mesh.user_matrix = mesh_data.transformation_matrix if transformation_matrix is None else transformation_matrix
+        mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_data.name)
         """
         #* assertion
@@ -105,7 +105,7 @@ class MeshContainer:
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
-    
+                
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
@@ -201,7 +201,6 @@ class MeshContainer:
             self.hintLabel.hide()
             transformation_matrix = np.load(pose_path)
             self.mesh_store.meshes[self.mesh_store.reference].pose_path = pose_path
-            self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix = transformation_matrix
             if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.add_pose(matrix=transformation_matrix)
@@ -229,7 +228,6 @@ class MeshContainer:
                 if gt_pose.shape == (4, 4):
                     self.hintLabel.hide()
                     transformation_matrix = gt_pose
-                    self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix = transformation_matrix
                     if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                     if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                     self.add_pose(matrix=transformation_matrix)
@@ -250,9 +248,9 @@ class MeshContainer:
     def update_gt_pose(self):
         if self.mesh_store.reference:
             if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
-                self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix
+                self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix
                 self.mesh_store.reference_pose()
-                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
+                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -274,8 +272,8 @@ class MeshContainer:
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.npy')
                 self.update_gt_pose()
-                np.save(output_path, self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
-                self.output_text.append(f"-> Saved:\n{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}\nExport to:\n {output_path}")
+                np.save(output_path, self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
+                self.output_text.append(f"-> Saved:\n{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}\nExport to:\n {output_path}")
             self.mesh_store.meshes[self.mesh_store.reference].pose_path = output_path
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

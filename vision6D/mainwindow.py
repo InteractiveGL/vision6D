@@ -599,7 +599,6 @@ class MyMainWindow(MainWindow):
         if self.mesh_store.toggle_anchor_mesh:
             for name in self.mesh_store.meshes:
                 self.mesh_store.meshes[name].actor.user_matrix = pose
-                self.mesh_store.meshes[name].transformation_matrix = pose
                 # set up the initial pose if it was set to None
                 if self.mesh_store.meshes[name].initial_pose is None: self.mesh_store.meshes[name].initial_pose = pose
                 self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
@@ -610,8 +609,8 @@ class MyMainWindow(MainWindow):
             self.color_button.setText(self.mesh_store.meshes[text].color)
             self.mesh_store.reference = text
             self.mesh_store.reference_pose()
-            if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix}")
-            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].transformation_matrix)
+            if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
+            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
             curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:

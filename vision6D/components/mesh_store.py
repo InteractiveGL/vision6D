@@ -32,7 +32,6 @@ class MeshData:
     mirror_y: bool = False
     opacity: float = 0.3
     previous_opacity: float = 0.3
-    transformation_matrix: np.ndarray = np.eye(4)
     initial_pose: np.ndarray = None
     undo_poses: List[np.ndarray] = field(default_factory=list)
 
@@ -125,14 +124,11 @@ class MeshStore(metaclass=Singleton):
         
     #^ Pose related 
     def reference_pose(self):
-        self.meshes[self.reference].transformation_matrix = self.meshes[self.reference].actor.user_matrix
         self.meshes[self.reference].undo_poses.append(self.meshes[self.reference].actor.user_matrix)
         if len(self.meshes[self.reference].undo_poses) > 20: self.meshes[self.reference].undo_poses.pop(0)
             
     def undo_pose(self, actor_name):
-        self.meshes[actor_name].transformation_matrix = self.meshes[actor_name].undo_poses.pop()
-        if (self.meshes[actor_name].transformation_matrix == self.meshes[actor_name].actor.user_matrix).all():
-            if len(self.meshes[actor_name].undo_poses) != 0: 
-                self.meshes[actor_name].transformation_matrix = self.meshes[actor_name].undo_poses.pop()
-        self.meshes[self.reference].actor.user_matrix = self.meshes[actor_name].transformation_matrix
-
+        transformation_matrix = self.meshes[actor_name].undo_poses.pop()
+        if len(self.meshes[actor_name].undo_poses) > 0 and np.array_equal(transformation_matrix, self.meshes[actor_name].actor.user_matrix):
+            transformation_matrix = self.meshes[actor_name].undo_poses.pop()
+        self.meshes[self.reference].actor.user_matrix = transformation_matrix
