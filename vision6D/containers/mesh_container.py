@@ -11,9 +11,7 @@
 import ast
 import copy
 import pathlib
-import matplotlib
 
-import trimesh
 import PIL.Image
 import numpy as np
 import pyvista as pv

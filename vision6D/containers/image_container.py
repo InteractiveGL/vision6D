@@ -50,19 +50,11 @@ class ImageContainer:
     def add_image(self, image_source):
 
         image, original_image, channel = self.image_store.add_image(image_source)
-
-        # Then add it to the plotter
-        if channel == 1: 
-            image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
-        else: 
-            image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
-        
+        if channel == 1: image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
+        else: image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
         actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
-
-        # Save actor for later
         self.image_store.image_actor = actor
-
-        # get the image scalar
+        
         image_data = utils.get_image_actor_scalars(self.image_store.image_actor)
         assert (image_data == original_image).all() or (image_data*255 == original_image).all(), "image_data and image_source should be equal"
         
