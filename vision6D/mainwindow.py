@@ -597,13 +597,14 @@ class MyMainWindow(MainWindow):
 
     def register_pose(self, pose):
         if self.mesh_store.toggle_anchor_mesh:
-            for name in self.mesh_store.meshes:
+            for name in self.mesh_store.meshes: 
                 self.mesh_store.meshes[name].actor.user_matrix = pose
-                # set up the initial pose if it was set to None
-                if self.mesh_store.meshes[name].initial_pose is None: self.mesh_store.meshes[name].initial_pose = pose
-                self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
-                self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
-
+                # self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
+        else:
+            self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
+            
+        self.plotter.update()
+            
     def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.meshes:
             self.color_button.setText(self.mesh_store.meshes[text].color)
@@ -666,9 +667,7 @@ class MyMainWindow(MainWindow):
 
                 text = self.color_button.text()
                 self.mesh_store.meshes[name].color = text
-                if text == 'nocs': self.mesh_container.set_scalar(True, name)
-                elif text == 'latlon': self.mesh_container.set_scalar(False, name)
-                else: self.mesh_container.set_color(text, name)
+                self.mesh_container.set_color(text, name)
             else:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:

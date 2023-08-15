@@ -109,19 +109,6 @@ class MeshStore(metaclass=Singleton):
         image = self.render.last_image
         return image
     
-    def set_scalar(self, nocs, actor_name):
-        vertices, faces = utils.get_mesh_actor_vertices_faces(self.meshes[actor_name].actor)
-        vertices_color = vertices
-        if self.meshes[actor_name].mirror_x: vertices_color = utils.transform_vertices(vertices_color, np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        if self.meshes[actor_name].mirror_y: vertices_color = utils.transform_vertices(vertices_color, np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]))
-        # get the corresponding color
-        colors = utils.color_mesh(vertices_color, nocs=nocs)
-        if colors.shape == vertices.shape: 
-            mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-            return mesh_data, colors
-        else:
-            return None, None
-        
     #^ Pose related 
     def reference_pose(self):
         self.meshes[self.reference].undo_poses.append(self.meshes[self.reference].actor.user_matrix)

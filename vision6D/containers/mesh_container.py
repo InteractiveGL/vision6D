@@ -11,6 +11,7 @@
 import ast
 import copy
 import pathlib
+import matplotlib
 
 import trimesh
 import PIL.Image
@@ -68,20 +69,23 @@ class MeshContainer:
         if mesh_path:
             self.hintLabel.hide()
             mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path)
-            if mesh_data: self.add_mesh(mesh_data)
+            if mesh_data: self.add_mesh(mesh_data, np.eye(4))
             else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
     def mirror_mesh(self, name, direction):
         if self.mesh_store.toggle_anchor_mesh: name = self.mesh_store.reference
         if direction == 'x': self.mesh_store.meshes[name].mirror_x = not self.mesh_store.meshes[name].mirror_x
         elif direction == 'y': self.mesh_store.meshes[name].mirror_y = not self.mesh_store.meshes[name].mirror_y
+        if self.mesh_store.meshes[name].initial_pose is None: self.mesh_store.meshes[name].initial_pose = self.mesh_store.meshes[name].actor.user_matrix
         transformation_matrix = self.mesh_store.meshes[name].initial_pose
         if self.mesh_store.meshes[name].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         if self.mesh_store.meshes[name].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        self.add_mesh(self.mesh_store.meshes[name], transformation_matrix)
+        self.mesh_store.meshes[name].actor.user_matrix = transformation_matrix
+        self.plotter.update()
+        self.check_button(actor_name=name, output_text=False) 
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
-    def add_mesh(self, mesh_data, transformation_matrix=np.eye(4)):
+    def add_mesh(self, mesh_data, transformation_matrix):
         """ add a mesh to the pyqt frame """
         mesh = self.plotter.add_mesh(mesh_data.pv_mesh, color=mesh_data.color, opacity=mesh_data.opacity, name=mesh_data.name)
         mesh.user_matrix = transformation_matrix
@@ -105,6 +109,17 @@ class MeshContainer:
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
+        # if not self.mesh_store.toggle_anchor_mesh:
+        #     for name in self.mesh_store.meshes:
+        #         if name == self.mesh_store.reference: continue
+        #         vertices, _ = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[name].actor)
+        #         transformed_vertices = utils.transform_vertices(vertices, self.mesh_store.meshes[name].actor.user_matrix)
+        #         # mesh = trimesh.Trimesh(vertices=transformed_vertices, faces=faces, process=False)
+        #         # self.mesh_store.meshes[name].pv_mesh = pv.wrap(mesh)
+        #         # self.add_mesh(self.mesh_store.meshes[name], np.eye(4))
+        #         self.mesh_store.meshes[name].pv_mesh.points = transformed_vertices
+        #         self.mesh_store.meshes[name].actor.user_matrix = np.eye(4)
+        #         self.plotter.update()
                 
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -116,43 +131,30 @@ class MeshContainer:
                     try: self.mesh_store.meshes[actor_name].spacing = ast.literal_eval(spacing)
                     except: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     vertices = self.mesh_store.meshes[actor_name].source_mesh.vertices * self.mesh_store.meshes[actor_name].spacing
-                    mesh = trimesh.Trimesh(vertices=vertices, faces=self.mesh_store.meshes[actor_name].source_mesh.faces, process=False)
-                    self.mesh_store.meshes[actor_name].pv_mesh = pv.wrap(mesh)
-                    self.add_mesh(self.mesh_store.meshes[actor_name])
+                    self.mesh_store.meshes[actor_name].pv_mesh.points = vertices
+                    self.plotter.update()
             else:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
-    def set_scalar(self, nocs, actor_name):
-        mesh_data, colors = self.mesh_store.set_scalar(nocs, actor_name)
-        if mesh_data:
-            mesh = self.plotter.add_mesh(mesh_data, scalars=colors, rgb=True, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
-            transformation_matrix = pv.array_from_vtkmatrix(self.mesh_store.meshes[actor_name].actor.GetMatrix())
-            mesh.user_matrix = transformation_matrix
-            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
-            actor_colors = utils.get_mesh_actor_scalars(actor)
-            assert (actor_colors == colors).all(), "actor_colors should be the same as colors"
-            assert actor.name == actor_name, "actor's name should equal to actor_name"
-            self.mesh_store.meshes[actor_name].actor = actor
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-
+      
     def set_color(self, color, actor_name):
-        vertices, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[actor_name].actor)
-        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        mesh = self.plotter.add_mesh(mesh_data, color=color, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
-        transformation_matrix = pv.array_from_vtkmatrix(self.mesh_store.meshes[actor_name].actor.GetMatrix())
-        mesh.user_matrix = transformation_matrix
-        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=actor_name)
-        assert actor.name == actor_name, "actor's name should equal to actor_name"
+        if color == 'latlon' or color == 'nocs':
+            colors = utils.color_mesh(self.mesh_store.meshes[actor_name].pv_mesh.points, color=color)
+            try: actor = self.plotter.add_mesh(self.mesh_store.meshes[actor_name].pv_mesh, scalars=colors, rgb=True, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
+            except ValueError: 
+                QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                return 0
+        else: actor = self.plotter.add_mesh(self.mesh_store.meshes[actor_name].pv_mesh, color=color, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
+        actor.user_matrix = self.mesh_store.meshes[actor_name].actor.user_matrix
         self.mesh_store.meshes[actor_name].actor = actor
-
+        self.plotter.update()
+                    
     def set_mesh_opacity(self, name: str, surface_opacity: float):
         self.mesh_store.meshes[name].opacity = surface_opacity
         self.mesh_store.meshes[name].actor.user_matrix = pv.array_from_vtkmatrix(self.mesh_store.meshes[name].actor.GetMatrix())
         self.mesh_store.meshes[name].actor.GetProperty().opacity = surface_opacity
-        self.plotter.add_actor(self.mesh_store.meshes[name].actor, pickable=True, name=name)
+        self.plotter.update()
 
     def toggle_surface_opacity(self, up):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -206,13 +208,12 @@ class MeshContainer:
             self.add_pose(matrix=transformation_matrix)
 
     def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
-        if matrix is not None: 
-            self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
-            self.reset_gt_pose()
-        else:
-            if (rot and trans): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-            self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
-            self.reset_gt_pose()
+        if matrix is None and (rot is not None and trans is not None): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
+        if self.mesh_store.toggle_anchor_mesh:
+            for name in self.mesh_store.meshes: 
+                self.mesh_store.meshes[name].initial_pose = matrix
+        else: self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
+        self.reset_gt_pose()
         
     def set_pose(self):
         # get the gt pose
