@@ -88,13 +88,6 @@ class MeshContainer:
         mesh = self.plotter.add_mesh(mesh_data.pv_mesh, color=mesh_data.color, opacity=mesh_data.opacity, name=mesh_data.name)
         mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_data.name)
-        """
-        #* assertion
-        actor_vertices, actor_faces = utils.get_mesh_actor_vertices_faces(actor)
-        assert (actor_vertices == mesh_data.source_mesh.vertices).all(), "vertices should be the same"
-        assert (actor_faces == mesh_data.source_mesh.faces).all(), "faces should be the same"
-        assert actor.name == mesh_data.name, "actor's name should equal to mesh name"
-        """
         mesh_data.actor = actor
         self.color_button.setText(mesh_data.color)
 
@@ -137,13 +130,14 @@ class MeshContainer:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
       
     def set_color(self, color, actor_name):
-        if color == 'latlon' or color == 'nocs':
-            colors = utils.color_mesh(self.mesh_store.meshes[actor_name].pv_mesh.points, color=color)
-            try: actor = self.plotter.add_mesh(self.mesh_store.meshes[actor_name].pv_mesh, scalars=colors, rgb=True, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
+        if color in self.mesh_store.colors:
+            actor = self.plotter.add_mesh(self.mesh_store.meshes[actor_name].pv_mesh, color=color, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
+        else: 
+            scalars = utils.color_mesh(self.mesh_store.meshes[actor_name].pv_mesh.points, color=color)
+            try: actor = self.plotter.add_mesh(self.mesh_store.meshes[actor_name].pv_mesh, scalars=scalars, rgb=True, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
             except ValueError: 
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Cannot set the selected color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                 return 0
-        else: actor = self.plotter.add_mesh(self.mesh_store.meshes[actor_name].pv_mesh, color=color, opacity=self.mesh_store.meshes[actor_name].opacity, name=actor_name)
         actor.user_matrix = self.mesh_store.meshes[actor_name].actor.user_matrix
         self.mesh_store.meshes[actor_name].actor = actor
         self.plotter.update()

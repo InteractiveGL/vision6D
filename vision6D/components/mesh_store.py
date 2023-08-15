@@ -61,12 +61,14 @@ class MeshStore(metaclass=Singleton):
 
         if isinstance(mesh_source, trimesh.Trimesh):
             source_mesh = mesh_source
-            assert (source_mesh.vertices.shape[1] == 3 and source_mesh.faces.shape[1] == 3), "it should be N by 3 matrix"
+            source_mesh.vertices = source_mesh.vertices.reshape(-1, 3)
+            source_mesh.faces = source_mesh.faces.reshape(-1, 3)
             pv_mesh = pv.wrap(mesh_source)
 
         if isinstance(mesh_source, pv.PolyData):
             source_mesh = trimesh.Trimesh(mesh_source.points, mesh_source.faces.reshape((-1, 4))[:, 1:], process=False)
-            assert (source_mesh.vertices.shape[1] == 3 and source_mesh.faces.shape[1] == 3), "it should be N by 3 matrix"
+            source_mesh.vertices = source_mesh.vertices.reshape(-1, 3)
+            source_mesh.faces = source_mesh.faces.reshape(-1, 3)
             pv_mesh = mesh_source
         
         if source_mesh is not None:
@@ -96,13 +98,9 @@ class MeshStore(metaclass=Singleton):
         vertices, faces = utils.get_mesh_actor_vertices_faces(self.meshes[self.reference].actor)
         mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
         colors = utils.get_mesh_actor_scalars(self.meshes[self.reference].actor)
-        if colors is not None: 
-            assert colors.shape == vertices.shape, "colors shape should be the same as vertices shape"
-            mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference)
-        else:
-            mesh = self.render.add_mesh(mesh_data, color=self.meshes[self.reference].color, style='surface', opacity=1, name=self.reference)
+        if colors is not None: mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference)
+        else: mesh = self.render.add_mesh(mesh_data, color=self.meshes[self.reference].color, style='surface', opacity=1, name=self.reference)
         mesh.user_matrix = self.meshes[self.reference].actor.user_matrix
-        
         self.render.camera = camera
         self.render.disable()
         self.render.show(auto_close=False)

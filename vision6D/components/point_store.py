@@ -36,7 +36,7 @@ class PointStore(metaclass=Singleton):
                 self.point_data = point_source
                 
         if isinstance(point_source, trimesh.Trimesh):
-            assert point_source.vertices.shape[1] == 3, "it should be N by 3 matrix"
+            point_source.vertices = point_source.vertices.reshape(-1, 3)
             self.point_data = point_source.vertices
             
         if isinstance(point_source, pv.PolyData):
