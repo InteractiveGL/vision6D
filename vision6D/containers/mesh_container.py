@@ -187,8 +187,7 @@ class MeshContainer:
     def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
         if matrix is None and (rot is not None and trans is not None): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
         if self.mesh_store.toggle_anchor_mesh:
-            for name in self.mesh_store.meshes: 
-                self.mesh_store.meshes[name].initial_pose = matrix
+            for mesh_data in self.mesh_store.meshes.values(): mesh_data.initial_pose = matrix
         else: self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
         self.reset_gt_pose()
         

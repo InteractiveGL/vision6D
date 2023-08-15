@@ -598,20 +598,21 @@ class MyMainWindow(MainWindow):
         self.show()
 
     def register_pose(self, pose):
-        for name in self.mesh_store.meshes: self.mesh_store.meshes[name].actor.user_matrix = pose
+        for mesh_data in self.mesh_store.meshes.values(): mesh_data.actor.user_matrix = pose
         
     def toggle_register(self, pose):
         if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
         else: self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
             
-    def toggle_anchor(self, name, pose):
+    def toggle_anchor(self, reference_pose):
         if self.mesh_store.toggle_anchor_mesh:
-            self.register_pose(pose)
+            self.register_pose(reference_pose)
         else:
-            verts, _ = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[name].actor)
-            vertices = utils.transform_vertices(verts, pose)
-            self.mesh_store.meshes[name].pv_mesh.points = vertices
-            self.mesh_store.meshes[name].actor.user_matrix = np.eye(4)
+            for mesh_data in self.mesh_store.meshes.values():
+                verts, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+                vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
+                mesh_data.pv_mesh.points = vertices
+                mesh_data.actor.user_matrix = np.eye(4)
             
     def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.meshes:
@@ -619,7 +620,7 @@ class MyMainWindow(MainWindow):
             self.mesh_store.reference = text
             self.mesh_store.reference_pose()
             if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
-            self.toggle_anchor(text, self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
+            self.toggle_anchor(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
             curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:
