@@ -78,13 +78,11 @@ class MaskContainer:
     def set_mask_opacity(self, mask_opacity: float):
         self.mask_store.mask_opacity = mask_opacity
         self.mask_store.mask_actor.GetProperty().opacity = mask_opacity
-        self.plotter.update()
     
     def toggle_mask_opacity(self, up):
         change = 0.05
         if not up: change *= -1
         self.mask_store.update_opacity(change)
-        self.plotter.update()
         self.check_button(actor_name='mask')
     
     def draw_mask(self):

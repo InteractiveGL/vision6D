@@ -47,6 +47,8 @@ from .containers import PnPContainer
 from .containers import VideoContainer
 from .containers import FolderContainer
 
+from .tools import utils
+
 from .path import ICON_PATH
 from .path import PKG_ROOT
 
@@ -163,7 +165,7 @@ class MyMainWindow(MainWindow):
                                             opacity_spinbox=self.opacity_spinbox,
                                             opacity_value_change=self.opacity_value_change,
                                             reset_camera=self.camera_container.reset_camera,
-                                            register_pose=self.register_pose,
+                                            toggle_register=self.toggle_register,
                                             load_mask = self.mask_container.load_mask,
                                             output_text=self.output_text)
         
@@ -174,7 +176,7 @@ class MyMainWindow(MainWindow):
         self.video_container = VideoContainer(plotter=self.plotter,
                                             play_video_button=self.play_video_button, 
                                             hintLabel=self.hintLabel, 
-                                            register_pose=self.register_pose,
+                                            toggle_register=self.toggle_register,
                                             add_image=self.image_container.add_image,
                                             load_mask=self.mask_container.load_mask,
                                             clear_plot=self.clear_plot,
@@ -182,7 +184,7 @@ class MyMainWindow(MainWindow):
         
         self.folder_container = FolderContainer(plotter=self.plotter,
                                                 play_video_button=self.play_video_button, 
-                                                register_pose=self.register_pose,
+                                                toggle_register=self.toggle_register,
                                                 add_folder=self.add_folder,
                                                 load_mask=self.mask_container.load_mask,
                                                 output_text=self.output_text)
@@ -596,14 +598,20 @@ class MyMainWindow(MainWindow):
         self.show()
 
     def register_pose(self, pose):
-        if self.mesh_store.toggle_anchor_mesh:
-            for name in self.mesh_store.meshes: 
-                self.mesh_store.meshes[name].actor.user_matrix = pose
-                # self.mesh_store.meshes[name].pose_path = self.mesh_store.meshes[self.mesh_store.reference].pose_path
-        else:
-            self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
+        for name in self.mesh_store.meshes: self.mesh_store.meshes[name].actor.user_matrix = pose
+        
+    def toggle_register(self, pose):
+        if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
+        else: self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
             
-        self.plotter.update()
+    def toggle_anchor(self, name, pose):
+        if self.mesh_store.toggle_anchor_mesh:
+            self.register_pose(pose)
+        else:
+            verts, _ = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[name].actor)
+            vertices = utils.transform_vertices(verts, pose)
+            self.mesh_store.meshes[name].pv_mesh.points = vertices
+            self.mesh_store.meshes[name].actor.user_matrix = np.eye(4)
             
     def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.meshes:
@@ -611,7 +619,7 @@ class MyMainWindow(MainWindow):
             self.mesh_store.reference = text
             self.mesh_store.reference_pose()
             if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
-            self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
+            self.toggle_anchor(text, self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
             curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
         else:

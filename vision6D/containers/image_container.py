@@ -61,13 +61,11 @@ class ImageContainer:
     def set_image_opacity(self, image_opacity: float):
         self.image_store.image_opacity = image_opacity
         self.image_store.image_actor.GetProperty().opacity = image_opacity
-        self.plotter.update()
 
     def toggle_image_opacity(self, up):
         change = 0.05
         if not up: change *= -1
         self.image_store.update_opacity(change)
-        self.plotter.update()
         self.check_button(actor_name='image')
 
     def export_image(self):

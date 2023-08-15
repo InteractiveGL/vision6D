@@ -36,7 +36,7 @@ class MeshContainer:
                 opacity_spinbox, 
                 opacity_value_change,
                 reset_camera,
-                register_pose,
+                toggle_register,
                 load_mask,
                 output_text):
         
@@ -53,7 +53,7 @@ class MeshContainer:
         self.opacity_spinbox = opacity_spinbox
         self.opacity_value_change = opacity_value_change
         self.reset_camera = reset_camera
-        self.register_pose = register_pose
+        self.toggle_register = toggle_register
         self.load_mask = load_mask
         self.output_text = output_text
         
@@ -79,7 +79,6 @@ class MeshContainer:
         if self.mesh_store.meshes[name].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         if self.mesh_store.meshes[name].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         self.mesh_store.meshes[name].actor.user_matrix = transformation_matrix
-        self.plotter.update()
         self.check_button(actor_name=name, output_text=False) 
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
@@ -100,17 +99,6 @@ class MeshContainer:
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
-        # if not self.mesh_store.toggle_anchor_mesh:
-        #     for name in self.mesh_store.meshes:
-        #         if name == self.mesh_store.reference: continue
-        #         vertices, _ = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[name].actor)
-        #         transformed_vertices = utils.transform_vertices(vertices, self.mesh_store.meshes[name].actor.user_matrix)
-        #         # mesh = trimesh.Trimesh(vertices=transformed_vertices, faces=faces, process=False)
-        #         # self.mesh_store.meshes[name].pv_mesh = pv.wrap(mesh)
-        #         # self.add_mesh(self.mesh_store.meshes[name], np.eye(4))
-        #         self.mesh_store.meshes[name].pv_mesh.points = transformed_vertices
-        #         self.mesh_store.meshes[name].actor.user_matrix = np.eye(4)
-        #         self.plotter.update()
                 
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -123,7 +111,6 @@ class MeshContainer:
                     except: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
                     vertices = self.mesh_store.meshes[actor_name].source_mesh.vertices * self.mesh_store.meshes[actor_name].spacing
                     self.mesh_store.meshes[actor_name].pv_mesh.points = vertices
-                    self.plotter.update()
             else:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
@@ -140,13 +127,11 @@ class MeshContainer:
                 return 0
         actor.user_matrix = self.mesh_store.meshes[actor_name].actor.user_matrix
         self.mesh_store.meshes[actor_name].actor = actor
-        self.plotter.update()
                     
     def set_mesh_opacity(self, name: str, surface_opacity: float):
         self.mesh_store.meshes[name].opacity = surface_opacity
         self.mesh_store.meshes[name].actor.user_matrix = pv.array_from_vtkmatrix(self.mesh_store.meshes[name].actor.GetMatrix())
         self.mesh_store.meshes[name].actor.GetProperty().opacity = surface_opacity
-        self.plotter.update()
 
     def toggle_surface_opacity(self, up):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -233,7 +218,7 @@ class MeshContainer:
         if self.mesh_store.reference:
             if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
                 self.output_text.append(f"-> Reset the GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
-                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].initial_pose)
+                self.toggle_register(self.mesh_store.meshes[self.mesh_store.reference].initial_pose)
                 self.reset_camera()
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
@@ -243,7 +228,7 @@ class MeshContainer:
             if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
                 self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix
                 self.mesh_store.reference_pose()
-                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
+                self.toggle_register(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)

@@ -30,7 +30,7 @@ class VideoContainer:
                 plotter,
                 play_video_button,
                 hintLabel, 
-                register_pose,
+                toggle_register,
                 add_image,
                 load_mask,
                 clear_plot,
@@ -39,7 +39,7 @@ class VideoContainer:
         self.plotter = plotter
         self.play_video_button = play_video_button
         self.hintLabel = hintLabel
-        self.register_pose = register_pose
+        self.toggle_register = toggle_register
         self.add_image = add_image
         self.load_mask = load_mask
         self.clear_plot = clear_plot
@@ -104,7 +104,7 @@ class VideoContainer:
                 os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
                 self.mesh_store.reference_pose()
-                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
+                self.toggle_register(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 np.save(output_pose_path, self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} pose to {str(output_pose_path)}:")
                 self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
@@ -139,7 +139,7 @@ class VideoContainer:
             pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
             if os.path.isfile(pose_path): 
                 self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = np.load(pose_path)
-                self.register_pose(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
+                self.toggle_register(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
             else: 
                 self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
@@ -156,7 +156,7 @@ class VideoContainer:
             # load pose for the current frame if the pose exist
             pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
             if os.path.isfile(pose_path):
-                self.register_pose(np.load(pose_path))
+                self.toggle_register(np.load(pose_path))
                 self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
