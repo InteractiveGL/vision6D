@@ -48,7 +48,6 @@ class ImageContainer:
         self.add_image(self.image_store.image_source)
 
     def add_image(self, image_source):
-
         image, original_image, channel = self.image_store.add_image(image_source)
         if channel == 1: image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
         else: image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
