@@ -96,12 +96,13 @@ class MeshStore(metaclass=Singleton):
 
     def render_mesh(self, camera):
         self.render.clear()
-        vertices, faces = utils.get_mesh_actor_vertices_faces(self.meshes[self.reference].actor)
-        mesh_data = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        colors = utils.get_mesh_actor_scalars(self.meshes[self.reference].actor)
-        if colors is not None: mesh = self.render.add_mesh(mesh_data, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference)
-        else: mesh = self.render.add_mesh(mesh_data, color=self.meshes[self.reference].color, style='surface', opacity=1, name=self.reference)
-        mesh.user_matrix = self.meshes[self.reference].actor.user_matrix
+        mesh_data = self.meshes[self.reference]
+        vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+        pv_mesh = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+        colors = utils.get_mesh_actor_scalars(mesh_data.actor)
+        if colors is not None: mesh = self.render.add_mesh(pv_mesh, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference)
+        else: mesh = self.render.add_mesh(mesh_data, color=mesh_data.color, style='surface', opacity=1, name=self.reference)
+        mesh.user_matrix = mesh_data.actor.user_matrix
         self.render.camera = camera
         self.render.disable()
         self.render.show(auto_close=False)

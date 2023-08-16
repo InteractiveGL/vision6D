@@ -235,8 +235,7 @@ def color_mesh(vertices, color=''):
         colors[..., 0] = normalize(vertices[..., 0])
         colors[..., 1] = normalize(vertices[..., 1])
         colors[..., 2] = normalize(vertices[..., 2])
-    elif color == 'latlon':
-        colors = load_latitude_longitude()
+    elif color == 'latlon': colors = load_latitude_longitude()
     return colors
     
 def save_image(array, folder, name):

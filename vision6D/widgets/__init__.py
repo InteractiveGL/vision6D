@@ -1,7 +1,7 @@
 from .calibration_pop_window import CalibrationPopWindow
 from .camera_props_input_dialog import CameraPropsInputDialog
 from .custom_qt_interactor import CustomQtInteractor
-from .get_text_dialog import GetTextDialog
+from .get_pose_dialog import GetPoseDialog
 from .draw_mask_window import MaskWindow
 from .draw_bbox_window import BboxWindow
 from .popup_dialog import PopUpDialog
@@ -14,7 +14,7 @@ __all__ = [
     'CalibrationPopWindow',
     'CameraPropsInputDialog',
     'CustomQtInteractor',
-    'GetTextDialog',
+    'GetPoseDialog',
     'MaskWindow',
     'BboxWindow',
     'PopUpDialog',

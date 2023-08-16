@@ -620,18 +620,20 @@ class MyMainWindow(MainWindow):
                 mesh_data.pv_mesh.points = vertices
                 mesh_data.actor.user_matrix = np.eye(4)
                 
-    def button_actor_name_clicked(self, text, output_text=True):
-        if text in self.mesh_store.meshes:
-            self.color_button.setText(self.mesh_store.meshes[text].color)
-            self.mesh_store.reference = text
-            if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
-            self.toggle_anchor(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
-            curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
+    def button_actor_name_clicked(self, name, output_text=True):
+        if name in self.mesh_store.meshes:
+            self.mesh_store.reference = name
+            mesh_data = self.mesh_store.meshes[name]
+            if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(f"{mesh_data.actor.user_matrix}")
+            self.toggle_anchor(mesh_data.actor.user_matrix)
+            curr_opacity = mesh_data.actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
+            self.color_button.setText(mesh_data.color)
+            self.mesh_container.set_color(mesh_data.color, name)
         else:
             self.color_button.setText("Color")
-            if text == 'image': curr_opacity = self.image_store.image_opacity
-            elif text == 'mask': curr_opacity = self.mask_store.mask_opacity
+            if name == 'image': curr_opacity = self.image_store.image_opacity
+            elif name == 'mask': curr_opacity = self.mask_store.mask_opacity
             else: curr_opacity = self.opacity_spinbox.value()
             self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
             self.opacity_spinbox.setValue(curr_opacity)
@@ -640,29 +642,30 @@ class MyMainWindow(MainWindow):
         button = next((btn for btn in self.button_group_actors_names.buttons() if btn.text() == name), None)
         if button:
             button.setChecked(True)
-            self.button_actor_name_clicked(text=name, output_text=output_text)
+            self.button_actor_name_clicked(name=name, output_text=output_text)
 
-    def add_button_actor_name(self, actor_name):
-        button = QtWidgets.QPushButton(actor_name)
+    def add_button_actor_name(self, name):
+        button = QtWidgets.QPushButton(name)
         button.setCheckable(True)  # Set the button to be checkable so it is highlighted, very important
-        button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
+        button.clicked.connect(lambda _, name=name: self.button_actor_name_clicked(name))
         button.setChecked(True)
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_actors_names.addButton(button)
-        self.button_actor_name_clicked(text=actor_name)
+        self.button_actor_name_clicked(name=name)
     
     def opacity_value_change(self, value):
         if self.mesh_container.ignore_opacity_change: return 0
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            actor_name = checked_button.text()
-            if actor_name == 'image': self.image_container.set_image_opacity(value)
-            elif actor_name == 'mask': self.mask_container.set_mask_opacity(value)
-            elif actor_name in self.mesh_store.meshes:
-                self.mesh_store.meshes[actor_name].opacity = value
-                self.mesh_store.meshes[actor_name].previous_opacity = value
-                self.mesh_container.set_mesh_opacity(actor_name, self.mesh_store.meshes[actor_name].opacity)
+            name = checked_button.text()
+            if name == 'image': self.image_container.set_image_opacity(value)
+            elif name == 'mask': self.mask_container.set_mask_opacity(value)
+            elif name in self.mesh_store.meshes:
+                mesh_data = self.mesh_store.meshes[name]
+                mesh_data.opacity = value
+                mesh_data.previous_opacity = value
+                self.mesh_container.set_mesh_opacity(name, mesh_data.opacity)
     
     def update_color_button_text(self, text, popup):
         self.color_button.setText(text)
@@ -677,10 +680,9 @@ class MyMainWindow(MainWindow):
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
                 popup.exec_()
-
-                text = self.color_button.text()
-                self.mesh_store.meshes[name].color = text
-                self.mesh_container.set_color(text, name)
+                color = self.color_button.text()
+                self.mesh_store.meshes[name].color = color
+                self.mesh_container.set_color(color, name)
             else:
                 QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         else:
