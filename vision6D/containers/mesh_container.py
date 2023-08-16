@@ -80,7 +80,7 @@ class MeshContainer:
         if self.mesh_store.meshes[name].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         if self.mesh_store.meshes[name].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         self.mesh_store.meshes[name].actor.user_matrix = transformation_matrix
-        self.check_button(actor_name=name, output_text=False) 
+        self.check_button(name=name, output_text=False)
         self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
 
     def add_mesh(self, mesh_data, transformation_matrix):
@@ -96,7 +96,7 @@ class MeshContainer:
             self.track_actors_names.append(mesh_data.name)
             self.add_button_actor_name(mesh_data.name)
         #* very important for mirroring
-        self.check_button(actor_name=mesh_data.name, output_text=False) 
+        self.check_button(name=mesh_data.name, output_text=False) 
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
@@ -222,24 +222,23 @@ class MeshContainer:
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
+    # todo: fix the update gt_pose for not anchored situation
     def update_gt_pose(self):
         if self.mesh_store.reference:
             if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
                 self.mesh_store.meshes[self.mesh_store.reference].initial_pose = self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix
-                self.mesh_store.reference_pose()
                 self.toggle_register(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to: \n{self.mesh_store.meshes[self.mesh_store.reference].initial_pose}")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
-    def undo_pose(self):
+    def undo_actor_pose(self):
         if self.button_group_actors_names.checkedButton():
-            actor_name = self.button_group_actors_names.checkedButton().text()
-            if actor_name in self.mesh_store.meshes:
-                if self.mesh_store.meshes[actor_name].undo_poses and len(self.mesh_store.meshes[actor_name].undo_poses) != 0: 
-                    self.mesh_store.undo_pose(actor_name)
-                    # register the rest meshes' pose to current undoed pose
-                    self.check_button(actor_name=actor_name)
+            name = self.button_group_actors_names.checkedButton().text()
+            if name in self.mesh_store.meshes:
+                self.mesh_store.undo_actor_pose(name)
+                #very important, donnot change this line to "toggle_register"
+                self.check_button(name=name)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 

@@ -33,6 +33,7 @@ class MeshData:
     previous_opacity: float = 0.3
     initial_pose: np.ndarray = None
     undo_poses: List[np.ndarray] = field(default_factory=list)
+    undo_vertices: List[np.ndarray] = field(default_factory=list)
 
 class MeshStore(metaclass=Singleton):
     def __init__(self, window_size):
@@ -106,14 +107,20 @@ class MeshStore(metaclass=Singleton):
         self.render.show(auto_close=False)
         image = self.render.last_image
         return image
-    
-    #^ Pose related 
-    def reference_pose(self):
-        self.meshes[self.reference].undo_poses.append(self.meshes[self.reference].actor.user_matrix)
-        if len(self.meshes[self.reference].undo_poses) > 20: self.meshes[self.reference].undo_poses.pop(0)
             
-    def undo_pose(self, actor_name):
-        transformation_matrix = self.meshes[actor_name].undo_poses.pop()
-        if len(self.meshes[actor_name].undo_poses) > 0 and np.array_equal(transformation_matrix, self.meshes[actor_name].actor.user_matrix):
-            transformation_matrix = self.meshes[actor_name].undo_poses.pop()
-        self.meshes[self.reference].actor.user_matrix = transformation_matrix
+    def undo_actor_pose(self, name):
+        mesh_data = self.meshes[name]
+        if self.toggle_anchor_mesh:
+            transformation_matrix = mesh_data.undo_poses.pop()
+            while mesh_data.undo_poses and (transformation_matrix == mesh_data.actor.user_matrix).all():
+                transformation_matrix = mesh_data.undo_poses.pop()
+            mesh_data.actor.user_matrix = transformation_matrix
+        else:
+            # Get the vertices and faces
+            vertices, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+            # If there are undo vertices, get the most recent set that is different from the current vertices
+            verts = mesh_data.undo_vertices.pop()  # initialize verts with current vertices
+            while mesh_data.undo_vertices and (verts == vertices).all():
+                verts = mesh_data.undo_vertices.pop()
+            mesh_data.pv_mesh.points = verts
+            mesh_data.actor.user_matrix = np.eye(4)

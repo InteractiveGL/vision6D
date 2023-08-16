@@ -83,7 +83,7 @@ class MaskContainer:
         change = 0.05
         if not up: change *= -1
         self.mask_store.update_opacity(change)
-        self.check_button(actor_name='mask')
+        self.check_button(name='mask')
     
     def draw_mask(self):
         def handle_output_path_change(output_path):

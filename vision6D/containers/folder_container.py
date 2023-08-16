@@ -61,7 +61,6 @@ class FolderContainer:
             if len(self.mesh_store.meshes) > 0:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses" / f"{id}.npy"
-                self.mesh_store.reference_pose()
                 self.toggle_register(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 np.save(output_pose_path, self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} pose to {str(output_pose_path)}:")

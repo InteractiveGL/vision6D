@@ -66,7 +66,7 @@ class ImageContainer:
         change = 0.05
         if not up: change *= -1
         self.image_store.update_opacity(change)
-        self.check_button(actor_name='image')
+        self.check_button(name='image')
 
     def export_image(self):
         if self.image_store.image_actor:

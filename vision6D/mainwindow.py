@@ -223,7 +223,7 @@ class MyMainWindow(MainWindow):
         # Mesh related key bindings 
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.mesh_container.reset_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.mesh_container.update_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.mesh_container.undo_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.mesh_container.undo_actor_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.mesh_container.toggle_surface_opacity(up))
         QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.mesh_container.toggle_surface_opacity(up))
 
@@ -337,7 +337,7 @@ class MyMainWindow(MainWindow):
         PoseMenu = mainMenu.addMenu('Pose')
         PoseMenu.addAction('Reset GT Pose (k)', self.mesh_container.reset_gt_pose)
         PoseMenu.addAction('Update GT Pose (l)', self.mesh_container.update_gt_pose)
-        PoseMenu.addAction('Undo Pose (s)', self.mesh_container.undo_pose)
+        PoseMenu.addAction('Undo Pose (s)', self.mesh_container.undo_actor_pose)
 
         # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('PnP')
@@ -599,27 +599,31 @@ class MyMainWindow(MainWindow):
         self.show()
 
     def register_pose(self, pose):
-        for mesh_data in self.mesh_store.meshes.values(): mesh_data.actor.user_matrix = pose
+        for mesh_data in self.mesh_store.meshes.values(): 
+            mesh_data.actor.user_matrix = pose
+            mesh_data.undo_poses.append(pose)
+            mesh_data.undo_poses = mesh_data.undo_poses[-20:]
         
     def toggle_register(self, pose):
         if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
         else: self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
             
     #^ when there is no anchor, the base vertices changes when we move around the objects
-    def toggle_anchor(self, reference_pose):
-        if self.mesh_store.toggle_anchor_mesh: self.register_pose(reference_pose)
+    def toggle_anchor(self, pose):
+        if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
         else:
             for mesh_data in self.mesh_store.meshes.values():
                 verts, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+                mesh_data.undo_vertices.append(verts)
+                mesh_data.undo_vertices = mesh_data.undo_vertices[-20:]
                 vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
                 mesh_data.pv_mesh.points = vertices
                 mesh_data.actor.user_matrix = np.eye(4)
-            
+                
     def button_actor_name_clicked(self, text, output_text=True):
         if text in self.mesh_store.meshes:
             self.color_button.setText(self.mesh_store.meshes[text].color)
             self.mesh_store.reference = text
-            self.mesh_store.reference_pose()
             if output_text: self.output_text.append(f"--> Mesh {text} pose is:"); self.output_text.append(f"{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}")
             self.toggle_anchor(self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
             curr_opacity = self.mesh_store.meshes[text].actor.GetProperty().opacity
@@ -632,12 +636,11 @@ class MyMainWindow(MainWindow):
             self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
             self.opacity_spinbox.setValue(curr_opacity)
             
-    def check_button(self, actor_name, output_text=True):
-        for button in self.button_group_actors_names.buttons():
-            if button.text() == actor_name: 
-                button.setChecked(True)
-                self.button_actor_name_clicked(text=actor_name, output_text=output_text)
-                break     
+    def check_button(self, name, output_text=True):  
+        button = next((btn for btn in self.button_group_actors_names.buttons() if btn.text() == name), None)
+        if button:
+            button.setChecked(True)
+            self.button_actor_name_clicked(text=name, output_text=output_text)
 
     def add_button_actor_name(self, actor_name):
         button = QtWidgets.QPushButton(actor_name)
