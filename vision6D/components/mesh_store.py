@@ -27,7 +27,6 @@ class MeshData:
     actor: pv.Actor
     color: str
     spacing: List[float] = field(default_factory=[1, 1, 1])
-    pose_path: str = ''
     mirror_x: bool = False
     mirror_y: bool = False
     opacity: float = 0.3
@@ -47,6 +46,7 @@ class MeshStore(metaclass=Singleton):
 
     def reset(self): 
         self.color_counter = 0
+        self.toggle_anchor_mesh = True
         self.meshes.clear()
 
     #^ Mesh related

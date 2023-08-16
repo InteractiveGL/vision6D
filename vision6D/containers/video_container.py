@@ -28,6 +28,7 @@ from ..tools import utils
 class VideoContainer:
     def __init__(self,
                 plotter,
+                anchor_button,
                 play_video_button,
                 hintLabel, 
                 toggle_register,
@@ -37,6 +38,7 @@ class VideoContainer:
                 output_text):
         
         self.plotter = plotter
+        self.anchor_button = anchor_button
         self.play_video_button = play_video_button
         self.hintLabel = hintLabel
         self.toggle_register = toggle_register
@@ -59,6 +61,8 @@ class VideoContainer:
             if self.folder_store.folder_path: self.clear_plot() # main goal is to set folder_path to None
             self.hintLabel.hide()
             self.video_store.add_video(video_path)
+            self.anchor_button.setCheckable(False)
+            self.anchor_button.setEnabled(False)
             self.play_video_button.setEnabled(True)
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")

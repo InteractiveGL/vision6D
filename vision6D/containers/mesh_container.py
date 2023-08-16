@@ -12,6 +12,7 @@ import ast
 import copy
 import pathlib
 
+import trimesh
 import PIL.Image
 import numpy as np
 import pyvista as pv
@@ -179,7 +180,6 @@ class MeshContainer:
         if pose_path:
             self.hintLabel.hide()
             transformation_matrix = np.load(pose_path)
-            self.mesh_store.meshes[self.mesh_store.reference].pose_path = pose_path
             if self.mesh_store.meshes[self.mesh_store.reference].mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             if self.mesh_store.meshes[self.mesh_store.reference].mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.add_pose(matrix=transformation_matrix)
@@ -212,7 +212,7 @@ class MeshContainer:
                     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
             except: 
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Format is not correct", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-    
+    # todo: fix the reset gt_pose for not anchored situation
     def reset_gt_pose(self):
         if self.mesh_store.reference:
             if self.mesh_store.meshes[self.mesh_store.reference].initial_pose is not None:
@@ -245,16 +245,21 @@ class MeshContainer:
 
     def export_pose(self):
         if self.mesh_store.reference:
+            original_vertices = self.mesh_store.meshes[self.mesh_store.reference].source_mesh.vertices
+            verts, faces = utils.get_mesh_actor_vertices_faces(self.mesh_store.meshes[self.mesh_store.reference].actor)
+            current_vertices = utils.transform_vertices(verts, self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
+            original_mesh = trimesh.Trimesh(original_vertices, faces, process=False)
+            current_mesh = trimesh.Trimesh(current_vertices, faces, process=False)
+            pose, _ = trimesh.registration.mesh_other(original_mesh, current_mesh)
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Pose Files (*.npy)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.npy')
                 self.update_gt_pose()
-                np.save(output_path, self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix)
-                self.output_text.append(f"-> Saved:\n{self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix}\nExport to:\n {output_path}")
-            self.mesh_store.meshes[self.mesh_store.reference].pose_path = output_path
+                np.save(output_path, pose)
+                self.output_text.append(f"-> Saved:\n{pose}\nExport to:\n {output_path}")
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference or load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-    
+  
     def export_mesh_render(self, save_render=True):
         image = None
         if self.mesh_store.reference:

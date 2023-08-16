@@ -82,6 +82,7 @@ class MyMainWindow(MainWindow):
         # Create widgets
         self.color_button = QtWidgets.QPushButton("Color")
         self.color_button.clicked.connect(self.show_color_popup)
+        self.anchor_button = QtWidgets.QPushButton("Anchor")
         self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
         self.opacity_spinbox.setMinimum(0.0)
@@ -174,6 +175,7 @@ class MyMainWindow(MainWindow):
                                         output_text=self.output_text)
         
         self.video_container = VideoContainer(plotter=self.plotter,
+                                            anchor_button=self.anchor_button,
                                             play_video_button=self.play_video_button, 
                                             hintLabel=self.hintLabel, 
                                             toggle_register=self.toggle_register,
@@ -389,11 +391,10 @@ class MyMainWindow(MainWindow):
 
         # Create Grid layout for function buttons
         top_grid_layout = QtWidgets.QGridLayout()
-        anchor_button = QtWidgets.QPushButton("Anchor")
-        anchor_button.setCheckable(True)
-        anchor_button.setChecked(True)
-        anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
-        top_grid_layout.addWidget(anchor_button, 0, 0)
+        self.anchor_button.setCheckable(True) # Set the button to be checkable so it is highlighted, very important
+        self.anchor_button.setChecked(True)
+        self.anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
+        top_grid_layout.addWidget(self.anchor_button, 0, 0)
         top_grid_layout.addWidget(self.color_button, 0, 1)
         top_grid_layout.addWidget(self.opacity_spinbox, 0, 2)
         
@@ -604,9 +605,9 @@ class MyMainWindow(MainWindow):
         if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
         else: self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
             
+    #^ when there is no anchor, the base vertices changes when we move around the objects
     def toggle_anchor(self, reference_pose):
-        if self.mesh_store.toggle_anchor_mesh:
-            self.register_pose(reference_pose)
+        if self.mesh_store.toggle_anchor_mesh: self.register_pose(reference_pose)
         else:
             for mesh_data in self.mesh_store.meshes.values():
                 verts, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
@@ -640,7 +641,7 @@ class MyMainWindow(MainWindow):
 
     def add_button_actor_name(self, actor_name):
         button = QtWidgets.QPushButton(actor_name)
-        button.setCheckable(True)  # Set the button to be checkable
+        button.setCheckable(True)  # Set the button to be checkable so it is highlighted, very important
         button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
         button.setChecked(True)
         button.setFixedSize(self.display.size().width(), 50)
@@ -692,7 +693,7 @@ class MyMainWindow(MainWindow):
         if prompt:
             workspace_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path:
-            if self.workspace_path: self.clear_plot()
+            self.clear_plot() # clear out everything before loading a workspace
             self.workspace_path = workspace_path
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
@@ -721,6 +722,8 @@ class MyMainWindow(MainWindow):
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
                     for path in mesh_path: self.mesh_container.add_mesh_file(path)
                 if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
+                self.anchor_button.setCheckable(False)
+                self.anchor_button.setEnabled(False)
                 self.play_video_button.setEnabled(False)
                 self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
                 self.camera_container.reset_camera()
@@ -822,6 +825,10 @@ class MyMainWindow(MainWindow):
         self.reset_output_text()
 
         self.color_button.setText("Color")
+        self.anchor_button.setCheckable(True)
+        self.anchor_button.setChecked(True)
+        self.anchor_button.setEnabled(True)
+        self.play_video_button.setEnabled(True)
         self.play_video_button.setText("Play Video")
         self.opacity_spinbox.setValue(0.3)
         

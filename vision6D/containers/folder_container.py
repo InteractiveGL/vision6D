@@ -47,10 +47,7 @@ class FolderContainer:
     def save_info(self):
         if self.folder_store.folder_path:
             os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D", exist_ok=True)
-
-            if self.mesh_store.meshes[self.mesh_store.reference].pose_path is not None: id = pathlib.Path(self.mesh_store.meshes[self.mesh_store.reference].pose_path).stem
-            else: id = self.folder_store.current_image
-
+            id = self.folder_store.current_image
             # save each image in the folder
             if self.image_store.image_actor is not None:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "images", exist_ok=True)
