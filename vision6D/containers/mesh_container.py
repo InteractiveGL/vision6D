@@ -253,8 +253,7 @@ class MeshContainer:
             name = self.button_group_actors_names.checkedButton().text()
             if name in self.mesh_store.meshes:
                 self.mesh_store.undo_actor_pose(name)
-                #very important, donnot change this line to "toggle_register"
-                self.check_button(name=name)
+                self.check_button(name=name) # very important, donnot change this line to "toggle_register"
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 

@@ -108,20 +108,25 @@ class MeshStore(metaclass=Singleton):
         self.render.show(auto_close=False)
         image = self.render.last_image
         return image
+    
+    def get_poses_from_undo(self, mesh_data):
+        transformation_matrix = mesh_data.undo_poses.pop()
+        while mesh_data.undo_poses and (transformation_matrix == mesh_data.actor.user_matrix).all(): 
+            transformation_matrix = mesh_data.undo_poses.pop()
+        mesh_data.actor.user_matrix = transformation_matrix
+        
+    def get_vertices_from_undo(self, mesh_data):
+        # Get the vertices and faces
+        vertices, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+        # If there are undo vertices, get the most recent set that is different from the current vertices
+        verts = mesh_data.undo_vertices.pop()  # initialize verts with current vertices
+        while mesh_data.undo_vertices and (verts == vertices).all(): 
+            verts = mesh_data.undo_vertices.pop()
+        mesh_data.pv_mesh.points = verts
+        mesh_data.actor.user_matrix = np.eye(4)
             
     def undo_actor_pose(self, name):
         mesh_data = self.meshes[name]
-        if self.toggle_anchor_mesh:
-            transformation_matrix = mesh_data.undo_poses.pop()
-            while mesh_data.undo_poses and (transformation_matrix == mesh_data.actor.user_matrix).all():
-                transformation_matrix = mesh_data.undo_poses.pop()
-            mesh_data.actor.user_matrix = transformation_matrix
-        else:
-            # Get the vertices and faces
-            vertices, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
-            # If there are undo vertices, get the most recent set that is different from the current vertices
-            verts = mesh_data.undo_vertices.pop()  # initialize verts with current vertices
-            while mesh_data.undo_vertices and (verts == vertices).all():
-                verts = mesh_data.undo_vertices.pop()
-            mesh_data.pv_mesh.points = verts
-            mesh_data.actor.user_matrix = np.eye(4)
+        if self.toggle_anchor_mesh: self.get_poses_from_undo(mesh_data)
+        else: self.get_vertices_from_undo(mesh_data)
+            
