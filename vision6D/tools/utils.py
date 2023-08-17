@@ -15,6 +15,7 @@ import json
 import logging
 import pathlib
 
+import vtk
 import numpy as np
 import pyvista as pv
 import matplotlib.pyplot as plt
@@ -442,3 +443,17 @@ def angler_distance(R_a, R_b):
     angle_diff_rad = np.arccos(np.clip((np.trace(R_diff) - 1) / 2, -1, 1))
     angle_diff_deg = np.degrees(angle_diff_rad)
     return angle_diff_deg
+
+def reset_vtk_lut(colormap):
+    if isinstance(colormap, str):
+        color_num = 256
+        viridis_cm = plt.get_cmap(colormap, color_num)
+        colors = viridis_cm(np.arange(color_num))
+    else:
+        colors = colormap
+        color_num = len(colors)
+    lut = vtk.vtkLookupTable()
+    lut.SetNumberOfTableValues(color_num)
+    lut.Build()
+    for i, color in enumerate(colors): lut.SetTableValue(i, color[0], color[1], color[2], 1.0)  # Last value is alpha (opacity)
+    return lut

@@ -129,12 +129,15 @@ class MeshContainer:
         if color in self.mesh_store.colors:
             mesh_data.actor.GetMapper().SetScalarVisibility(0)
             mesh_data.actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
-        else: 
+        else:
             scalars = utils.color_mesh(mesh_data.pv_mesh.points, color=color)
-            scalars = vtknp.numpy_to_vtk(scalars)
             mapper = mesh_data.actor.GetMapper()
+            # if using the original 2454 vertices value, it does not do face rendering
+            lut = utils.reset_vtk_lut(colormap="viridis")
+            # lut = utils.reset_vtk_lut(colormap=scalars)
+            mapper.SetLookupTable(lut)
             mapper.SetScalarVisibility(1)
-            mapper.GetInput().GetPointData().SetScalars(scalars) # VTK lookup map is different from the pyvista lookup map
+            mapper.GetInput().GetPointData().SetScalars(vtknp.numpy_to_vtk(scalars)) # VTK lookup map is different from the pyvista lookup map
                     
     def set_mesh_opacity(self, name: str, surface_opacity: float):
         mesh_data = self.mesh_store.meshes[name]
@@ -152,39 +155,32 @@ class MeshContainer:
                 current_opacity += change
                 current_opacity = np.clip(current_opacity, 0, 1)
                 self.opacity_spinbox.setValue(current_opacity)
+                
+    def handle_hide_meshes_opacity(self, flag):
+        checked_button = self.button_group_actors_names.checkedButton()
+        checked_name = checked_button.text() if checked_button else None
+        for button in self.button_group_actors_names.buttons():
+            name = button.text()
+            if name not in self.mesh_store.meshes: continue
+            if len(self.mesh_store.meshes) != 1 and name == checked_name: continue
+            mesh_data = self.mesh_store.meshes[name]
+            if flag:
+                self.ignore_opacity_change = True
+                self.opacity_spinbox.setValue(0)
+                self.ignore_opacity_change = False
+                mesh_data.previous_opacity = mesh_data.opacity
+                mesh_data.opacity = 0
+                self.set_mesh_opacity(name, mesh_data.opacity)
+            else:
+                self.ignore_opacity_change = True
+                self.opacity_spinbox.setValue(mesh_data.previous_opacity)
+                self.ignore_opacity_change = False
+                self.set_mesh_opacity(name, mesh_data.previous_opacity)
+                mesh_data.previous_opacity = mesh_data.opacity
             
     def toggle_hide_meshes_button(self):
         self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
-        if self.toggle_hide_meshes_flag:
-
-            checked_button = self.button_group_actors_names.checkedButton()
-            if checked_button: self.checked_button_name = checked_button.text()
-            else: self.checked_button_name = None
-
-            for button in self.button_group_actors_names.buttons():
-                name = button.text()
-                if name in self.mesh_store.meshes:
-                    if len(self.mesh_store.meshes) != 1 and name == self.checked_button_name: 
-                        continue
-                    mesh_data = self.mesh_store.meshes[name]
-                    self.ignore_opacity_change = True
-                    self.opacity_spinbox.setValue(0)
-                    self.ignore_opacity_change = False
-                    mesh_data.previous_opacity = copy.deepcopy(mesh_data.opacity)
-                    mesh_data.opacity = 0
-                    self.set_mesh_opacity(name, mesh_data.opacity)
-        else:
-            for button in self.button_group_actors_names.buttons():
-                name = button.text()
-                if name in self.mesh_store.meshes:
-                    if len(self.mesh_store.meshes) != 1 and name == self.checked_button_name: 
-                        continue
-                    mesh_data = self.mesh_store.meshes[name]
-                    self.ignore_opacity_change = True
-                    self.opacity_spinbox.setValue(mesh_data.previous_opacity)
-                    self.ignore_opacity_change = False
-                    self.set_mesh_opacity(name, mesh_data.previous_opacity)
-                    mesh_data.previous_opacity = copy.deepcopy(mesh_data.opacity)
+        self.handle_hide_meshes_opacity(self.toggle_hide_meshes_flag)
                             
     def add_pose_file(self, pose_path):
         if pose_path:
