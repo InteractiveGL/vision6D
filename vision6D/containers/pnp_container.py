@@ -30,6 +30,10 @@ class PnPContainer:
         self.camera_store = CameraStore()
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
+    
+    def display_warning(self, message, title="vision6D"):
+        QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), title, message, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        return 0
 
     def nocs_epnp(self, color_mask, mesh):
         vertices = mesh.vertices
@@ -98,73 +102,88 @@ class PnPContainer:
                         angular_distance = utils.angler_distance(predicted_pose[:3, :3], gt_pose[:3, :3])
                         translation_error = np.linalg.norm(predicted_pose[:3, 3] - gt_pose[:3, 3])
                         self.output_text.append(f"Predicted pose with NOCS color: ")
-                        self.output_text.append(f"{predicted_pose}")
+                        predicted_pose_text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                        predicted_pose[0, 0], predicted_pose[0, 1], predicted_pose[0, 2], predicted_pose[0, 3], 
+                        predicted_pose[1, 0], predicted_pose[1, 1], predicted_pose[1, 2], predicted_pose[1, 3], 
+                        predicted_pose[2, 0], predicted_pose[2, 1], predicted_pose[2, 2], predicted_pose[2, 3],
+                        predicted_pose[3, 0], predicted_pose[3, 1], predicted_pose[3, 2], predicted_pose[3, 3])
+                        self.output_text.append(predicted_pose_text)
                         self.output_text.append(f"GT Pose: ")
-                        self.output_text.append(f"{gt_pose}")
+                        gt_pose_text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                        gt_pose[0, 0], gt_pose[0, 1], gt_pose[0, 2], gt_pose[0, 3], 
+                        gt_pose[1, 0], gt_pose[1, 1], gt_pose[1, 2], gt_pose[1, 3], 
+                        gt_pose[2, 0], gt_pose[2, 1], gt_pose[2, 2], gt_pose[2, 3],
+                        gt_pose[3, 0], gt_pose[3, 1], gt_pose[3, 2], gt_pose[3, 3])
+                        self.output_text.append(gt_pose_text)
                         self.output_text.append(f"Angular Error (in degree): {angular_distance}")
-                        self.output_text.append(f"Translation Error: {translation_error}")
-                    else:
-                        QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Only works using EPnP with latlon mask", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                else:
-                    QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            else:
-                QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh need to be colored, with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                        self.output_text.append(f"Translation Error: {translation_error}\n")
+                    else: self.display_warning("Only works using EPnP with latlon mask")
+                else: self.display_warning("The color mask is blank (maybe set the reference mesh wrong)")
+            else: self.display_warning("The mesh need to be colored, with gradient color")
+        else: self.display_warning("A mesh need to be loaded/mesh reference need to be set")
 
+    def epnp_mask_handle_binary_mask(self, mask_data):
+        if self.mesh_store.reference:
+            mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+            colors = utils.get_mesh_actor_scalars(mesh_data.actor)
+            if colors is not None and (not np.all(colors == colors[0])):
+                color_mask = self.export_mesh_render(save_render=False)
+                nocs_color = (mesh_data.color == 'nocs')
+                gt_pose = mesh_data.actor.user_matrix
+                if mesh_data.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+                if mesh_data.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+                vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+                mesh = trimesh.Trimesh(vertices, faces, process=False)
+            else: self.display_warning("The mesh need to be colored, with gradient color")
+        else: self.display_warning("A mesh need to be loaded/mesh reference need to be set")
+        
+        if color_mask is not None: color_mask = (color_mask * mask_data).astype(np.uint8)
+        else: self.display_warning("Color mask is None")
+        
+        return mesh_data, color_mask, nocs_color, gt_pose, mesh
+    
+    def epnp_mask_nocs_theme(self, mesh_data, color_mask, mesh):
+        color_theme = 'NOCS'
+        predicted_pose = self.nocs_epnp(color_mask, mesh)
+        if mesh_data.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        if mesh_data.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        return color_theme, predicted_pose
+    
+    def epnp_mask_latlon_theme(self, mesh_data, color_mask, mesh):
+        color_theme = 'LATLON'
+        if mesh_data.mirror_x: color_mask = color_mask[:, ::-1, :]
+        if mesh_data.mirror_y: color_mask = color_mask[::-1, :, :]
+        predicted_pose = self.latlon_epnp(color_mask, mesh)
+        return color_theme, predicted_pose
+    
     def epnp_mask(self, nocs_method):
         if self.mask_store.mask_actor:
             mask_data = self.mask_store.render_mask(camera=self.plotter.camera.copy())
             if np.max(mask_data) > 1: mask_data = mask_data / 255
-
-            # current shown mask is binary mask
             if np.all(np.logical_or(mask_data == 0, mask_data == 1)):
-                if self.mesh_store.reference:
-                    mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
-                    colors = utils.get_mesh_actor_scalars(mesh_data.actor)
-                    if colors is not None and (not np.all(colors == colors[0])):
-                        color_mask = self.export_mesh_render(save_render=False)
-                        nocs_color = (mesh_data.color == 'nocs')
-                        gt_pose = mesh_data.actor.user_matrix
-                        if mesh_data.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-                        if mesh_data.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-                        vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
-                        mesh = trimesh.Trimesh(vertices, faces, process=False)
-                    else:
-                        QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh need to be colored, with gradient color", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                        return 0
-                else: 
-                    QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "A mesh need to be loaded/mesh reference need to be set", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    return 0
-                
-                if color_mask is not None: color_mask = (color_mask * mask_data).astype(np.uint8)
-                else: 
-                    QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Color mask is None", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    return 0
-            
+                mesh_data, color_mask, nocs_color, gt_pose, mesh = self.epnp_mask_handle_binary_mask(mask_data)
             if np.sum(color_mask):
                 if nocs_method == nocs_color:
-                    if nocs_method: 
-                        color_theme = 'NOCS'
-                        predicted_pose = self.nocs_epnp(color_mask, mesh)
-                        if mesh_data.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                        if mesh_data.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                    else: 
-                        color_theme = 'LATLON'
-                        if mesh_data.mirror_x: color_mask = color_mask[:, ::-1, :]
-                        if mesh_data.mirror_y: color_mask = color_mask[::-1, :, :]
-                        predicted_pose = self.latlon_epnp(color_mask, mesh)
+                    if nocs_method: color_theme, predicted_pose = self.epnp_mask_nocs_theme(mesh_data, color_mask, mesh)
+                    else: color_theme, predicted_pose = self.epnp_mask_latlon_theme(mesh_data, color_mask, mesh)
                     angular_distance = utils.angler_distance(predicted_pose[:3, :3], gt_pose[:3, :3])
                     translation_error = np.linalg.norm(predicted_pose[:3, 3] - gt_pose[:3, 3])
                     self.output_text.append(f"Predicted pose with {color_theme} color (masked): ")
-                    self.output_text.append(f"{predicted_pose}")
+                    predicted_pose_text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                    predicted_pose[0, 0], predicted_pose[0, 1], predicted_pose[0, 2], predicted_pose[0, 3], 
+                    predicted_pose[1, 0], predicted_pose[1, 1], predicted_pose[1, 2], predicted_pose[1, 3], 
+                    predicted_pose[2, 0], predicted_pose[2, 1], predicted_pose[2, 2], predicted_pose[2, 3],
+                    predicted_pose[3, 0], predicted_pose[3, 1], predicted_pose[3, 2], predicted_pose[3, 3])
+                    self.output_text.append(predicted_pose_text)
                     self.output_text.append(f"GT Pose: ")
-                    self.output_text.append(f"{gt_pose}")
+                    gt_pose_text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                    gt_pose[0, 0], gt_pose[0, 1], gt_pose[0, 2], gt_pose[0, 3], 
+                    gt_pose[1, 0], gt_pose[1, 1], gt_pose[1, 2], gt_pose[1, 3], 
+                    gt_pose[2, 0], gt_pose[2, 1], gt_pose[2, 2], gt_pose[2, 3],
+                    gt_pose[3, 0], gt_pose[3, 1], gt_pose[3, 2], gt_pose[3, 3])
+                    self.output_text.append(gt_pose_text)
                     self.output_text.append(f"Angular Error (in degree): {angular_distance}")
-                    self.output_text.append(f"Translation Error: {translation_error}")
-                else:
-                    QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(),"vision6D", "Clicked the wrong method")
-            else:
-                QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The color mask is blank (maybe set the reference mesh wrong)", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(),"vision6D", "please load a mask first")
+                    self.output_text.append(f"Translation Error: {translation_error}\n")
+                else: self.display_warning("Clicked the wrong method")
+            else: self.display_warning("The color mask is blank (maybe set the reference mesh wrong)")
+        else: self.display_warning("please load a mask first")

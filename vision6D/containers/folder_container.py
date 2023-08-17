@@ -65,7 +65,12 @@ class FolderContainer:
                 self.toggle_register(mesh_data.actor.user_matrix)
                 np.save(output_pose_path, mesh_data.actor.user_matrix)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} pose to {str(output_pose_path)}:")
-                self.output_text.append(f"{mesh_data.actor.user_matrix}")
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
+                mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
+                mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
+                mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
+                self.output_text.append(text)
         
             # save mask if there is a mask  
             if self.mask_store.mask_actor is not None:

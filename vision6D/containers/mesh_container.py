@@ -92,7 +92,13 @@ class MeshContainer:
         if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
         mesh_data.actor.user_matrix = transformation_matrix
         self.check_button(name=name, output_text=False)
-        self.output_text.append(f"-> Mirrored transformation matrix is: \n{transformation_matrix}")
+        text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+        transformation_matrix[0, 0], transformation_matrix[0, 1], transformation_matrix[0, 2], transformation_matrix[0, 3], 
+        transformation_matrix[1, 0], transformation_matrix[1, 1], transformation_matrix[1, 2], transformation_matrix[1, 3], 
+        transformation_matrix[2, 0], transformation_matrix[2, 1], transformation_matrix[2, 2], transformation_matrix[2, 3],
+        transformation_matrix[3, 0], transformation_matrix[3, 1], transformation_matrix[3, 2], transformation_matrix[3, 3])
+        self.output_text.append("-> Mirrored transformation matrix is:")
+        self.output_text.append(text)
 
     def add_mesh(self, mesh_data, transformation_matrix):
         """ add a mesh to the pyqt frame """
@@ -241,7 +247,13 @@ class MeshContainer:
         if self.mesh_store.reference:
             mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
             if mesh_data.initial_pose is not None:
-                self.output_text.append(f"-> Reset the GT pose to: \n{mesh_data.initial_pose}")
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_data.initial_pose[0, 0], mesh_data.initial_pose[0, 1], mesh_data.initial_pose[0, 2], mesh_data.initial_pose[0, 3], 
+                mesh_data.initial_pose[1, 0], mesh_data.initial_pose[1, 1], mesh_data.initial_pose[1, 2], mesh_data.initial_pose[1, 3], 
+                mesh_data.initial_pose[2, 0], mesh_data.initial_pose[2, 1], mesh_data.initial_pose[2, 2], mesh_data.initial_pose[2, 3],
+                mesh_data.initial_pose[3, 0], mesh_data.initial_pose[3, 1], mesh_data.initial_pose[3, 2], mesh_data.initial_pose[3, 3])
+                self.output_text.append("-> Reset the GT pose to:")
+                self.output_text.append(text)
                 self.toggle_register(mesh_data.initial_pose)
                 self.reset_camera()
         else:
@@ -253,7 +265,13 @@ class MeshContainer:
             if mesh_data.initial_pose is not None:
                 mesh_data.initial_pose = mesh_data.actor.user_matrix
                 self.toggle_register(mesh_data.actor.user_matrix)
-                self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to: \n{mesh_data.initial_pose}")
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_data.initial_pose[0, 0], mesh_data.initial_pose[0, 1], mesh_data.initial_pose[0, 2], mesh_data.initial_pose[0, 3], 
+                mesh_data.initial_pose[1, 0], mesh_data.initial_pose[1, 1], mesh_data.initial_pose[1, 2], mesh_data.initial_pose[1, 3], 
+                mesh_data.initial_pose[2, 0], mesh_data.initial_pose[2, 1], mesh_data.initial_pose[2, 2], mesh_data.initial_pose[2, 3],
+                mesh_data.initial_pose[3, 0], mesh_data.initial_pose[3, 1], mesh_data.initial_pose[3, 2], mesh_data.initial_pose[3, 3])
+                self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to:")
+                self.output_text.append(text)
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
@@ -272,7 +290,7 @@ class MeshContainer:
                 pose = mesh_data.actor.user_matrix
                 os.makedirs(PKG_ROOT.parent / "output" / "export_pose", exist_ok=True)
                 output_path = PKG_ROOT.parent / "output" / "export_pose" / (mesh_data.name + '.npy')
-                # self.update_gt_pose() # todo: donnot know if this is necessary
+                self.update_gt_pose()
                 np.save(output_path, pose)
                 self.output_text.append(f"Export {mesh_data.name} pose to:\n {output_path}")
             else:

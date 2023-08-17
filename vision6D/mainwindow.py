@@ -626,7 +626,12 @@ class MyMainWindow(MainWindow):
         if name in self.mesh_store.meshes:
             self.mesh_store.reference = name
             mesh_data = self.mesh_store.meshes[name]
-            if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(f"{mesh_data.actor.user_matrix}")
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
+            mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
+            mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
+            mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
+            if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
             self.toggle_anchor(mesh_data.actor.user_matrix)
             curr_opacity = mesh_data.actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
