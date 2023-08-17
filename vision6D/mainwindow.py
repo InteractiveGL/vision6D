@@ -79,20 +79,13 @@ class MyMainWindow(MainWindow):
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
 
-        # Create widgets
-        self.color_button = QtWidgets.QPushButton("Color")
-        self.color_button.clicked.connect(self.show_color_popup)
         self.anchor_button = QtWidgets.QPushButton("Anchor")
-        self.play_video_button = QtWidgets.QPushButton("Play Video")
+        self.color_button = QtWidgets.QPushButton("Color")
         self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
-        self.opacity_spinbox.setMinimum(0.0)
-        self.opacity_spinbox.setMaximum(1.0)
-        self.opacity_spinbox.setDecimals(2)
-        self.opacity_spinbox.setSingleStep(0.05)
-        self.opacity_spinbox.setValue(0.3)
-        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
+        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
+        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
+        self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.output_text = QtWidgets.QTextEdit()
-        self.output_text.setReadOnly(True)
 
         # Create the plotter
         self.create_plotter()
@@ -163,6 +156,8 @@ class MyMainWindow(MainWindow):
                                             add_button_actor_name=self.add_button_actor_name,
                                             button_group_actors_names=self.button_group_actors_names,
                                             check_button=self.check_button,
+                                            mirror_x_button=self.mirror_x_button,
+                                            mirror_y_button=self.mirror_y_button,
                                             opacity_spinbox=self.opacity_spinbox,
                                             opacity_value_change=self.opacity_value_change,
                                             reset_camera=self.camera_container.reset_camera,
@@ -203,10 +198,6 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.camera_container.reset_camera)
         QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.camera_container.zoom_out)
         QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.camera_container.zoom_in)
-
-        # Mirror related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("o"), self).activated.connect(lambda direction='x': self.mirror_actors(direction))
-        QtWidgets.QShortcut(QtGui.QKeySequence("p"), self).activated.connect(lambda direction='y': self.mirror_actors(direction))
         
         # Image related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.image_container.toggle_image_opacity(up))
@@ -391,11 +382,24 @@ class MyMainWindow(MainWindow):
 
         # Create Grid layout for function buttons
         top_grid_layout = QtWidgets.QGridLayout()
+        
+        # Anchor button
         self.anchor_button.setCheckable(True) # Set the button to be checkable so it is highlighted, very important
         self.anchor_button.setChecked(True)
         self.anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
         top_grid_layout.addWidget(self.anchor_button, 0, 0)
+        
+        # Color button
+        self.color_button.clicked.connect(self.show_color_popup)
         top_grid_layout.addWidget(self.color_button, 0, 1)
+        
+        # Opacity box
+        self.opacity_spinbox.setMinimum(0.0)
+        self.opacity_spinbox.setMaximum(1.0)
+        self.opacity_spinbox.setDecimals(2)
+        self.opacity_spinbox.setSingleStep(0.05)
+        self.opacity_spinbox.setValue(0.3)
+        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
         top_grid_layout.addWidget(self.opacity_spinbox, 0, 2)
         
         # Create the actor pose button
@@ -413,13 +417,9 @@ class MyMainWindow(MainWindow):
         hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
         top_grid_layout.addWidget(hide_button, 1, 1)
 
-        # Create the mirror x button
-        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
+        # Mirror buttons
         self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
         top_grid_layout.addWidget(self.mirror_x_button, 1, 2)
-
-        # Create the mirror y button
-        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
         self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
         top_grid_layout.addWidget(self.mirror_y_button, 1, 3)
 
@@ -508,6 +508,7 @@ class MyMainWindow(MainWindow):
 
         # Access to the system clipboard
         self.clipboard = QtGui.QGuiApplication.clipboard()
+        self.output_text.setReadOnly(True)
         output_layout.addWidget(self.output_text)
         self.output.setLayout(output_layout)
         self.panel_layout.addWidget(self.output)
@@ -619,6 +620,7 @@ class MyMainWindow(MainWindow):
                 vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
                 mesh_data.pv_mesh.points = vertices
                 mesh_data.actor.user_matrix = np.eye(4)
+                mesh_data.initial_pose = np.eye(4) # if meshes are not anchored, then there the initial pose will always be np.eye(4)
                 
     def button_actor_name_clicked(self, name, output_text=True):
         if name in self.mesh_store.meshes:

@@ -40,6 +40,8 @@ class MeshContainer:
                 add_button_actor_name, 
                 button_group_actors_names,
                 check_button,
+                mirror_x_button,
+                mirror_y_button,
                 opacity_spinbox, 
                 opacity_value_change,
                 reset_camera,
@@ -57,6 +59,8 @@ class MeshContainer:
         self.add_button_actor_name = add_button_actor_name
         self.button_group_actors_names = button_group_actors_names
         self.check_button = check_button
+        self.mirror_x_button = mirror_x_button
+        self.mirror_y_button = mirror_y_button
         self.opacity_spinbox = opacity_spinbox
         self.opacity_value_change = opacity_value_change
         self.reset_camera = reset_camera
@@ -107,7 +111,13 @@ class MeshContainer:
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
-                
+        if self.mesh_store.toggle_anchor_mesh:
+            self.mirror_x_button.setEnabled(True)
+            self.mirror_y_button.setEnabled(True)
+        else:
+            self.mirror_x_button.setEnabled(False)
+            self.mirror_y_button.setEnabled(False)
+        
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
@@ -226,7 +236,7 @@ class MeshContainer:
                 self.add_pose(matrix=transformation_matrix)
             else:
                 QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
-    # todo: fix the reset gt_pose for not anchored situation
+    
     def reset_gt_pose(self):
         if self.mesh_store.reference:
             mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
@@ -237,7 +247,6 @@ class MeshContainer:
         else:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
 
-    # todo: fix the update gt_pose for not anchored situation
     def update_gt_pose(self):
         if self.mesh_store.reference:
             mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
