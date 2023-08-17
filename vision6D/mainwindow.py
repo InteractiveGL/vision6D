@@ -298,7 +298,7 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Image', self.image_container.export_image)
         exportMenu.addAction('Mask', self.mask_container.export_mask)
         exportMenu.addAction('Bbox', self.bbox_container.export_bbox)
-        exportMenu.addAction('Pose', self.mesh_container.export_pose)
+        exportMenu.addAction('Mesh/Pose', self.mesh_container.export_mesh_pose)
         exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
         exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
         exportMenu.addAction('Camera Info', self.camera_container.export_camera_info)
