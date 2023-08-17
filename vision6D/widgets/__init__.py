@@ -1,4 +1,4 @@
-from .calibration_pop_window import CalibrationPopWindow
+from .calibration_dialog import CalibrationDialog
 from .camera_props_input_dialog import CameraPropsInputDialog
 from .custom_qt_interactor import CustomQtInteractor
 from .get_pose_dialog import GetPoseDialog
@@ -11,7 +11,7 @@ from .search_bar import SearchBar
 
 
 __all__ = [
-    'CalibrationPopWindow',
+    'CalibrationDialog',
     'CameraPropsInputDialog',
     'CustomQtInteractor',
     'GetPoseDialog',

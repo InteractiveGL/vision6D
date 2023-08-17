@@ -131,14 +131,25 @@ class MeshContainer:
             mesh_data.actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
         else:
             scalars = utils.color_mesh(mesh_data.pv_mesh.points, color=color)
+            """
+            mesh_data.pv_mesh.point_data.set_vectors(scalars, 'my-scalars')
+            mapper = mesh_data.actor.GetMapper()
+            mapper.SetScalarVisibility(True)
+            """
+            """
             mapper = mesh_data.actor.GetMapper()
             # if using the original 2454 vertices value, it does not do face rendering
-            lut = utils.reset_vtk_lut(colormap="viridis")
-            # lut = utils.reset_vtk_lut(colormap=scalars)
+            # lut = utils.reset_vtk_lut(colormap="viridis")
+            lut = utils.reset_vtk_lut(colormap=scalars)
             mapper.SetLookupTable(lut)
             mapper.SetScalarVisibility(1)
             mapper.GetInput().GetPointData().SetScalars(vtknp.numpy_to_vtk(scalars)) # VTK lookup map is different from the pyvista lookup map
-                    
+            """
+            mesh = self.plotter.add_mesh(mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=mesh_data.opacity, name=name)
+            mesh.user_matrix = mesh_data.actor.user_matrix
+            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=name)
+            mesh_data.actor = actor #^ very import to change the actor too!
+            
     def set_mesh_opacity(self, name: str, surface_opacity: float):
         mesh_data = self.mesh_store.meshes[name]
         mesh_data.opacity = surface_opacity

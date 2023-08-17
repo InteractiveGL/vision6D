@@ -20,7 +20,7 @@ from PyQt5 import QtWidgets
 
 from ..components import CameraStore
 from ..components import ImageStore
-from ..widgets import CalibrationPopWindow
+from ..widgets import CalibrationDialog
 from ..widgets import CameraPropsInputDialog
 
 class CameraContainer:
@@ -52,8 +52,7 @@ class CameraContainer:
             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
             return 0
         
-        calibrate_pop = CalibrationPopWindow(calibrated_image, original_image)
-        calibrate_pop.exec_()
+        CalibrationDialog(calibrated_image, original_image).exec_()
 
     def set_camera(self):
         dialog = CameraPropsInputDialog(
