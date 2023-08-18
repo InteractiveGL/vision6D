@@ -40,8 +40,6 @@ class MeshContainer:
                 add_button_actor_name, 
                 button_group_actors_names,
                 check_button,
-                mirror_x_button,
-                mirror_y_button,
                 opacity_spinbox, 
                 opacity_value_change,
                 reset_camera,
@@ -59,8 +57,6 @@ class MeshContainer:
         self.add_button_actor_name = add_button_actor_name
         self.button_group_actors_names = button_group_actors_names
         self.check_button = check_button
-        self.mirror_x_button = mirror_x_button
-        self.mirror_y_button = mirror_y_button
         self.opacity_spinbox = opacity_spinbox
         self.opacity_value_change = opacity_value_change
         self.reset_camera = reset_camera
@@ -87,19 +83,29 @@ class MeshContainer:
         if direction == 'x': mesh_data.mirror_x = not mesh_data.mirror_x
         elif direction == 'y': mesh_data.mirror_y = not mesh_data.mirror_y
         if mesh_data.initial_pose is None: mesh_data.initial_pose = mesh_data.actor.user_matrix
-        transformation_matrix = mesh_data.initial_pose
-        if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-        mesh_data.actor.user_matrix = transformation_matrix
+        if self.mesh_store.toggle_anchor_mesh:
+            transformation_matrix = mesh_data.initial_pose
+            if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            mesh_data.actor.user_matrix = transformation_matrix
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            transformation_matrix[0, 0], transformation_matrix[0, 1], transformation_matrix[0, 2], transformation_matrix[0, 3], 
+            transformation_matrix[1, 0], transformation_matrix[1, 1], transformation_matrix[1, 2], transformation_matrix[1, 3], 
+            transformation_matrix[2, 0], transformation_matrix[2, 1], transformation_matrix[2, 2], transformation_matrix[2, 3],
+            transformation_matrix[3, 0], transformation_matrix[3, 1], transformation_matrix[3, 2], transformation_matrix[3, 3])
+            self.output_text.append("-> Mirrored transformation matrix is:")
+            self.output_text.append(text)
+        else:
+            transformation_matrix = mesh_data.actor.user_matrix
+            if mesh_data.mirror_x: 
+                transformation_matrix[0,0] = -1
+                mesh_data.mirror_x = False # very important
+            if mesh_data.mirror_y: 
+                transformation_matrix[1,1] = -1
+                mesh_data.mirror_y = False # very important
+            mesh_data.actor.user_matrix = transformation_matrix
         self.check_button(name=name, output_text=False)
-        text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-        transformation_matrix[0, 0], transformation_matrix[0, 1], transformation_matrix[0, 2], transformation_matrix[0, 3], 
-        transformation_matrix[1, 0], transformation_matrix[1, 1], transformation_matrix[1, 2], transformation_matrix[1, 3], 
-        transformation_matrix[2, 0], transformation_matrix[2, 1], transformation_matrix[2, 2], transformation_matrix[2, 3],
-        transformation_matrix[3, 0], transformation_matrix[3, 1], transformation_matrix[3, 2], transformation_matrix[3, 3])
-        self.output_text.append("-> Mirrored transformation matrix is:")
-        self.output_text.append(text)
-
+        
     def add_mesh(self, mesh_data, transformation_matrix):
         """ add a mesh to the pyqt frame """
         mesh = self.plotter.add_mesh(mesh_data.pv_mesh, color=mesh_data.color, opacity=mesh_data.opacity, name=mesh_data.name)
@@ -117,12 +123,6 @@ class MeshContainer:
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
-        if self.mesh_store.toggle_anchor_mesh:
-            self.mirror_x_button.setEnabled(True)
-            self.mirror_y_button.setEnabled(True)
-        else:
-            self.mirror_x_button.setEnabled(False)
-            self.mirror_y_button.setEnabled(False)
         
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()

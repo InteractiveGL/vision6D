@@ -82,8 +82,6 @@ class MyMainWindow(MainWindow):
         self.anchor_button = QtWidgets.QPushButton("Anchor")
         self.color_button = QtWidgets.QPushButton("Color")
         self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
-        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
-        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
         self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.output_text = QtWidgets.QTextEdit()
 
@@ -156,8 +154,6 @@ class MyMainWindow(MainWindow):
                                             add_button_actor_name=self.add_button_actor_name,
                                             button_group_actors_names=self.button_group_actors_names,
                                             check_button=self.check_button,
-                                            mirror_x_button=self.mirror_x_button,
-                                            mirror_y_button=self.mirror_y_button,
                                             opacity_spinbox=self.opacity_spinbox,
                                             opacity_value_change=self.opacity_value_change,
                                             reset_camera=self.camera_container.reset_camera,
@@ -418,8 +414,10 @@ class MyMainWindow(MainWindow):
         top_grid_layout.addWidget(hide_button, 1, 1)
 
         # Mirror buttons
+        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
         self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
         top_grid_layout.addWidget(self.mirror_x_button, 1, 2)
+        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
         self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
         top_grid_layout.addWidget(self.mirror_y_button, 1, 3)
 
