@@ -660,7 +660,6 @@ class MyMainWindow(MainWindow):
         self.button_actor_name_clicked(name=name)
     
     def opacity_value_change(self, value):
-        if self.mesh_container.ignore_opacity_change: return 0
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
             name = checked_button.text()

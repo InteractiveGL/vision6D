@@ -46,9 +46,6 @@ class MeshContainer:
                 toggle_register,
                 load_mask,
                 output_text):
-        
-        self.ignore_opacity_change = False
-        self.toggle_hide_meshes_flag = False
 
         self.color_button = color_button
         self.plotter = plotter
@@ -63,6 +60,8 @@ class MeshContainer:
         self.toggle_register = toggle_register
         self.load_mask = load_mask
         self.output_text = output_text
+        
+        self.toggle_hide_meshes_flag = False
         
         self.camera_store = CameraStore()
         self.mask_store = MaskStore()
@@ -193,16 +192,10 @@ class MeshContainer:
             if len(self.mesh_store.meshes) != 1 and name == checked_name: continue
             mesh_data = self.mesh_store.meshes[name]
             if flag:
-                self.ignore_opacity_change = True
-                self.opacity_spinbox.setValue(0)
-                self.ignore_opacity_change = False
                 mesh_data.previous_opacity = mesh_data.opacity
                 mesh_data.opacity = 0
                 self.set_mesh_opacity(name, mesh_data.opacity)
             else:
-                self.ignore_opacity_change = True
-                self.opacity_spinbox.setValue(mesh_data.previous_opacity)
-                self.ignore_opacity_change = False
                 self.set_mesh_opacity(name, mesh_data.previous_opacity)
                 mesh_data.previous_opacity = mesh_data.opacity
             
