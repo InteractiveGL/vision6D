@@ -28,20 +28,20 @@ from ..tools import utils
 class VideoContainer:
     def __init__(self,
                 plotter,
+                anchor_button,
                 play_video_button,
                 hintLabel, 
-                register_pose,
-                current_pose,
+                toggle_register,
                 add_image,
                 load_mask,
                 clear_plot,
                 output_text):
         
         self.plotter = plotter
+        self.anchor_button = anchor_button
         self.play_video_button = play_video_button
         self.hintLabel = hintLabel
-        self.register_pose = register_pose
-        self.current_pose = current_pose
+        self.toggle_register = toggle_register
         self.add_image = add_image
         self.load_mask = load_mask
         self.clear_plot = clear_plot
@@ -61,6 +61,8 @@ class VideoContainer:
             if self.folder_store.folder_path: self.clear_plot() # main goal is to set folder_path to None
             self.hintLabel.hide()
             self.video_store.add_video(video_path)
+            self.anchor_button.setCheckable(False)
+            self.anchor_button.setEnabled(False)
             self.play_video_button.setEnabled(True)
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")
@@ -78,15 +80,14 @@ class VideoContainer:
     def sample_video(self):
         if self.video_store.video_path: 
             self.video_store.sample_video()
-        else: 
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to load a video!")
 
     def play_video(self):
         if self.video_store.video_path:
             self.video_store.play_video()
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
-        else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to load a video!")
     
     def save_info(self):
         if self.video_store.video_path:
@@ -102,13 +103,19 @@ class VideoContainer:
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} to {str(output_frame_path)}")
         
             # save gt_pose for each frame if there are any meshes
-            if len(self.mesh_store.mesh_actors) > 0:
+            if len(self.mesh_store.meshes) > 0:
                 os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
-                self.current_pose()
-                np.save(output_pose_path, self.mesh_store.transformation_matrix)
+                mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+                self.toggle_register(mesh_data.actor.user_matrix)
+                np.save(output_pose_path, mesh_data.actor.user_matrix)
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} pose to {str(output_pose_path)}:")
-                self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
+                mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
+                mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
+                mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
+                self.output_text.append(text)
 
             # save mask if there is a mask  
             if self.mask_store.mask_actor is not None:
@@ -130,25 +137,29 @@ class VideoContainer:
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} bbox points to {output_bbox_path}")
-    
-        else: 
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                
+        else: utils.display_warning("Need to load a video!")
 
     def prev_info(self):
         if self.video_store.video_path:
             self.video_store.prev_frame()
             pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
             if os.path.isfile(pose_path): 
-                self.mesh_store.transformation_matrix = np.load(pose_path)
-                self.register_pose(self.mesh_store.transformation_matrix)
-                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+                mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+                mesh_data.actor.user_matrix = np.load(pose_path)
+                self.toggle_register(mesh_data.actor.user_matrix)
+                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose:")
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
+                mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
+                mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
+                mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
+                self.output_text.append(text)
             else: 
                 self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a video!")
 
     def next_info(self):
         if self.video_store.video_path:
@@ -156,12 +167,16 @@ class VideoContainer:
             self.video_store.next_frame()
             # load pose for the current frame if the pose exist
             pose_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "poses" / f"pose_{self.video_store.current_frame}.npy"
-            if os.path.isfile(pose_path): 
-                self.mesh_store.transformation_matrix = np.load(pose_path)
-                self.register_pose(self.mesh_store.transformation_matrix)
-                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose: \n{self.mesh_store.transformation_matrix}")
+            if os.path.isfile(pose_path):
+                self.toggle_register(np.load(pose_path))
+                self.output_text.append(f"-> Load saved frame {self.video_store.current_frame} pose:")
+                mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
+                mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
+                mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
+                mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
+                self.output_text.append(text)
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a video!")

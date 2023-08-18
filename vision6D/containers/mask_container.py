@@ -78,14 +78,12 @@ class MaskContainer:
     def set_mask_opacity(self, mask_opacity: float):
         self.mask_store.mask_opacity = mask_opacity
         self.mask_store.mask_actor.GetProperty().opacity = mask_opacity
-        self.plotter.add_actor(self.mask_store.mask_actor, pickable=True, name='mask')
     
     def toggle_mask_opacity(self, up):
         change = 0.05
         if not up: change *= -1
         self.mask_store.update_opacity(change)
-        self.plotter.add_actor(self.mask_store.mask_actor, pickable=True, name="mask")
-        self.check_button(actor_name='mask')
+        self.check_button(name='mask')
     
     def draw_mask(self):
         def handle_output_path_change(output_path):
@@ -96,9 +94,7 @@ class MaskContainer:
             image = utils.get_image_actor_scalars(self.image_store.image_actor)
             self.mask_window = MaskWindow(image)
             self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load an image first!")
 
     def export_mask(self):
         if self.mask_store.mask_actor:
@@ -113,6 +109,4 @@ class MaskContainer:
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export mask render to:\n {output_path}")
             self.mask_store.mask_path = output_path
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mask first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a mask first!")

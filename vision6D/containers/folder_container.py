@@ -26,14 +26,14 @@ class FolderContainer:
     def __init__(self,
                 plotter,
                 play_video_button,
-                current_pose,
+                toggle_register,
                 add_folder,
                 load_mask,
                 output_text):
         
         self.plotter = plotter
         self.play_video_button = play_video_button
-        self.current_pose = current_pose
+        self.toggle_register = toggle_register
         self.add_folder = add_folder
         self.load_mask = load_mask
         self.output_text = output_text
@@ -47,10 +47,7 @@ class FolderContainer:
     def save_info(self):
         if self.folder_store.folder_path:
             os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D", exist_ok=True)
-
-            if self.mesh_store.pose_path is not None: id = pathlib.Path(self.mesh_store.pose_path).stem
-            else: id = self.folder_store.current_image
-
+            id = self.folder_store.current_image
             # save each image in the folder
             if self.image_store.image_actor is not None:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "images", exist_ok=True)
@@ -61,13 +58,19 @@ class FolderContainer:
                 self.image_store.image_path = str(output_image_path)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} to {str(output_image_path)}")
 
-            if len(self.mesh_store.mesh_actors) > 0:
+            if len(self.mesh_store.meshes) > 0:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses", exist_ok=True)
                 output_pose_path = pathlib.Path(self.folder_store.folder_path) / "vision6D" / "poses" / f"{id}.npy"
-                self.current_pose()
-                np.save(output_pose_path, self.mesh_store.transformation_matrix)
+                mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+                self.toggle_register(mesh_data.actor.user_matrix)
+                np.save(output_pose_path, mesh_data.actor.user_matrix)
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} pose to {str(output_pose_path)}:")
-                self.output_text.append(f"{self.mesh_store.transformation_matrix}")
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
+                mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
+                mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
+                mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
+                self.output_text.append(text)
         
             # save mask if there is a mask  
             if self.mask_store.mask_actor is not None:
@@ -89,17 +92,14 @@ class FolderContainer:
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} bbox points to {output_bbox_path}")
-        else: 
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to load a folder!")
   
     def prev_info(self):
         if self.folder_store.folder_path:
             self.folder_store.prev_image()
             self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
             self.add_folder(self.folder_store.folder_path)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a folder!")
 
     def next_info(self):
         if self.folder_store.folder_path:
@@ -107,6 +107,4 @@ class FolderContainer:
             self.folder_store.next_image()
             self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
             self.add_folder(self.folder_store.folder_path)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a folder!")

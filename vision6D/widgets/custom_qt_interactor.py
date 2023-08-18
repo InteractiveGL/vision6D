@@ -40,7 +40,7 @@ class CustomQtInteractor(QtInteractor):
     def release_callback(self):
         if self.cell_picker: 
             picked_actor = self.cell_picker.GetActor()
-            actor_name = picked_actor.name
-            if (actor_name in self.main_window.mesh_store.mesh_actors) or (actor_name == 'mask'):
-                self.main_window.check_button(actor_name)
+            name = picked_actor.name
+            if (name in self.main_window.mesh_store.meshes) or (name == 'mask'):
+                self.main_window.check_button(name)
         self.cell_picker = None

@@ -12,7 +12,7 @@
 import os
 os.environ["QT_API"] = "pyqt5" # Setting the Qt bindings for QtPy
 import json
-import copy
+import pathlib
 import functools
 
 import PIL.Image
@@ -47,7 +47,10 @@ from .containers import PnPContainer
 from .containers import VideoContainer
 from .containers import FolderContainer
 
+from .tools import utils
+
 from .path import ICON_PATH
+from .path import PKG_ROOT
 
 np.set_printoptions(suppress=True)
 
@@ -76,19 +79,11 @@ class MyMainWindow(MainWindow):
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
 
-        # Create widgets
+        self.anchor_button = QtWidgets.QPushButton("Anchor")
         self.color_button = QtWidgets.QPushButton("Color")
-        self.color_button.clicked.connect(self.show_color_popup)
-        self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
-        self.opacity_spinbox.setMinimum(0.0)
-        self.opacity_spinbox.setMaximum(1.0)
-        self.opacity_spinbox.setDecimals(2)
-        self.opacity_spinbox.setSingleStep(0.05)
-        self.opacity_spinbox.setValue(0.3)
-        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
+        self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.output_text = QtWidgets.QTextEdit()
-        self.output_text.setReadOnly(True)
 
         # Create the plotter
         self.create_plotter()
@@ -162,8 +157,7 @@ class MyMainWindow(MainWindow):
                                             opacity_spinbox=self.opacity_spinbox,
                                             opacity_value_change=self.opacity_value_change,
                                             reset_camera=self.camera_container.reset_camera,
-                                            current_pose=self.current_pose,
-                                            register_pose=self.register_pose,
+                                            toggle_register=self.toggle_register,
                                             load_mask = self.mask_container.load_mask,
                                             output_text=self.output_text)
         
@@ -172,10 +166,10 @@ class MyMainWindow(MainWindow):
                                         output_text=self.output_text)
         
         self.video_container = VideoContainer(plotter=self.plotter,
+                                            anchor_button=self.anchor_button,
                                             play_video_button=self.play_video_button, 
                                             hintLabel=self.hintLabel, 
-                                            register_pose=self.register_pose,
-                                            current_pose=self.current_pose,
+                                            toggle_register=self.toggle_register,
                                             add_image=self.image_container.add_image,
                                             load_mask=self.mask_container.load_mask,
                                             clear_plot=self.clear_plot,
@@ -183,7 +177,7 @@ class MyMainWindow(MainWindow):
         
         self.folder_container = FolderContainer(plotter=self.plotter,
                                                 play_video_button=self.play_video_button, 
-                                                current_pose=self.current_pose,
+                                                toggle_register=self.toggle_register,
                                                 add_folder=self.add_folder,
                                                 load_mask=self.mask_container.load_mask,
                                                 output_text=self.output_text)
@@ -200,10 +194,6 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.camera_container.reset_camera)
         QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.camera_container.zoom_out)
         QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.camera_container.zoom_in)
-
-        # Mirror related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("o"), self).activated.connect(lambda direction='x': self.mirror_actors(direction))
-        QtWidgets.QShortcut(QtGui.QKeySequence("p"), self).activated.connect(lambda direction='y': self.mirror_actors(direction))
         
         # Image related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.image_container.toggle_image_opacity(up))
@@ -220,7 +210,7 @@ class MyMainWindow(MainWindow):
         # Mesh related key bindings 
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.mesh_container.reset_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.mesh_container.update_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.mesh_container.undo_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.mesh_container.undo_actor_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.mesh_container.toggle_surface_opacity(up))
         QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.mesh_container.toggle_surface_opacity(up))
 
@@ -264,9 +254,7 @@ class MyMainWindow(MainWindow):
                     else: self.image_container.add_image_file(image_path=file_path) 
                         
                 elif file_path.endswith('.npy'): self.mesh_container.add_pose_file(pose_path=file_path)
-                else:
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    return 0
+                else: utils.display_warning("File format is not supported!")
 
     def resizeEvent(self, e):
         x = (self.plotter.size().width() - self.hintLabel.width()) // 2
@@ -295,7 +283,7 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Image', self.image_container.export_image)
         exportMenu.addAction('Mask', self.mask_container.export_mask)
         exportMenu.addAction('Bbox', self.bbox_container.export_bbox)
-        exportMenu.addAction('Pose', self.mesh_container.export_pose)
+        exportMenu.addAction('Mesh/Pose', self.mesh_container.export_mesh_pose)
         exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
         exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
         exportMenu.addAction('Camera Info', self.camera_container.export_camera_info)
@@ -334,7 +322,7 @@ class MyMainWindow(MainWindow):
         PoseMenu = mainMenu.addMenu('Pose')
         PoseMenu.addAction('Reset GT Pose (k)', self.mesh_container.reset_gt_pose)
         PoseMenu.addAction('Update GT Pose (l)', self.mesh_container.update_gt_pose)
-        PoseMenu.addAction('Undo Pose (s)', self.mesh_container.undo_pose)
+        PoseMenu.addAction('Undo Pose (s)', self.mesh_container.undo_actor_pose)
 
         # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('PnP')
@@ -388,42 +376,57 @@ class MyMainWindow(MainWindow):
 
         # Create Grid layout for function buttons
         top_grid_layout = QtWidgets.QGridLayout()
-        top_grid_layout.addWidget(self.color_button, 0, 0)
-        top_grid_layout.addWidget(self.opacity_spinbox, 0, 1)
-
+        
+        # Anchor button
+        self.anchor_button.setCheckable(True) # Set the button to be checkable so it is highlighted, very important
+        self.anchor_button.setChecked(True)
+        self.anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
+        top_grid_layout.addWidget(self.anchor_button, 0, 0)
+        
+        # Color button
+        self.color_button.clicked.connect(self.show_color_popup)
+        top_grid_layout.addWidget(self.color_button, 0, 1)
+        
+        # Opacity box
+        self.opacity_spinbox.setMinimum(0.0)
+        self.opacity_spinbox.setMaximum(1.0)
+        self.opacity_spinbox.setDecimals(2)
+        self.opacity_spinbox.setSingleStep(0.05)
+        self.opacity_spinbox.setValue(0.3)
+        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
+        top_grid_layout.addWidget(self.opacity_spinbox, 0, 2)
+        
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
         actor_pose_button.clicked.connect(self.mesh_container.set_pose)
-        top_grid_layout.addWidget(actor_pose_button, 0, 2)
+        top_grid_layout.addWidget(actor_pose_button, 0, 3)
 
         # Create the spacing button
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
-        top_grid_layout.addWidget(self.spacing_button, 0, 3)
+        top_grid_layout.addWidget(self.spacing_button, 1, 0)
 
         # Create the hide button
         hide_button = QtWidgets.QPushButton("Toggle Meshes")
         hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
-        top_grid_layout.addWidget(hide_button, 1, 0)
+        top_grid_layout.addWidget(hide_button, 1, 1)
 
-        # Create the mirror x button
+        # Mirror buttons
         self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
         self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
-        top_grid_layout.addWidget(self.mirror_x_button, 1, 1)
-
-        # Create the mirror y button
+        top_grid_layout.addWidget(self.mirror_x_button, 1, 2)
         self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
         self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
-        top_grid_layout.addWidget(self.mirror_y_button, 1, 2)
+        top_grid_layout.addWidget(self.mirror_y_button, 1, 3)
 
         # Create the remove button
         remove_button = QtWidgets.QPushButton("Remove Actor")
         remove_button.clicked.connect(self.remove_actors_button)
-        top_grid_layout.addWidget(remove_button, 1, 3)
+        top_grid_layout.addWidget(remove_button, 2, 0)
 
         # Create the video related button
         self.play_video_button.clicked.connect(self.video_container.play_video)
-        top_grid_layout.addWidget(self.play_video_button, 2, 0)
+        top_grid_layout.addWidget(self.play_video_button, 2, 1)
 
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
@@ -501,6 +504,7 @@ class MyMainWindow(MainWindow):
 
         # Access to the system clipboard
         self.clipboard = QtGui.QGuiApplication.clipboard()
+        self.output_text.setReadOnly(True)
         output_layout.addWidget(self.output_text)
         self.output.setLayout(output_layout)
         self.panel_layout.addWidget(self.output)
@@ -592,85 +596,97 @@ class MyMainWindow(MainWindow):
         self.show()
 
     def register_pose(self, pose):
-        for actor_name, actor in self.mesh_store.mesh_actors.items():
-            actor.user_matrix = pose
-            self.plotter.add_actor(actor, pickable=True, name=actor_name)
-
-    def current_pose(self, text=None, output_text=True):
-        self.mesh_store.current_pose()
-        if text and output_text: 
-            self.output_text.append(f"--> Current {text} pose is:")
-            self.output_text.append(f"{self.mesh_store.transformation_matrix}")
-        self.register_pose(self.mesh_store.transformation_matrix)
-
-    def button_actor_name_clicked(self, text, output_text=True):
-        if text in self.mesh_store.mesh_actors:
-            self.color_button.setText(self.mesh_store.mesh_colors[text])
-            self.mesh_store.reference = text
-            self.current_pose(text=text, output_text=output_text)
-            curr_opacity = self.mesh_store.mesh_actors[self.mesh_store.reference].GetProperty().opacity
+        for mesh_data in self.mesh_store.meshes.values(): 
+            mesh_data.actor.user_matrix = pose
+            mesh_data.undo_poses.append(pose)
+            mesh_data.undo_poses = mesh_data.undo_poses[-20:]
+        
+    def toggle_register(self, pose):
+        if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
+        else: self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
+            
+    #^ when there is no anchor, the base vertices changes when we move around the objects
+    def toggle_anchor(self, pose):
+        if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
+        else:
+            for mesh_data in self.mesh_store.meshes.values():
+                verts, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+                mesh_data.undo_vertices.append(verts)
+                mesh_data.undo_vertices = mesh_data.undo_vertices[-20:]
+                vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
+                mesh_data.pv_mesh.points = vertices
+                mesh_data.actor.user_matrix = np.eye(4)
+                mesh_data.initial_pose = np.eye(4) # if meshes are not anchored, then there the initial pose will always be np.eye(4)
+                
+    def button_actor_name_clicked(self, name, output_text=True):
+        if name in self.mesh_store.meshes:
+            self.mesh_store.reference = name
+            mesh_data = self.mesh_store.meshes[name]
+            curr_opacity = mesh_data.actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
+            self.toggle_anchor(mesh_data.actor.user_matrix)
+            self.color_button.setText(mesh_data.color)
+            self.mesh_container.set_color(mesh_data.color, name)
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
+            mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
+            mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
+            mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
+            if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
         else:
             self.color_button.setText("Color")
-            if text == 'image': curr_opacity = self.image_store.image_opacity
-            elif text == 'mask': curr_opacity = self.mask_store.mask_opacity
+            if name == 'image': curr_opacity = self.image_store.image_opacity
+            elif name == 'mask': curr_opacity = self.mask_store.mask_opacity
             else: curr_opacity = self.opacity_spinbox.value()
             self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
             self.opacity_spinbox.setValue(curr_opacity)
             
-    def check_button(self, actor_name, output_text=True):
-        for button in self.button_group_actors_names.buttons():
-            if button.text() == actor_name: 
-                button.setChecked(True)
-                self.button_actor_name_clicked(text=actor_name, output_text=output_text)
-                break     
+    def check_button(self, name, output_text=True):  
+        button = next((btn for btn in self.button_group_actors_names.buttons() if btn.text() == name), None)
+        if button:
+            button.setChecked(True)
+            self.button_actor_name_clicked(name=name, output_text=output_text)
 
-    def add_button_actor_name(self, actor_name):
-        button = QtWidgets.QPushButton(actor_name)
-        button.setCheckable(True)  # Set the button to be checkable
-        button.clicked.connect(lambda _, text=actor_name: self.button_actor_name_clicked(text))
+    def add_button_actor_name(self, name):
+        button = QtWidgets.QPushButton(name)
+        button.setCheckable(True)  # Set the button to be checkable so it is highlighted, very important
+        button.clicked.connect(lambda _, name=name: self.button_actor_name_clicked(name))
         button.setChecked(True)
         button.setFixedSize(self.display.size().width(), 50)
         self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
         self.button_group_actors_names.addButton(button)
-        self.button_actor_name_clicked(text=actor_name)
+        self.button_actor_name_clicked(name=name)
     
     def opacity_value_change(self, value):
-        if self.mesh_container.ignore_opacity_change: return 0
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            actor_name = checked_button.text()
-            if actor_name == 'image': self.image_container.set_image_opacity(value)
-            elif actor_name == 'mask': self.mask_container.set_mask_opacity(value)
-            elif actor_name in self.mesh_store.mesh_actors:
-                self.mesh_store.mesh_opacity[actor_name] = value
-                self.mesh_store.store_mesh_opacity[actor_name] = copy.deepcopy(self.mesh_store.mesh_opacity[actor_name])
-                self.mesh_container.set_mesh_opacity(actor_name, self.mesh_store.mesh_opacity[actor_name])
+            name = checked_button.text()
+            if name == 'image': self.image_container.set_image_opacity(value)
+            elif name == 'mask': self.mask_container.set_mask_opacity(value)
+            elif name in self.mesh_store.meshes:
+                mesh_data = self.mesh_store.meshes[name]
+                mesh_data.opacity = value
+                mesh_data.previous_opacity = value
+                self.mesh_container.set_mesh_opacity(name, mesh_data.opacity)
     
     def update_color_button_text(self, text, popup):
         self.color_button.setText(text)
         popup.close() # automatically close the popup window
 
     def show_color_popup(self):
-
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            actor_name = checked_button.text()
-            if actor_name in self.mesh_store.mesh_actors:
+            name = checked_button.text()
+            if name in self.mesh_store.meshes:
                 popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
                 popup.exec_()
-
-                text = self.color_button.text()
-                self.mesh_store.mesh_colors[actor_name] = text
-                if text == 'nocs': self.mesh_container.set_scalar(True, actor_name)
-                elif text == 'latlon': self.mesh_container.set_scalar(False, actor_name)
-                else: self.mesh_container.set_color(text, actor_name)
-            else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                color = self.color_button.text()
+                self.mesh_store.meshes[name].color = color
+                self.mesh_container.set_color(color, name)
+            else: utils.display_warning("Only be able to color mesh actors")
+        else: utils.display_warning("Need to select an actor first")
  
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
@@ -682,20 +698,19 @@ class MyMainWindow(MainWindow):
         if prompt:
             workspace_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.json)")
         if workspace_path:
-            if self.workspace_path: self.clear_plot()
+            self.clear_plot() # clear out everything before loading a workspace
             self.workspace_path = workspace_path
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
-            if 'image_path' in workspace: self.image_container.add_image_file(image_path=workspace['image_path'])
-            if 'video_path' in workspace: self.video_container.add_video_file(video_path=workspace['video_path'])
-            if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=workspace['mask_path'])
-            if 'bbox_path' in workspace: self.bbox_container.add_bbox_file(bbox_path=workspace['bbox_path'])
-            # need to load pose before loading meshes
-            if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=workspace['pose_path'])
+            root = PKG_ROOT.parent.parent.parent
+            if 'image_path' in workspace: self.image_container.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
+            if 'video_path' in workspace: self.video_container.add_video_file(video_path=root / pathlib.Path(*workspace['video_path'].split("\\")))
+            if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=root / pathlib.Path(*workspace['mask_path'].split("\\")))
+            if 'bbox_path' in workspace: self.bbox_container.add_bbox_file(bbox_path=root / pathlib.Path(*workspace['bbox_path'].split("\\")))
             if 'mesh_path' in workspace:
                 mesh_paths = workspace['mesh_path']
-                for path in mesh_paths: self.mesh_container.add_mesh_file(mesh_path=path)
-            
+                for path in mesh_paths: self.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*path.split("\\")))
+            if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=root / pathlib.Path(*workspace['pose_path'].split("\\")))
             # reset camera
             self.camera_container.reset_camera()
 
@@ -704,35 +719,32 @@ class MyMainWindow(MainWindow):
             folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
             if self.video_store.video_path or self.workspace_path: self.clear_plot() # main goal is to set video_path to None
-            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path, mesh_actors=self.mesh_store.mesh_actors)
+            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path, meshes=self.mesh_store.meshes)
             if image_path or mask_path or pose_path or mesh_path:
                 if image_path: self.image_container.add_image_file(image_path=image_path)
                 if mask_path: self.mask_container.add_mask_file(mask_path=mask_path)
-                if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
                 if mesh_path: 
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
                     for path in mesh_path: self.mesh_container.add_mesh_file(path)
+                if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
+                self.anchor_button.setCheckable(False)
+                self.anchor_button.setEnabled(False)
                 self.play_video_button.setEnabled(False)
                 self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
                 self.camera_container.reset_camera()
             else:
                 self.folder_store.reset()
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                utils.display_warning("Not a valid folder, please reload a folder")
 
     def mirror_actors(self, direction):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            actor_name = checked_button.text()
-            if actor_name == 'image':
-                self.image_container.mirror_image(direction)
-            elif actor_name == 'mask':
-                self.mask_container.mirror_mask(direction)
-            elif actor_name == 'bbox':
-                self.bbox_container.mirror_bbox(direction)
-            elif actor_name in self.mesh_store.mesh_actors:
-                self.mesh_container.mirror_mesh(direction)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            name = checked_button.text()
+            if name == 'image': self.image_container.mirror_image(direction)
+            elif name == 'mask': self.mask_container.mirror_mask(direction)
+            elif name == 'bbox': self.bbox_container.mirror_bbox(direction)
+            elif name in self.mesh_store.meshes: self.mesh_container.mirror_mesh(name, direction)
+        else: utils.display_warning("Need to select an actor first")
 
     def remove_actor(self, button):
         name = button.text()
@@ -745,8 +757,8 @@ class MyMainWindow(MainWindow):
         elif name == 'bbox':
             actor = self.bbox_store.bbox_actor
             self.bbox_store.reset()
-        elif name in self.mesh_store.mesh_actors: 
-            actor = self.mesh_store.mesh_actors[name]
+        elif name in self.mesh_store.meshes: 
+            actor = self.mesh_store.meshes[name].actor
             self.mesh_store.remove_mesh(name)
             self.color_button.setText("Color")
         elif name in self.point_store.point_actors:
@@ -763,15 +775,13 @@ class MyMainWindow(MainWindow):
         button.deleteLater()
 
         # clear out the plot if there is no actor
-        if (self.image_store.image_actor is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.mesh_actors) == 0) and (len(self.point_store.point_actors) == 0): 
+        if (self.image_store.image_actor is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.meshes) == 0) and (len(self.point_store.point_actors) == 0): 
             self.clear_plot()
 
     def remove_actors_button(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button: self.remove_actor(checked_button)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to select an actor first")
 
     def clear_plot(self):
         # Clear out everything in the remove menu
@@ -792,8 +802,8 @@ class MyMainWindow(MainWindow):
                 self.bbox_store.reset()
                 self.bbox_store.mirror_x = False
                 self.bbox_store.mirror_y = False
-            elif name in self.mesh_store.mesh_actors: 
-                actor = self.mesh_store.mesh_actors[name]
+            elif name in self.mesh_store.meshes: 
+                actor = self.mesh_store.meshes[name].actor
                 self.mesh_store.remove_mesh(name)
                 self.color_button.setText("Color")
             elif name in self.point_store.point_actors:
@@ -817,6 +827,10 @@ class MyMainWindow(MainWindow):
         self.reset_output_text()
 
         self.color_button.setText("Color")
+        self.anchor_button.setCheckable(True)
+        self.anchor_button.setChecked(True)
+        self.anchor_button.setEnabled(True)
+        self.play_video_button.setEnabled(True)
         self.play_video_button.setText("Play Video")
         self.opacity_spinbox.setValue(0.3)
         

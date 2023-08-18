@@ -3,7 +3,7 @@
 @license: (C) Copyright.
 @contact: yike.zhang@vanderbilt.edu
 @software: Vision6D
-@file: calibration_pop_window.py
+@file: calibration_dialog.py
 @time: 2023-07-03 20:29
 @desc: pop window for camera calibration
 '''
@@ -19,9 +19,9 @@ from PyQt5.QtCore import Qt
 # self defined package import
 np.set_printoptions(suppress=True)
     
-class CalibrationPopWindow(QtWidgets.QDialog):
+class CalibrationDialog(QtWidgets.QDialog):
     def __init__(self, calibrated_image, original_image, parent=None):
-        super(CalibrationPopWindow, self).__init__(parent)
+        super(CalibrationDialog, self).__init__(parent)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         self.calibrated_image = calibrated_image

@@ -48,24 +48,11 @@ class ImageContainer:
         self.add_image(self.image_store.image_source)
 
     def add_image(self, image_source):
-
-        image, original_image, channel = self.image_store.add_image(image_source)
-
-        # Then add it to the plotter
-        if channel == 1: 
-            image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
-        else: 
-            image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
-        
+        image, _, channel = self.image_store.add_image(image_source)
+        if channel == 1: image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
+        else: image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
         actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
-
-        # Save actor for later
         self.image_store.image_actor = actor
-
-        # get the image scalar
-        image_data = utils.get_image_actor_scalars(self.image_store.image_actor)
-        assert (image_data == original_image).all() or (image_data*255 == original_image).all(), "image_data and image_source should be equal"
-        
         # add remove current image to removeMenu
         if 'image' not in self.track_actors_names:
             self.track_actors_names.append('image')
@@ -74,14 +61,12 @@ class ImageContainer:
     def set_image_opacity(self, image_opacity: float):
         self.image_store.image_opacity = image_opacity
         self.image_store.image_actor.GetProperty().opacity = image_opacity
-        self.plotter.add_actor(self.image_store.image_actor, pickable=False, name='image')
 
     def toggle_image_opacity(self, up):
         change = 0.05
         if not up: change *= -1
         self.image_store.update_opacity(change)
-        self.plotter.add_actor(self.image_store.image_actor, pickable=False, name="image")
-        self.check_button(actor_name='image')
+        self.check_button(name='image')
 
     def export_image(self):
         if self.image_store.image_actor:
@@ -93,6 +78,4 @@ class ImageContainer:
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export image render to:\n {output_path}")
             self.image_store.image_path = output_path
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load an image first!")
