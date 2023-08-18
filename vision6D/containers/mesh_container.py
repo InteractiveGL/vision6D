@@ -123,6 +123,7 @@ class MeshContainer:
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
+        self.check_button(name=self.mesh_store.reference, output_text=False)
         
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
