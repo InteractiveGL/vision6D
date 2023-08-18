@@ -626,9 +626,9 @@ class MyMainWindow(MainWindow):
             mesh_data = self.mesh_store.meshes[name]
             curr_opacity = mesh_data.actor.GetProperty().opacity
             self.opacity_spinbox.setValue(curr_opacity)
+            self.toggle_anchor(mesh_data.actor.user_matrix)
             self.color_button.setText(mesh_data.color)
             self.mesh_container.set_color(mesh_data.color, name)
-            self.toggle_anchor(mesh_data.actor.user_matrix)
             text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
             mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
             mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
