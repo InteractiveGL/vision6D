@@ -74,7 +74,7 @@ class MeshContainer:
             self.hintLabel.hide()
             mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path)
             if mesh_data: self.add_mesh(mesh_data, np.eye(4))
-            else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The mesh format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            else: utils.display_warning("The mesh format is not supported!")
 
     def mirror_mesh(self, name, direction):
         if self.mesh_store.toggle_anchor_mesh: name = self.mesh_store.reference
@@ -135,10 +135,8 @@ class MeshContainer:
                     mesh_data.spacing = exception.set_spacing(spacing)
                     vertices = mesh_data.source_mesh.vertices * mesh_data.spacing
                     mesh_data.pv_mesh.points = vertices
-            else:
-                QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh object instead", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to select a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            else: utils.display_warning("Need to select a mesh object instead")
+        else: utils.display_warning("Need to select a mesh actor first")
       
     def set_color(self, color, name):
         mesh_data = self.mesh_store.meshes[name]
@@ -234,8 +232,7 @@ class MeshContainer:
                 if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                 self.add_pose(matrix=transformation_matrix)
-            else:
-                QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "It needs to be a 4 by 4 matrix", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok) 
+            else: utils.display_warning("It needs to be a 4 by 4 matrix") 
     
     def reset_gt_pose(self):
         if self.mesh_store.reference:
@@ -250,8 +247,7 @@ class MeshContainer:
                 self.output_text.append(text)
                 self.toggle_register(mesh_data.initial_pose)
                 self.reset_camera()
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to set a reference mesh first")
 
     def update_gt_pose(self):
         if self.mesh_store.reference:
@@ -266,8 +262,7 @@ class MeshContainer:
                 mesh_data.initial_pose[3, 0], mesh_data.initial_pose[3, 1], mesh_data.initial_pose[3, 2], mesh_data.initial_pose[3, 3])
                 self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to:")
                 self.output_text.append(text)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to set a reference mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to set a reference mesh first")
 
     def undo_actor_pose(self):
         if self.button_group_actors_names.checkedButton():
@@ -275,8 +270,7 @@ class MeshContainer:
             if name in self.mesh_store.meshes:
                 self.mesh_store.undo_actor_pose(name)
                 self.check_button(name=name) # very important, donnot change this line to "toggle_register"
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Choose a mesh actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Choose a mesh actor first")
 
     def export_mesh_pose(self):
         for mesh_data in self.mesh_store.meshes.values():
@@ -308,8 +302,7 @@ class MeshContainer:
                     rendered_image = PIL.Image.fromarray(image)
                     rendered_image.save(output_path)
                     self.output_text.append(f"-> Export mesh render to:\n {output_path}")
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), "vision6D", "Need to load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
         return image
 
     def export_segmesh_render(self):
@@ -326,6 +319,4 @@ class MeshContainer:
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export segmask render:\n to {output_path}")
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a mesh or mask first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a mesh or mask first")

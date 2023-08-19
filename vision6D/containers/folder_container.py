@@ -92,17 +92,14 @@ class FolderContainer:
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} bbox points to {output_bbox_path}")
-        else: 
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to load a folder!")
   
     def prev_info(self):
         if self.folder_store.folder_path:
             self.folder_store.prev_image()
             self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
             self.add_folder(self.folder_store.folder_path)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a folder!")
 
     def next_info(self):
         if self.folder_store.folder_path:
@@ -110,6 +107,4 @@ class FolderContainer:
             self.folder_store.next_image()
             self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
             self.add_folder(self.folder_store.folder_path)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a folder!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a folder!")

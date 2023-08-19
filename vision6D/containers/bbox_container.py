@@ -69,9 +69,7 @@ class BboxContainer:
             if 'bbox' not in self.track_actors_names:
                 self.track_actors_names.append('bbox')
                 self.add_button_actor_name('bbox')
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load an image first!")
     
     def draw_bbox(self):
         def handle_output_path_change(output_path):
@@ -82,9 +80,7 @@ class BboxContainer:
             image = utils.get_image_actor_scalars(self.image_store.image_actor)
             self.bbox_window = BboxWindow(image)
             self.bbox_window.bbox_label.output_path_changed.connect(handle_output_path_change)
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load an image first!")
         
     def reset_bbox(self):
         if self.bbox_store.bbox_path:
@@ -103,6 +99,4 @@ class BboxContainer:
                 np.save(output_path, points)
                 self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
             self.bbox_store.bbox_path = output_path
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a bounding box first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a bounding box first!")

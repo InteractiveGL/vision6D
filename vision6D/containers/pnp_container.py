@@ -14,8 +14,6 @@ import trimesh
 import numpy as np
 import matplotlib.pyplot as plt
 
-from PyQt5 import QtWidgets
-
 from ..tools import utils
 from ..components import CameraStore
 from ..components import MaskStore
@@ -30,10 +28,6 @@ class PnPContainer:
         self.camera_store = CameraStore()
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
-    
-    def display_warning(self, message, title="vision6D"):
-        QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), title, message, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        return 0
 
     def nocs_epnp(self, color_mask, mesh):
         vertices = mesh.vertices
@@ -117,10 +111,10 @@ class PnPContainer:
                         self.output_text.append(gt_pose_text)
                         self.output_text.append(f"Angular Error (in degree): {angular_distance}")
                         self.output_text.append(f"Translation Error: {translation_error}\n")
-                    else: self.display_warning("Only works using EPnP with latlon mask")
-                else: self.display_warning("The color mask is blank (maybe set the reference mesh wrong)")
-            else: self.display_warning("The mesh need to be colored, with gradient color")
-        else: self.display_warning("A mesh need to be loaded/mesh reference need to be set")
+                    else: utils.display_warning("Only works using EPnP with latlon mask")
+                else: utils.display_warning("The color mask is blank (maybe set the reference mesh wrong)")
+            else: utils.display_warning("The mesh need to be colored, with gradient color")
+        else: utils.display_warning("A mesh need to be loaded/mesh reference need to be set")
 
     def epnp_mask_handle_binary_mask(self, mask_data):
         if self.mesh_store.reference:
@@ -134,11 +128,11 @@ class PnPContainer:
                 if mesh_data.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
                 vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
                 mesh = trimesh.Trimesh(vertices, faces, process=False)
-            else: self.display_warning("The mesh need to be colored, with gradient color")
-        else: self.display_warning("A mesh need to be loaded/mesh reference need to be set")
+            else: utils.display_warning("The mesh need to be colored, with gradient color")
+        else: utils.display_warning("A mesh need to be loaded/mesh reference need to be set")
         
         if color_mask is not None: color_mask = (color_mask * mask_data).astype(np.uint8)
-        else: self.display_warning("Color mask is None")
+        else: utils.display_warning("Color mask is None")
         
         return mesh_data, color_mask, nocs_color, gt_pose, mesh
     
@@ -184,6 +178,6 @@ class PnPContainer:
                     self.output_text.append(gt_pose_text)
                     self.output_text.append(f"Angular Error (in degree): {angular_distance}")
                     self.output_text.append(f"Translation Error: {translation_error}\n")
-                else: self.display_warning("Clicked the wrong method")
-            else: self.display_warning("The color mask is blank (maybe set the reference mesh wrong)")
-        else: self.display_warning("please load a mask first")
+                else: utils.display_warning("Clicked the wrong method")
+            else: utils.display_warning("The color mask is blank (maybe set the reference mesh wrong)")
+        else: utils.display_warning("please load a mask first")

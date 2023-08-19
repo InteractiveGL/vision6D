@@ -26,6 +26,8 @@ import cv2
 # import pygeodesic.geodesic as geodesic
 import vtk.util.numpy_support as vtknp
 
+from PyQt5 import QtWidgets
+
 from ..path import LATLON_PATH
 
 logger = logging.getLogger("vision6D")
@@ -457,3 +459,7 @@ def reset_vtk_lut(colormap):
     lut.Build()
     for i, color in enumerate(colors): lut.SetTableValue(i, color[0], color[1], color[2], 1.0)  # Last value is alpha (opacity)
     return lut
+
+def display_warning(message):
+    QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), "vision6D", message, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+    return 0

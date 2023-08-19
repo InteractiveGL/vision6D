@@ -34,8 +34,7 @@ class PointContainer:
             if self.point_store.point_name not in self.track_actors_names:
                 self.track_actors_names.append(self.point_store.point_name)
                 self.add_button_actor_name(self.point_store.point_name)
-        else:
-             QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "The point format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("The point format is not supported!")
 
     def add_points(self):
         ...

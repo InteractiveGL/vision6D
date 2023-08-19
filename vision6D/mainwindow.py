@@ -254,9 +254,7 @@ class MyMainWindow(MainWindow):
                     else: self.image_container.add_image_file(image_path=file_path) 
                         
                 elif file_path.endswith('.npy'): self.mesh_container.add_pose_file(pose_path=file_path)
-                else:
-                    QtWidgets.QMessageBox.warning(self, 'vision6D', "File format is not supported!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                    return 0
+                else: utils.display_warning("File format is not supported!")
 
     def resizeEvent(self, e):
         x = (self.plotter.size().width() - self.hintLabel.width()) // 2
@@ -687,10 +685,8 @@ class MyMainWindow(MainWindow):
                 color = self.color_button.text()
                 self.mesh_store.meshes[name].color = color
                 self.mesh_container.set_color(color, name)
-            else:
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Only be able to color mesh actors", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+            else: utils.display_warning("Only be able to color mesh actors")
+        else: utils.display_warning("Need to select an actor first")
  
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
@@ -738,7 +734,7 @@ class MyMainWindow(MainWindow):
                 self.camera_container.reset_camera()
             else:
                 self.folder_store.reset()
-                QtWidgets.QMessageBox.warning(self, 'vision6D', "Not a valid folder, please reload a folder", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                utils.display_warning("Not a valid folder, please reload a folder")
 
     def mirror_actors(self, direction):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -748,8 +744,7 @@ class MyMainWindow(MainWindow):
             elif name == 'mask': self.mask_container.mirror_mask(direction)
             elif name == 'bbox': self.bbox_container.mirror_bbox(direction)
             elif name in self.mesh_store.meshes: self.mesh_container.mirror_mesh(name, direction)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to select an actor first")
 
     def remove_actor(self, button):
         name = button.text()
@@ -786,9 +781,7 @@ class MyMainWindow(MainWindow):
     def remove_actors_button(self):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button: self.remove_actor(checked_button)
-        else:
-            QtWidgets.QMessageBox.warning(self, 'vision6D', "Need to select an actor first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to select an actor first")
 
     def clear_plot(self):
         # Clear out everything in the remove menu

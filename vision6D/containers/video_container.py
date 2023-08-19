@@ -80,15 +80,14 @@ class VideoContainer:
     def sample_video(self):
         if self.video_store.video_path: 
             self.video_store.sample_video()
-        else: 
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to load a video!")
 
     def play_video(self):
         if self.video_store.video_path:
             self.video_store.play_video()
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
-        else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to load a video!")
     
     def save_info(self):
         if self.video_store.video_path:
@@ -138,9 +137,8 @@ class VideoContainer:
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} bbox points to {output_bbox_path}")
-    
-        else: 
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                
+        else: utils.display_warning("Need to load a video!")
 
     def prev_info(self):
         if self.video_store.video_path:
@@ -161,9 +159,7 @@ class VideoContainer:
                 self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a video!")
 
     def next_info(self):
         if self.video_store.video_path:
@@ -183,6 +179,4 @@ class VideoContainer:
                 self.output_text.append(text)
             self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load a video!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load a video!")

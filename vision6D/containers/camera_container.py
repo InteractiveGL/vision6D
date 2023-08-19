@@ -18,6 +18,7 @@ import PIL.Image
 
 from PyQt5 import QtWidgets
 
+from ..tools import utils
 from ..components import CameraStore
 from ..components import ImageStore
 from ..widgets import CalibrationDialog
@@ -46,11 +47,8 @@ class CameraContainer:
             if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
             calibrated_image = np.array(self.image_store.render_image(self.plotter.camera.copy()), dtype='uint8')
             if original_image.shape != calibrated_image.shape:
-                QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Original image shape is not equal to calibrated image shape!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-                return 0
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+                utils.display_warning("Original image shape is not equal to calibrated image shape!")
+        else: utils.display_warning("Need to load an image first!")
         
         CalibrationDialog(calibrated_image, original_image).exec_()
 
@@ -71,7 +69,7 @@ class CameraContainer:
                     self.set_camera_props()
                 except:
                     self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
-                    QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Error occured, check the format of the input values", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+                    utils.display_warning("Error occured, check the format of the input values")
 
     def zoom_in(self):
         self.plotter.camera.zoom(2)

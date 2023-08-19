@@ -78,6 +78,4 @@ class ImageContainer:
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export image render to:\n {output_path}")
             self.image_store.image_path = output_path
-        else:
-            QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), 'vision6D', "Need to load an image first!", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
-            return 0
+        else: utils.display_warning("Need to load an image first!")
