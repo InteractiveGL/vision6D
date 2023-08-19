@@ -52,7 +52,7 @@ class ImageStore(metaclass=Singleton):
         return image, image_source, channel
     
     def update_image(self, image_source, channel):
-        image = pv.UniformGrid(dimensions=(self.width, self.height, 1), spacing=[0.01, 0.01, 1], origin=(0.0, 0.0, 0.0))
+        image = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[0.01, 0.01, 1], origin=(0.0, 0.0, 0.0))
         image.point_data["values"] = image_source.reshape((self.width * self.height, channel)) # order = 'C
         image = image.translate(-1 * np.array(image.center), inplace=False)
         return image
