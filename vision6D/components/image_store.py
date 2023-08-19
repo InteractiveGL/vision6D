@@ -33,7 +33,7 @@ class ImageStore(metaclass=Singleton):
         self.height = None
 
     def add_image(self, image_source):
-        if isinstance(image_source, pathlib.WindowsPath) or isinstance(image_source, str):
+        if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
         

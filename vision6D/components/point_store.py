@@ -24,7 +24,7 @@ class PointStore(metaclass=Singleton):
         del self.point_actors[name]
 
     def load_points(self, point_source):
-        if isinstance(point_source, pathlib.WindowsPath) or isinstance(point_source, str):
+        if isinstance(point_source, pathlib.Path) or isinstance(point_source, str):
             self.point_path = str(point_source)
             self.point_name = pathlib.Path(self.point_path).stem + "_point"
             if pathlib.Path(point_source).suffix == '.npy': point_source = np.load(point_source)

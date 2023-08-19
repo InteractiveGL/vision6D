@@ -32,7 +32,7 @@ class BboxStore(metaclass=Singleton):
 
     def add_bbox(self, bbox_source, width, height):
         # default is '.npy' file
-        if isinstance(bbox_source, pathlib.WindowsPath) or isinstance(bbox_source, str):
+        if isinstance(bbox_source, pathlib.Path) or isinstance(bbox_source, str):
             self.bbox_path = str(bbox_source)
             bbox_source = np.load(bbox_source)
 

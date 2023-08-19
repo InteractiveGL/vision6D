@@ -55,7 +55,7 @@ class MeshStore(metaclass=Singleton):
 
         source_mesh = None
 
-        if isinstance(mesh_source, pathlib.WindowsPath) or isinstance(mesh_source, str):
+        if isinstance(mesh_source, pathlib.Path) or isinstance(mesh_source, str):
             mesh_path = str(mesh_source)
             if pathlib.Path(mesh_path).suffix == '.mesh': mesh_source = utils.load_trimesh(mesh_source)
             else: mesh_source = pv.read(mesh_path)

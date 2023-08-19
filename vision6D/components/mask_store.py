@@ -30,7 +30,7 @@ class MaskStore(metaclass=Singleton):
         self.mask_opacity = 0.3
     
     def add_mask(self, mask_source):
-        if isinstance(mask_source, pathlib.WindowsPath) or isinstance(mask_source, str):
+        if isinstance(mask_source, pathlib.Path) or isinstance(mask_source, str):
             self.mask_path = str(mask_source)
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
 
