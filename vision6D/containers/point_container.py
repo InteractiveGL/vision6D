@@ -1,4 +1,6 @@
 from PyQt5 import QtWidgets
+
+from ..tools import utils
 from ..components import PointStore
 
 class PointContainer:
