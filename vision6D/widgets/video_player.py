@@ -33,34 +33,14 @@ class VideoPlayer(QtWidgets.QDialog):
         QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.play_pause_video)
 
         self.video_path = video_path
-
-        self.layout = QtWidgets.QVBoxLayout(self)
-
-        self.label = QtWidgets.QLabel(self)
-        self.layout.addWidget(self.label, 0, QtCore.Qt.AlignCenter)
-
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider.valueChanged.connect(self.slider_moved)
-        self.layout.addWidget(self.slider)
-
-        self.button_layout = QtWidgets.QHBoxLayout()
-
-        self.prev_button = QtWidgets.QPushButton('Previous Frame', self)
-        self.prev_button.clicked.connect(self.prev_frame)
-        self.prev_button.setFixedSize(300, 30)
-        self.button_layout.addWidget(self.prev_button)
-
         self.play = False
 
         # Load the video
         self.cap = cv2.VideoCapture(str(self.video_path))
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.frame_count = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.slider.setMaximum(self.frame_count - 1)
-
         self.video_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.video_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-
         if self.video_width > 960 and self.video_height > 540: self.video_size = int(self.video_width // 2), int(self.video_height // 2)
         else: self.video_size = self.video_width, self.video_height
         
@@ -73,6 +53,19 @@ class VideoPlayer(QtWidgets.QDialog):
         self.play_pause_button.setPopupMode(QtWidgets.QToolButton.MenuButtonPopup)
         self.play_pause_button.setText(f'Play/Pause ({self.current_frame}/{self.frame_count})')
         self.play_pause_button.clicked.connect(self.play_pause_video)
+        
+        # create the overall layout
+        self.layout = QtWidgets.QVBoxLayout(self)
+        # create the button layout
+        self.button_layout = QtWidgets.QHBoxLayout()
+
+        self.label = QtWidgets.QLabel(self)
+        self.layout.addWidget(self.label, 0, QtCore.Qt.AlignCenter)
+
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.valueChanged.connect(self.slider_moved)
+        self.slider.setMaximum(self.frame_count - 1)
+        self.layout.addWidget(self.slider)
 
         self.play_pause_menu = QtWidgets.QMenu(self)
         self.play_action = QtWidgets.QAction('Play', self, triggered=self.play_video)
@@ -87,6 +80,11 @@ class VideoPlayer(QtWidgets.QDialog):
             if speed == self.current_playback_speed: speed_action.setChecked(True)
             self.speed_menu.addAction(speed_action)
             self.speed_action_group.addAction(speed_action)
+            
+        self.prev_button = QtWidgets.QPushButton('Previous Frame', self)
+        self.prev_button.clicked.connect(self.prev_frame)
+        self.prev_button.setFixedSize(300, 30)
+        self.button_layout.addWidget(self.prev_button)
 
         self.play_pause_menu.addActions([self.play_action, self.pause_action])
         self.play_pause_menu.addMenu(self.speed_menu)
