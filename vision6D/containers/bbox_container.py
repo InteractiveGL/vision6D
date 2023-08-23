@@ -95,7 +95,7 @@ class BboxContainer:
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
                 # Store the transformed bbox actor if there is any transformation
-                points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.bbox_bottom_point, self.bbox_store.bbox_offset)
+                points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.image_center)
                 np.save(output_path, points)
                 self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
             self.bbox_store.bbox_path = output_path

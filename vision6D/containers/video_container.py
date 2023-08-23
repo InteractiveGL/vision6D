@@ -133,7 +133,7 @@ class VideoContainer:
             if self.bbox_store.bbox_actor is not None:
                 os.makedirs(pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "bboxs", exist_ok=True)
                 output_bbox_path = pathlib.Path(self.video_store.video_path).parent / f"{pathlib.Path(self.video_store.video_path).stem}_vision6D" / "bboxs" / f"bbox_{self.video_store.current_frame}.npy"
-                points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.bbox_bottom_point, self.bbox_store.bbox_offset)
+                points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.image_center)
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save frame {self.video_store.current_frame} bbox points to {output_bbox_path}")

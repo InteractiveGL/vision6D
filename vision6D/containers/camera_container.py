@@ -48,9 +48,8 @@ class CameraContainer:
             calibrated_image = np.array(self.image_store.render_image(self.plotter.camera.copy()), dtype='uint8')
             if original_image.shape != calibrated_image.shape:
                 utils.display_warning("Original image shape is not equal to calibrated image shape!")
+            else: CalibrationDialog(calibrated_image, original_image).exec_()
         else: utils.display_warning("Need to load an image first!")
-        
-        CalibrationDialog(calibrated_image, original_image).exec_()
 
     def set_camera(self):
         dialog = CameraPropsInputDialog(

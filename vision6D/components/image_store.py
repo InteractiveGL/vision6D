@@ -36,6 +36,16 @@ class ImageStore(metaclass=Singleton):
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
+            
+        """
+        1. Image Origin: Traditional image representations consider the top-left corner as the origin (0, 0). 
+        The first coordinate goes from top to bottom (rows or height) and the second from left to right (columns or width). 
+        Thus, the y-axis effectively points downward in traditional 2D image coordinates.
+        2. 3D Coordinate Systems: In a right-handed 3D coordinate system, the y-axis typically points upwards. 
+        So, when we visualize a 2D image in a 3D space without adjustments, the image will appear flipped along the horizontal axis.
+        """
+        image_source = np.flipud(image_source)
+        image_source = np.fliplr(image_source)
         
         #^ save the image_source for mirroring image in the video
         self.image_source = copy.deepcopy(image_source)

@@ -24,7 +24,7 @@ class CameraStore(metaclass=Singleton):
         self.fy = 50000
         self.cx = self.window_size[0] // 2
         self.cy = self.window_size[1] // 2
-        self.cam_viewup = (0, -1, 0)
+        self.cam_viewup = (0, 0, 0)
         self.cam_position = -500
 
     def set_camera_extrinsics(self):

@@ -218,21 +218,23 @@ class MeshContainer:
         self.reset_gt_pose()
         
     def set_pose(self):
-        mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
-        get_pose_dialog = GetPoseDialog(mesh_data.actor.user_matrix)
-        res = get_pose_dialog.exec_()
-        if res == QtWidgets.QDialog.Accepted:
-            if "," not in get_pose_dialog.user_text:
-                get_pose_dialog.user_text = get_pose_dialog.user_text.replace(" ", ",")
-                get_pose_dialog.user_text = get_pose_dialog.user_text.strip().replace("[,", "[")
-            gt_pose = np.array(exception.set_pose(get_pose_dialog.user_text, mesh_data.actor.user_matrix))
-            if gt_pose.shape == (4, 4):
-                self.hintLabel.hide()
-                transformation_matrix = gt_pose
-                if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                self.add_pose(matrix=transformation_matrix)
-            else: utils.display_warning("It needs to be a 4 by 4 matrix") 
+        if self.mesh_store.reference:
+            mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+            get_pose_dialog = GetPoseDialog(mesh_data.actor.user_matrix)
+            res = get_pose_dialog.exec_()
+            if res == QtWidgets.QDialog.Accepted:
+                if "," not in get_pose_dialog.user_text:
+                    get_pose_dialog.user_text = get_pose_dialog.user_text.replace(" ", ",")
+                    get_pose_dialog.user_text = get_pose_dialog.user_text.strip().replace("[,", "[")
+                gt_pose = np.array(exception.set_pose(get_pose_dialog.user_text, mesh_data.actor.user_matrix))
+                if gt_pose.shape == (4, 4):
+                    self.hintLabel.hide()
+                    transformation_matrix = gt_pose
+                    if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    self.add_pose(matrix=transformation_matrix)
+                else: utils.display_warning("It needs to be a 4 by 4 matrix")
+        else: utils.display_warning("Needs to select a mesh first")
     
     def reset_gt_pose(self):
         if self.mesh_store.reference:

@@ -45,21 +45,18 @@ class MaskStore(metaclass=Singleton):
         
         # Mirror points
         h, w = mask_source.shape[0], mask_source.shape[1]
-        
+        mask_center = np.array([w // 2, h // 2, 0]) * 0.01
         self.render = utils.create_render(w, h)
         
+        # Consider the mirror effect
         if self.mirror_x: points[:, 0] = w*0.01 - points[:, 0]
         if self.mirror_y: points[:, 1] = h*0.01 - points[:, 1]
 
-        self.mask_bottom_point = points[np.argmax(points[:, 1])]
-        mask_center = np.array([mask_source.shape[1] // 2, mask_source.shape[0] // 2, 0]) * 0.01
-        self.mask_offset = self.mask_bottom_point - mask_center
-
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
+        # Due to camera view change to right handed coordinate system
+        points = mask_center - points
         mask_surface = pv.PolyData(points, cells).triangulate()
-        mask_surface = mask_surface.translate(-self.mask_bottom_point+self.mask_offset, inplace=False)
-
         return mask_surface
 
     def update_opacity(self, delta):

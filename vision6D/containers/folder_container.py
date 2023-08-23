@@ -88,7 +88,7 @@ class FolderContainer:
             if self.bbox_store.bbox_actor is not None:
                 os.makedirs(pathlib.Path(self.folder_store.folder_path) / "vision6D" / "bboxs", exist_ok=True)
                 output_bbox_path = pathlib.Path(self.folder_store.folder_path) / "vision6D" / "bboxs" / f"{id}.npy"
-                points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.bbox_bottom_point, self.bbox_store.bbox_offset)
+                points = utils.get_bbox_actor_points(self.bbox_store.bbox_actor, self.bbox_store.image_center)
                 np.save(output_bbox_path, points)
                 self.bbox_store.bbox_path = output_bbox_path
                 self.output_text.append(f"-> Save image {self.folder_store.current_image} bbox points to {output_bbox_path}")

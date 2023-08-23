@@ -373,6 +373,9 @@ def get_image_actor_scalars(actor):
     point_array = vtknp.vtk_to_numpy(point_data)
     if len(point_array.shape) == 1: point_array = point_array.reshape(*point_array.shape, 1)
     scalars = point_array.reshape(*shape[1:], point_array.shape[-1])
+    # Due to the different coordinate system, we need to flip the image
+    scalars = np.flipud(scalars)
+    scalars = np.fliplr(scalars)
     return scalars
 
 def get_mask_actor_points(actor):
@@ -389,7 +392,7 @@ def get_mask_actor_points(actor):
     assert np.isclose(transformed_points, points).all(), "points and transformed_points should be very very close!"
     return transformed_points
 
-def get_bbox_actor_points(actor, bbox_bottom_point, bbox_offset):
+def get_bbox_actor_points(actor, image_center):
     input = actor.GetMapper().GetInput()
     point_data = input.GetPoints().GetData()
     points_array = vtknp.vtk_to_numpy(point_data)
@@ -401,7 +404,7 @@ def get_bbox_actor_points(actor, bbox_bottom_point, bbox_offset):
     homogeneous_points = np.hstack((points_array, np.ones((points_array.shape[0], 1))))
     transformed_points = ((matrix @ homogeneous_points.T).T)[:, :3]
     assert np.isclose(transformed_points, points).all(), "points and transformed_points should be very very close!"
-    points = points + bbox_bottom_point - bbox_offset
+    points = image_center - points
     return points
 
 def get_mesh_actor_vertices_faces(actor):
