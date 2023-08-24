@@ -312,14 +312,15 @@ class MyMainWindow(MainWindow):
 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
-        CameraMenu.addAction('Calibrate', self.camera_container.camera_calibrate)
         CameraMenu.addAction('Set Camera', self.camera_container.set_camera)
         CameraMenu.addAction('Reset Camera (d)', self.camera_container.reset_camera)
         CameraMenu.addAction('Zoom In (x)', self.camera_container.zoom_in)
         CameraMenu.addAction('Zoom Out (z)', self.camera_container.zoom_out)
+        CameraMenu.addAction('Calibrate', self.camera_container.camera_calibrate)
         
         # Add pose related actions
         PoseMenu = mainMenu.addMenu('Pose')
+        PoseMenu.addAction('Set Pose', self.mesh_container.set_pose)
         PoseMenu.addAction('Reset GT Pose (k)', self.mesh_container.reset_gt_pose)
         PoseMenu.addAction('Update GT Pose (l)', self.mesh_container.update_gt_pose)
         PoseMenu.addAction('Undo Pose (s)', self.mesh_container.undo_actor_pose)
