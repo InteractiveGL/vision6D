@@ -25,10 +25,9 @@ class CameraStore(metaclass=Singleton):
         self.cx = self.window_size[0] // 2
         self.cy = self.window_size[1] // 2
         self.cam_viewup = (0, 0, 0)
-        self.cam_position = -500
 
     def set_camera_extrinsics(self):
-        self.camera.SetPosition((0,0,self.cam_position))
+        self.camera.SetPosition((0, 0, -1e-8)) # Set the camera position at the origin of the world coordinate system
         self.camera.SetFocalPoint((*self.camera.GetWindowCenter(),0)) # Get the camera window center
         self.camera.SetViewUp(self.cam_viewup)
     

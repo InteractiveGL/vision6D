@@ -9,6 +9,7 @@
 '''
 
 import pathlib
+import numpy as np
 import PIL.Image
 from PyQt5 import QtWidgets
 
@@ -19,7 +20,8 @@ from ..components import ImageStore
 class ImageContainer:
     def __init__(self, 
                 plotter,
-                hintLabel, 
+                hintLabel,
+                object_distance,
                 track_actors_names, 
                 add_button_actor_name, 
                 check_button,
@@ -27,6 +29,7 @@ class ImageContainer:
           
         self.plotter = plotter
         self.hintLabel = hintLabel
+        self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.check_button = check_button
@@ -48,7 +51,7 @@ class ImageContainer:
         self.add_image(self.image_store.image_source)
 
     def add_image(self, image_source):
-        image, _, channel = self.image_store.add_image(image_source)
+        image, _, channel = self.image_store.add_image(image_source, self.object_distance)
         if channel == 1: image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
         else: image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
         actor, _ = self.plotter.add_actor(image, pickable=False, name='image')

@@ -27,10 +27,11 @@ class BboxStore(metaclass=Singleton):
 
     def reset(self):
         self.bbox_path = None
+        self.bbox_pv = None
         self.bbox_actor = None
         self.bbox_opacity = 0.5
 
-    def add_bbox(self, bbox_source, width, height):
+    def add_bbox(self, bbox_source, width, height, object_distance):
         # default is '.npy' file
         if isinstance(bbox_source, pathlib.Path) or isinstance(bbox_source, str):
             self.bbox_path = str(bbox_source)
@@ -52,6 +53,7 @@ class BboxStore(metaclass=Singleton):
         # Due to camera view change to right handed coordinate system
         points = self.image_center - points
         cells = np.array([[2, 0, 1], [2, 1, 2], [2, 2, 3], [2, 3, 0]]).ravel()
-        bbox = pv.UnstructuredGrid(cells, np.full((4,), vtk.VTK_LINE, dtype=np.uint8), points)
+        self.bbox_pv = pv.UnstructuredGrid(cells, np.full((4,), vtk.VTK_LINE, dtype=np.uint8), points)
+        self.bbox_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to # points += np.array([0, 0, object_distance])
     
-        return bbox
+        return self.bbox_pv
