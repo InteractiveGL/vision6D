@@ -1,5 +1,7 @@
 import ast
 from functools import wraps
+
+import numpy as np
 from PyQt5 import QtWidgets
 
 def try_except_set_spacing(func):
@@ -22,9 +24,9 @@ def try_except_set_spacing(func):
 def set_spacing(data):
     return ast.literal_eval(data)
 
-def set_pose(data, pose):
+def set_data_format(data, matrix=None):
     try:
-        return ast.literal_eval(data)
+        return np.array(ast.literal_eval(data))
     except SyntaxError:
         QtWidgets.QMessageBox.warning(
                 QtWidgets.QMainWindow(), 
@@ -33,5 +35,5 @@ def set_pose(data, pose):
                 QtWidgets.QMessageBox.Ok, 
                 QtWidgets.QMessageBox.Ok
             )
-        return pose
-    
+        if matrix is not None: return matrix
+        else: return None

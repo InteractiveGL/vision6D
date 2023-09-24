@@ -7,7 +7,8 @@
 @time: 2023-07-03 20:26
 @desc: create container for mask related actions in application
 '''
-
+import os
+import ast
 import pathlib
 
 import numpy as np
@@ -15,11 +16,12 @@ import PIL.Image
 
 from PyQt5 import QtWidgets
 
-from ..tools import utils
+from ..path import PKG_ROOT
+from ..tools import utils, exception
 from ..components import CameraStore
 from ..components import ImageStore
 from ..components import MaskStore
-from ..widgets import MaskWindow
+from ..widgets import MaskWindow, GetMaskDialog
 
 class MaskContainer:
     def __init__(self, 
@@ -43,10 +45,29 @@ class MaskContainer:
 
     def add_mask_file(self, mask_path='', prompt=False):
         if prompt:
-            mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
+            mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
         if mask_path:
             self.hintLabel.hide()
             self.add_mask(mask_path)
+
+    def set_mask(self):
+        get_mask_dialog = GetMaskDialog()
+        res = get_mask_dialog.exec_()
+        if res == QtWidgets.QDialog.Accepted:
+            if get_mask_dialog.mask_path: self.add_mask_file(get_mask_dialog.mask_path)
+            else:
+                user_text = get_mask_dialog.get_text()
+                points = exception.set_data_format(user_text)
+                if points is not None:
+                    if points.shape[1] == 2:
+                        os.makedirs(PKG_ROOT.parent / "output", exist_ok=True)
+                        os.makedirs(PKG_ROOT.parent / "output" / "mask_points", exist_ok=True)
+                        if self.image_store.image_path: mask_path = PKG_ROOT.parent / "output" / "mask_points" / f"{pathlib.Path(self.image_store.image_path).stem}.npy"
+                        else: mask_path = PKG_ROOT.parent / "output" / "mask_points" / "mask_points.npy"
+                        np.save(mask_path, points)
+                        self.add_mask_file(mask_path)
+                    else:
+                        utils.display_warning("It needs to be a n by 2 matrix")
 
     def mirror_mask(self, direction):
         if direction == 'x': self.mask_store.mirror_x = not self.mask_store.mirror_x
@@ -60,7 +81,7 @@ class MaskContainer:
         self.mask_store.mask_actor = actor
         
     def add_mask(self, mask_source):
-        mask_surface = self.mask_store.add_mask(mask_source)
+        mask_surface = self.mask_store.add_mask(mask_source, self.plotter.main_window.window_size)
         self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu
@@ -72,7 +93,7 @@ class MaskContainer:
         if self.mask_store.mask_path:
             self.mask_store.mirror_x = False
             self.mask_store.mirror_y = False
-            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path)
+            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.plotter.main_window.window_size)
             self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):

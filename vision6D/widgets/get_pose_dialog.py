@@ -46,7 +46,6 @@ class GetPoseDialog(QtWidgets.QDialog):
         layout.addWidget(self.btnSubmit)
         
     def submit_text(self):
-        self.user_text = self.textEdit.toPlainText()
         self.accept()
 
     def load_from_file(self):
@@ -61,4 +60,4 @@ class GetPoseDialog(QtWidgets.QDialog):
             self.textEdit.setPlainText(text)
 
     def get_text(self):
-        return self.user_text
+        return self.textEdit.toPlainText()

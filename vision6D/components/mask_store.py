@@ -27,24 +27,31 @@ class MaskStore(metaclass=Singleton):
     def reset(self):
         self.mask_path = None
         self.mask_actor = None
-        self.mask_opacity = 0.3
+        self.mask_opacity = 0.1
     
-    def add_mask(self, mask_source):
+    def add_mask(self, mask_source, size):
+
+        w, h = size[0], size[1]
+
+        # TODO: add mask numpy array support
         if isinstance(mask_source, pathlib.Path) or isinstance(mask_source, str):
             self.mask_path = str(mask_source)
+
+        if pathlib.Path(self.mask_path).suffix == '.npy':
+            points = np.load(self.mask_path).squeeze()
+        else:
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
+            h, w = mask_source.shape[0], mask_source.shape[1]
+            # if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
+            if mask_source.shape[-1] == 3: mask_source = cv2.cvtColor(mask_source, cv2.COLOR_RGB2GRAY)
+            # Get the segmentation contour points
+            contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            points = contours[0].squeeze()
 
-        # if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
-        if mask_source.shape[-1] == 3: mask_source = cv2.cvtColor(mask_source, cv2.COLOR_RGB2GRAY)
-
-        # Get the segmentation contour points
-        contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        points = contours[0].squeeze()
         points = points * 0.01
         points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
         
         # Mirror points
-        h, w = mask_source.shape[0], mask_source.shape[1]
         mask_center = np.array([w // 2, h // 2, 0]) * 0.01
         self.render = utils.create_render(w, h)
         

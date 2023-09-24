@@ -223,10 +223,11 @@ class MeshContainer:
             get_pose_dialog = GetPoseDialog(mesh_data.actor.user_matrix)
             res = get_pose_dialog.exec_()
             if res == QtWidgets.QDialog.Accepted:
-                if "," not in get_pose_dialog.user_text:
-                    get_pose_dialog.user_text = get_pose_dialog.user_text.replace(" ", ",")
-                    get_pose_dialog.user_text = get_pose_dialog.user_text.strip().replace("[,", "[")
-                gt_pose = np.array(exception.set_pose(get_pose_dialog.user_text, mesh_data.actor.user_matrix))
+                user_text = get_pose_dialog.get_text()
+                if "," not in user_text:
+                    user_text = user_text.replace(" ", ",")
+                    user_text =user_text.strip().replace("[,", "[")
+                gt_pose = exception.set_data_format(user_text, mesh_data.actor.user_matrix)
                 if gt_pose.shape == (4, 4):
                     self.hintLabel.hide()
                     transformation_matrix = gt_pose
