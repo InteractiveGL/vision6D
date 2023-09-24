@@ -24,33 +24,33 @@ from pyvistaqt import MainWindow
 from PyQt5.QtCore import Qt, QPoint
 
 # self defined package import
-from .widgets import CustomQtInteractor
-from .widgets import PopUpDialog
-from .widgets import SearchBar
+from ..widgets import CustomQtInteractor
+from ..widgets import PopUpDialog
+from ..widgets import SearchBar
 
-from .components import CameraStore
-from .components import ImageStore
-from .components import MaskStore
-from .components import BboxStore
-from .components import MeshStore
-from .components import PointStore
-from .components import VideoStore
-from .components import FolderStore
+from ..components import CameraStore
+from ..components import ImageStore
+from ..components import MaskStore
+from ..components import BboxStore
+from ..components import MeshStore
+from ..components import PointStore
+from ..components import VideoStore
+from ..components import FolderStore
 
-from .containers import CameraContainer
-from .containers import ImageContainer
-from .containers import MaskContainer
-from .containers import BboxContainer
-from .containers import MeshContainer
-from .containers import PointContainer
-from .containers import PnPContainer
-from .containers import VideoContainer
-from .containers import FolderContainer
+from ..containers import CameraContainer
+from ..containers import ImageContainer
+from ..containers import MaskContainer
+from ..containers import BboxContainer
+from ..containers import MeshContainer
+from ..containers import PointContainer
+from ..containers import PnPContainer
+from ..containers import VideoContainer
+from ..containers import FolderContainer
 
-from .tools import utils
+from ..tools import utils
 
-from .path import ICON_PATH
-from .path import PKG_ROOT
+from ..path import ICON_PATH
+from ..path import PKG_ROOT
 
 np.set_printoptions(suppress=True)
 
