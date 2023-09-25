@@ -1,12 +1,10 @@
 {
-    "image_path": "GitHub\\yolov8\\runs\\segment\\CIP.6329.6010707468438_vieo_trim_right_with_poses\\images\\ossicles\\CIP.6329.6010707468438_vieo_trim.png",
-    "mask_path": "GitHub\\yolov8\\runs\\segment\\CIP.6329.6010707468438_vieo_trim_right_with_poses\\seg_masks\\ossicles\\CIP.6329.6010707468438_vieo_trim.png",
-    "bbox_path": "GitHub\\ossicles_6D_pose_estimation\\data\\zoom\\no_zoom\\bbox\\6329.npy",
+    "image_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\images\\6329_right.png",
+    "mask_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\points\\6329_right.npy",
     "mesh_path": ["GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6329.6010707468438_vieo_trim\\mesh\\processed_meshes\\6329_right_ossicles_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6329.6010707468438_vieo_trim\\mesh\\processed_meshes\\6329_right_facial_nerve_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6329.6010707468438_vieo_trim\\mesh\\processed_meshes\\6329_right_chorda_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6329.6010707468438_vieo_trim\\mesh\\processed_meshes\\6329_right_scala_tympani_processed.mesh"
     ],
-    "pose_path": "GitHub\\ossicles_6D_pose_estimation\\data\\poses\\6329_right_gt_pose.npy"
-
+    "pose_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\poses\\6329_right_gt_pose.npy"
 }

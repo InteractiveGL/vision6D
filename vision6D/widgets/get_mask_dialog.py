@@ -47,9 +47,9 @@ class GetMaskDialog(QtWidgets.QDialog):
         if mask_path:
             self.mask_path = mask_path
             if ".npy" in mask_path:
-                self.textEdit.setPlainText(f"\n{np.load(mask_path).squeeze()}")
+                self.textEdit.setPlainText(f"{np.load(mask_path).squeeze()}")
             else:
-                self.textEdit.setPlainText(f"\n{mask_path}")
+                self.textEdit.setPlainText(f"{mask_path}")
 
     def get_text(self):
         return self.textEdit.toPlainText()

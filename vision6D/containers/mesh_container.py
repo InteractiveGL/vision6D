@@ -276,15 +276,16 @@ class MeshContainer:
         else: utils.display_warning("Choose a mesh actor first")
 
     def export_mesh_pose(self):
-        for mesh_data in self.mesh_store.meshes.values():
-            if self.mesh_store.toggle_anchor_mesh: 
-                pose = mesh_data.actor.user_matrix
-                os.makedirs(PKG_ROOT.parent / "output" / "export_pose", exist_ok=True)
-                output_path = PKG_ROOT.parent / "output" / "export_pose" / (mesh_data.name + '.npy')
-                self.update_gt_pose()
-                np.save(output_path, pose)
-                self.output_text.append(f"Export {mesh_data.name} pose to:\n {output_path}")
-            else:
+        if self.mesh_store.toggle_anchor_mesh: 
+            mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+            pose = mesh_data.actor.user_matrix
+            os.makedirs(PKG_ROOT.parent / "output" / "export_pose", exist_ok=True)
+            output_path = PKG_ROOT.parent / "output" / "export_pose" / ("_".join(mesh_data.name.split("_")[:2]) + "_gt_pose.npy")
+            self.update_gt_pose()
+            np.save(output_path, pose)
+            self.output_text.append(f"Export {mesh_data.name} pose to:\n {output_path}")
+        else:
+            for mesh_data in self.mesh_store.meshes.values():
                 verts, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
                 vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
                 os.makedirs(PKG_ROOT.parent / "output" / "export_mesh", exist_ok=True)
@@ -293,7 +294,7 @@ class MeshContainer:
                 ply_file = trimesh.exchange.ply.export_ply(mesh)
                 with open(output_path, "wb") as fid: fid.write(ply_file)
                 self.output_text.append(f"Export {mesh_data.name} mesh to:\n {output_path}")
-            
+                
     def export_mesh_render(self, save_render=True):
         image = None
         if self.mesh_store.reference:

@@ -272,7 +272,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Folder', functools.partial(self.add_folder, prompt=True))
         fileMenu.addAction('Add Video', functools.partial(self.video_container.add_video_file, prompt=True))
         fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
-        fileMenu.addAction('Add Mask', functools.partial(self.mask_container.add_mask_file, prompt=True))
         fileMenu.addAction('Add Bbox', functools.partial(self.bbox_container.add_bbox_file, prompt=True))
         fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
         fileMenu.addAction('Add Points', functools.partial(self.point_container.load_points_file, prompt=True))

@@ -1,12 +1,10 @@
 {
-    "image_path": "GitHub\\yolov8\\runs\\segment\\CIP.6087.8415865242263_video_trim_left_with_poses\\images\\ossicles\\CIP.6087.8415865242263_video_trim.png",
-    "mask_path": "GitHub\\yolov8\\runs\\segment\\CIP.6087.8415865242263_video_trim_left_with_poses\\seg_masks\\ossicles\\CIP.6087.8415865242263_video_trim.png",
-    "bbox_path": "GitHub\\ossicles_6D_pose_estimation\\data\\zoom\\no_zoom\\bbox\\6087.npy",
+    "image_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\images\\6087_left.png",
+    "mask_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\points\\6087_left.npy",
     "mesh_path": ["GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6087.8415865242263_video_trim\\mesh\\processed_meshes\\6087_left_ossicles_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6087.8415865242263_video_trim\\mesh\\processed_meshes\\6087_left_facial_nerve_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6087.8415865242263_video_trim\\mesh\\processed_meshes\\6087_left_chorda_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6087.8415865242263_video_trim\\mesh\\processed_meshes\\6087_left_scala_tympani_processed.mesh"
-],
-    "pose_path": "GitHub\\ossicles_6D_pose_estimation\\data\\poses\\6087_left_gt_pose.npy"
-
+    ],
+    "pose_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\poses\\6087_left_gt_pose.npy"
 }
