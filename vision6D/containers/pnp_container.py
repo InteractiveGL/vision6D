@@ -38,7 +38,7 @@ class PnPContainer:
         focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         camera_intrinsics[0, 0] = focal_length
         camera_intrinsics[1, 1] = focal_length
-        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.plotter.camera.position)
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics)
         self.output_text.append(f"-> Focal length is {focal_length}: ")
         return predicted_pose
 
@@ -72,7 +72,7 @@ class PnPContainer:
         focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         camera_intrinsics[0, 0] = focal_length
         camera_intrinsics[1, 1] = focal_length
-        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, self.plotter.camera.position)
+        predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics)
         self.output_text.append(f"-> Focal length is {focal_length}: ")
         return predicted_pose
 

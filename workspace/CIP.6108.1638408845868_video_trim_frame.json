@@ -1,10 +1,10 @@
 {
-    "image_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\images\\6108_right.png",
-    "mask_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\points\\6108_right.npy",
+    "image_path": "GitHub\\ossicles_6D_pose_estimation\\data\\raw_dataset\\images\\6108_right.png",
+    "mask_path": "GitHub\\ossicles_6D_pose_estimation\\data\\raw_dataset\\points\\6108_right.npy",
     "mesh_path": ["GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6108.1638408845868_video_trim\\mesh\\processed_meshes\\6108_right_ossicles_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6108.1638408845868_video_trim\\mesh\\processed_meshes\\6108_right_facial_nerve_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6108.1638408845868_video_trim\\mesh\\processed_meshes\\6108_right_chorda_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6108.1638408845868_video_trim\\mesh\\processed_meshes\\6108_right_scala_tympani_processed.mesh"
     ],
-    "pose_path": "GitHub\\ossicles_6D_pose_estimation\\data\\unet_optimizer_dataset\\poses\\6108_right_gt_pose.npy"
+    "pose_path": "GitHub\\ossicles_6D_pose_estimation\\data\\raw_dataset\\poses\\6108_right_gt_pose.npy"
 }

@@ -201,7 +201,7 @@ def create_2d_3d_pairs(color_mask:np.ndarray, vertices:pv.pyvista_ndarray, binar
     
     return vtx, pts
 
-def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, camera_position):
+def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics):
     pts2d = pts2d.astype('float32')
     pts3d = pts3d.astype('float32')
     camera_intrinsics = camera_intrinsics.astype('float32')
@@ -211,9 +211,9 @@ def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics, camera_position):
         # Use EPNP, inliers are the indices of the inliers
         success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, distCoeffs=np.zeros((4, 1)), confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
         if success:
-            predicted_pose[:3, :3] = cv2.Rodrigues(rotation_vector)[0]
-            predicted_pose[:3, 3] = np.squeeze(translation_vector) + np.array(camera_position)
-
+            coordinate_change = np.array([[-1, 0, 0], [0, -1, 0], [0, 0, 1]])
+            predicted_pose[:3, :3] = coordinate_change @ cv2.Rodrigues(rotation_vector)[0]
+            predicted_pose[:3, 3] = coordinate_change @ np.squeeze(translation_vector)
     return predicted_pose
 
 def transform_vertices(vertices, transformation_matrix=np.eye(4)):

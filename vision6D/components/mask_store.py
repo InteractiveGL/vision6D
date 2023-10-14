@@ -26,14 +26,13 @@ class MaskStore(metaclass=Singleton):
 
     def reset(self):
         self.mask_path = None
+        self.mask_pv = None
         self.mask_actor = None
         self.mask_opacity = 0.1
     
-    def add_mask(self, mask_source, size):
-
+    def add_mask(self, mask_source, object_distance, size):
         w, h = size[0], size[1]
 
-        # TODO: add mask numpy array support
         if isinstance(mask_source, pathlib.Path) or isinstance(mask_source, str):
             self.mask_path = str(mask_source)
 
@@ -63,8 +62,9 @@ class MaskStore(metaclass=Singleton):
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
         # Due to camera view change to right handed coordinate system
         points = mask_center - points
-        mask_surface = pv.PolyData(points, cells).triangulate()
-        return mask_surface
+        self.mask_pv = pv.PolyData(points, cells).triangulate()
+        self.mask_pv = self.mask_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to points += np.array([0, 0, object_distance])
+        return self.mask_pv
 
     def update_opacity(self, delta):
         self.mask_opacity += delta

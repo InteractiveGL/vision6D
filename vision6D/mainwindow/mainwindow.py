@@ -70,7 +70,8 @@ class MyMainWindow(MainWindow):
         self.track_actors_names = []
         self.button_group_actors_names = QtWidgets.QButtonGroup(self)
 
-        self.camera_store = CameraStore(self.window_size)
+        self.camera_store = CameraStore(self.window_size) # center camera at the origin in world coordinate to match with pytorch3d
+        self.object_distance = 100.0 # set the object distance to the camera in world coordinate
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
         self.bbox_store = BboxStore()
@@ -128,6 +129,7 @@ class MyMainWindow(MainWindow):
         
         self.image_container = ImageContainer(plotter=self.plotter, 
                                             hintLabel=self.hintLabel, 
+                                            object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name, 
                                             check_button=self.check_button,
@@ -135,6 +137,7 @@ class MyMainWindow(MainWindow):
         
         self.mask_container = MaskContainer(plotter=self.plotter,
                                             hintLabel=self.hintLabel, 
+                                            object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name, 
                                             check_button=self.check_button, 
@@ -184,6 +187,7 @@ class MyMainWindow(MainWindow):
         
         self.bbox_container = BboxContainer(plotter=self.plotter,
                                             hintLabel=self.hintLabel, 
+                                            object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name, 
                                             check_button=self.check_button, 
@@ -708,7 +712,8 @@ class MyMainWindow(MainWindow):
                 popup.exec_()
                 color = self.color_button.text()
                 self.mesh_store.meshes[name].color = color
-                self.mesh_container.set_color(color, name)
+                try: self.mesh_container.set_color(color, name)
+                except ValueError: utils.display_warning(f"Cannot set color ({color}) to {name}")
             else: utils.display_warning("Only be able to color mesh actors")
         else: utils.display_warning("Need to select an actor first")
  
@@ -859,3 +864,15 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox.setValue(0.3)
         
         self.hintLabel.show()
+
+    def set_object_distance(self):
+        distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.object_distance))
+        if ok:
+            self.object_distance = float(distance)
+            if self.image_store.image_actor is not None:
+                distance = np.array([0, 0, self.object_distance]) - self.image_store.image_pv.center
+                self.image_store.image_pv.translate(distance, inplace=True)
+            if self.mask_store.mask_actor is not None:
+                self.mask_store.mask_pv.translate(distance, inplace=True)
+            if self.bbox_store.bbox_actor is not None:
+                self.bbox_store.bbox_pv.translate(distance, inplace=True)

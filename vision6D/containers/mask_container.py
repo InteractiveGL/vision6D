@@ -26,7 +26,8 @@ from ..widgets import MaskWindow, GetMaskDialog
 class MaskContainer:
     def __init__(self, 
                 plotter, 
-                hintLabel, 
+                hintLabel,
+                object_distance,
                 track_actors_names, 
                 add_button_actor_name, 
                 check_button,
@@ -34,6 +35,7 @@ class MaskContainer:
 
         self.plotter = plotter
         self.hintLabel = hintLabel
+        self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.check_button = check_button
@@ -81,7 +83,7 @@ class MaskContainer:
         self.mask_store.mask_actor = actor
         
     def add_mask(self, mask_source):
-        mask_surface = self.mask_store.add_mask(mask_source, self.plotter.main_window.window_size)
+        mask_surface = self.mask_store.add_mask(mask_source, self.object_distance, self.plotter.main_window.window_size)
         self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu
@@ -93,7 +95,7 @@ class MaskContainer:
         if self.mask_store.mask_path:
             self.mask_store.mirror_x = False
             self.mask_store.mirror_y = False
-            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.plotter.main_window.window_size)
+            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.object_distance, self.plotter.main_window.window_size)
             self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):

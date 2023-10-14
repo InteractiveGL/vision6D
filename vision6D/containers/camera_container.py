@@ -57,17 +57,16 @@ class CameraContainer:
             line2=("Fy", self.camera_store.fy), 
             line3=("Cx", self.camera_store.cx), 
             line4=("Cy", self.camera_store.cy), 
-            line5=("View Up", self.camera_store.cam_viewup), 
-            line6=("Cam Position", self.camera_store.cam_position))
+            line5=("View Up", self.camera_store.cam_viewup))
         if dialog.exec():
-            fx, fy, cx, cy, cam_viewup, cam_position = dialog.getInputs()
-            pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position = self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position
-            if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == '' or cam_position == ''):
+            fx, fy, cx, cy, cam_viewup = dialog.getInputs()
+            pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup = self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup
+            if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == ''):
                 try:
-                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup), ast.literal_eval(cam_position)
+                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup)
                     self.set_camera_props()
                 except:
-                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup, self.camera_store.cam_position = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup, pre_cam_position
+                    self.camera_store.fx, self.camera_store.fy, self.camera_store.cx, self.camera_store.cy, self.camera_store.cam_viewup = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup
                     utils.display_warning("Error occured, check the format of the input values")
 
     def zoom_in(self):
@@ -84,6 +83,5 @@ class CameraContainer:
             focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
             camera_intrinsics[0, 0] = focal_length
             camera_intrinsics[1, 1] = focal_length
-            camera_position = self.plotter.camera.position
-            camera_info = {'camera_intrinsics': camera_intrinsics, 'camera_position': np.array(camera_position)}
+            camera_info = {'camera_intrinsics': camera_intrinsics}
             with open(output_path,"wb") as f: pickle.dump(camera_info, f)
