@@ -423,6 +423,11 @@ class MyMainWindow(MainWindow):
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(actor_pose_button, row, column)
 
+        set_distance_button = QtWidgets.QPushButton("Set Distance")
+        set_distance_button.clicked.connect(self.set_object_distance)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(set_distance_button, row, column)
+
         # Create the spacing button
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
@@ -868,11 +873,25 @@ class MyMainWindow(MainWindow):
     def set_object_distance(self):
         distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.object_distance))
         if ok:
-            self.object_distance = float(distance)
+            distance = float(distance)
             if self.image_store.image_actor is not None:
-                distance = np.array([0, 0, self.object_distance]) - self.image_store.image_pv.center
-                self.image_store.image_pv.translate(distance, inplace=True)
+                self.image_store.image_pv.translate(-np.array([0, 0, self.image_store.image_pv.center[-1]]), inplace=True)
+                self.image_store.image_pv.translate(np.array([0, 0, distance]), inplace=True)
+                self.image_container.set_object_distance(distance)
             if self.mask_store.mask_actor is not None:
-                self.mask_store.mask_pv.translate(distance, inplace=True)
+                self.mask_store.mask_pv.translate(-np.array([0, 0, self.mask_store.mask_pv.center[-1]]), inplace=True)
+                self.mask_store.mask_pv.translate(np.array([0, 0, distance]), inplace=True)
+                self.mask_container.set_object_distance(distance)
             if self.bbox_store.bbox_actor is not None:
-                self.bbox_store.bbox_pv.translate(distance, inplace=True)
+                self.bbox_store.bbox_pv.translate(-np.array([0, 0, self.bbox_store.bbox_pv.center[-1]]), inplace=True)
+                self.bbox_store.bbox_pv.translate(np.array([0, 0, distance]), inplace=True)
+                self.bbox_container.set_object_distance(distance)
+            if len(self.mesh_store.meshes) > 0:
+                for mesh_data in self.mesh_store.meshes.values(): 
+                    user_matrix = mesh_data.actor.user_matrix
+                    user_matrix[2, 3] -= self.object_distance
+                    user_matrix[2, 3] += distance
+                    mesh_data.actor.user_matrix = user_matrix
+
+            self.object_distance = distance
+            self.camera_container.reset_camera()

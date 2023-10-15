@@ -45,6 +45,9 @@ class MaskContainer:
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
 
+    def set_object_distance(self, object_distance):
+        self.object_distance = object_distance
+
     def add_mask_file(self, mask_path='', prompt=False):
         if prompt:
             mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 

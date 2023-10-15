@@ -38,6 +38,9 @@ class ImageContainer:
         self.camera_store = CameraStore()
         self.image_store = ImageStore()
 
+    def set_object_distance(self, object_distance):
+        self.object_distance = object_distance
+
     def add_image_file(self, image_path='', prompt=False):
         if prompt:
             image_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")

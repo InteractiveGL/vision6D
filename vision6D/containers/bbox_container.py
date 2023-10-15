@@ -44,6 +44,9 @@ class BboxContainer:
         self.image_store = ImageStore()
         self.bbox_store = BboxStore()
 
+    def set_object_distance(self, object_distance):
+        self.object_distance = object_distance
+
     def add_bbox_file(self, bbox_path='', prompt=False):
         if prompt:
             bbox_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy)") 
