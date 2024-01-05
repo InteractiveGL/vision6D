@@ -59,6 +59,7 @@ class MyMainWindow(MainWindow):
         QtWidgets.QMainWindow.__init__(self, parent)
         
         # Set up the main window layout
+        self.setWindowIcon(QtGui.QIcon(str(ICON_PATH / 'logo.png')))
         self.setWindowTitle("Vision6D")
         self.window_size = (1920, 1080)
         self.main_widget = QtWidgets.QWidget()
