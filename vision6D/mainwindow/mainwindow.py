@@ -640,7 +640,7 @@ class MyMainWindow(MainWindow):
         if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
         else: self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
             
-    #^ when there is no anchor, the base vertices changes when we move around the objects
+    #* when there is no anchor, the base vertices changes when we move around the objects
     def toggle_anchor(self, pose):
         if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
         else:
