@@ -3,7 +3,7 @@ name: Publish Vision6D to PyPI / GitHub
 on:
   push:
     tags:
-      - "v*"
+      - "*"
 
 jobs:
   build-n-publish:
