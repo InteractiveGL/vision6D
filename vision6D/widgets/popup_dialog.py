@@ -19,18 +19,20 @@ from PyQt5.QtCore import Qt
 np.set_printoptions(suppress=True)
 
 class PopUpDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, on_button_click=None):
+    def __init__(self, parent=None, on_button_click=None, for_mesh=True):
         super().__init__(parent)
 
         self.setWindowTitle("Vision6D - Colors")
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint) # Disable the question mark
 
         button_grid = QtWidgets.QGridLayout()
-        colors = ["nocs", "cyan", "magenta", "yellow", "lime", "latlon", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
+        if for_mesh: colors = ["nocs", "cyan", "magenta", "yellow", "lime", "latlon", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
+        else: colors = ["white", "cyan", "magenta", "yellow", "lime", "black", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
 
         button_count = 0
+        # two columns
         for i in range(2):
-            for j in range(5):
+            for j in range(int(len(colors)//2)):
                 name = f"{colors[button_count]}"
                 button = QtWidgets.QPushButton(name)
                 button.clicked.connect(lambda _, idx=name: on_button_click(str(idx)))

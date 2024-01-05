@@ -13,6 +13,7 @@ import pathlib
 
 import numpy as np
 import PIL.Image
+import matplotlib.colors
 
 from PyQt5 import QtWidgets
 
@@ -81,7 +82,7 @@ class MaskContainer:
 
     def load_mask(self, mask_surface):
         # Add mask surface object to the plot
-        mask_mesh = self.plotter.add_mesh(mask_surface, color="white", style='surface', opacity=self.mask_store.mask_opacity)
+        mask_mesh = self.plotter.add_mesh(mask_surface, color=self.mask_store.color, style='surface', opacity=self.mask_store.mask_opacity)
         actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
         self.mask_store.mask_actor = actor
         
@@ -104,6 +105,10 @@ class MaskContainer:
     def set_mask_opacity(self, mask_opacity: float):
         self.mask_store.mask_opacity = mask_opacity
         self.mask_store.mask_actor.GetProperty().opacity = mask_opacity
+
+    def set_mask_color(self, color):
+        self.mask_store.mask_actor.GetMapper().SetScalarVisibility(0)
+        self.mask_store.mask_actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
     
     def toggle_mask_opacity(self, up):
         change = 0.05

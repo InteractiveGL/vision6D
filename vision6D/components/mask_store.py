@@ -25,6 +25,7 @@ class MaskStore(metaclass=Singleton):
         self.mirror_y = False
 
     def reset(self):
+        self.color = "white"
         self.mask_path = None
         self.mask_pv = None
         self.mask_actor = None

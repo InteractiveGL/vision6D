@@ -54,8 +54,9 @@ class ImageStore(metaclass=Singleton):
         dim = image_source.shape
         self.height, self.width, channel = dim[0], dim[1], dim[2]
 
-        if self.mirror_x: image_source = image_source[:, ::-1, :]
-        if self.mirror_y: image_source = image_source[::-1, :, :]
+        # Consider the mirror effect with the preprocessed image_source: image_source = np.fliplr(np.flipud(image_source))
+        if self.mirror_x: image_source = image_source[::-1, :, :]
+        if self.mirror_y: image_source = image_source[:, ::-1, :]
 
         self.render = utils.create_render(self.width, self.height)
         

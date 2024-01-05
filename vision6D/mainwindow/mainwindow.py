@@ -441,11 +441,13 @@ class MyMainWindow(MainWindow):
         top_grid_layout.addWidget(hide_button, row, column)
 
         # Mirror buttons
-        self.mirror_x_button = QtWidgets.QPushButton("Mirror X")
+        # mirror_x mean mirror left/right
+        # mirror_y mean mirror up/down
+        self.mirror_x_button = QtWidgets.QPushButton("Flip Left/Right")
         self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.mirror_x_button, row, column)
-        self.mirror_y_button = QtWidgets.QPushButton("Mirror Y")
+        self.mirror_y_button = QtWidgets.QPushButton("Flip Up/Down")
         self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.mirror_y_button, row, column)
@@ -711,7 +713,7 @@ class MyMainWindow(MainWindow):
         if checked_button:
             name = checked_button.text()
             if name in self.mesh_store.meshes:
-                popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup))
+                popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup), for_mesh=True)
                 button_position = self.color_button.mapToGlobal(QPoint(0, 0))
                 popup.move(button_position + QPoint(self.color_button.width(), 0))
                 popup.exec_()
@@ -719,7 +721,15 @@ class MyMainWindow(MainWindow):
                 self.mesh_store.meshes[name].color = color
                 try: self.mesh_container.set_color(color, name)
                 except ValueError: utils.display_warning(f"Cannot set color ({color}) to {name}")
-            else: utils.display_warning("Only be able to color mesh actors")
+            elif name == 'mask':
+                popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup), for_mesh=False)
+                button_position = self.color_button.mapToGlobal(QPoint(0, 0))
+                popup.move(button_position + QPoint(self.color_button.width(), 0))
+                popup.exec_()
+                color = self.color_button.text()
+                self.mask_store.color = color
+                self.mask_container.set_mask_color(color)
+            else: utils.display_warning("Only be able to color mesh or mask objects")
         else: utils.display_warning("Need to select an actor first")
  
     def copy_output_text(self):
