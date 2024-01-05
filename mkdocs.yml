@@ -1,5 +1,5 @@
 site_name: Vision6D Docs
-site_url: https://vision6d.readthedocs.com/
+site_url: https://vision6d.readthedocs.io/
 nav:
   - Home: index.md
   - About: about.md
