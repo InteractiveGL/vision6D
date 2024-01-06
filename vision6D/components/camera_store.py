@@ -13,6 +13,21 @@ import pyvista as pv
 import numpy as np
 from . import Singleton
 
+"""
+PyTorch3D (include differentiable rendering) uses a left-handed coordinate system for camera and object positioning. In this system:
+The X-axis extends to the left.
+The Y-axis extends upward.
+The Z-axis extends into the screen (away from the viewer).
+
+That is why we define our coordinate system to be left-handed coordinate system, and to be consistent with pytorch3d.
+
+User matrix in Vision6D is concatenated with the actor’s internal transformation that is implicitly created when the actor is created. 
+This affects the actor/rendering only, not the input data itself.
+The user matrix is the last transformation applied to the actor before rendering.
+
+^Note that the user matrix (4 by 4) is the RT of the object, and to find the RT of the camera itself, we need to inverse the R (R.t()) of the provided user matrix.
+"""
+
 class CameraStore(metaclass=Singleton):
     def __init__(self, window_size):
         self.window_size = window_size
