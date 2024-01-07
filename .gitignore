@@ -131,6 +131,7 @@ dmypy.json
 temp/
 output/
 .vscode/
+vision6D/data/model
 
 docs/build
 

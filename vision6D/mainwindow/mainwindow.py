@@ -294,7 +294,8 @@ class MyMainWindow(MainWindow):
 
         # Add draw related actions
         DrawMenu = mainMenu.addMenu('Draw')
-        DrawMenu.addAction('Mask', self.mask_container.draw_mask)
+        DrawMenu.addAction('Live Wire', self.mask_container.draw_mask)
+        DrawMenu.addAction('SAM', functools.partial(self.mask_container.draw_mask, sam=True))
         DrawMenu.addAction('BBox', self.bbox_container.draw_bbox)
         # DrawMenu.addAction('Points', self.point_container.draw_point)
         DrawMenu.addAction('Reset Mask (t)', self.mask_container.reset_mask)

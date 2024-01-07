@@ -22,7 +22,7 @@ from ..tools import utils, exception
 from ..components import CameraStore
 from ..components import ImageStore
 from ..components import MaskStore
-from ..widgets import MaskWindow, GetMaskDialog
+from ..widgets import MaskWindow, SamWindow, GetMaskDialog
 
 class MaskContainer:
     def __init__(self, 
@@ -116,14 +116,14 @@ class MaskContainer:
         self.mask_store.update_opacity(change)
         self.check_button(name='mask')
     
-    def draw_mask(self):
+    def draw_mask(self, sam=False):
         def handle_output_path_change(output_path):
             if output_path:
                 self.mask_store.mask_path = output_path
                 self.add_mask(self.mask_store.mask_path)
         if self.image_store.image_actor:
             image = utils.get_image_actor_scalars(self.image_store.image_actor)
-            self.mask_window = MaskWindow(image)
+            self.mask_window = MaskWindow(image) if not sam else SamWindow(image)
             self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
         else: utils.display_warning("Need to load an image first!")
 

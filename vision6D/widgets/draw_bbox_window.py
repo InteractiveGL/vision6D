@@ -99,9 +99,9 @@ class BboxLabel(QtWidgets.QLabel):
             self.move_label()
 
     def mouseReleaseEvent(self, event):
-            pos = event.pos()
-            rect = self.get_normalized_rect()
-            if rect.contains(pos): self.drag_start = pos
+        pos = event.pos()
+        rect = self.get_normalized_rect()
+        if rect.contains(pos): self.drag_start = pos
 
     def paintEvent(self, event):
         painter = QPainter(self)
