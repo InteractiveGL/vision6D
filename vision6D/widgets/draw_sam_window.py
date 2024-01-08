@@ -14,6 +14,7 @@ import cv2
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from shapely.geometry import Point, LineString
 import PIL.Image
 
 from segment_anything import SamPredictor, sam_model_registry
@@ -112,11 +113,26 @@ class SamLabel(QtWidgets.QLabel):
         width = abs(self.rect_start.x() - self.rect_end.x())
         height = abs(self.rect_start.y() - self.rect_end.y())
         return QRect(left, top, width, height)
+    
+    def remove_point_from_polygon(self, polygon, index_to_remove):
+        new_polygon = QtGui.QPolygon()
+        for i in range(polygon.count()):
+            if i != index_to_remove:
+                new_polygon.append(polygon.point(i))
+        return new_polygon
+    
+    def insert_point_into_polygon(self, polygon, index_to_insert, new_point):
+        new_polygon = QtGui.QPolygon()
+        for i in range(polygon.count()):
+            if i == index_to_insert:
+                new_polygon.append(new_point)
+            new_polygon.append(polygon.point(i))
+        return new_polygon
 
     #todo: add the middle button to move the mask, change the right click to add and delete points.
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            if len(self.smoothed_points) > 0:
+            if not self.smoothed_points.isEmpty():
                 for i, point in enumerate(self.smoothed_points):
                     if (point - event.pos()).manhattanLength() < 10:  # 10 is the sensitivity, adjust as needed
                         self.selected_point_index = i
@@ -130,15 +146,41 @@ class SamLabel(QtWidgets.QLabel):
             self.drag_start = event.pos()
                 
         elif event.button() == Qt.RightButton:
-            pass
-        
+            if not self.smoothed_points.isEmpty():
+                min_distance = 1e+8
+                insert_index = 0
+                new_point = QtCore.QPoint(event.pos().x(), event.pos().y())
+
+                # Find the closest edge (between two points in self.smoothed_points) to the current position
+                for i in range(self.smoothed_points.count()):
+                    # Existing logic to remove point if close enough
+                    if (self.smoothed_points[i] - event.pos()).manhattanLength() < 10:
+                        self.smoothed_points = self.remove_point_from_polygon(self.smoothed_points, i)
+                        insert_index = None
+                        break
+                    # Define line_start, line_end, and the new point
+                    line_start = self.smoothed_points.point(i)
+                    line_end = self.smoothed_points.point((i+1) % self.smoothed_points.count())  # Wrap around to the first point
+                    l = LineString([(line_start.x(), line_start.y()), (line_end.x(), line_end.y())])
+                    p = Point(new_point.x(), new_point.y())
+                    # Find the minimum distance between the point and the line
+                    distance = p.distance(l)
+                    # Update min_distance and insert_index
+                    if distance < min_distance:
+                        min_distance = distance
+                        # handle the first and last point situation
+                        insert_index = (i + 1) % self.smoothed_points.count()
+
+                if insert_index != None: 
+                    self.smoothed_points = self.insert_point_into_polygon(self.smoothed_points, insert_index, new_point)
+                        
         self.update()
 
     def mouseMoveEvent(self, event):
         if event.buttons() == Qt.LeftButton:
             if self.selected_point_index is None:
                 self.rect_end = event.pos()
-            elif (self.smoothed_points[self.selected_point_index] - event.pos()).manhattanLength() < 10:
+            elif (self.smoothed_points[self.selected_point_index] - event.pos()).manhattanLength() < 50:
                 self.smoothed_points[self.selected_point_index] = event.pos()
         elif event.buttons() == Qt.MiddleButton:
             delta = event.pos() - self.drag_start
@@ -160,7 +202,7 @@ class SamLabel(QtWidgets.QLabel):
             painter.setPen(QPen(QColor(255, 0, 0), 2))
             painter.drawRect(rect)
 
-        if len(self.smoothed_points) > 0:
+        if not self.smoothed_points.isEmpty():
             painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 255, 255, 0)))
             painter.setPen(QPen(QColor(0, 255, 0), 2))
             for point in self.smoothed_points:
