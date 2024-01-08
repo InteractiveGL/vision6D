@@ -11,11 +11,13 @@
 import pathlib
 
 import cv2
+import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import PIL.Image
 
 from segment_anything import SamPredictor, sam_model_registry
+from fastsam import FastSAM, FastSAMPrompt
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QLabel
@@ -23,6 +25,12 @@ from PyQt5.QtCore import Qt, QRect
 from PyQt5.QtGui import QPen, QPainter, QColor
 
 from ..path import MODEL_PATH
+
+if torch.cuda.is_available():
+    DEVICE = torch.device("cuda:0")
+    torch.cuda.set_device(DEVICE)
+else:
+    DEVICE = torch.device("cpu")
 
 def show_mask(mask, ax, random_color=False):
     if random_color:
@@ -60,6 +68,12 @@ class SamLabel(QtWidgets.QLabel):
         self.label.setFixedWidth(self.pixmap.width() // 2)
         self.label.hide()
         
+        self.model = None
+        self.predictor = None
+        # self.model = FastSAM(MODEL_PATH / 'FastSAM-x.pt')
+        # self.everything_results = self.model(self.image_source, device=DEVICE, retina_masks=True, imgsz=image_source.shape, conf=0.4, iou=0.9)
+        # self.predictor = FastSAMPrompt(self.image_source, self.everything_results, device=DEVICE)
+
         self.rect_start = None
         self.rect_end = None
         self.output_path = None
@@ -67,7 +81,13 @@ class SamLabel(QtWidgets.QLabel):
         self.selected_point_index = None
         
     def keyPressEvent(self, event):
-        if event.key() == Qt.Key_S: self.save_bbox()
+        if event.key() == Qt.Key_S: 
+            self.save_bbox()
+        elif event.key() == Qt.Key_C: 
+            self.label.hide()
+            self.smoothed_points.clear()
+            self.selected_point_index = None
+            self.update()
             
     def save_bbox(self):
         if self.rect_start is not None and self.rect_end is not None:
@@ -93,10 +113,9 @@ class SamLabel(QtWidgets.QLabel):
         height = abs(self.rect_start.y() - self.rect_end.y())
         return QRect(left, top, width, height)
 
+    #todo: add the middle button to move the mask, change the right click to add and delete points.
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
-            self.rect_start = None
-            self.rect_end = None
             if len(self.smoothed_points) > 0:
                 for i, point in enumerate(self.smoothed_points):
                     if (point - event.pos()).manhattanLength() < 10:  # 10 is the sensitivity, adjust as needed
@@ -106,11 +125,12 @@ class SamLabel(QtWidgets.QLabel):
                 pos = event.pos()
                 self.rect_start = pos
                 self.rect_end = pos
+        
+        elif event.button() == Qt.MiddleButton:
+            self.drag_start = event.pos()
                 
         elif event.button() == Qt.RightButton:
-            self.label.hide()
-            self.smoothed_points.clear()
-            self.selected_point_index = None
+            pass
         
         self.update()
 
@@ -120,13 +140,15 @@ class SamLabel(QtWidgets.QLabel):
                 self.rect_end = event.pos()
             elif (self.smoothed_points[self.selected_point_index] - event.pos()).manhattanLength() < 10:
                 self.smoothed_points[self.selected_point_index] = event.pos()
+        elif event.buttons() == Qt.MiddleButton:
+            delta = event.pos() - self.drag_start
+            self.smoothed_points.translate(delta.x(), delta.y())
+            self.drag_start = event.pos()
         self.update()
 
     def mouseReleaseEvent(self, event):
         if self.rect_start is not None and self.rect_end is not None:
-            pos = event.pos()
             rect = self.get_normalized_rect()
-            if rect.contains(pos): self.drag_start = pos
             self.sam_prediction(rect)
 
     def paintEvent(self, event):
@@ -154,23 +176,28 @@ class SamLabel(QtWidgets.QLabel):
         contours, _ = cv2.findContours(largest_component, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         points = contours[0].squeeze()
         epsilon = 0.01 * cv2.arcLength(points, True)
-        smoothed_points = cv2.approxPolyDP(points, epsilon, True)
-        for point in smoothed_points.squeeze(): 
+        selected_points = cv2.approxPolyDP(points, epsilon, True)
+        for point in selected_points.squeeze(): 
             self.smoothed_points.append(QtCore.QPoint(point[0], point[1]))
             
     def sam_prediction(self, rect):
-        sam = sam_model_registry["vit_h"](checkpoint=str(MODEL_PATH / "sam_vit_h_4b8939.pth"))
-        sam.to(device="cuda")
-        predictor = SamPredictor(sam)
-        predictor.set_image(self.image_source)
-        input_box = np.array([rect.x(), rect.y(), rect.x()+rect.width(), rect.y()+rect.height()])
-        masks, _, _ = predictor.predict(
-            point_coords=None,
-            point_labels=None,
-            box=input_box[None, :],
-            multimask_output=False,
-        )
-        self.find_large_contour(masks.squeeze().astype(np.uint8))
+        if self.model is None:
+            self.model = sam_model_registry["vit_h"](checkpoint=str(MODEL_PATH / "sam_vit_h_4b8939.pth")).to(device=DEVICE)
+            self.predictor = SamPredictor(self.model)
+            self.predictor.set_image(self.image_source)
+        if rect.width() > 10 and rect.height() > 10:
+            input_box = np.array([[rect.x(), rect.y(), rect.x()+rect.width(), rect.y()+rect.height()]])
+            masks, _, _ = self.predictor.predict(
+                point_coords=None,
+                point_labels=None,
+                box=input_box,
+                multimask_output=False,
+            )
+            # masks = self.predictor.box_prompt(bboxes=input_box)
+            self.find_large_contour(masks.squeeze().astype(np.uint8))
+        # delete the bounding box
+        self.rect_start = None
+        self.rect_end = None
 
 class SamWindow(QtWidgets.QWidget):
     def __init__(self, image_source):
