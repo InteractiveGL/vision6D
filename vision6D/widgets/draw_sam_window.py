@@ -7,18 +7,15 @@
 @time: 2024-01-06 18:37
 @desc: create the window for bounding box labeling/drawing
 '''
-
-import pathlib
-
 import cv2
 import torch
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from shapely.geometry import Point, LineString
 import PIL.Image
 
 from segment_anything import SamPredictor, sam_model_registry
-from fastsam import FastSAM, FastSAMPrompt
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QLabel
