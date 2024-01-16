@@ -1,5 +1,5 @@
 {
-    "video_path": "GitHub\\ossicles_6D_pose_estimation\\data\\videos\\original\\CIP.6742.8381574350255_video.mp4",
+    "video_path": "GitHub\\ossicles_6D_pose_estimation\\data\\videos\\CIP.6742.8381574350255_video.mp4",
     "mask_path": "GitHub\\ossicles_6D_pose_estimation\\data\\raw_dataset\\points\\6742_left.npy",
     "mesh_path": ["GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6742.8381574350255_video_trim\\mesh\\processed_meshes\\6742_left_ossicles_processed.mesh",
         "GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.6742.8381574350255_video_trim\\mesh\\processed_meshes\\6742_left_facial_nerve_processed.mesh",
