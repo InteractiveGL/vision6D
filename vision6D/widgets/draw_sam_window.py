@@ -83,29 +83,28 @@ class SamLabel(QtWidgets.QLabel):
         
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_S: 
-            self.save_bbox()
+            self.save_mask()
         elif event.key() == Qt.Key_C: 
             self.label.hide()
             self.smoothed_points.clear()
             self.selected_point_index = None
             self.update()
             
-    def save_bbox(self):
-        if self.rect_start is not None and self.rect_end is not None:
-            # Define the rectangle's four corners
-            tl_x = min(self.rect_start.x(), self.rect_end.x())  # top-left x
-            tl_y = min(self.rect_start.y(), self.rect_end.y())  # top-left y
-            br_x = max(self.rect_start.x(), self.rect_end.x())  # bottom-right x
-            br_y = max(self.rect_start.y(), self.rect_end.y())  # bottom-right y
+    def save_mask(self):
+        points = []
+        for point in self.smoothed_points:
+            coord = [point.x(), point.y()]
+            points.append(coord)
 
-            # Create the points array
-            points = np.array([tl_x, tl_y, br_x, br_y])
-
-            self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Bbox Files (*.npy)")
-            if self.output_path:
-                if pathlib.Path(self.output_path).suffix == '': self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.png'))
-                np.save(self.output_path, points)
-                self.output_path_changed.emit(self.output_path)
+        points = np.array(points).astype('int32')
+        mask = np.zeros((self.pixmap.height(), self.pixmap.width()), dtype=np.uint8)
+        image = cv2.fillPoly(mask, [points], 255)
+        self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
+        if self.output_path:
+            if pathlib.Path(self.output_path).suffix == '': self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.png'))
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(self.output_path)
+            self.output_path_changed.emit(self.output_path)
 
     def get_normalized_rect(self):
         left = min(self.rect_start.x(), self.rect_end.x())
@@ -235,7 +234,6 @@ class SamLabel(QtWidgets.QLabel):
                 box=input_box,
                 multimask_output=False,
             )
-            # masks = self.predictor.box_prompt(bboxes=input_box)
             self.find_large_contour(masks.squeeze().astype(np.uint8))
         # delete the bounding box
         self.rect_start = None
