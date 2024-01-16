@@ -18,6 +18,7 @@ import numpy as np
 
 from . import Singleton
 from ..tools import utils
+from ..path import PLOT_SIZE
 
 @dataclass
 class MeshData:
@@ -36,9 +37,9 @@ class MeshData:
     undo_vertices: List[np.ndarray] = field(default_factory=list)
 
 class MeshStore(metaclass=Singleton):
-    def __init__(self, window_size):
+    def __init__(self):
         self.reference: Optional[str] = None
-        self.render = utils.create_render(window_size[0], window_size[1])
+        self.render = utils.create_render(PLOT_SIZE[0], PLOT_SIZE[1])
         self.meshes: Dict[str, MeshData] = {}
         self.color_counter = 0
         self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
@@ -70,7 +71,7 @@ class MeshStore(metaclass=Singleton):
             source_mesh = trimesh.Trimesh(mesh_source.points, mesh_source.faces.reshape((-1, 4))[:, 1:], process=False)
             source_mesh.vertices = source_mesh.vertices.reshape(-1, 3)
             source_mesh.faces = source_mesh.faces.reshape(-1, 3)
-            pv_mesh = mesh_source
+            pv_mesh = pv.wrap(source_mesh)
         
         if source_mesh is not None:
             mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", 

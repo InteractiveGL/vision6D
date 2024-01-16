@@ -28,7 +28,6 @@ from ..widgets import CustomQtInteractor
 from ..widgets import PopUpDialog
 from ..widgets import SearchBar
 
-from ..components import CameraStore
 from ..components import ImageStore
 from ..components import MaskStore
 from ..components import BboxStore
@@ -37,7 +36,6 @@ from ..components import PointStore
 from ..components import VideoStore
 from ..components import FolderStore
 
-from ..containers import CameraContainer
 from ..containers import ImageContainer
 from ..containers import MaskContainer
 from ..containers import BboxContainer
@@ -49,8 +47,7 @@ from ..containers import FolderContainer
 
 from ..tools import utils
 
-from ..path import ICON_PATH
-from ..path import PKG_ROOT
+from ..path import ICON_PATH, PKG_ROOT, PLOT_SIZE
 
 np.set_printoptions(suppress=True)
 
@@ -59,9 +56,9 @@ class MyMainWindow(MainWindow):
         QtWidgets.QMainWindow.__init__(self, parent)
         
         # Set up the main window layout
-        self.setWindowIcon(QtGui.QIcon(str(ICON_PATH / 'logo.png')))
         self.setWindowTitle("Vision6D")
-        self.window_size = (1920, 1080)
+        self.setWindowIcon(QtGui.QIcon(str(ICON_PATH / 'logo.png')))
+        # the vision6D window is maximized by default
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
         self.setAcceptDrops(True)
@@ -71,12 +68,14 @@ class MyMainWindow(MainWindow):
         self.track_actors_names = []
         self.button_group_actors_names = QtWidgets.QButtonGroup(self)
 
-        self.camera_store = CameraStore(self.window_size) # center camera at the origin in world coordinate to match with pytorch3d
+        # Create the plotter
+        self.create_plotter()
+
         self.object_distance = 100.0 # set the object distance to the camera in world coordinate
-        self.image_store = ImageStore()
+        self.image_store = ImageStore(self.plotter)
         self.mask_store = MaskStore()
         self.bbox_store = BboxStore()
-        self.mesh_store = MeshStore(self.window_size)
+        self.mesh_store = MeshStore()
         self.point_store = PointStore()
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
@@ -86,9 +85,6 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
         self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.output_text = QtWidgets.QTextEdit()
-
-        # Create the plotter
-        self.create_plotter()
 
         # Add a QLabel as an overlay hint label
         self.hintLabel = QtWidgets.QLabel(self.plotter)
@@ -125,8 +121,9 @@ class MyMainWindow(MainWindow):
         self.key_bindings()
 
     def initial_containers(self):
-        self.camera_container = CameraContainer(plotter=self.plotter)
-        self.camera_container.set_camera_props()
+
+        # set up the camera props
+        self.image_store.set_camera_props()
         
         self.image_container = ImageContainer(plotter=self.plotter, 
                                             hintLabel=self.hintLabel, 
@@ -160,7 +157,7 @@ class MyMainWindow(MainWindow):
                                             check_button=self.check_button,
                                             opacity_spinbox=self.opacity_spinbox,
                                             opacity_value_change=self.opacity_value_change,
-                                            reset_camera=self.camera_container.reset_camera,
+                                            reset_camera=self.image_store.reset_camera,
                                             toggle_register=self.toggle_register,
                                             load_mask = self.mask_container.load_mask,
                                             output_text=self.output_text)
@@ -196,9 +193,9 @@ class MyMainWindow(MainWindow):
 
     def key_bindings(self):
         # Camera related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.camera_container.reset_camera)
-        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.camera_container.zoom_out)
-        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.camera_container.zoom_in)
+        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.image_store.reset_camera)
+        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.image_store.zoom_out)
+        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.image_store.zoom_in)
         
         # Image related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.image_container.toggle_image_opacity(up))
@@ -227,6 +224,10 @@ class MyMainWindow(MainWindow):
         # Folder related key bindings 
         QtWidgets.QShortcut(QtGui.QKeySequence("a"), self).activated.connect(self.folder_container.prev_info)
         QtWidgets.QShortcut(QtGui.QKeySequence("d"), self).activated.connect(self.folder_container.next_info)
+
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+w"), self).activated.connect(self.clear_plot)
+
+        Qt.CTRL + Qt.Key_X
 
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
@@ -290,7 +291,7 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Mesh/Pose', self.mesh_container.export_mesh_pose)
         exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
         exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
-        exportMenu.addAction('Camera Info', self.camera_container.export_camera_info)
+        exportMenu.addAction('Camera Info', self.image_container.export_camera_info)
 
         # Add draw related actions
         DrawMenu = mainMenu.addMenu('Draw')
@@ -317,12 +318,12 @@ class MyMainWindow(MainWindow):
 
         # Add camera related actions
         CameraMenu = mainMenu.addMenu('Camera')
-        CameraMenu.addAction('Set Camera', self.camera_container.set_camera)
-        CameraMenu.addAction('Reset Camera (d)', self.camera_container.reset_camera)
-        CameraMenu.addAction('Zoom In (x)', self.camera_container.zoom_in)
-        CameraMenu.addAction('Zoom Out (z)', self.camera_container.zoom_out)
-        CameraMenu.addAction('Calibrate', self.camera_container.camera_calibrate)
-        
+        CameraMenu.addAction('Set Camera', self.image_container.set_camera)
+        CameraMenu.addAction('Reset Camera (c)', self.image_store.reset_camera)
+        CameraMenu.addAction('Zoom In (x)', self.image_store.zoom_in)
+        CameraMenu.addAction('Zoom Out (z)', self.image_store.zoom_out)
+        CameraMenu.addAction('Calibrate', self.image_container.camera_calibrate)
+
         # Add pose related actions
         PoseMenu = mainMenu.addMenu('Pose')
         PoseMenu.addAction('Set Pose', self.mesh_container.set_pose)
@@ -617,9 +618,9 @@ class MyMainWindow(MainWindow):
     #^ Plotter
     def create_plotter(self):
         self.frame = QtWidgets.QFrame()
-        self.frame.setFixedSize(*self.window_size)
+        self.frame.setFixedSize(*PLOT_SIZE)
         self.plotter = CustomQtInteractor(self.frame, self)
-        # self.plotter.setFixedSize(*self.window_size)
+        # self.plotter.setFixedSize(*PLOT_SIZE)
         self.signal_close.connect(self.plotter.close)
 
     def show_plot(self):
@@ -758,7 +759,7 @@ class MyMainWindow(MainWindow):
                 for path in mesh_paths: self.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*path.split("\\")))
             if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=root / pathlib.Path(*workspace['pose_path'].split("\\")))
             # reset camera
-            self.camera_container.reset_camera()
+            self.image_store.reset_camera()
 
     def add_folder(self, folder_path='', prompt=False):
         if prompt: 
@@ -777,7 +778,7 @@ class MyMainWindow(MainWindow):
                 self.anchor_button.setEnabled(False)
                 self.play_video_button.setEnabled(False)
                 self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
-                self.camera_container.reset_camera()
+                self.image_store.reset_camera()
             else:
                 self.folder_store.reset()
                 utils.display_warning("Not a valid folder, please reload a folder")
@@ -906,4 +907,4 @@ class MyMainWindow(MainWindow):
                     mesh_data.actor.user_matrix = user_matrix
 
             self.object_distance = distance
-            self.camera_container.reset_camera()
+            self.image_store.reset_camera()

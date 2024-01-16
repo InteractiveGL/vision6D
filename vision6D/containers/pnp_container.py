@@ -15,9 +15,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ..tools import utils
-from ..components import CameraStore
+from ..components import ImageStore
 from ..components import MaskStore
 from ..components import MeshStore
+from .. import path
 
 class PnPContainer:
     def __init__(self, plotter, export_mesh_render, output_text):
@@ -25,7 +26,7 @@ class PnPContainer:
         self.export_mesh_render = export_mesh_render
         self.output_text = output_text
         
-        self.camera_store = CameraStore()
+        self.image_store = ImageStore()
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
 
@@ -34,8 +35,8 @@ class PnPContainer:
         pts3d, pts2d = utils.create_2d_3d_pairs(color_mask, vertices)
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
-        camera_intrinsics = self.camera_store.camera_intrinsics.astype('float32')
-        focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+        camera_intrinsics = self.image_store.camera_intrinsics.astype('float32')
+        focal_length = (self.image_store.height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         camera_intrinsics[0, 0] = focal_length
         camera_intrinsics[1, 1] = focal_length
         predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics)
@@ -68,8 +69,8 @@ class PnPContainer:
 
         pts2d = pts2d.astype('float32')
         pts3d = pts3d.astype('float32')
-        camera_intrinsics = self.camera_store.camera_intrinsics.astype('float32')
-        focal_length = (1080 / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+        camera_intrinsics = self.image_store.camera_intrinsics.astype('float32')
+        focal_length = (self.image_store.height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         camera_intrinsics[0, 0] = focal_length
         camera_intrinsics[1, 1] = focal_length
         predicted_pose = utils.solve_epnp_cv2(pts2d, pts3d, camera_intrinsics)

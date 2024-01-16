@@ -24,7 +24,6 @@ from PyQt5 import QtWidgets
 
 from ..tools import utils
 from ..tools import exception
-from ..components import CameraStore
 from ..components import MaskStore
 from ..components import MeshStore
 from ..widgets import GetPoseDialog
@@ -63,7 +62,6 @@ class MeshContainer:
         
         self.toggle_hide_meshes_flag = False
         
-        self.camera_store = CameraStore()
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
 
@@ -133,7 +131,11 @@ class MeshContainer:
                 spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(mesh_data.spacing))
                 if ok:
                     mesh_data.spacing = exception.set_spacing(spacing)
-                    vertices = mesh_data.source_mesh.vertices * mesh_data.spacing
+                    # Calculate the centroid
+                    centroid = np.mean(mesh_data.source_mesh.vertices, axis=0)
+                    offset = mesh_data.source_mesh.vertices - centroid
+                    scaled_offset = offset * mesh_data.spacing
+                    vertices = centroid + scaled_offset
                     mesh_data.pv_mesh.points = vertices
             else: utils.display_warning("Need to select a mesh object instead")
         else: utils.display_warning("Need to select a mesh actor first")

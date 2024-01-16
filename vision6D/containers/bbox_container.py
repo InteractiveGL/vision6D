@@ -17,7 +17,6 @@ import pyvista as pv
 from PyQt5 import QtWidgets
 
 from ..tools import utils
-from ..components import CameraStore
 from ..components import ImageStore
 from ..components import BboxStore
 from ..widgets import BboxWindow
@@ -40,7 +39,6 @@ class BboxContainer:
         self.check_button = check_button
         self.output_text = output_text
 
-        self.camera_store = CameraStore()
         self.image_store = ImageStore()
         self.bbox_store = BboxStore()
 

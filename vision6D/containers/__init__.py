@@ -1,4 +1,3 @@
-from .camera_container import CameraContainer
 from .image_container import ImageContainer
 from .mask_container import MaskContainer
 from .bbox_container import BboxContainer
@@ -9,7 +8,6 @@ from .video_container import VideoContainer
 from .folder_container import FolderContainer
 
 all = [
-    'CameraContainer',
     'ImageContainer',
     'MaskContainer',
     'MeshContainer',

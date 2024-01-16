@@ -17,9 +17,8 @@ import matplotlib.colors
 
 from PyQt5 import QtWidgets
 
-from ..path import PKG_ROOT
+from ..path import PKG_ROOT, PLOT_SIZE
 from ..tools import utils, exception
-from ..components import CameraStore
 from ..components import ImageStore
 from ..components import MaskStore
 from ..widgets import MaskWindow, SamWindow, GetMaskDialog
@@ -42,7 +41,6 @@ class MaskContainer:
         self.check_button = check_button
         self.output_text = output_text
 
-        self.camera_store = CameraStore()
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
 
@@ -87,7 +85,7 @@ class MaskContainer:
         self.mask_store.mask_actor = actor
         
     def add_mask(self, mask_source):
-        mask_surface = self.mask_store.add_mask(mask_source, self.object_distance, self.plotter.main_window.window_size)
+        mask_surface = self.mask_store.add_mask(mask_source, self.object_distance, PLOT_SIZE)
         self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu
@@ -99,7 +97,7 @@ class MaskContainer:
         if self.mask_store.mask_path:
             self.mask_store.mirror_x = False
             self.mask_store.mirror_y = False
-            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.object_distance, self.plotter.main_window.window_size)
+            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.object_distance, PLOT_SIZE)
             self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):
