@@ -133,7 +133,6 @@ output/
 .vscode/
 vision6D/data/model
 vision6D/data/mesh
-test/
 
 docs/build
 
