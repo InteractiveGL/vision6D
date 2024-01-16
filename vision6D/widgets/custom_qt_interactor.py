@@ -20,12 +20,12 @@ class CustomQtInteractor(QtInteractor):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        if event.button() in (1, 4):  # Left or middle mouse button
+        if event.button() in (1, 2, 4):  # Left, right and middle mouse button
             self.press_callback(self.iren.interactor)
 
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
-        if event.button() in (1, 4):  # Left or middle mouse button
+        if event.button() in (1, 2, 4):  # Left, right and middle mouse button
             self.release_callback()
             
     def press_callback(self, obj, *args):
