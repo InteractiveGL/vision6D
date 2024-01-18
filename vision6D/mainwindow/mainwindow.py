@@ -51,6 +51,39 @@ from ..path import ICON_PATH, PKG_ROOT, PLOT_SIZE
 
 np.set_printoptions(suppress=True)
 
+class CustomButtonWidget(QtWidgets.QWidget):
+    def __init__(self, button_name, parent=None):
+        super(CustomButtonWidget, self).__init__(parent)
+
+        # Set the fixed height of the widget
+        self.setFixedHeight(50)
+
+        # Create a horizontal layout
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setSpacing(0)  # No space between button and spinbox
+        layout.setContentsMargins(0, 0, 0, 0)  # No margins inside the widget
+
+        # Create the button and add it to the layout
+        self.button = QtWidgets.QPushButton(button_name)
+        self.button.setFixedHeight(50)
+        layout.addWidget(self.button)
+
+        # Create the double spin box and add it to the layout
+        self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
+        self.opacity_spinbox.setFixedHeight(45)
+        self.opacity_spinbox.setMinimum(0.0)
+        self.opacity_spinbox.setMaximum(1.0)
+        self.opacity_spinbox.setDecimals(2)
+        self.opacity_spinbox.setSingleStep(0.05)
+        layout.addWidget(self.opacity_spinbox)
+
+        # Set the stretch factors
+        layout.setStretch(0, 20)  # Button stretch factor
+        layout.setStretch(1, 1)  # DoubleSpinBox stretch factor
+
+        # Set the layout for the widget
+        self.setLayout(layout)
+
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
@@ -414,7 +447,7 @@ class MyMainWindow(MainWindow):
 
         row, column = 0, 0
         
-        # Anchor butto
+        # Anchor button
         self.anchor_button.setCheckable(True) # Set the button to be checkable so it is highlighted, very important
         self.anchor_button.setChecked(True)
         self.anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
@@ -424,16 +457,6 @@ class MyMainWindow(MainWindow):
         self.color_button.clicked.connect(self.show_color_popup)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.color_button, row, column)
-        
-        # Opacity box
-        self.opacity_spinbox.setMinimum(0.0)
-        self.opacity_spinbox.setMaximum(1.0)
-        self.opacity_spinbox.setDecimals(2)
-        self.opacity_spinbox.setSingleStep(0.05)
-        self.opacity_spinbox.setValue(0.3)
-        self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.opacity_spinbox, row, column)
         
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
@@ -495,16 +518,16 @@ class MyMainWindow(MainWindow):
         scroll_area.setWidgetResizable(True)
         display_layout.addWidget(scroll_area)
 
-        # Create a container widget for the buttons
-        button_container = QtWidgets.QWidget()
-        self.button_layout = QtWidgets.QVBoxLayout()
-        self.button_layout.setSpacing(0)  # Remove spacing between buttons
-        button_container.setLayout(self.button_layout)
+        # Create a container widget for the custom widgets
+        custom_widget_container = QtWidgets.QWidget()
+        self.custom_widget_layout = QtWidgets.QVBoxLayout()
+        self.custom_widget_layout.setSpacing(0)  # Remove spacing between custom widgets
+        custom_widget_container.setLayout(self.custom_widget_layout)
 
-        self.button_layout.addStretch()
+        self.custom_widget_layout.addStretch()
 
         # Set the container widget as the scroll area's widget
-        scroll_area.setWidget(button_container)
+        scroll_area.setWidget(custom_widget_container)
 
         self.display.setLayout(display_layout)
         self.panel_layout.addWidget(self.display)
@@ -701,26 +724,28 @@ class MyMainWindow(MainWindow):
             self.button_actor_name_clicked(name=name, output_text=output_text)
 
     def add_button_actor_name(self, name):
-        button = QtWidgets.QPushButton(name)
-        button.setCheckable(True)  # Set the button to be checkable so it is highlighted, very important
+        button_widget = CustomButtonWidget(name)
+        # Set the opacity value to the current opacity of the specific actor
+        if name == 'image': button_widget.opacity_spinbox.setValue(self.image_store.image_opacity)
+        elif name == 'mask': button_widget.opacity_spinbox.setValue(self.mask_store.mask_opacity)
+        elif name in self.mesh_store.meshes: button_widget.opacity_spinbox.setValue(self.mesh_store.meshes[name].opacity)
+        button_widget.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.opacity_value_change(value, name))
+        button = button_widget.button
+        button.setCheckable(True) # Set the button to be checkable
         button.clicked.connect(lambda _, name=name: self.button_actor_name_clicked(name))
         button.setChecked(True)
-        button.setFixedSize(self.display.size().width(), 50)
-        self.button_layout.insertWidget(0, button) # insert from the top # self.button_layout.addWidget(button)
+        self.custom_widget_layout.insertWidget(0, button_widget)
         self.button_group_actors_names.addButton(button)
         self.button_actor_name_clicked(name=name)
     
-    def opacity_value_change(self, value):
-        checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button:
-            name = checked_button.text()
-            if name == 'image': self.image_container.set_image_opacity(value)
-            elif name == 'mask': self.mask_container.set_mask_opacity(value)
-            elif name in self.mesh_store.meshes:
-                mesh_data = self.mesh_store.meshes[name]
-                mesh_data.opacity = value
-                mesh_data.previous_opacity = value
-                self.mesh_container.set_mesh_opacity(name, mesh_data.opacity)
+    def opacity_value_change(self, value, name):
+        if name == 'image': self.image_container.set_image_opacity(value)
+        elif name == 'mask': self.mask_container.set_mask_opacity(value)
+        elif name in self.mesh_store.meshes:
+            mesh_data = self.mesh_store.meshes[name]
+            mesh_data.opacity = value
+            mesh_data.previous_opacity = value
+            self.mesh_container.set_mesh_opacity(name, mesh_data.opacity)
     
     def update_color_button_text(self, text, popup):
         self.color_button.setText(text)
@@ -831,8 +856,8 @@ class MyMainWindow(MainWindow):
         self.track_actors_names.remove(name)
         # remove the button from the button group
         self.button_group_actors_names.removeButton(button)
-        # remove the button from the self.button_layout widget
-        self.button_layout.removeWidget(button)
+        # remove the button from the custom button widget
+        self.remove_custom_button_widget(button)
         # offically delete the button
         button.deleteLater()
 
@@ -875,8 +900,7 @@ class MyMainWindow(MainWindow):
             self.plotter.remove_actor(actor)
             # remove the button from the button group
             self.button_group_actors_names.removeButton(button)
-            # remove the button from the self.button_layout widget
-            self.button_layout.removeWidget(button)
+            self.remove_custom_button_widget(button)
             # offically delete the button
             button.deleteLater()
 
@@ -897,6 +921,21 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox.setValue(0.3)
         
         self.hintLabel.show()
+
+    def remove_custom_button_widget(self, button):
+        for i in range(self.custom_widget_layout.count()): 
+            widget = self.custom_widget_layout.itemAt(i).widget()
+            if widget is not None and hasattr(widget, 'button') and widget.button == button:
+                self.custom_widget_layout.removeWidget(widget)
+                widget.deleteLater()
+                if i <= self.custom_widget_layout.count() and self.custom_widget_layout.count() > 1:
+                    if i == self.custom_widget_layout.count()-1:
+                        next_widget = self.custom_widget_layout.itemAt(i-1).widget()
+                    else:
+                        next_widget = self.custom_widget_layout.itemAt(i).widget()
+                    if next_widget is not None and hasattr(next_widget, 'button'):
+                        next_widget.button.setChecked(True)
+                break
 
     def set_object_distance(self):
         distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.object_distance))
