@@ -227,8 +227,6 @@ class MyMainWindow(MainWindow):
 
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+w"), self).activated.connect(self.clear_plot)
 
-        Qt.CTRL + Qt.Key_X
-
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
 
