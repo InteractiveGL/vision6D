@@ -292,15 +292,6 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
         exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
         exportMenu.addAction('Camera Info', self.image_container.export_camera_info)
-
-        # Add draw related actions
-        DrawMenu = mainMenu.addMenu('Draw')
-        DrawMenu.addAction('Live Wire', self.mask_container.draw_mask)
-        DrawMenu.addAction('SAM', functools.partial(self.mask_container.draw_mask, sam=True))
-        DrawMenu.addAction('BBox', self.bbox_container.draw_bbox)
-        # DrawMenu.addAction('Points', self.point_container.draw_point)
-        DrawMenu.addAction('Reset Mask (t)', self.mask_container.reset_mask)
-        DrawMenu.addAction('Reset Bbox (f)', self.bbox_container.reset_bbox)
         
         # Add video related actions
         VideoMenu = mainMenu.addMenu('Video')
@@ -336,6 +327,38 @@ class MyMainWindow(MainWindow):
         PnPMenu.addAction('EPnP with mesh', self.pnp_container.epnp_mesh)
         PnPMenu.addAction('EPnP with nocs mask', functools.partial(self.pnp_container.epnp_mask, True))
         PnPMenu.addAction('EPnP with latlon mask', functools.partial(self.pnp_container.epnp_mask, False))
+
+    # create draw menu when right click on the image
+    def draw_menu(self, event):
+        context_menu = QtWidgets.QMenu(self)
+
+        set_mask = QtWidgets.QAction('Set Mask', self)
+        set_mask.triggered.connect(self.mask_container.set_mask)
+
+        draw_mask_menu = QtWidgets.QMenu('Draw Mask', self)  # Create a submenu for 'Draw Mask'
+        live_wire = QtWidgets.QAction('Live Wire', self)
+        live_wire.triggered.connect(self.mask_container.draw_mask)  # Connect to a slot
+        sam = QtWidgets.QAction('SAM', self)
+        sam.triggered.connect(functools.partial(self.mask_container.draw_mask, sam=True))  # Connect to another slot
+        
+        draw_bbox = QtWidgets.QAction('Draw BBox', self)
+        draw_bbox.triggered.connect(self.bbox_container.draw_bbox)
+        draw_mask_menu.addAction(live_wire)
+        draw_mask_menu.addAction(sam)
+
+        reset_mask = QtWidgets.QAction('Reset Mask (t)', self)
+        reset_mask.triggered.connect(self.mask_container.reset_mask)
+        reset_bbox = QtWidgets.QAction('Reset Bbox (f)', self)
+        reset_bbox.triggered.connect(self.bbox_container.reset_bbox)
+        
+        context_menu.addAction(set_mask)
+        context_menu.addMenu(draw_mask_menu)
+        context_menu.addAction(draw_bbox)
+        context_menu.addAction(reset_mask)
+        context_menu.addAction(reset_bbox)
+
+        # Popup the menu
+        context_menu.popup(QtGui.QCursor.pos())
 
     # ^Panel
     def set_panel_bar(self):
@@ -413,12 +436,6 @@ class MyMainWindow(MainWindow):
         self.opacity_spinbox.valueChanged.connect(self.opacity_value_change)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.opacity_spinbox, row, column)
-
-        # Set the mask
-        set_mask_button = QtWidgets.QPushButton("Set Mask")
-        set_mask_button.clicked.connect(self.mask_container.set_mask)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(set_mask_button, row, column)
         
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
