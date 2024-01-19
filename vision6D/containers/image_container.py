@@ -25,8 +25,7 @@ class ImageContainer:
                 hintLabel,
                 object_distance,
                 track_actors_names, 
-                add_button_actor_name, 
-                check_button,
+                add_button_actor_name,
                 output_text):
           
         self.plotter = plotter
@@ -34,7 +33,6 @@ class ImageContainer:
         self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
-        self.check_button = check_button
         self.output_text = output_text
 
         self.image_store = ImageStore()
@@ -114,12 +112,6 @@ class ImageContainer:
     def set_image_opacity(self, image_opacity: float):
         self.image_store.image_opacity = image_opacity
         self.image_store.image_actor.GetProperty().opacity = image_opacity
-
-    def toggle_image_opacity(self, up):
-        change = 0.05
-        if not up: change *= -1
-        self.image_store.update_opacity(change)
-        self.check_button(name='image')
 
     def export_image(self):
         if self.image_store.image_actor:

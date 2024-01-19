@@ -29,8 +29,7 @@ class MaskContainer:
                 hintLabel,
                 object_distance,
                 track_actors_names, 
-                add_button_actor_name, 
-                check_button,
+                add_button_actor_name,
                 output_text):
 
         self.plotter = plotter
@@ -38,7 +37,6 @@ class MaskContainer:
         self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
-        self.check_button = check_button
         self.output_text = output_text
 
         self.image_store = ImageStore()
@@ -107,12 +105,6 @@ class MaskContainer:
     def set_mask_color(self, color):
         self.mask_store.mask_actor.GetMapper().SetScalarVisibility(0)
         self.mask_store.mask_actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
-    
-    def toggle_mask_opacity(self, up):
-        change = 0.05
-        if not up: change *= -1
-        self.mask_store.update_opacity(change)
-        self.check_button(name='mask')
     
     def draw_mask(self, sam=False):
         def handle_output_path_change(output_path):

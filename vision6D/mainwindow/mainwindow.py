@@ -21,7 +21,7 @@ import numpy as np
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
 from pyvistaqt import MainWindow
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 
 # self defined package import
 from ..widgets import CustomQtInteractor
@@ -52,37 +52,64 @@ from ..path import ICON_PATH, PKG_ROOT, PLOT_SIZE
 np.set_printoptions(suppress=True)
 
 class CustomButtonWidget(QtWidgets.QWidget):
+    colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, parent=None):
         super(CustomButtonWidget, self).__init__(parent)
-
-        # Set the fixed height of the widget
         self.setFixedHeight(50)
-
-        # Create a horizontal layout
         layout = QtWidgets.QHBoxLayout(self)
-        layout.setSpacing(0)  # No space between button and spinbox
-        layout.setContentsMargins(0, 0, 0, 0)  # No margins inside the widget
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         # Create the button and add it to the layout
         self.button = QtWidgets.QPushButton(button_name)
         self.button.setFixedHeight(50)
         layout.addWidget(self.button)
 
+        # Create the square button and add it to the layout
+        self.square_button = QtWidgets.QPushButton()
+        self.square_button.setFixedSize(50, 50)  # Making the button square
+        self.square_button.clicked.connect(self.show_color_popup)
+        layout.addWidget(self.square_button)
+
         # Create the double spin box and add it to the layout
-        self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
-        self.opacity_spinbox.setFixedHeight(45)
-        self.opacity_spinbox.setMinimum(0.0)
-        self.opacity_spinbox.setMaximum(1.0)
-        self.opacity_spinbox.setDecimals(2)
-        self.opacity_spinbox.setSingleStep(0.05)
-        layout.addWidget(self.opacity_spinbox)
+        self.double_spinbox = QtWidgets.QDoubleSpinBox()
+        self.double_spinbox.setFixedHeight(45)
+        self.double_spinbox.setMinimum(0.0)
+        self.double_spinbox.setMaximum(1.0)
+        self.double_spinbox.setDecimals(2)
+        self.double_spinbox.setSingleStep(0.05)
+        layout.addWidget(self.double_spinbox)
 
         # Set the stretch factors
-        layout.setStretch(0, 20)  # Button stretch factor
-        layout.setStretch(1, 1)  # DoubleSpinBox stretch factor
+        layout.setStretch(0, 20)  # Main Button stretch factor
+        layout.setStretch(1, 1)   # Square Button stretch factor
+        layout.setStretch(2, 1)   # SpinBox stretch factor
 
         # Set the layout for the widget
         self.setLayout(layout)
+
+    def update_square_button_color(self, text, popup):
+        self.square_button.setObjectName(text)
+        if text == 'nocs' or text == 'latlon':
+            gradient_str = """
+            background-color: qlineargradient(
+                spread:pad, x1:0, y1:0, x2:1, y2:1,
+                stop:0 red, stop:0.17 orange, stop:0.33 yellow,
+                stop:0.5 green, stop:0.67 blue, stop:0.83 indigo, stop:1 violet);
+            """
+            self.square_button.setStyleSheet(gradient_str)
+        else:
+            self.square_button.setStyleSheet(f"background-color: {text}")
+        self.colorChanged.emit(text, self.button.text()) # the order is important (color, name)
+        popup.close() # automatically close the popup window
+
+    def show_color_popup(self):
+        button_name = self.button.text()
+        if button_name != 'image':
+            popup = PopUpDialog(self, on_button_click=lambda text: self.update_square_button_color(text, popup))
+            button_position = self.square_button.mapToGlobal(QPoint(0, 0))
+            popup.move(button_position + QPoint(self.square_button.width(), 0))
+            popup.exec_()
 
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
@@ -114,8 +141,6 @@ class MyMainWindow(MainWindow):
         self.folder_store = FolderStore()
 
         self.anchor_button = QtWidgets.QPushButton("Anchor")
-        self.color_button = QtWidgets.QPushButton("Color")
-        self.opacity_spinbox = QtWidgets.QDoubleSpinBox()
         self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.output_text = QtWidgets.QTextEdit()
 
@@ -162,16 +187,14 @@ class MyMainWindow(MainWindow):
                                             hintLabel=self.hintLabel, 
                                             object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names, 
-                                            add_button_actor_name=self.add_button_actor_name, 
-                                            check_button=self.check_button,
+                                            add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
         
         self.mask_container = MaskContainer(plotter=self.plotter,
                                             hintLabel=self.hintLabel, 
                                             object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names, 
-                                            add_button_actor_name=self.add_button_actor_name, 
-                                            check_button=self.check_button, 
+                                            add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
         
         self.point_container = PointContainer(plotter=self.plotter,
@@ -181,15 +204,12 @@ class MyMainWindow(MainWindow):
                                             output_text=self.output_text,
                                             )
         
-        self.mesh_container = MeshContainer(color_button=self.color_button,
-                                            plotter=self.plotter,
+        self.mesh_container = MeshContainer(plotter=self.plotter,
                                             hintLabel=self.hintLabel,
                                             track_actors_names=self.track_actors_names,
                                             add_button_actor_name=self.add_button_actor_name,
                                             button_group_actors_names=self.button_group_actors_names,
                                             check_button=self.check_button,
-                                            opacity_spinbox=self.opacity_spinbox,
-                                            opacity_value_change=self.opacity_value_change,
                                             reset_camera=self.image_store.reset_camera,
                                             toggle_register=self.toggle_register,
                                             load_mask = self.mask_container.load_mask,
@@ -220,8 +240,7 @@ class MyMainWindow(MainWindow):
                                             hintLabel=self.hintLabel, 
                                             object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names, 
-                                            add_button_actor_name=self.add_button_actor_name, 
-                                            check_button=self.check_button, 
+                                            add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
 
     def key_bindings(self):
@@ -229,15 +248,9 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.image_store.reset_camera)
         QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.image_store.zoom_out)
         QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.image_store.zoom_in)
-        
-        # Image related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("b"), self).activated.connect(lambda up=True: self.image_container.toggle_image_opacity(up))
-        QtWidgets.QShortcut(QtGui.QKeySequence("n"), self).activated.connect(lambda up=False: self.image_container.toggle_image_opacity(up))
 
         # Mask related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.mask_container.reset_mask)
-        QtWidgets.QShortcut(QtGui.QKeySequence("g"), self).activated.connect(lambda up=True: self.mask_container.toggle_mask_opacity(up))
-        QtWidgets.QShortcut(QtGui.QKeySequence("h"), self).activated.connect(lambda up=False: self.mask_container.toggle_mask_opacity(up))
 
         # Bbox related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.bbox_container.reset_bbox)
@@ -363,6 +376,9 @@ class MyMainWindow(MainWindow):
     def draw_menu(self, event):
         context_menu = QtWidgets.QMenu(self)
 
+        set_distance = QtWidgets.QAction('Set Distance', self)
+        set_distance.triggered.connect(self.set_object_distance)
+
         set_mask = QtWidgets.QAction('Set Mask', self)
         set_mask.triggered.connect(self.mask_container.set_mask)
 
@@ -382,6 +398,7 @@ class MyMainWindow(MainWindow):
         reset_bbox = QtWidgets.QAction('Reset Bbox (f)', self)
         reset_bbox.triggered.connect(self.bbox_container.reset_bbox)
         
+        context_menu.addAction(set_distance)
         context_menu.addAction(set_mask)
         context_menu.addMenu(draw_mask_menu)
         context_menu.addAction(draw_bbox)
@@ -453,21 +470,11 @@ class MyMainWindow(MainWindow):
         self.anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
         top_grid_layout.addWidget(self.anchor_button, row, column)
         
-        # Color button
-        self.color_button.clicked.connect(self.show_color_popup)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.color_button, row, column)
-        
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
         actor_pose_button.clicked.connect(self.mesh_container.set_pose)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(actor_pose_button, row, column)
-
-        set_distance_button = QtWidgets.QPushButton("Set Distance")
-        set_distance_button.clicked.connect(self.set_object_distance)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(set_distance_button, row, column)
 
         # Create the spacing button
         self.spacing_button = QtWidgets.QPushButton("Spacing")
@@ -693,16 +700,18 @@ class MyMainWindow(MainWindow):
                 mesh_data.pv_mesh.points = vertices
                 mesh_data.actor.user_matrix = np.eye(4)
                 mesh_data.initial_pose = np.eye(4) # if meshes are not anchored, then there the initial pose will always be np.eye(4)
+
+    def check_button(self, name, output_text=True):  
+        button = next((btn for btn in self.button_group_actors_names.buttons() if btn.text() == name), None)
+        if button:
+            button.setChecked(True)
+            self.button_actor_name_clicked(name=name, output_text=output_text)
                 
     def button_actor_name_clicked(self, name, output_text=True):
         if name in self.mesh_store.meshes:
             self.mesh_store.reference = name
             mesh_data = self.mesh_store.meshes[name]
-            curr_opacity = mesh_data.actor.GetProperty().opacity
-            self.opacity_spinbox.setValue(curr_opacity)
             self.toggle_anchor(mesh_data.actor.user_matrix)
-            self.color_button.setText(mesh_data.color)
-            self.mesh_container.set_color(mesh_data.color, name)
             text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
             mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
             mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
@@ -710,27 +719,37 @@ class MyMainWindow(MainWindow):
             mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
             if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
         else:
-            self.color_button.setText("Color")
-            if name == 'image': curr_opacity = self.image_store.image_opacity
-            elif name == 'mask': curr_opacity = self.mask_store.mask_opacity
-            else: curr_opacity = self.opacity_spinbox.value()
             self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
-            self.opacity_spinbox.setValue(curr_opacity)
-            
-    def check_button(self, name, output_text=True):  
-        button = next((btn for btn in self.button_group_actors_names.buttons() if btn.text() == name), None)
-        if button:
-            button.setChecked(True)
-            self.button_actor_name_clicked(name=name, output_text=output_text)
 
     def add_button_actor_name(self, name):
         button_widget = CustomButtonWidget(name)
-        # Set the opacity value to the current opacity of the specific actor
-        if name == 'image': button_widget.opacity_spinbox.setValue(self.image_store.image_opacity)
-        elif name == 'mask': button_widget.opacity_spinbox.setValue(self.mask_store.mask_opacity)
-        elif name in self.mesh_store.meshes: button_widget.opacity_spinbox.setValue(self.mesh_store.meshes[name].opacity)
-        button_widget.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.opacity_value_change(value, name))
+        # create the color button for each instance, and connect the button to the colorChanged signal
+        button_widget.colorChanged.connect(lambda color, name=name: self.color_value_change(color, name))
         button = button_widget.button
+
+        if name == 'image': 
+            self.image_store.opacity_spinbox = button_widget.double_spinbox
+            self.image_store.opacity_spinbox.setValue(self.image_store.image_opacity)
+            self.image_store.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.opacity_value_change(value, name))
+        elif name == 'mask': 
+            self.mask_store.opacity_spinbox = button_widget.double_spinbox
+            self.mask_store.opacity_spinbox.setValue(self.mask_store.mask_opacity)
+            self.mask_store.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.opacity_value_change(value, name))
+            self.mask_store.color_button = button_widget.square_button
+            self.mask_store.color_button.setStyleSheet(f"background-color: {self.mask_store.color}")
+        elif name == 'bbox':
+            self.bbox_store.opacity_spinbox = button_widget.double_spinbox
+            self.bbox_store.opacity_spinbox.setValue(self.bbox_store.bbox_opacity)
+            self.bbox_store.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.opacity_value_change(value, name))
+            self.bbox_store.color_button = button_widget.square_button
+            self.bbox_store.color_button.setStyleSheet(f"background-color: {self.bbox_store.color}")
+        elif name in self.mesh_store.meshes: 
+            self.mesh_store.meshes[name].opacity_spinbox = button_widget.double_spinbox
+            self.mesh_store.meshes[name].opacity_spinbox.setValue(self.mesh_store.meshes[name].opacity)
+            self.mesh_store.meshes[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.opacity_value_change(value, name))
+            self.mesh_store.meshes[name].color_button = button_widget.square_button
+            self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
+
         button.setCheckable(True) # Set the button to be checkable
         button.clicked.connect(lambda _, name=name: self.button_actor_name_clicked(name))
         button.setChecked(True)
@@ -741,40 +760,36 @@ class MyMainWindow(MainWindow):
     def opacity_value_change(self, value, name):
         if name == 'image': self.image_container.set_image_opacity(value)
         elif name == 'mask': self.mask_container.set_mask_opacity(value)
+        elif name == 'bbox': self.bbox_container.set_bbox_opacity(value)
         elif name in self.mesh_store.meshes:
             mesh_data = self.mesh_store.meshes[name]
             mesh_data.opacity = value
             mesh_data.previous_opacity = value
             self.mesh_container.set_mesh_opacity(name, mesh_data.opacity)
-    
-    def update_color_button_text(self, text, popup):
-        self.color_button.setText(text)
-        popup.close() # automatically close the popup window
 
-    def show_color_popup(self):
-        checked_button = self.button_group_actors_names.checkedButton()
-        if checked_button:
-            name = checked_button.text()
-            if name in self.mesh_store.meshes:
-                popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup), for_mesh=True)
-                button_position = self.color_button.mapToGlobal(QPoint(0, 0))
-                popup.move(button_position + QPoint(self.color_button.width(), 0))
-                popup.exec_()
-                color = self.color_button.text()
-                self.mesh_store.meshes[name].color = color
-                try: self.mesh_container.set_color(color, name)
-                except ValueError: utils.display_warning(f"Cannot set color ({color}) to {name}")
-            elif name == 'mask':
-                popup = PopUpDialog(self, on_button_click=lambda text: self.update_color_button_text(text, popup), for_mesh=False)
-                button_position = self.color_button.mapToGlobal(QPoint(0, 0))
-                popup.move(button_position + QPoint(self.color_button.width(), 0))
-                popup.exec_()
-                color = self.color_button.text()
-                self.mask_store.color = color
+    def color_value_change(self, color, name):
+        if name == 'mask': 
+            try:
                 self.mask_container.set_mask_color(color)
-            else: utils.display_warning("Only be able to color mesh or mask objects")
-        else: utils.display_warning("Need to select an actor first")
- 
+                self.mask_store.color = color
+            except ValueError: 
+                utils.display_warning(f"Cannot set color ({color}) to mask")
+                self.mask_store.color_button.setStyleSheet(f"background-color: {self.mask_store.color}")
+        elif name == 'bbox':
+            try:
+                self.bbox_container.set_bbox_color(color)
+                self.bbox_store.color = color
+            except ValueError: 
+                utils.display_warning(f"Cannot set color ({color}) to bbox")
+                self.bbox_store.color_button.setStyleSheet(f"background-color: {self.bbox_store.color}")
+        elif name in self.mesh_store.meshes:
+            try:
+                self.mesh_container.set_color(color, name)
+                self.mesh_store.meshes[name].color = color
+            except ValueError:
+                utils.display_warning(f"Cannot set color ({color}) to {name}")
+                self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
+    
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
         
@@ -847,7 +862,6 @@ class MyMainWindow(MainWindow):
         elif name in self.mesh_store.meshes: 
             actor = self.mesh_store.meshes[name].actor
             self.mesh_store.remove_mesh(name)
-            self.color_button.setText("Color")
         elif name in self.point_store.point_actors:
             actor = self.point_store.point_actors[name]
             self.point_store.remove_point(name)
@@ -892,7 +906,6 @@ class MyMainWindow(MainWindow):
             elif name in self.mesh_store.meshes: 
                 actor = self.mesh_store.meshes[name].actor
                 self.mesh_store.remove_mesh(name)
-                self.color_button.setText("Color")
             elif name in self.point_store.point_actors:
                 actor = self.point_store.point_actors[name]
                 self.point_store.remove_point(name)
@@ -912,13 +925,11 @@ class MyMainWindow(MainWindow):
         self.track_actors_names.clear()
         self.reset_output_text()
 
-        self.color_button.setText("Color")
         self.anchor_button.setCheckable(True)
         self.anchor_button.setChecked(True)
         self.anchor_button.setEnabled(True)
         self.play_video_button.setEnabled(True)
         self.play_video_button.setText("Play Video")
-        self.opacity_spinbox.setValue(0.3)
         
         self.hintLabel.show()
 

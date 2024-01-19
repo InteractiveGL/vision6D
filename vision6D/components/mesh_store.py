@@ -26,6 +26,8 @@ class MeshData:
     source_mesh: trimesh.Trimesh
     pv_mesh: pv.PolyData
     actor: pv.Actor
+    opacity_spinbox: Optional[str]
+    color_button: Optional[str]
     color: str
     spacing: List[float] = field(default_factory=[1, 1, 1])
     mirror_x: bool = False
@@ -42,7 +44,8 @@ class MeshStore(metaclass=Singleton):
         self.render = utils.create_render(PLOT_SIZE[0], PLOT_SIZE[1])
         self.meshes: Dict[str, MeshData] = {}
         self.color_counter = 0
-        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "darkorange", "darkgrey"]
+        self.color_button = None
+        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "white", "black"]
         self.latlon = utils.load_latitude_longitude()
         self.toggle_anchor_mesh = True
 
@@ -77,8 +80,10 @@ class MeshStore(metaclass=Singleton):
             mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", 
                                 source_mesh=source_mesh, 
                                 pv_mesh=pv_mesh,
+                                color_button=None,
                                 actor=None,
                                 color=self.colors[self.color_counter],
+                                opacity_spinbox=None,
                                 spacing=[1, 1, 1])
             
             self.meshes[mesh_data.name] = mesh_data

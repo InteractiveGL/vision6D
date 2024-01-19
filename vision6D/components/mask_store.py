@@ -26,10 +26,12 @@ class MaskStore(metaclass=Singleton):
 
     def reset(self):
         self.color = "white"
+        self.color_button = None
         self.mask_path = None
         self.mask_pv = None
         self.mask_actor = None
         self.mask_opacity = 0.2
+        self.opacity_spinbox = None
     
     def add_mask(self, mask_source, object_distance, size):
         w, h = size[0], size[1]
@@ -66,11 +68,6 @@ class MaskStore(metaclass=Singleton):
         self.mask_pv = pv.PolyData(points, cells).triangulate()
         self.mask_pv = self.mask_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to points += np.array([0, 0, object_distance])
         return self.mask_pv
-
-    def update_opacity(self, delta):
-        self.mask_opacity += delta
-        self.mask_opacity = np.clip(self.mask_opacity, 0, 1)
-        self.mask_actor.GetProperty().opacity = self.mask_opacity
 
     def update_mask(self):
         tranformed_points = utils.get_mask_actor_points(self.mask_actor)

@@ -31,30 +31,24 @@ from ..widgets import GetPoseDialog
 from ..path import PKG_ROOT
 
 class MeshContainer:
-    def __init__(self, 
-                color_button, 
+    def __init__(self,
                 plotter, 
                 hintLabel, 
                 track_actors_names, 
                 add_button_actor_name, 
                 button_group_actors_names,
                 check_button,
-                opacity_spinbox, 
-                opacity_value_change,
                 reset_camera,
                 toggle_register,
                 load_mask,
                 output_text):
 
-        self.color_button = color_button
         self.plotter = plotter
         self.hintLabel = hintLabel
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.button_group_actors_names = button_group_actors_names
         self.check_button = check_button
-        self.opacity_spinbox = opacity_spinbox
-        self.opacity_value_change = opacity_value_change
         self.reset_camera = reset_camera
         self.toggle_register = toggle_register
         self.load_mask = load_mask
@@ -109,7 +103,6 @@ class MeshContainer:
         mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_data.name)
         mesh_data.actor = actor
-        self.color_button.setText(mesh_data.color)
 
         # add remove current mesh to removeMenu
         if mesh_data.name not in self.track_actors_names:
@@ -175,13 +168,14 @@ class MeshContainer:
     def toggle_surface_opacity(self, up):
         checked_button = self.button_group_actors_names.checkedButton()
         if checked_button:
-            if checked_button.text() in self.mesh_store.meshes: 
+            name = checked_button.text()
+            if name in self.mesh_store.meshes: 
                 change = 0.05
                 if not up: change *= -1
-                current_opacity = self.opacity_spinbox.value()
+                current_opacity = self.mesh_store.meshes[name].opacity_spinbox.value()
                 current_opacity += change
                 current_opacity = np.clip(current_opacity, 0, 1)
-                self.opacity_spinbox.setValue(current_opacity)
+                self.mesh_store.meshes[name].opacity_spinbox.setValue(current_opacity)
                 
     def handle_hide_meshes_opacity(self, flag):
         checked_button = self.button_group_actors_names.checkedButton()

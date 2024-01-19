@@ -41,6 +41,7 @@ class ImageStore(metaclass=Singleton):
         self.image_pv = None
         self.image_actor = None
         self.image_opacity = 0.8
+        self.opacity_spinbox = None
         self.width = None
         self.height = None
 
@@ -128,11 +129,6 @@ class ImageStore(metaclass=Singleton):
         self.image_pv.translate(np.array([0, 0, object_distance]), inplace=True) # move the image to the camera distance
         
         return self.image_pv, image_source, channel
-    
-    def update_opacity(self, delta):
-        self.image_opacity += delta
-        self.image_opacity = np.clip(self.image_opacity, 0, 1)
-        self.image_actor.GetProperty().opacity = self.image_opacity
         
     def render_image(self, camera):
         self.render.clear()

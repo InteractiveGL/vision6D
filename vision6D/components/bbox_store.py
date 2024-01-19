@@ -8,16 +8,12 @@
 @desc: create store for bbox related functions
 '''
 
-import pathlib
-
-import cv2
 import vtk
-import PIL.Image
+import pathlib
 import numpy as np
 import pyvista as pv
 
 from . import Singleton
-from ..tools import utils
 
 class BboxStore(metaclass=Singleton):
     def __init__(self):
@@ -26,10 +22,13 @@ class BboxStore(metaclass=Singleton):
         self.mirror_y = False
 
     def reset(self):
+        self.color = "dodgerblue"
+        self.color_button = None
         self.bbox_path = None
         self.bbox_pv = None
         self.bbox_actor = None
         self.bbox_opacity = 0.5
+        self.opacity_spinbox = None
 
     def add_bbox(self, bbox_source, width, height, object_distance):
         # default is '.npy' file

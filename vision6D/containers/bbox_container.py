@@ -11,6 +11,7 @@
 import pathlib
 
 import vtk
+import matplotlib
 import numpy as np
 import pyvista as pv
 
@@ -28,7 +29,6 @@ class BboxContainer:
                 object_distance,
                 track_actors_names, 
                 add_button_actor_name, 
-                check_button,
                 output_text):
 
         self.plotter = plotter
@@ -36,7 +36,6 @@ class BboxContainer:
         self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
-        self.check_button = check_button
         self.output_text = output_text
 
         self.image_store = ImageStore()
@@ -51,7 +50,7 @@ class BboxContainer:
         if bbox_path:
             self.hintLabel.hide()
             self.add_bbox(bbox_path)
-
+    
     def mirror_bbox(self, direction):
         if direction == 'x': self.bbox_store.mirror_x = not self.bbox_store.mirror_x
         elif direction == 'y': self.bbox_store.mirror_y = not self.bbox_store.mirror_y
@@ -59,7 +58,7 @@ class BboxContainer:
 
     def load_bbox(self, bbox):
         # Add bbox surface object to the plot
-        bbox_mesh = self.plotter.add_mesh(bbox, color="yellow", opacity=self.bbox_store.bbox_opacity, line_width=2)
+        bbox_mesh = self.plotter.add_mesh(bbox, color=self.bbox_store.color, opacity=self.bbox_store.bbox_opacity, line_width=2)
         actor, _ = self.plotter.add_actor(bbox_mesh, pickable=True, name='bbox')
         self.bbox_store.bbox_actor = actor
                 
@@ -84,6 +83,14 @@ class BboxContainer:
             self.bbox_window = BboxWindow(image)
             self.bbox_window.bbox_label.output_path_changed.connect(handle_output_path_change)
         else: utils.display_warning("Need to load an image first!")
+
+    def set_bbox_color(self, color):
+        self.bbox_store.bbox_actor.GetMapper().SetScalarVisibility(0)
+        self.bbox_store.bbox_actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
+
+    def set_bbox_opacity(self, bbox_opacity: float):
+        self.bbox_store.bbox_opacity = bbox_opacity
+        self.bbox_store.bbox_actor.GetProperty().opacity = bbox_opacity
         
     def reset_bbox(self):
         if self.bbox_store.bbox_path:
