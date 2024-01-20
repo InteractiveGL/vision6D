@@ -51,25 +51,42 @@ from ..path import ICON_PATH, PKG_ROOT, PLOT_SIZE
 
 np.set_printoptions(suppress=True)
 
+class SquareButton(QtWidgets.QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def resizeEvent(self, event):
+        self.setFixedSize(25, 25)
+
 class CustomButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, parent=None):
         super(CustomButtonWidget, self).__init__(parent)
         self.setFixedHeight(50)
+
+        # Main layout for the widget
         layout = QtWidgets.QHBoxLayout(self)
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Create the button and add it to the layout
+        # Container widget for the buttons
+        button_container = QtWidgets.QWidget()
+        button_layout = QtWidgets.QGridLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 10, 0)
+        button_layout.setSpacing(0)
+
+        # Create the main button
         self.button = QtWidgets.QPushButton(button_name)
         self.button.setFixedHeight(50)
-        layout.addWidget(self.button)
+        button_layout.addWidget(self.button, 0, 0, 1, 1)
 
-        # Create the square button and add it to the layout
-        self.square_button = QtWidgets.QPushButton()
-        self.square_button.setFixedSize(50, 50)  # Making the button square
+        # Create the square button
+        self.square_button = SquareButton()
         self.square_button.clicked.connect(self.show_color_popup)
-        layout.addWidget(self.square_button)
+        button_layout.addWidget(self.square_button, 0, 0, 0, 0, Qt.AlignRight | Qt.AlignVCenter)
+
+        # Add the button container to the main layout
+        layout.addWidget(button_container)
 
         # Create the double spin box and add it to the layout
         self.double_spinbox = QtWidgets.QDoubleSpinBox()
