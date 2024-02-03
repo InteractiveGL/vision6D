@@ -9,12 +9,13 @@
 '''
 
 import sys
+import platform
 import os
 import pathlib
 from qtpy import QtWidgets
 
 from .. import MyMainWindow
-os.environ["QT_QPA_PLATFORM"] = "windows:fontengine=freetype"
+if platform.system() == "Windows": os.environ["QT_QPA_PLATFORM"] = "windows:fontengine=freetype"
 
 CWD = pathlib.Path(os.path.abspath(__file__)).parent
 
