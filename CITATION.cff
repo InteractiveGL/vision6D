@@ -6,13 +6,14 @@ title: Vision6D
 message: >-
   If you use this software, please cite it using the
   metadata from this file.
-type: software
+type: article
 authors:
   - given-names: Yike
     family-names: Zhang
     email: yike.zhang@vanderbilt.edu
     affiliation: Vanderbilt
     orcid: 'https://orcid.org/0000-0003-3503-2996'
+    year: 2023
 repository-code: 'https://github.com/ykzzyk/vision6D'
 keywords:
   - '6D pose estimation, Pose annotation tool'
