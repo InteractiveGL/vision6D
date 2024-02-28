@@ -402,13 +402,13 @@ class MyMainWindow(MainWindow):
         draw_mask_menu = QtWidgets.QMenu('Draw Mask', self)  # Create a submenu for 'Draw Mask'
         live_wire = QtWidgets.QAction('Live Wire', self)
         live_wire.triggered.connect(self.mask_container.draw_mask)  # Connect to a slot
-        sam = QtWidgets.QAction('SAM', self)
-        sam.triggered.connect(functools.partial(self.mask_container.draw_mask, sam=True))  # Connect to another slot
+        # sam = QtWidgets.QAction('SAM', self)
+        # sam.triggered.connect(functools.partial(self.mask_container.draw_mask, sam=True))  # Connect to another slot
         
         draw_bbox = QtWidgets.QAction('Draw BBox', self)
         draw_bbox.triggered.connect(self.bbox_container.draw_bbox)
         draw_mask_menu.addAction(live_wire)
-        draw_mask_menu.addAction(sam)
+        # draw_mask_menu.addAction(sam)
 
         reset_mask = QtWidgets.QAction('Reset Mask (t)', self)
         reset_mask.triggered.connect(self.mask_container.reset_mask)
