@@ -8,6 +8,7 @@
 @desc: create the window for bounding box labeling/drawing
 '''
 import cv2
+import torch
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,6 +23,12 @@ from PyQt5.QtCore import Qt, QRect
 from PyQt5.QtGui import QPen, QPainter, QColor
 
 from ..path import MODEL_PATH
+
+if torch.cuda.is_available():
+    DEVICE = torch.device("cuda:0")
+    torch.cuda.set_device(DEVICE)
+else:
+    DEVICE = torch.device("cpu")
 
 def show_mask(mask, ax, random_color=False):
     if random_color:
@@ -213,7 +220,7 @@ class SamLabel(QtWidgets.QLabel):
             
     def sam_prediction(self, rect):
         if self.model is None:
-            self.model = sam_model_registry["vit_h"](checkpoint=str(MODEL_PATH / "sam_vit_h_4b8939.pth"))
+            self.model = sam_model_registry["vit_h"](checkpoint=str(MODEL_PATH / "sam_vit_h_4b8939.pth")).to(device=DEVICE)
             self.predictor = SamPredictor(self.model)
             self.predictor.set_image(self.image_source)
         if rect.width() > 10 and rect.height() > 10:
