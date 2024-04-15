@@ -205,7 +205,8 @@ class MeshContainer:
     def add_pose_file(self, pose_path):
         if pose_path:
             self.hintLabel.hide()
-            transformation_matrix = np.load(pose_path)
+            if isinstance(pose_path, list): transformation_matrix = np.array(pose_path)
+            else: transformation_matrix = np.load(pose_path)
             mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
             if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix

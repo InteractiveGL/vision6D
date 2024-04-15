@@ -1,0 +1,36 @@
+{
+    "mesh_path": {
+        "5997_right_ossicles_centered_mesh": [
+            "E:\\GitHub\\ossicles_6D_pose_estimation\\data\\intraop\\CIP.5997.8381493978443_video_trim\\mesh\\centered_meshes\\5997_right_ossicles_centered.mesh",
+            [
+                [
+                    -0.0914981907537798,
+                    0.14747297568871842,
+                    0.38576822125632976,
+                    -70.70035531146686
+                ],
+                [
+                    -0.16164029340586877,
+                    -0.3763895805977452,
+                    0.10554912205268414,
+                    -18.22241892956635
+                ],
+                [
+                    0.3800497528448438,
+                    -0.12457898321925084,
+                    0.13776639758521927,
+                    159.6228364155809
+                ],
+                [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ]
+            ]
+        ]
+    },
+    "image_path": "E:\\GitHub\\ossicles_6D_pose_estimation\\data\\raw_dataset\\images\\5997_right.png",
+    "mask_path": "E:\\GitHub\\ossicles_6D_pose_estimation\\data\\raw_dataset\\points\\5997_right.npy",
+    "bbox_path": null
+}

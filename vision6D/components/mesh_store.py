@@ -22,6 +22,7 @@ from ..path import PLOT_SIZE
 
 @dataclass
 class MeshData:
+    mesh_path: str
     name: str
     source_mesh: trimesh.Trimesh
     pv_mesh: pv.PolyData
@@ -50,6 +51,7 @@ class MeshStore(metaclass=Singleton):
         self.toggle_anchor_mesh = True
 
     def reset(self): 
+        self.mesh_path = None
         self.color_counter = 0
         self.toggle_anchor_mesh = True
         self.meshes.clear()
@@ -79,7 +81,8 @@ class MeshStore(metaclass=Singleton):
             pv_mesh.translate(np.array([0, 0, object_distance]), inplace=True)
         
         if source_mesh is not None:
-            mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", 
+            mesh_data = MeshData(mesh_path=mesh_path,
+                                name=pathlib.Path(mesh_path).stem + "_mesh", 
                                 source_mesh=source_mesh, 
                                 pv_mesh=pv_mesh,
                                 color_button=None,

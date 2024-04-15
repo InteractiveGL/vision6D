@@ -348,6 +348,7 @@ class MyMainWindow(MainWindow):
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
+        exportMenu.addAction('Workspace', self.export_workspace)
         exportMenu.addAction('Image', self.image_container.export_image)
         exportMenu.addAction('Mask', self.mask_container.export_mask)
         exportMenu.addAction('Bbox', self.bbox_container.export_bbox)
@@ -824,16 +825,29 @@ class MyMainWindow(MainWindow):
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
             root = PKG_ROOT.parent.parent.parent
-            if 'image_path' in workspace: self.image_container.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
-            if 'video_path' in workspace: self.video_container.add_video_file(video_path=root / pathlib.Path(*workspace['video_path'].split("\\")))
-            if 'mask_path' in workspace: self.mask_container.add_mask_file(mask_path=root / pathlib.Path(*workspace['mask_path'].split("\\")))
-            if 'bbox_path' in workspace: self.bbox_container.add_bbox_file(bbox_path=root / pathlib.Path(*workspace['bbox_path'].split("\\")))
+            if 'image_path' in workspace and workspace['image_path'] is not None: self.image_container.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
+            if 'video_path' in workspace and workspace['video_path'] is not None: self.video_container.add_video_file(video_path=root / pathlib.Path(*workspace['video_path'].split("\\")))
+            if 'mask_path' in workspace and workspace['mask_path'] is not None: self.mask_container.add_mask_file(mask_path=root / pathlib.Path(*workspace['mask_path'].split("\\")))
+            if 'bbox_path' in workspace and workspace['bbox_path'] is not None: self.bbox_container.add_bbox_file(bbox_path=root / pathlib.Path(*workspace['bbox_path'].split("\\")))
             if 'mesh_path' in workspace:
-                mesh_paths = workspace['mesh_path']
-                for path in mesh_paths: self.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*path.split("\\")))
-            if 'pose_path' in workspace: self.mesh_container.add_pose_file(pose_path=root / pathlib.Path(*workspace['pose_path'].split("\\")))
-            # reset camera
+                meshes = workspace['mesh_path']
+                for item in meshes: 
+                    mesh_path, pose = meshes[item]
+                    self.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
+                    self.mesh_container.add_pose_file(pose)
             self.image_store.reset_camera()
+
+    def export_workspace(self):
+        workspace_dict = {"mesh_path": {}}
+        workspace_dict["image_path"] = self.image_store.image_path
+        workspace_dict["mask_path"] = self.mask_store.mask_path
+        workspace_dict["bbox_path"] = self.bbox_store.bbox_path
+        for mesh_data in self.mesh_store.meshes.values(): 
+            workspace_dict["mesh_path"][mesh_data.name] = (mesh_data.mesh_path, mesh_data.actor.user_matrix.tolist())
+        # write the dict to json file
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.json)")
+        if output_path != "":
+            with open(output_path, 'w') as f: json.dump(workspace_dict, f, indent=4)
 
     def add_folder(self, folder_path='', prompt=False):
         if prompt: 
