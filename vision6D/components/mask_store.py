@@ -66,7 +66,7 @@ class MaskStore(metaclass=Singleton):
         # Due to camera view change to right handed coordinate system
         points = mask_center - points
         self.mask_pv = pv.PolyData(points, cells).triangulate()
-        self.mask_pv = self.mask_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to points += np.array([0, 0, object_distance])
+        self.mask_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to points += np.array([0, 0, object_distance])
         return self.mask_pv
 
     def update_mask(self):

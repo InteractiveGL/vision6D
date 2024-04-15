@@ -34,6 +34,7 @@ class MeshContainer:
     def __init__(self,
                 plotter, 
                 hintLabel, 
+                object_distance, 
                 track_actors_names, 
                 add_button_actor_name, 
                 button_group_actors_names,
@@ -45,6 +46,7 @@ class MeshContainer:
 
         self.plotter = plotter
         self.hintLabel = hintLabel
+        self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.button_group_actors_names = button_group_actors_names
@@ -59,12 +61,15 @@ class MeshContainer:
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
 
+    def set_object_distance(self, object_distance):
+        self.object_distance = object_distance
+
     def add_mesh_file(self, mesh_path='', prompt=False):
         if prompt: 
             mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_path:
             self.hintLabel.hide()
-            mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path)
+            mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path, object_distance=self.object_distance)
             if mesh_data: self.add_mesh(mesh_data, np.eye(4))
             else: utils.display_warning("The mesh format is not supported!")
 

@@ -55,7 +55,7 @@ class MeshStore(metaclass=Singleton):
         self.meshes.clear()
 
     #^ Mesh related
-    def add_mesh(self, mesh_source) -> Optional[MeshData]:
+    def add_mesh(self, mesh_source, object_distance) -> Optional[MeshData]:
 
         source_mesh = None
 
@@ -69,12 +69,14 @@ class MeshStore(metaclass=Singleton):
             source_mesh.vertices = source_mesh.vertices.reshape(-1, 3)
             source_mesh.faces = source_mesh.faces.reshape(-1, 3)
             pv_mesh = pv.wrap(mesh_source)
+            pv_mesh.translate(np.array([0, 0, object_distance]), inplace=True)
 
         if isinstance(mesh_source, pv.PolyData):
             source_mesh = trimesh.Trimesh(mesh_source.points, mesh_source.faces.reshape((-1, 4))[:, 1:], process=False)
             source_mesh.vertices = source_mesh.vertices.reshape(-1, 3)
             source_mesh.faces = source_mesh.faces.reshape(-1, 3)
             pv_mesh = pv.wrap(source_mesh)
+            pv_mesh.translate(np.array([0, 0, object_distance]), inplace=True)
         
         if source_mesh is not None:
             mesh_data = MeshData(name=pathlib.Path(mesh_path).stem + "_mesh", 

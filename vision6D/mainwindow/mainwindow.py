@@ -224,6 +224,7 @@ class MyMainWindow(MainWindow):
         
         self.mesh_container = MeshContainer(plotter=self.plotter,
                                             hintLabel=self.hintLabel,
+                                            object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names,
                                             add_button_actor_name=self.add_button_actor_name,
                                             button_group_actors_names=self.button_group_actors_names,
@@ -971,23 +972,22 @@ class MyMainWindow(MainWindow):
         if ok:
             distance = float(distance)
             if self.image_store.image_actor is not None:
-                self.image_store.image_pv.translate(-np.array([0, 0, self.image_store.image_pv.center[-1]]), inplace=True)
+                self.image_store.image_pv.translate(-np.array([0, 0, self.image_store.image_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
                 self.image_store.image_pv.translate(np.array([0, 0, distance]), inplace=True)
                 self.image_container.set_object_distance(distance)
             if self.mask_store.mask_actor is not None:
-                self.mask_store.mask_pv.translate(-np.array([0, 0, self.mask_store.mask_pv.center[-1]]), inplace=True)
+                self.mask_store.mask_pv.translate(-np.array([0, 0, self.mask_store.mask_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
                 self.mask_store.mask_pv.translate(np.array([0, 0, distance]), inplace=True)
                 self.mask_container.set_object_distance(distance)
             if self.bbox_store.bbox_actor is not None:
-                self.bbox_store.bbox_pv.translate(-np.array([0, 0, self.bbox_store.bbox_pv.center[-1]]), inplace=True)
+                self.bbox_store.bbox_pv.translate(-np.array([0, 0, self.bbox_store.bbox_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
                 self.bbox_store.bbox_pv.translate(np.array([0, 0, distance]), inplace=True)
                 self.bbox_container.set_object_distance(distance)
             if len(self.mesh_store.meshes) > 0:
                 for mesh_data in self.mesh_store.meshes.values(): 
-                    user_matrix = mesh_data.actor.user_matrix
-                    user_matrix[2, 3] -= self.object_distance
-                    user_matrix[2, 3] += distance
-                    mesh_data.actor.user_matrix = user_matrix
+                    mesh_data.pv_mesh.translate(-np.array([0, 0, mesh_data.pv_mesh.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
+                    mesh_data.pv_mesh.translate(np.array([0, 0, distance]), inplace=True)
+                    self.mesh_container.set_object_distance(distance)
 
             self.object_distance = distance
             self.image_store.reset_camera()
