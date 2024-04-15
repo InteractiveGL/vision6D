@@ -88,6 +88,8 @@ class MeshStore(metaclass=Singleton):
                                 opacity_spinbox=None,
                                 spacing=[1, 1, 1])
             
+            if mesh_data.initial_pose is None: mesh_data.initial_pose = np.eye(4)
+            
             self.meshes[mesh_data.name] = mesh_data
 
             # assign a color to every mesh
