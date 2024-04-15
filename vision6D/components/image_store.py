@@ -26,10 +26,10 @@ class ImageStore(metaclass=Singleton):
 
         # camera related parameters, do not reset the camera!
         self.camera = pv.Camera()
-        self.fx = 10000
-        self.fy = 10000
-        self.cx = PLOT_SIZE[0] // 2
-        self.cy = PLOT_SIZE[1] // 2
+        self.fx = 18466.768907841793
+        self.fy = 19172.02089833029
+        self.cx = 954.4324739015676
+        self.cy = 538.2131876789998
         self.cam_viewup = (0, 0, 0)
 
         self.reset()
@@ -67,11 +67,6 @@ class ImageStore(metaclass=Singleton):
             [0, self.fy, self.cy],
             [0, 0, 1]
         ])
-                
-        # convert the principal point to window center (normalized coordinate system) and set it
-        wcx = -2*(self.cx - float(PLOT_SIZE[0])/2) / PLOT_SIZE[0]
-        wcy =  2*(self.cy - float(PLOT_SIZE[1])/2) / PLOT_SIZE[1]
-        self.camera.SetWindowCenter(wcx, wcy) # (0,0)
         
         # Setting the view angle in degrees
         view_angle = (180 / math.pi) * (2.0 * math.atan2(PLOT_SIZE[1]/2.0, self.fx)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))

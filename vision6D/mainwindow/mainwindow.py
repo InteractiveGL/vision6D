@@ -148,7 +148,8 @@ class MyMainWindow(MainWindow):
         # Create the plotter
         self.create_plotter()
 
-        self.object_distance = 100.0 # set the object distance to the camera in world coordinate
+        # set the object distance to the camera in world coordinate
+        self.object_distance = 185.0
         self.image_store = ImageStore(self.plotter)
         self.mask_store = MaskStore()
         self.bbox_store = BboxStore()
