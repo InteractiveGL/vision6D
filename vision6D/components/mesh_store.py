@@ -35,7 +35,7 @@ class MeshData:
     mirror_y: bool = False
     opacity: float = 0.3
     previous_opacity: float = 0.3
-    initial_pose: np.ndarray = None
+    initial_pose: np.ndarray = np.eye(4)
     undo_poses: List[np.ndarray] = field(default_factory=list)
     undo_vertices: List[np.ndarray] = field(default_factory=list)
 
@@ -90,8 +90,6 @@ class MeshStore(metaclass=Singleton):
                                 color=self.colors[self.color_counter],
                                 opacity_spinbox=None,
                                 spacing=[1, 1, 1])
-            
-            if mesh_data.initial_pose is None: mesh_data.initial_pose = np.eye(4)
             
             self.meshes[mesh_data.name] = mesh_data
 

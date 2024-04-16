@@ -70,7 +70,13 @@ class MeshContainer:
         if mesh_path:
             self.hintLabel.hide()
             mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path, object_distance=self.object_distance)
-            if mesh_data: self.add_mesh(mesh_data, np.eye(4))
+            if mesh_data: 
+                if self.mesh_store.reference is not None:
+                    name = self.mesh_store.reference
+                    reference_matrix = self.mesh_store.meshes[name].actor.user_matrix
+                    self.add_mesh(mesh_data, reference_matrix)
+                else:
+                    self.add_mesh(mesh_data, np.eye(4))
             else: utils.display_warning("The mesh format is not supported!")
 
     def mirror_mesh(self, name, direction):
@@ -78,7 +84,7 @@ class MeshContainer:
         mesh_data = self.mesh_store.meshes[name]
         if direction == 'x': mesh_data.mirror_x = not mesh_data.mirror_x
         elif direction == 'y': mesh_data.mirror_y = not mesh_data.mirror_y
-        if mesh_data.initial_pose is None: mesh_data.initial_pose = mesh_data.actor.user_matrix
+        if mesh_data.initial_pose != np.eye(4): mesh_data.initial_pose = mesh_data.actor.user_matrix
         if self.mesh_store.toggle_anchor_mesh:
             transformation_matrix = mesh_data.initial_pose
             if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
@@ -242,31 +248,31 @@ class MeshContainer:
     def reset_gt_pose(self):
         if self.mesh_store.reference:
             mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
-            if mesh_data.initial_pose is not None:
-                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-                mesh_data.initial_pose[0, 0], mesh_data.initial_pose[0, 1], mesh_data.initial_pose[0, 2], mesh_data.initial_pose[0, 3], 
-                mesh_data.initial_pose[1, 0], mesh_data.initial_pose[1, 1], mesh_data.initial_pose[1, 2], mesh_data.initial_pose[1, 3], 
-                mesh_data.initial_pose[2, 0], mesh_data.initial_pose[2, 1], mesh_data.initial_pose[2, 2], mesh_data.initial_pose[2, 3],
-                mesh_data.initial_pose[3, 0], mesh_data.initial_pose[3, 1], mesh_data.initial_pose[3, 2], mesh_data.initial_pose[3, 3])
-                self.output_text.append("-> Reset the GT pose to:")
-                self.output_text.append(text)
-                self.toggle_register(mesh_data.initial_pose)
-                self.reset_camera()
+            # if mesh_data.initial_pose is not None:
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            mesh_data.initial_pose[0, 0], mesh_data.initial_pose[0, 1], mesh_data.initial_pose[0, 2], mesh_data.initial_pose[0, 3], 
+            mesh_data.initial_pose[1, 0], mesh_data.initial_pose[1, 1], mesh_data.initial_pose[1, 2], mesh_data.initial_pose[1, 3], 
+            mesh_data.initial_pose[2, 0], mesh_data.initial_pose[2, 1], mesh_data.initial_pose[2, 2], mesh_data.initial_pose[2, 3],
+            mesh_data.initial_pose[3, 0], mesh_data.initial_pose[3, 1], mesh_data.initial_pose[3, 2], mesh_data.initial_pose[3, 3])
+            self.output_text.append("-> Reset the GT pose to:")
+            self.output_text.append(text)
+            self.toggle_register(mesh_data.initial_pose)
+            self.reset_camera()
         else: utils.display_warning("Need to set a reference mesh first")
 
     def update_gt_pose(self):
         if self.mesh_store.reference:
             mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
-            if mesh_data.initial_pose is not None:
-                mesh_data.initial_pose = mesh_data.actor.user_matrix
-                self.toggle_register(mesh_data.actor.user_matrix)
-                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-                mesh_data.initial_pose[0, 0], mesh_data.initial_pose[0, 1], mesh_data.initial_pose[0, 2], mesh_data.initial_pose[0, 3], 
-                mesh_data.initial_pose[1, 0], mesh_data.initial_pose[1, 1], mesh_data.initial_pose[1, 2], mesh_data.initial_pose[1, 3], 
-                mesh_data.initial_pose[2, 0], mesh_data.initial_pose[2, 1], mesh_data.initial_pose[2, 2], mesh_data.initial_pose[2, 3],
-                mesh_data.initial_pose[3, 0], mesh_data.initial_pose[3, 1], mesh_data.initial_pose[3, 2], mesh_data.initial_pose[3, 3])
-                self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to:")
-                self.output_text.append(text)
+            # if mesh_data.initial_pose is not None:
+            mesh_data.initial_pose = mesh_data.actor.user_matrix
+            self.toggle_register(mesh_data.actor.user_matrix)
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            mesh_data.initial_pose[0, 0], mesh_data.initial_pose[0, 1], mesh_data.initial_pose[0, 2], mesh_data.initial_pose[0, 3], 
+            mesh_data.initial_pose[1, 0], mesh_data.initial_pose[1, 1], mesh_data.initial_pose[1, 2], mesh_data.initial_pose[1, 3], 
+            mesh_data.initial_pose[2, 0], mesh_data.initial_pose[2, 1], mesh_data.initial_pose[2, 2], mesh_data.initial_pose[2, 3],
+            mesh_data.initial_pose[3, 0], mesh_data.initial_pose[3, 1], mesh_data.initial_pose[3, 2], mesh_data.initial_pose[3, 3])
+            self.output_text.append(f"-> Update the {self.mesh_store.reference} GT pose to:")
+            self.output_text.append(text)
         else: utils.display_warning("Need to set a reference mesh first")
 
     def undo_actor_pose(self):
