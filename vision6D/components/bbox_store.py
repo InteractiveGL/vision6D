@@ -28,6 +28,7 @@ class BboxStore(metaclass=Singleton):
         self.bbox_pv = None
         self.bbox_actor = None
         self.bbox_opacity = 0.5
+        self.previous_opacity = 0.5
         self.opacity_spinbox = None
 
     def add_bbox(self, bbox_source, width, height, object_distance):

@@ -170,11 +170,12 @@ class MeshContainer:
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=name)
             mesh_data.actor = actor #^ very import to change the actor too!
             
-    def set_mesh_opacity(self, name: str, surface_opacity: float):
+    def set_mesh_opacity(self, name: str, mesh_opacity: float):
         mesh_data = self.mesh_store.meshes[name]
-        mesh_data.opacity = surface_opacity
+        mesh_data.previous_opacity = mesh_data.opacity
+        mesh_data.opacity = mesh_opacity
         mesh_data.actor.user_matrix = pv.array_from_vtkmatrix(mesh_data.actor.GetMatrix())
-        mesh_data.actor.GetProperty().opacity = surface_opacity
+        mesh_data.actor.GetProperty().opacity = mesh_opacity
 
     def toggle_surface_opacity(self, up):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -196,13 +197,8 @@ class MeshContainer:
             if name not in self.mesh_store.meshes: continue
             if len(self.mesh_store.meshes) != 1 and name == checked_name: continue
             mesh_data = self.mesh_store.meshes[name]
-            if flag:
-                mesh_data.previous_opacity = mesh_data.opacity
-                mesh_data.opacity = 0
-                self.set_mesh_opacity(name, mesh_data.opacity)
-            else:
-                self.set_mesh_opacity(name, mesh_data.previous_opacity)
-                mesh_data.previous_opacity = mesh_data.opacity
+            if flag: self.set_mesh_opacity(name, 0)
+            else: self.set_mesh_opacity(name, mesh_data.previous_opacity)
             
     def toggle_hide_meshes_button(self):
         self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag

@@ -26,7 +26,7 @@ class PopUpDialog(QtWidgets.QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint) # Disable the question mark
 
         button_grid = QtWidgets.QGridLayout()
-        colors = ["nocs", "cyan", "magenta", "yellow", "white", "latlon", "dodgerblue", "darkviolet", "lime", "black"]
+        colors = ["nocs", "wheat", "magenta", "yellow", "white", "latlon", "dodgerblue", "cyan", "lime", "black"]
 
         button_count = 0
         # two columns

@@ -89,6 +89,7 @@ class BboxContainer:
         self.bbox_store.bbox_actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
 
     def set_bbox_opacity(self, bbox_opacity: float):
+        self.bbox_store.previous_opacity = self.bbox_store.bbox_opacity
         self.bbox_store.bbox_opacity = bbox_opacity
         self.bbox_store.bbox_actor.GetProperty().opacity = bbox_opacity
         

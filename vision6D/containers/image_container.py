@@ -110,6 +110,7 @@ class ImageContainer:
             self.add_button_actor_name('image')
                                           
     def set_image_opacity(self, image_opacity: float):
+        self.image_store.previous_opacity = self.image_store.image_opacity
         self.image_store.image_opacity = image_opacity
         self.image_store.image_actor.GetProperty().opacity = image_opacity
 

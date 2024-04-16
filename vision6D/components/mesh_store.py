@@ -33,8 +33,8 @@ class MeshData:
     spacing: List[float] = field(default_factory=[1, 1, 1])
     mirror_x: bool = False
     mirror_y: bool = False
-    opacity: float = 0.3
-    previous_opacity: float = 0.3
+    opacity: float = 1.0
+    previous_opacity: float = 1.0
     initial_pose: np.ndarray = np.eye(4)
     undo_poses: List[np.ndarray] = field(default_factory=list)
     undo_vertices: List[np.ndarray] = field(default_factory=list)
@@ -46,7 +46,7 @@ class MeshStore(metaclass=Singleton):
         self.meshes: Dict[str, MeshData] = {}
         self.color_counter = 0
         self.color_button = None
-        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "darkviolet", "white", "black"]
+        self.colors = ["wheat", "cyan", "magenta", "yellow", "lime", "dodgerblue", "white", "black"]
         self.latlon = utils.load_latitude_longitude()
         self.toggle_anchor_mesh = True
 

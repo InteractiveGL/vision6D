@@ -99,6 +99,7 @@ class MaskContainer:
             self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):
+        self.mask_store.previous_opacity = self.mask_store.mask_opacity
         self.mask_store.mask_opacity = mask_opacity
         self.mask_store.mask_actor.GetProperty().opacity = mask_opacity
 

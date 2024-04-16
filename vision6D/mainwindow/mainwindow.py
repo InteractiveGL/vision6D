@@ -290,6 +290,9 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("a"), self).activated.connect(self.folder_container.prev_info)
         QtWidgets.QShortcut(QtGui.QKeySequence("d"), self).activated.connect(self.folder_container.next_info)
 
+        # todo: create the swith button for mesh and ct "ctrl + tap"
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self).activated.connect(self.ctrl_tap_opacity)
+
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+w"), self).activated.connect(self.clear_plot)
 
     def showMaximized(self):
@@ -341,9 +344,9 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Folder', functools.partial(self.add_folder, prompt=True))
         fileMenu.addAction('Add Video', functools.partial(self.video_container.add_video_file, prompt=True))
         fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
+        fileMenu.addAction('Add Mask', self.mask_container.set_mask)
         fileMenu.addAction('Add Bbox', functools.partial(self.bbox_container.add_bbox_file, prompt=True))
         fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
-        fileMenu.addAction('Add Points', functools.partial(self.point_container.load_points_file, prompt=True))
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
@@ -781,11 +784,7 @@ class MyMainWindow(MainWindow):
         if name == 'image': self.image_container.set_image_opacity(value)
         elif name == 'mask': self.mask_container.set_mask_opacity(value)
         elif name == 'bbox': self.bbox_container.set_bbox_opacity(value)
-        elif name in self.mesh_store.meshes:
-            mesh_data = self.mesh_store.meshes[name]
-            mesh_data.opacity = value
-            mesh_data.previous_opacity = value
-            self.mesh_container.set_mesh_opacity(name, mesh_data.opacity)
+        elif name in self.mesh_store.meshes: self.mesh_container.set_mesh_opacity(name, value)
 
     def color_value_change(self, color, name):
         if name == 'mask': 
@@ -809,7 +808,23 @@ class MyMainWindow(MainWindow):
             except ValueError:
                 utils.display_warning(f"Cannot set color ({color}) to {name}")
                 self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
-    
+
+    def ctrl_tap_opacity(self):
+        if self.mesh_store.reference is not None:
+            for mesh_data in self.mesh_store.meshes.values():
+                if mesh_data.opacity != 0: mesh_data.opacity_spinbox.setValue(0)
+                else: mesh_data.opacity_spinbox.setValue(mesh_data.previous_opacity)
+        else:
+            if self.image_store.image_actor is not None:
+                if self.image_store.image_opacity != 0: self.image_store.opacity_spinbox.setValue(0)
+                else: self.image_store.opacity_spinbox.setValue(self.image_store.previous_opacity)
+            if self.mask_store.mask_actor is not None:
+                if self.mask_store.mask_opacity != 0: self.mask_store.opacity_spinbox.setValue(0)
+                else: self.mask_store.opacity_spinbox.setValue(self.mask_store.previous_opacity)
+            if self.bbox_store.bbox_actor is not None:
+                if self.bbox_store.bbox_opacity != 0: self.bbox_store.opacity_spinbox.setValue(0)
+                else: self.bbox_store.opacity_spinbox.setValue(self.bbox_store.previous_opacity)
+
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
         

@@ -30,7 +30,8 @@ class MaskStore(metaclass=Singleton):
         self.mask_path = None
         self.mask_pv = None
         self.mask_actor = None
-        self.mask_opacity = 0.2
+        self.mask_opacity = 0.5
+        self.previous_opacity = 0.5
         self.opacity_spinbox = None
     
     def add_mask(self, mask_source, object_distance, size):
