@@ -112,8 +112,11 @@ class MeshStore(metaclass=Singleton):
         pv_mesh = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
         colors = utils.get_mesh_actor_scalars(mesh_data.actor)
         if colors is not None: mesh = self.render.add_mesh(pv_mesh, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference)
-        else: mesh = self.render.add_mesh(mesh_data, color=mesh_data.color, style='surface', opacity=1, name=self.reference)
+        else: mesh = self.render.add_mesh(pv_mesh, color=mesh_data.color, style='surface', opacity=1, name=self.reference)
         mesh.user_matrix = mesh_data.actor.user_matrix
+        # set the light source to add the textures
+        light = pv.Light(light_type='headlight')
+        self.render.add_light(light)
         self.render.camera = camera
         self.render.disable()
         self.render.show(auto_close=False)
