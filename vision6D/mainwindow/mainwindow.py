@@ -32,7 +32,6 @@ from ..components import ImageStore
 from ..components import MaskStore
 from ..components import BboxStore
 from ..components import MeshStore
-from ..components import PointStore
 from ..components import VideoStore
 from ..components import FolderStore
 
@@ -40,7 +39,6 @@ from ..containers import ImageContainer
 from ..containers import MaskContainer
 from ..containers import BboxContainer
 from ..containers import MeshContainer
-from ..containers import PointContainer
 from ..containers import PnPContainer
 from ..containers import VideoContainer
 from ..containers import FolderContainer
@@ -154,7 +152,6 @@ class MyMainWindow(MainWindow):
         self.mask_store = MaskStore()
         self.bbox_store = BboxStore()
         self.mesh_store = MeshStore()
-        self.point_store = PointStore()
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
 
@@ -214,14 +211,7 @@ class MyMainWindow(MainWindow):
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
-        
-        self.point_container = PointContainer(plotter=self.plotter,
-                                            hintLabel=self.hintLabel,
-                                            track_actors_names=self.track_actors_names, 
-                                            add_button_actor_name=self.add_button_actor_name,
-                                            output_text=self.output_text,
-                                            )
-        
+         
         self.mesh_container = MeshContainer(plotter=self.plotter,
                                             hintLabel=self.hintLabel,
                                             object_distance=self.object_distance,
@@ -910,9 +900,6 @@ class MyMainWindow(MainWindow):
         elif name in self.mesh_store.meshes: 
             actor = self.mesh_store.meshes[name].actor
             self.mesh_store.remove_mesh(name)
-        elif name in self.point_store.point_actors:
-            actor = self.point_store.point_actors[name]
-            self.point_store.remove_point(name)
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
@@ -924,7 +911,7 @@ class MyMainWindow(MainWindow):
         button.deleteLater()
 
         # clear out the plot if there is no actor
-        if (self.image_store.image_actor is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.meshes) == 0) and (len(self.point_store.point_actors) == 0): 
+        if (self.image_store.image_actor is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.meshes) == 0): 
             self.clear_plot()
 
     def remove_actors_button(self):
@@ -954,9 +941,6 @@ class MyMainWindow(MainWindow):
             elif name in self.mesh_store.meshes: 
                 actor = self.mesh_store.meshes[name].actor
                 self.mesh_store.remove_mesh(name)
-            elif name in self.point_store.point_actors:
-                actor = self.point_store.point_actors[name]
-                self.point_store.remove_point(name)
 
             self.plotter.remove_actor(actor)
             # remove the button from the button group
@@ -966,7 +950,6 @@ class MyMainWindow(MainWindow):
             button.deleteLater()
 
         self.mesh_store.reset()
-        self.point_store.reset()
         self.video_store.reset()
         self.folder_store.reset()
         self.workspace_path = ''
