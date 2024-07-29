@@ -51,16 +51,16 @@ class MaskStore(metaclass=Singleton):
             contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             points = contours[0].squeeze()
 
-        points = points * 0.01
+        points = points * 1e-4
         points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
         
         # Mirror points
-        mask_center = np.array([w // 2, h // 2, 0]) * 0.01
+        mask_center = np.array([w // 2, h // 2, 0]) * 1e-4
         self.render = utils.create_render(w, h)
         
         # Consider the mirror effect
-        if self.mirror_x: points[:, 0] = w*0.01 - points[:, 0]
-        if self.mirror_y: points[:, 1] = h*0.01 - points[:, 1]
+        if self.mirror_x: points[:, 0] = w*1e-4 - points[:, 0]
+        if self.mirror_y: points[:, 1] = h*1e-4 - points[:, 1]
 
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])

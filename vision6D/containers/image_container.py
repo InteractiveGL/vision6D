@@ -23,22 +23,17 @@ class ImageContainer:
     def __init__(self, 
                 plotter,
                 hintLabel,
-                object_distance,
                 track_actors_names, 
                 add_button_actor_name,
                 output_text):
           
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.output_text = output_text
 
         self.image_store = ImageStore()
-
-    def set_object_distance(self, object_distance):
-        self.object_distance = object_distance
 
     #^ Camera related
     def camera_calibrate(self):
@@ -99,7 +94,7 @@ class ImageContainer:
         self.add_image(self.image_store.image_source)
 
     def add_image(self, image_source):
-        image, _, channel = self.image_store.add_image(image_source, self.object_distance)
+        image, _, channel = self.image_store.add_image(image_source)
         if channel == 1: image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
         else: image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
         actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
@@ -108,6 +103,7 @@ class ImageContainer:
         if 'image' not in self.track_actors_names:
             self.track_actors_names.append('image')
             self.add_button_actor_name('image')
+        self.image_store.reset_camera()
                                           
     def set_image_opacity(self, image_opacity: float):
         self.image_store.previous_opacity = self.image_store.image_opacity

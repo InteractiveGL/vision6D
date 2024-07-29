@@ -146,8 +146,6 @@ class MyMainWindow(MainWindow):
         # Create the plotter
         self.create_plotter()
 
-        # set the object distance to the camera in world coordinate
-        self.object_distance = 185.0
         self.image_store = ImageStore(self.plotter)
         self.mask_store = MaskStore()
         self.bbox_store = BboxStore()
@@ -196,25 +194,22 @@ class MyMainWindow(MainWindow):
     def initial_containers(self):
 
         # set up the camera props
-        self.image_store.set_camera_props()
+        # self.image_store.set_camera_props()
         
         self.image_container = ImageContainer(plotter=self.plotter, 
-                                            hintLabel=self.hintLabel, 
-                                            object_distance=self.object_distance,
+                                            hintLabel=self.hintLabel,
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
         
         self.mask_container = MaskContainer(plotter=self.plotter,
-                                            hintLabel=self.hintLabel, 
-                                            object_distance=self.object_distance,
+                                            hintLabel=self.hintLabel,
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
          
         self.mesh_container = MeshContainer(plotter=self.plotter,
                                             hintLabel=self.hintLabel,
-                                            object_distance=self.object_distance,
                                             track_actors_names=self.track_actors_names,
                                             add_button_actor_name=self.add_button_actor_name,
                                             button_group_actors_names=self.button_group_actors_names,
@@ -246,8 +241,7 @@ class MyMainWindow(MainWindow):
                                                 output_text=self.output_text)
         
         self.bbox_container = BboxContainer(plotter=self.plotter,
-                                            hintLabel=self.hintLabel, 
-                                            object_distance=self.object_distance,
+                                            hintLabel=self.hintLabel,
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
@@ -682,12 +676,9 @@ class MyMainWindow(MainWindow):
         self.signal_close.connect(self.plotter.close)
 
     def show_plot(self):
-        self.plotter.enable_joystick_actor_style()
         self.plotter.enable_trackball_actor_style()
-        
-        self.plotter.add_axes(color='white')
+        self.plotter.add_axes(color='white') 
         self.plotter.add_camera_orientation_widget()
-
         self.plotter.show()
         self.show()
 
@@ -980,26 +971,18 @@ class MyMainWindow(MainWindow):
                 break
 
     def set_object_distance(self):
-        distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.object_distance))
+        distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.image_store.object_distance))
         if ok:
             distance = float(distance)
             if self.image_store.image_actor is not None:
                 self.image_store.image_pv.translate(-np.array([0, 0, self.image_store.image_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
                 self.image_store.image_pv.translate(np.array([0, 0, distance]), inplace=True)
-                self.image_container.set_object_distance(distance)
             if self.mask_store.mask_actor is not None:
                 self.mask_store.mask_pv.translate(-np.array([0, 0, self.mask_store.mask_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
                 self.mask_store.mask_pv.translate(np.array([0, 0, distance]), inplace=True)
-                self.mask_container.set_object_distance(distance)
             if self.bbox_store.bbox_actor is not None:
                 self.bbox_store.bbox_pv.translate(-np.array([0, 0, self.bbox_store.bbox_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
                 self.bbox_store.bbox_pv.translate(np.array([0, 0, distance]), inplace=True)
-                self.bbox_container.set_object_distance(distance)
-            if len(self.mesh_store.meshes) > 0:
-                for mesh_data in self.mesh_store.meshes.values(): 
-                    mesh_data.pv_mesh.translate(-np.array([0, 0, mesh_data.pv_mesh.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-                    mesh_data.pv_mesh.translate(np.array([0, 0, distance]), inplace=True)
-                    self.mesh_container.set_object_distance(distance)
-
-            self.object_distance = distance
+            #! do not modify the object_distance for meshes, because it will mess up the pose
+            self.image_store.object_distance = distance
             self.image_store.reset_camera()

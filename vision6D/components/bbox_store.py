@@ -38,17 +38,17 @@ class BboxStore(metaclass=Singleton):
             bbox_source = np.load(bbox_source)
 
         # find the center of the image
-        self.image_center = np.array([width // 2, height // 2, 0]) * 0.01
+        self.image_center = np.array([width // 2, height // 2, 0]) * 1e-4
 
         if bbox_source.shape == (4, ): points = np.array([[bbox_source[0], bbox_source[1], 0], 
                                                         [bbox_source[0], bbox_source[3], 0], 
                                                         [bbox_source[2], bbox_source[3], 0], 
-                                                        [bbox_source[2], bbox_source[1], 0]]) * 0.01 # x1, y1, x2, y2
+                                                        [bbox_source[2], bbox_source[1], 0]]) * 1e-4 # x1, y1, x2, y2
         elif bbox_source.shape == (4, 3): points = bbox_source
         
         # Consider the mirror effect
-        if self.mirror_x: points[:, 0] = width*0.01 - points[:, 0]
-        if self.mirror_y: points[:, 1] = height*0.01 - points[:, 1]
+        if self.mirror_x: points[:, 0] = width*1e-4 - points[:, 0]
+        if self.mirror_y: points[:, 1] = height*1e-4 - points[:, 1]
         
         # Due to camera view change to right handed coordinate system
         points = self.image_center - points

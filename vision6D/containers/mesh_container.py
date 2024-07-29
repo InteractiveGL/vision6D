@@ -8,8 +8,6 @@
 @desc: create container for mesh related actions in application
 '''
 import os
-import ast
-import copy
 import pathlib
 
 import trimesh
@@ -17,8 +15,6 @@ import PIL.Image
 import matplotlib
 import numpy as np
 import pyvista as pv
-
-import vtk.util.numpy_support as vtknp
 
 from PyQt5 import QtWidgets
 
@@ -33,8 +29,7 @@ from ..path import PKG_ROOT
 class MeshContainer:
     def __init__(self,
                 plotter, 
-                hintLabel, 
-                object_distance, 
+                hintLabel,
                 track_actors_names, 
                 add_button_actor_name, 
                 button_group_actors_names,
@@ -46,7 +41,6 @@ class MeshContainer:
 
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.button_group_actors_names = button_group_actors_names
@@ -61,22 +55,22 @@ class MeshContainer:
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
 
-    def set_object_distance(self, object_distance):
-        self.object_distance = object_distance
-
     def add_mesh_file(self, mesh_path='', prompt=False):
         if prompt: 
             mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_path:
             self.hintLabel.hide()
-            mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path, object_distance=self.object_distance)
+            mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path)
             if mesh_data: 
                 if self.mesh_store.reference is not None:
                     name = self.mesh_store.reference
                     reference_matrix = self.mesh_store.meshes[name].actor.user_matrix
                     self.add_mesh(mesh_data, reference_matrix)
                 else:
-                    self.add_mesh(mesh_data, np.eye(4))
+                    self.add_mesh(mesh_data, np.array([[1, 0, 0, 0], 
+                                                    [0, 1, 0, 0], 
+                                                    [0, 0, 1, 1], 
+                                                    [0, 0, 0, 1]])) # set the initial pose, r_x, r_y, t_z includes the scaling too
             else: utils.display_warning("The mesh format is not supported!")
 
     def mirror_mesh(self, name, direction):
@@ -121,6 +115,7 @@ class MeshContainer:
             self.add_button_actor_name(mesh_data.name)
         #* very important for mirroring
         self.check_button(name=mesh_data.name, output_text=False) 
+        self.reset_camera()
         
     def anchor_mesh(self):
         self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
@@ -151,20 +146,6 @@ class MeshContainer:
             mesh_data.actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
         else:
             scalars = utils.color_mesh(mesh_data.pv_mesh.points, color=color)
-            """
-            mesh_data.pv_mesh.point_data.set_vectors(scalars, 'my-scalars')
-            mapper = mesh_data.actor.GetMapper()
-            mapper.SetScalarVisibility(True)
-            """
-            """
-            mapper = mesh_data.actor.GetMapper()
-            # if using the original 2454 vertices value, it does not do face rendering
-            # lut = utils.reset_vtk_lut(colormap="viridis")
-            lut = utils.reset_vtk_lut(colormap=scalars)
-            mapper.SetLookupTable(lut)
-            mapper.SetScalarVisibility(1)
-            mapper.GetInput().GetPointData().SetScalars(vtknp.numpy_to_vtk(scalars)) # VTK lookup map is different from the pyvista lookup map
-            """
             mesh = self.plotter.add_mesh(mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=mesh_data.opacity, name=name)
             mesh.user_matrix = mesh_data.actor.user_matrix
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=name)

@@ -27,23 +27,18 @@ class MaskContainer:
     def __init__(self, 
                 plotter, 
                 hintLabel,
-                object_distance,
                 track_actors_names, 
                 add_button_actor_name,
                 output_text):
 
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.output_text = output_text
 
         self.image_store = ImageStore()
         self.mask_store = MaskStore()
-
-    def set_object_distance(self, object_distance):
-        self.object_distance = object_distance
 
     def add_mask_file(self, mask_path='', prompt=False):
         if prompt:
@@ -83,7 +78,7 @@ class MaskContainer:
         self.mask_store.mask_actor = actor
         
     def add_mask(self, mask_source):
-        mask_surface = self.mask_store.add_mask(mask_source, self.object_distance, PLOT_SIZE)
+        mask_surface = self.mask_store.add_mask(mask_source, self.image_store.object_distance, PLOT_SIZE)
         self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu

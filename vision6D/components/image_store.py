@@ -21,17 +21,9 @@ from ..path import PLOT_SIZE
 class ImageStore(metaclass=Singleton):
     def __init__(self, plotter):
         self.plotter = plotter
+        self.camera = pv.Camera() # camera related parameters, do not reset the camera!
         self.mirror_x = False
         self.mirror_y = False
-
-        # camera related parameters, do not reset the camera!
-        self.camera = pv.Camera()
-        self.fx = 18466.768907841793
-        self.fy = 19172.02089833029
-        self.cx = 954.4324739015676
-        self.cy = 538.2131876789998
-        self.cam_viewup = (0, 0, 0)
-
         self.reset()
         
     def reset(self):
@@ -45,6 +37,11 @@ class ImageStore(metaclass=Singleton):
         self.opacity_spinbox = None
         self.width = None
         self.height = None
+        self.fx = None
+        self.fy = None
+        self.cx = None
+        self.cy = None
+        self.object_distance = 100
 
     #^ Camera related
     def reset_camera(self):
@@ -82,12 +79,22 @@ class ImageStore(metaclass=Singleton):
     def set_plot_size(self, width, height):
         global PLOT_SIZE  # Declare that we are referring to the global variable
         PLOT_SIZE = (width, height)  # This will update the global variable
-        self.cx = PLOT_SIZE[0] // 2
-        self.cy = PLOT_SIZE[1] // 2
+        # self.cx = PLOT_SIZE[0] // 2
+        # self.cy = PLOT_SIZE[1] // 2
         self.set_camera_intrinsics()
     
     #^ Image related
-    def add_image(self, image_source, object_distance):
+    def add_image(self, image_source):
+        # set default camera intrinsics
+        self.fx = 18466.768907841793
+        self.fy = 19172.02089833029
+        self.cx = 954.4324739015676
+        self.cy = 538.2131876789998
+        self.cam_viewup = (0, 0, 0)
+        # set the object distance to the camera in world coordinate
+        self.object_distance = 1e-4 * self.fx
+        self.set_camera_props()
+
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
@@ -107,9 +114,8 @@ class ImageStore(metaclass=Singleton):
         if len(image_source.shape) == 2: image_source = image_source[..., None]
         dim = image_source.shape
         # set up the canvas size based on the image size
-        self.set_plot_size(dim[1], dim[0]) # make sure is (width, height)
-        self.reset_camera()
-
+        # make sure is (width, height)
+        self.set_plot_size(dim[1], dim[0]) 
         self.height, self.width, channel = dim[0], dim[1], dim[2]
 
         # Consider the mirror effect with the preprocessed image_source: image_source = np.fliplr(np.flipud(image_source))
@@ -119,10 +125,10 @@ class ImageStore(metaclass=Singleton):
         self.render = utils.create_render(self.width, self.height)
         
         # create the image pyvista object
-        self.image_pv = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[0.01, 0.01, 1], origin=(0.0, 0.0, 0.0))
+        self.image_pv = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[1e-4, 1e-4, 1], origin=(0.0, 0.0, 0.0))
         self.image_pv.point_data["values"] = image_source.reshape((self.width * self.height, channel)) # order = 'C
         self.image_pv = self.image_pv.translate(-1 * np.array(self.image_pv.center), inplace=False) # center the image at (0, 0)
-        self.image_pv.translate(np.array([0, 0, object_distance]), inplace=True) # move the image to the camera distance
+        self.image_pv.translate(np.array([0, 0, self.object_distance]), inplace=True) # move the image to the camera distance
         
         return self.image_pv, image_source, channel
         

@@ -26,23 +26,18 @@ class BboxContainer:
     def __init__(self, 
                 plotter, 
                 hintLabel,
-                object_distance,
                 track_actors_names, 
                 add_button_actor_name, 
                 output_text):
 
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.object_distance = object_distance
         self.track_actors_names = track_actors_names
         self.add_button_actor_name = add_button_actor_name
         self.output_text = output_text
 
         self.image_store = ImageStore()
         self.bbox_store = BboxStore()
-
-    def set_object_distance(self, object_distance):
-        self.object_distance = object_distance
 
     def add_bbox_file(self, bbox_path='', prompt=False):
         if prompt:
@@ -64,7 +59,7 @@ class BboxContainer:
                 
     def add_bbox(self, bbox_source):
         if self.image_store.image_actor:
-            bbox = self.bbox_store.add_bbox(bbox_source, self.image_store.width, self.image_store.height, self.object_distance)
+            bbox = self.bbox_store.add_bbox(bbox_source, self.image_store.width, self.image_store.height, self.image_store.object_distance)
             self.load_bbox(bbox)
             
             # Add remove current image to removeMenu
@@ -97,7 +92,7 @@ class BboxContainer:
         if self.bbox_store.bbox_path:
             self.bbox_store.mirror_x = False
             self.bbox_store.mirror_y = False
-            bbox = self.bbox_store.add_bbox(self.bbox_store.bbox_path, self.image_store.width, self.image_store.height, self.object_distance)
+            bbox = self.bbox_store.add_bbox(self.bbox_store.bbox_path, self.image_store.width, self.image_store.height, self.image_store.object_distance)
             self.load_bbox(bbox)
 
     def export_bbox(self):
