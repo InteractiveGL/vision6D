@@ -90,7 +90,7 @@ class MaskContainer:
         if self.mask_store.mask_path:
             self.mask_store.mirror_x = False
             self.mask_store.mirror_y = False
-            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.object_distance, PLOT_SIZE)
+            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.image_store.object_distance, PLOT_SIZE)
             self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):
