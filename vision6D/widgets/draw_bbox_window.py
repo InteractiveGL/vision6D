@@ -51,7 +51,7 @@ class BboxLabel(QtWidgets.QLabel):
 
             self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Bbox Files (*.npy)")
             if self.output_path:
-                if pathlib.Path(self.output_path).suffix == '': self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.png'))
+                if pathlib.Path(self.output_path).suffix == '': self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.npy'))
                 np.save(self.output_path, points)
                 self.output_path_changed.emit(self.output_path)
 
