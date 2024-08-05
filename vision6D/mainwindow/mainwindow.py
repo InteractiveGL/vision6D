@@ -105,7 +105,7 @@ class CustomButtonWidget(QtWidgets.QWidget):
 
     def update_square_button_color(self, text, popup):
         self.square_button.setObjectName(text)
-        if text == 'nocs' or text == 'latlon':
+        if text == 'nocs' or text == 'texture':
             gradient_str = """
             background-color: qlineargradient(
                 spread:pad, x1:0, y1:0, x2:1, y2:1,
@@ -159,7 +159,7 @@ class MyMainWindow(MainWindow):
 
         # Add a QLabel as an overlay hint label
         self.hintLabel = QtWidgets.QLabel(self.plotter)
-        self.hintLabel.setText("Drag and drop a file here...")
+        self.hintLabel.setText("Drag and drop a file here (The feature only works on Windows)")
         self.hintLabel.setStyleSheet("""
                                     color: white; 
                                     background-color: rgba(0, 0, 0, 127); 

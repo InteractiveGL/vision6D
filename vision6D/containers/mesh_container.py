@@ -138,14 +138,17 @@ class MeshContainer:
                     mesh_data.pv_mesh.points = vertices
             else: utils.display_warning("Need to select a mesh object instead")
         else: utils.display_warning("Need to select a mesh actor first")
-      
+        
     def set_color(self, color, name):
         mesh_data = self.mesh_store.meshes[name]
         if color in self.mesh_store.colors:
             mesh_data.actor.GetMapper().SetScalarVisibility(0)
             mesh_data.actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
         else:
-            scalars = utils.color_mesh(mesh_data.pv_mesh.points, color=color)
+            if color == "nocs": scalars = utils.color_mesh_nocs(mesh_data.pv_mesh.points)
+            else: 
+                texture_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy)")
+                if texture_path: scalars = np.load(texture_path) / 255 # make sure the color range is from 0 to 1
             mesh = self.plotter.add_mesh(mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=mesh_data.opacity, name=name)
             mesh.user_matrix = mesh_data.actor.user_matrix
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=name)

@@ -66,8 +66,8 @@ class ImageStore(metaclass=Singleton):
             [0, 0, 1]
         ])
         
-        # Setting the view angle in degrees
-        view_angle = (180 / math.pi) * (2.0 * math.atan2(PLOT_SIZE[1]/2.0, self.fx)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+        # Setting the view angle in degrees, PLOT_SIZE[1] is the height of the image
+        view_angle = (180 / math.pi) * (2.0 * math.atan2(PLOT_SIZE[1]/2.0, self.fy)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
 
     def set_camera_props(self):
@@ -92,7 +92,7 @@ class ImageStore(metaclass=Singleton):
         self.cy = 538.2131876789998
         self.cam_viewup = (0, 0, 0)
         # set the object distance to the camera in world coordinate
-        self.object_distance = 1e-4 * self.fx
+        self.object_distance = 1e-4 * self.fy
         self.set_camera_props()
 
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):

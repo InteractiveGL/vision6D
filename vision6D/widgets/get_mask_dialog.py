@@ -46,10 +46,10 @@ class GetMaskDialog(QtWidgets.QDialog):
         mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
         if mask_path:
             self.mask_path = mask_path
-            if ".npy" in mask_path:
-                self.textEdit.setPlainText(f"{np.load(mask_path).squeeze()}")
+            if ".npy" in self.mask_path:
+                self.textEdit.setPlainText(f"{np.load(self.mask_path).squeeze()}")
             else:
-                self.textEdit.setPlainText(f"{mask_path}")
+                self.textEdit.setPlainText(f"{self.mask_path}")
 
     def get_text(self):
         return self.textEdit.toPlainText()
