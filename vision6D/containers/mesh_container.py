@@ -74,32 +74,18 @@ class MeshContainer:
             else: utils.display_warning("The mesh format is not supported!")
 
     def mirror_mesh(self, name, direction):
-        if self.mesh_store.toggle_anchor_mesh: name = self.mesh_store.reference
         mesh_data = self.mesh_store.meshes[name]
         if direction == 'x': mesh_data.mirror_x = not mesh_data.mirror_x
         elif direction == 'y': mesh_data.mirror_y = not mesh_data.mirror_y
         if mesh_data.initial_pose != np.eye(4): mesh_data.initial_pose = mesh_data.actor.user_matrix
-        if self.mesh_store.toggle_anchor_mesh:
-            transformation_matrix = mesh_data.initial_pose
-            if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            mesh_data.actor.user_matrix = transformation_matrix
-            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-            transformation_matrix[0, 0], transformation_matrix[0, 1], transformation_matrix[0, 2], transformation_matrix[0, 3], 
-            transformation_matrix[1, 0], transformation_matrix[1, 1], transformation_matrix[1, 2], transformation_matrix[1, 3], 
-            transformation_matrix[2, 0], transformation_matrix[2, 1], transformation_matrix[2, 2], transformation_matrix[2, 3],
-            transformation_matrix[3, 0], transformation_matrix[3, 1], transformation_matrix[3, 2], transformation_matrix[3, 3])
-            self.output_text.append("-> Mirrored transformation matrix is:")
-            self.output_text.append(text)
-        else:
-            transformation_matrix = mesh_data.actor.user_matrix
-            if mesh_data.mirror_x: 
-                transformation_matrix[0,0] = -1
-                mesh_data.mirror_x = False # very important
-            if mesh_data.mirror_y: 
-                transformation_matrix[1,1] = -1
-                mesh_data.mirror_y = False # very important
-            mesh_data.actor.user_matrix = transformation_matrix
+        transformation_matrix = mesh_data.actor.user_matrix
+        if mesh_data.mirror_x: 
+            transformation_matrix[0,0] = -1
+            mesh_data.mirror_x = False # very important
+        if mesh_data.mirror_y: 
+            transformation_matrix[1,1] = -1
+            mesh_data.mirror_y = False # very important
+        mesh_data.actor.user_matrix = transformation_matrix
         self.check_button(name=name, output_text=False)
         
     def add_mesh(self, mesh_data, transformation_matrix):
@@ -116,10 +102,6 @@ class MeshContainer:
         #* very important for mirroring
         self.check_button(name=mesh_data.name, output_text=False) 
         self.reset_camera()
-        
-    def anchor_mesh(self):
-        self.mesh_store.toggle_anchor_mesh = not self.mesh_store.toggle_anchor_mesh
-        self.check_button(name=self.mesh_store.reference, output_text=False)
         
     def set_spacing(self):
         checked_button = self.button_group_actors_names.checkedButton()
@@ -200,9 +182,7 @@ class MeshContainer:
 
     def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
         if matrix is None and (rot is not None and trans is not None): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-        if self.mesh_store.toggle_anchor_mesh:
-            for mesh_data in self.mesh_store.meshes.values(): mesh_data.initial_pose = matrix
-        else: self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
+        self.mesh_store.meshes[self.mesh_store.reference].initial_pose = matrix
         self.reset_gt_pose()
         
     def set_pose(self):
@@ -264,24 +244,15 @@ class MeshContainer:
         else: utils.display_warning("Choose a mesh actor first")
 
     def export_mesh_pose(self):
-        if self.mesh_store.toggle_anchor_mesh: 
-            mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
-            pose = mesh_data.actor.user_matrix
-            os.makedirs(PKG_ROOT.parent / "output" / "export_pose", exist_ok=True)
-            output_path = PKG_ROOT.parent / "output" / "export_pose" / ("_".join(mesh_data.name.split("_")[:2]) + "_gt_pose.npy")
-            self.update_gt_pose()
-            np.save(output_path, pose)
-            self.output_text.append(f"Export {mesh_data.name} pose to:\n {output_path}")
-        else:
-            for mesh_data in self.mesh_store.meshes.values():
-                verts, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
-                vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
-                os.makedirs(PKG_ROOT.parent / "output" / "export_mesh", exist_ok=True)
-                output_path = PKG_ROOT.parent / "output" / "export_mesh" / (mesh_data.name + '.ply')
-                mesh = trimesh.Trimesh(vertices, faces, process=False)
-                ply_file = trimesh.exchange.ply.export_ply(mesh)
-                with open(output_path, "wb") as fid: fid.write(ply_file)
-                self.output_text.append(f"Export {mesh_data.name} mesh to:\n {output_path}")
+        for mesh_data in self.mesh_store.meshes.values():
+            verts, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+            vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
+            os.makedirs(PKG_ROOT.parent / "output" / "export_mesh", exist_ok=True)
+            output_path = PKG_ROOT.parent / "output" / "export_mesh" / (mesh_data.name + '.ply')
+            mesh = trimesh.Trimesh(vertices, faces, process=False)
+            ply_file = trimesh.exchange.ply.export_ply(mesh)
+            with open(output_path, "wb") as fid: fid.write(ply_file)
+            self.output_text.append(f"Export {mesh_data.name} mesh to:\n {output_path}")
                 
     def export_mesh_render(self, save_render=True):
         image = None

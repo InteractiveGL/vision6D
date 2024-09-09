@@ -48,12 +48,10 @@ class MeshStore(metaclass=Singleton):
         self.color_button = None
         self.colors = ["wheat", "cyan", "magenta", "yellow", "lime", "dodgerblue", "white", "black"]
         self.latlon = utils.load_latitude_longitude()
-        self.toggle_anchor_mesh = True
 
     def reset(self): 
         self.mesh_path = None
         self.color_counter = 0
-        self.toggle_anchor_mesh = True
         self.meshes.clear()
 
     #^ Mesh related
@@ -142,6 +140,5 @@ class MeshStore(metaclass=Singleton):
             
     def undo_actor_pose(self, name):
         mesh_data = self.meshes[name]
-        if self.toggle_anchor_mesh: self.get_poses_from_undo(mesh_data)
-        else: self.get_vertices_from_undo(mesh_data)
+        self.get_poses_from_undo(mesh_data)
             

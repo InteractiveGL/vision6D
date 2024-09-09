@@ -153,7 +153,6 @@ class MyMainWindow(MainWindow):
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
 
-        self.anchor_button = QtWidgets.QPushButton("Anchor")
         self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.output_text = QtWidgets.QTextEdit()
 
@@ -224,7 +223,6 @@ class MyMainWindow(MainWindow):
                                         output_text=self.output_text)
         
         self.video_container = VideoContainer(plotter=self.plotter,
-                                            anchor_button=self.anchor_button,
                                             play_video_button=self.play_video_button, 
                                             hintLabel=self.hintLabel, 
                                             toggle_register=self.toggle_register,
@@ -471,16 +469,9 @@ class MyMainWindow(MainWindow):
 
         row, column = 0, 0
         
-        # Anchor button
-        self.anchor_button.setCheckable(True) # Set the button to be checkable so it is highlighted, very important
-        # self.anchor_button.setChecked(True)
-        self.anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
-        top_grid_layout.addWidget(self.anchor_button, row, column)
-        
         # Create the actor pose button
         actor_pose_button = QtWidgets.QPushButton("Set Pose")
         actor_pose_button.clicked.connect(self.mesh_container.set_pose)
-        row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(actor_pose_button, row, column)
 
         # Create the spacing button
@@ -689,22 +680,8 @@ class MyMainWindow(MainWindow):
             mesh_data.undo_poses = mesh_data.undo_poses[-20:]
         
     def toggle_register(self, pose):
-        if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
-        else: self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
+        self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
             
-    #* when there is no anchor, the base vertices changes when we move around the objects
-    def toggle_anchor(self, pose):
-        if self.mesh_store.toggle_anchor_mesh: self.register_pose(pose)
-        else:
-            for mesh_data in self.mesh_store.meshes.values():
-                verts, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
-                mesh_data.undo_vertices.append(verts)
-                mesh_data.undo_vertices = mesh_data.undo_vertices[-20:]
-                vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
-                mesh_data.pv_mesh.points = vertices
-                mesh_data.actor.user_matrix = np.eye(4)
-                mesh_data.initial_pose = np.eye(4) # if meshes are not anchored, then there the initial pose will always be np.eye(4)
-
     def check_button(self, name, output_text=True):  
         button = next((btn for btn in self.button_group_actors_names.buttons() if btn.text() == name), None)
         if button:
@@ -715,7 +692,6 @@ class MyMainWindow(MainWindow):
         if name in self.mesh_store.meshes:
             self.mesh_store.reference = name
             mesh_data = self.mesh_store.meshes[name]
-            self.toggle_anchor(mesh_data.actor.user_matrix)
             text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
             mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
             mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
@@ -858,8 +834,6 @@ class MyMainWindow(MainWindow):
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
                     for path in mesh_path: self.mesh_container.add_mesh_file(path)
                 if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
-                self.anchor_button.setCheckable(False)
-                self.anchor_button.setEnabled(False)
                 self.play_video_button.setEnabled(False)
                 self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
                 self.image_store.reset_camera()
@@ -947,9 +921,6 @@ class MyMainWindow(MainWindow):
         self.track_actors_names.clear()
         self.reset_output_text()
 
-        self.anchor_button.setCheckable(True)
-        self.anchor_button.setChecked(True)
-        self.anchor_button.setEnabled(True)
         self.play_video_button.setEnabled(True)
         self.play_video_button.setText("Play Video")
         
