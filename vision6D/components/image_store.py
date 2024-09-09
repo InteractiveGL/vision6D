@@ -37,10 +37,16 @@ class ImageStore(metaclass=Singleton):
         self.opacity_spinbox = None
         self.width = None
         self.height = None
-        self.fx = None
-        self.fy = None
-        self.cx = None
-        self.cy = None
+        # self.fx = None
+        # self.fy = None
+        # self.cx = None
+        # self.cy = None
+        # self.cam_viewup = None
+        self.fx = 572.4114
+        self.fy = 573.57043
+        self.cx = 325.2611
+        self.cy = 242.04899
+        self.cam_viewup = (0, -1, 0)
         self.object_distance = 100
 
     #^ Camera related
@@ -55,7 +61,7 @@ class ImageStore(metaclass=Singleton):
 
     def set_camera_extrinsics(self):
         self.camera.SetPosition((0, 0, -1e-8)) # Set the camera position at the origin of the world coordinate system
-        self.camera.SetFocalPoint((*self.camera.GetWindowCenter(),0)) # Get the camera window center
+        self.camera.SetFocalPoint((0, 0, 0)) # Get the camera window center
         self.camera.SetViewUp(self.cam_viewup)
     
     def set_camera_intrinsics(self):
@@ -85,16 +91,9 @@ class ImageStore(metaclass=Singleton):
     
     #^ Image related
     def add_image(self, image_source):
-        # set default camera intrinsics
-        self.fx = 18466.768907841793
-        self.fy = 19172.02089833029
-        self.cx = 954.4324739015676
-        self.cy = 538.2131876789998
-        self.cam_viewup = (0, 0, 0)
         # set the object distance to the camera in world coordinate
-        self.object_distance = 1e-4 * self.fy
         self.set_camera_props()
-
+        self.object_distance = 1e-4 * self.fy
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
@@ -106,7 +105,8 @@ class ImageStore(metaclass=Singleton):
         2. 3D Coordinate Systems: In a right-handed 3D coordinate system, the y-axis typically points upwards. 
         So, when we visualize a 2D image in a 3D space without adjustments, the image will appear flipped along the horizontal axis.
         """
-        image_source = np.fliplr(np.flipud(image_source))
+        if self.cam_viewup == (0, 0, 0): image_source = np.fliplr(np.flipud(image_source))
+        elif self.cam_viewup == (0, -1, 0): image_source = image_source
         
         #^ save the image_source for mirroring image in the video
         self.image_source = copy.deepcopy(image_source)
@@ -128,7 +128,16 @@ class ImageStore(metaclass=Singleton):
         self.image_pv = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[1e-4, 1e-4, 1], origin=(0.0, 0.0, 0.0))
         self.image_pv.point_data["values"] = image_source.reshape((self.width * self.height, channel)) # order = 'C
         self.image_pv = self.image_pv.translate(-1 * np.array(self.image_pv.center), inplace=False) # center the image at (0, 0)
-        self.image_pv.translate(np.array([0, 0, self.object_distance]), inplace=True) # move the image to the camera distance
+        """
+        Do not need fx and fy (the focal lengths) for this calculation 
+        because we are simply computing the offset of the principal point (cx, cy) in pixel space relative to 
+        the center of the image and converting that to world space using the image spacing (1e-4).
+        Note that if image spacing is [1e-4, 1e-4], it means that each pixel in the x and y directions corresponds to a world unit of 1e-4 in those directions.
+        """
+        cx_offset = (self.cx - (PLOT_SIZE[0] / 2.0)) * 1e-4
+        cy_offset = (self.cy - (PLOT_SIZE[1] / 2.0)) * 1e-4
+        print(f"Image Origin: {cx_offset, cy_offset}")
+        self.image_pv.translate(np.array([-cx_offset, -cy_offset, self.object_distance]), inplace=True) # move the image to the camera distance
         
         return self.image_pv, image_source, channel
         

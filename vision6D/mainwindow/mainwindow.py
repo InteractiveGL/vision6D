@@ -473,7 +473,7 @@ class MyMainWindow(MainWindow):
         
         # Anchor button
         self.anchor_button.setCheckable(True) # Set the button to be checkable so it is highlighted, very important
-        self.anchor_button.setChecked(True)
+        # self.anchor_button.setChecked(True)
         self.anchor_button.clicked.connect(self.mesh_container.anchor_mesh)
         top_grid_layout.addWidget(self.anchor_button, row, column)
         
