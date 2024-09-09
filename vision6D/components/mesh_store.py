@@ -33,8 +33,8 @@ class MeshData:
     spacing: List[float] = field(default_factory=[1, 1, 1])
     mirror_x: bool = False
     mirror_y: bool = False
-    opacity: float = 1.0
-    previous_opacity: float = 1.0
+    opacity: float = 0.9
+    previous_opacity: float = 0.9
     initial_pose: np.ndarray = np.eye(4)
     undo_poses: List[np.ndarray] = field(default_factory=list)
     undo_vertices: List[np.ndarray] = field(default_factory=list)
@@ -77,8 +77,10 @@ class MeshStore(metaclass=Singleton):
             pv_mesh = pv.wrap(source_mesh)
         
         if source_mesh is not None:
+            name = pathlib.Path(mesh_path).stem
+            while name in self.meshes.keys(): name += "_copy"
             mesh_data = MeshData(mesh_path=mesh_path,
-                                name=pathlib.Path(mesh_path).stem + "_mesh", 
+                                name=name, 
                                 source_mesh=source_mesh, 
                                 pv_mesh=pv_mesh,
                                 color_button=None,
@@ -127,16 +129,6 @@ class MeshStore(metaclass=Singleton):
         while mesh_data.undo_poses and (transformation_matrix == mesh_data.actor.user_matrix).all(): 
             transformation_matrix = mesh_data.undo_poses.pop()
         mesh_data.actor.user_matrix = transformation_matrix
-        
-    def get_vertices_from_undo(self, mesh_data):
-        # Get the vertices and faces
-        vertices, _ = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
-        # If there are undo vertices, get the most recent set that is different from the current vertices
-        verts = mesh_data.undo_vertices.pop()  # initialize verts with current vertices
-        while mesh_data.undo_vertices and (verts == vertices).all(): 
-            verts = mesh_data.undo_vertices.pop()
-        mesh_data.pv_mesh.points = verts
-        mesh_data.actor.user_matrix = np.eye(4)
             
     def undo_actor_pose(self, name):
         mesh_data = self.meshes[name]

@@ -356,21 +356,6 @@ class MyMainWindow(MainWindow):
         FolderMenu.addAction('Prev', self.folder_container.prev_info)
         FolderMenu.addAction('Next', self.folder_container.next_info)
 
-        # Add camera related actions
-        CameraMenu = mainMenu.addMenu('Camera')
-        CameraMenu.addAction('Set Camera', self.image_container.set_camera)
-        CameraMenu.addAction('Reset Camera (c)', self.image_store.reset_camera)
-        CameraMenu.addAction('Zoom In (x)', self.image_store.zoom_in)
-        CameraMenu.addAction('Zoom Out (z)', self.image_store.zoom_out)
-        CameraMenu.addAction('Calibrate', self.image_container.camera_calibrate)
-
-        # Add pose related actions
-        PoseMenu = mainMenu.addMenu('Pose')
-        PoseMenu.addAction('Set Pose', self.mesh_container.set_pose)
-        PoseMenu.addAction('Reset GT Pose (k)', self.mesh_container.reset_gt_pose)
-        PoseMenu.addAction('Update GT Pose (l)', self.mesh_container.update_gt_pose)
-        PoseMenu.addAction('Undo Pose (s)', self.mesh_container.undo_actor_pose)
-
         # Add pnp algorithm related actions
         PnPMenu = mainMenu.addMenu('PnP')
         PnPMenu.addAction('EPnP with mesh', self.pnp_container.epnp_mesh)
@@ -453,7 +438,29 @@ class MyMainWindow(MainWindow):
             row += 1
             column = 0
         return row, column
-        
+    
+    def on_camera_options_selection_change(self, option):
+        if option == "Set Camera":
+            self.image_container.set_camera()
+        elif option == "Reset Camera (c)":
+            self.image_store.reset_camera()
+        elif option == "Zoom In (x)":
+            self.image_store.zoom_in()
+        elif option == "Zoom Out (z)":
+            self.image_store.zoom_out()
+        elif option == "Calibrate":
+            self.image_container.camera_calibrate()
+    
+    def on_pose_options_selection_change(self, option):
+        if option == "Set Pose":
+            self.mesh_container.set_pose()
+        elif option == "Reset GT Pose (k)":
+            self.mesh_container.reset_gt_pose()
+        elif option == "Update GT Pose (l)":
+            self.mesh_container.update_gt_pose()
+        elif option == "Undo Pose (s)":
+            self.mesh_container.undo_actor_pose()
+
     #^ Panel Display
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
@@ -468,11 +475,27 @@ class MyMainWindow(MainWindow):
         top_grid_layout = QtWidgets.QGridLayout()
 
         row, column = 0, 0
-        
-        # Create the actor pose button
-        actor_pose_button = QtWidgets.QPushButton("Set Pose")
-        actor_pose_button.clicked.connect(self.mesh_container.set_pose)
-        top_grid_layout.addWidget(actor_pose_button, row, column)
+
+        # Create a QPushButton that will act as a drop-down button and QMenu to act as the drop-down menu
+        self.camera_options_button = QtWidgets.QPushButton("Camera")
+        self.camera_options_menu = QtWidgets.QMenu()
+        self.camera_options_menu.addAction("Set Camera", lambda: self.on_camera_options_selection_change("Set Camera"))
+        self.camera_options_menu.addAction("Reset Camera (c)", lambda: self.on_camera_options_selection_change("Reset Camera (c)"))
+        self.camera_options_menu.addAction("Zoom In (x)", lambda: self.on_camera_options_selection_change("Zoom In (x)"))
+        self.camera_options_menu.addAction("Zoom Out (z)", lambda: self.on_camera_options_selection_change("Zoom Out (z)"))
+        self.camera_options_menu.addAction("Calibrate", lambda: self.on_camera_options_selection_change("Calibrate"))
+        self.camera_options_button.setMenu(self.camera_options_menu)
+        top_grid_layout.addWidget(self.camera_options_button, row, column)
+
+        self.pose_options_button = QtWidgets.QPushButton("Pose")
+        self.pose_options_menu = QtWidgets.QMenu()
+        self.pose_options_menu.addAction("Set Pose", lambda: self.on_pose_options_selection_change("Set Pose"))
+        self.pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.on_pose_options_selection_change("Reset GT Pose (k)"))
+        self.pose_options_menu.addAction("Update GT Pose (l)", lambda: self.on_pose_options_selection_change("Update GT Pose (l)"))
+        self.pose_options_menu.addAction("Undo Pose (s)", lambda: self.on_pose_options_selection_change("Undo Pose (s)"))
+        self.pose_options_button.setMenu(self.pose_options_menu)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.pose_options_button, row, column)
 
         # Create the spacing button
         self.spacing_button = QtWidgets.QPushButton("Spacing")
