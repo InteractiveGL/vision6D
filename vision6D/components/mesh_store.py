@@ -35,7 +35,7 @@ class MeshData:
     mirror_y: bool = False
     opacity: float = 0.9
     previous_opacity: float = 0.9
-    initial_pose: np.ndarray = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]])
+    initial_pose: np.ndarray = field(default_factory=lambda: np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]))
     undo_poses: List[np.ndarray] = field(default_factory=list)
     undo_vertices: List[np.ndarray] = field(default_factory=list)
 
