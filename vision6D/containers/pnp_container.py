@@ -84,16 +84,16 @@ class PnPContainer:
             if colors is not None and (not np.all(colors == colors[0])):
                 color_mask = self.export_mesh_render(save_render=False)
                 gt_pose = mesh_data.actor.user_matrix
-                if mesh_data.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
-                if mesh_data.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ gt_pose
+                if mesh_data.mirror_x: gt_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]) @ gt_pose
+                if mesh_data.mirror_y: gt_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]) @ gt_pose
 
                 if color_mask is not None and np.sum(color_mask):
                     if mesh_data.color == 'nocs':
                         vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
                         mesh = trimesh.Trimesh(vertices, faces, process=False)
                         predicted_pose = self.nocs_epnp(color_mask, mesh)
-                        if mesh_data.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-                        if mesh_data.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                        if mesh_data.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+                        if mesh_data.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
                         angular_distance = utils.angler_distance(predicted_pose[:3, :3], gt_pose[:3, :3])
                         translation_error = np.linalg.norm(predicted_pose[:3, 3] - gt_pose[:3, 3])
                         self.output_text.append(f"Predicted pose with NOCS color: ")
@@ -140,8 +140,8 @@ class PnPContainer:
     def epnp_mask_nocs_theme(self, mesh_data, color_mask, mesh):
         color_theme = 'NOCS'
         predicted_pose = self.nocs_epnp(color_mask, mesh)
-        if mesh_data.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-        if mesh_data.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        if mesh_data.mirror_x: predicted_pose = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]])
+        if mesh_data.mirror_y: predicted_pose = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]) @ predicted_pose @ np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]])
         return color_theme, predicted_pose
     
     def epnp_mask_latlon_theme(self, mesh_data, color_mask, mesh):

@@ -206,7 +206,7 @@ def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics):
     pts3d = pts3d.astype('float32')
     camera_intrinsics = camera_intrinsics.astype('float32')
 
-    predicted_pose = np.eye(4)
+    predicted_pose = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]])
     if pts2d.shape[0] > 4:
         # Use EPNP, inliers are the indices of the inliers
         success, rotation_vector, translation_vector, inliers = cv2.solvePnPRansac(pts3d, pts2d, camera_intrinsics, distCoeffs=np.zeros((4, 1)), confidence=0.999, flags=cv2.SOLVEPNP_EPNP)
@@ -216,7 +216,7 @@ def solve_epnp_cv2(pts2d, pts3d, camera_intrinsics):
             predicted_pose[:3, 3] = coordinate_change @ np.squeeze(translation_vector)
     return predicted_pose
 
-def transform_vertices(vertices, transformation_matrix=np.eye(4)):
+def transform_vertices(vertices, transformation_matrix=np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]])):
 
     ones = np.ones((vertices.shape[0], 1))
     homogeneous_vertices = np.append(vertices, ones, axis=1)
