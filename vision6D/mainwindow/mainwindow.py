@@ -175,7 +175,7 @@ class MyMainWindow(MainWindow):
                 
         # Set bars
         self.set_panel_bar()
-        self.set_menu_bars()
+        # self.set_menu_bars()
 
         # Set up the main layout with the left panel and the render window using QSplitter
         self.main_layout = QtWidgets.QHBoxLayout(self.main_widget)
@@ -246,12 +246,28 @@ class MyMainWindow(MainWindow):
                                             track_actors_names=self.track_actors_names, 
                                             add_button_actor_name=self.add_button_actor_name,
                                             output_text=self.output_text)
+        
+    def toggle_opacity(self):
+        if self.mesh_store.meshes[self.mesh_store.reference].opacity == 1.0: 
+            self.mesh_store.meshes[self.mesh_store.reference].opacity = 0.0
+            self.image_store.image_opacity = 1.0
+        elif self.mesh_store.meshes[self.mesh_store.reference].opacity == 0.9:
+            self.mesh_store.meshes[self.mesh_store.reference].opacity = 1.0
+            self.image_store.image_opacity = 0.0
+        else:
+            self.mesh_store.meshes[self.mesh_store.reference].opacity = 0.9
+            self.image_store.image_opacity = 0.9
+        self.image_store.image_actor.GetProperty().opacity = self.image_store.image_opacity
+        self.image_store.opacity_spinbox.setValue(self.image_store.image_opacity)
+        self.mesh_store.meshes[self.mesh_store.reference].opacity_spinbox.setValue(self.mesh_store.meshes[self.mesh_store.reference].opacity)
 
     def key_bindings(self):
         # Camera related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.image_store.reset_camera)
-        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.image_store.zoom_out)
-        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.image_store.zoom_in)
+        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.toggle_opacity)
+        # QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.image_store.zoom_out)
+        # QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.image_store.zoom_in)
+        
 
         # # Mask related key bindings
         # QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.mask_container.reset_mask)
@@ -319,9 +335,9 @@ class MyMainWindow(MainWindow):
         self.hintLabel.move(x, y)
         super().resizeEvent(e)
 
-    # ^Menu
-    def set_menu_bars(self):
-        mainMenu = self.menuBar()
+    # # ^Menu
+    # def set_menu_bars(self):
+    #     mainMenu = self.menuBar()
         
         # # allow to add files
         # fileMenu = mainMenu.addMenu('File')
@@ -772,8 +788,8 @@ class MyMainWindow(MainWindow):
             mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
             mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
             if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
-        else:
-            self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
+        # else:
+        #     self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
 
     def add_button_actor_name(self, name):
         button_widget = CustomButtonWidget(name)
