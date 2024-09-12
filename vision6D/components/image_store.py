@@ -136,7 +136,7 @@ class ImageStore(metaclass=Singleton):
         """
         cx_offset = (self.cx - (PLOT_SIZE[0] / 2.0)) * 1e-4
         cy_offset = (self.cy - (PLOT_SIZE[1] / 2.0)) * 1e-4
-        print(f"Image Origin: {cx_offset, cy_offset}")
+        # print(f"Image Origin: {cx_offset, cy_offset}")
         self.image_pv.translate(np.array([-cx_offset, -cy_offset, self.object_distance]), inplace=True) # move the image to the camera distance
         
         return self.image_pv, image_source, channel
