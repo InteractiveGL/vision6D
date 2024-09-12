@@ -589,7 +589,9 @@ class MyMainWindow(MainWindow):
         self.display.setLayout(display_layout)
         self.panel_layout.addWidget(self.display)
 
-        self.workspace_paths = ['workspace/obj_000001.json', 'workspace/obj_000002.json', 'workspace/obj_000004.json', 'workspace/obj_000005.json', 'workspace/obj_000007.json', 'workspace/obj_000009.json', 'workspace/obj_000011.json', 'workspace/obj_000013.json', 'workspace/obj_000014.json', 'workspace/obj_000015.json']
+        self.workspace_paths = ['workspace/obj_000001.json', 'workspace/obj_000002.json', 'workspace/obj_000004.json', 'workspace/obj_000005.json', 'workspace/obj_000007.json', 'workspace/obj_000009.json', 'workspace/obj_000011.json', 'workspace/obj_000013.json', 'workspace/obj_000014.json', 'workspace/obj_000015.json',
+                                'workspace/obj_000014.json', 'workspace/obj_000005.json', 'workspace/obj_000013.json', 'workspace/obj_000002.json', 'workspace/obj_000007.json', 'workspace/obj_000001.json', 'workspace/obj_000011.json', 'workspace/obj_000004.json', 'workspace/obj_000015.json', 'workspace/obj_000009.json',
+                                'workspace/obj_000009.json', 'workspace/obj_000011.json', 'workspace/obj_000001.json', 'workspace/obj_000013.json', 'workspace/obj_000014.json', 'workspace/obj_000015.json', 'workspace/obj_000007.json', 'workspace/obj_000002.json', 'workspace/obj_000004.json', 'workspace/obj_000005.json']
         
         self.cnt = 0
 
@@ -758,6 +760,7 @@ class MyMainWindow(MainWindow):
 
     def show_plot(self):
         self.plotter.enable_trackball_actor_style()
+        self.plotter.enable_fly_to_right_click()
         self.plotter.add_axes(color='white') 
         self.plotter.add_camera_orientation_widget()
         self.plotter.show()

@@ -46,7 +46,7 @@ class MeshStore(metaclass=Singleton):
         self.meshes: Dict[str, MeshData] = {}
         self.color_counter = 0
         self.color_button = None
-        self.colors = ["magenta"]
+        self.colors = ["wheat"]
         self.latlon = utils.load_latitude_longitude()
 
     def reset(self): 
