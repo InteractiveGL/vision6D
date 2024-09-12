@@ -133,6 +133,7 @@ output/
 .vscode/
 vision6D/data/model
 vision6D/data/mesh
+ztrashcan
 
 docs/build
 
