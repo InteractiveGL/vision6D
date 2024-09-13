@@ -51,18 +51,18 @@ class ImageStore(metaclass=Singleton):
         # self.cam_viewup = (0, -1, 0)
 
         # handal dataset camera parameters
-        # self.fx = 1589.958
-        # self.fy = 1590.548
-        # self.cx = 957.475
-        # self.cy = 714.920
-        # self.cam_viewup = (0, -1, 0)
+        self.fx = 1589.958
+        self.fy = 1590.548
+        self.cx = 957.475
+        self.cy = 714.920
+        self.cam_viewup = (0, -1, 0)
 
         # hb dataset camera parameters
-        self.fx = 537.4799
-        self.fy = 536.1447
-        self.cx = 318.8965
-        self.cy = 238.3781
-        self.cam_viewup = (0, -1, 0)
+        # self.fx = 537.4799
+        # self.fy = 536.1447
+        # self.cx = 318.8965
+        # self.cy = 238.3781
+        # self.cam_viewup = (0, -1, 0)
 
     #^ Camera related
     def reset_camera(self):
