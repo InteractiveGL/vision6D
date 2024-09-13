@@ -501,12 +501,20 @@ class MyMainWindow(MainWindow):
         # self.workspace_paths = ['workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000005.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000009.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000015.json',
         #                         'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000005.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000015.json', 'workspace/linemod/obj_000009.json',
         #                         'workspace/linemod/obj_000009.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000015.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000005.json']
+        # self.camera_intrinsics = 'linemod'
 
-        # session two: test for the hb dataset
-        self.workspace_paths = ['workspace/hb/obj_000001.json', 'workspace/hb/obj_000002.json', 'workspace/hb/obj_000003.json', 'workspace/hb/obj_000004.json', 'workspace/hb/obj_000005.json', 'workspace/linemod/obj_000011.json', 'workspace/hb/obj_000012.json', 'workspace/hb/obj_000015.json', 'workspace/hb/obj_000020.json', 'workspace/hb/obj_000032.json']
-                                
-        
-        
+        # # session two: test for the hb dataset
+        # self.workspace_paths = ['workspace/hb/obj_000001.json', 'workspace/hb/obj_000002.json', 'workspace/hb/obj_000003.json', 'workspace/hb/obj_000004.json', 'workspace/hb/obj_000005.json', 'workspace/hb/obj_000011.json', 'workspace/hb/obj_000012.json', 'workspace/hb/obj_000015.json', 'workspace/hb/obj_000020.json', 'workspace/hb/obj_000032.json',
+        #                         'workspace/hb/obj_000011.json', 'workspace/hb/obj_000032.json', 'workspace/hb/obj_000001.json', 'workspace/hb/obj_000020.json', 'workspace/hb/obj_000002.json', 'workspace/hb/obj_000003.json', 'workspace/hb/obj_000012.json', 'workspace/hb/obj_000004.json', 'workspace/hb/obj_000005.json', 'workspace/hb/obj_000015.json',
+        #                         'workspace/hb/obj_000005.json', 'workspace/hb/obj_000011.json', 'workspace/hb/obj_000012.json', 'workspace/hb/obj_000001.json', 'workspace/hb/obj_000032.json', 'workspace/hb/obj_000002.json', 'workspace/hb/obj_000003.json', 'workspace/hb/obj_000015.json', 'workspace/hb/obj_000004.json', 'workspace/hb/obj_000020.json']
+        # self.camera_intrinsics = 'hb'
+
+        # session three: test for the handal dataset
+        self.workspace_paths = ['workspace/handal/obj_000002.json', 'workspace/handal/obj_000006.json', 'workspace/handal/obj_000009.json', 'workspace/handal/obj_000010.json', 'workspace/handal/obj_000011.json', 'workspace/handal/obj_000012.json', 'workspace/handal/obj_000028.json', 'workspace/handal/obj_000029.json', 'workspace/handal/obj_000031.json', 'workspace/handal/obj_000037.json',
+                                'workspace/handal/obj_000037.json', 'workspace/handal/obj_000002.json', 'workspace/handal/obj_000029.json', 'workspace/handal/obj_000010.json', 'workspace/handal/obj_000028.json', 'workspace/handal/obj_000006.json', 'workspace/handal/obj_000012.json', 'workspace/handal/obj_000009.json', 'workspace/handal/obj_000031.json', 'workspace/handal/obj_000011.json',
+                                'workspace/handal/obj_000002.json', 'workspace/handal/obj_000037.json', 'workspace/handal/obj_000031.json', 'workspace/handal/obj_000012.json', 'workspace/handal/obj_000006.json', 'workspace/handal/obj_000009.json', 'workspace/handal/obj_000011.json', 'workspace/handal/obj_000029.json', 'workspace/handal/obj_000010.json', 'workspace/handal/obj_000028.json']
+        self.camera_intrinsics = 'handal'
+
         self.save_button = QtWidgets.QPushButton(f"Save ({self.cnt + 1}/{len(self.workspace_paths)})")
         self.save_button.clicked.connect(self.save_and_move_to_next)
         top_grid_layout.addWidget(self.save_button, row, column)
@@ -605,7 +613,7 @@ class MyMainWindow(MainWindow):
         self.uid = uuid.uuid4()
         self.start_time = time.time()
         self.is_paused = False
-        self.add_workspace(workspace_path=self.workspace_paths[self.cnt])
+        self.add_workspace(workspace_path=self.workspace_paths[self.cnt], camera_intrinsics=self.camera_intrinsics)
         self.cnt += 1
         
     def save_and_move_to_next(self):
@@ -615,7 +623,7 @@ class MyMainWindow(MainWindow):
         self.df = pd.concat([self.df, new_row], ignore_index=True)
         self.df.to_excel(f'user_study/sub_{self.uid}.xlsx', index=False, engine='openpyxl')
         if self.cnt < len(self.workspace_paths):
-            self.add_workspace(workspace_path=self.workspace_paths[self.cnt])
+            self.add_workspace(workspace_path=self.workspace_paths[self.cnt], camera_intrinsics=self.camera_intrinsics)
             self.cnt += 1
             self.start_time = time.time()
             self.save_button.setText(f"Save ({self.cnt}/{len(self.workspace_paths)})")
@@ -887,8 +895,27 @@ class MyMainWindow(MainWindow):
     def reset_output_text(self):
         self.output_text.clear()
 
-    def add_workspace(self, workspace_path='', prompt=False):
+    def add_workspace(self, workspace_path='', prompt=False, camera_intrinsics=''):
         self.clear_plot() # clear out everything before loading a workspace
+        if camera_intrinsics == 'hb': 
+            self.image_store.fx = 537.4799
+            self.image_store.fy = 536.1447
+            self.image_store.cx = 318.8965
+            self.image_store.cy = 238.3781
+            self.image_store.cam_viewup = (0, -1, 0)
+        elif camera_intrinsics == 'handal': 
+            self.image_store.fx = 1589.958
+            self.image_store.fy = 1590.548
+            self.image_store.cx = 957.475
+            self.image_store.cy = 714.920
+            self.image_store.cam_viewup = (0, -1, 0)
+        elif camera_intrinsics == 'linemod':
+            self.image_store.fx = 572.4114
+            self.image_store.fy = 573.57043
+            self.image_store.cx = 325.2611
+            self.image_store.cy = 242.04899
+            self.image_store.cam_viewup = (0, -1, 0)
+
         self.workspace_path = workspace_path
         self.hintLabel.hide()
         with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
