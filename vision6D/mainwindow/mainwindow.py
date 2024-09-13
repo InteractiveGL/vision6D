@@ -193,8 +193,6 @@ class MyMainWindow(MainWindow):
     def initial_containers(self):
 
         # set up the camera props
-        # self.image_store.set_camera_props()
-        
         self.image_container = ImageContainer(plotter=self.plotter, 
                                             hintLabel=self.hintLabel,
                                             track_actors_names=self.track_actors_names, 

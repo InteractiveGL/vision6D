@@ -62,7 +62,15 @@ class ImageContainer:
             if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == ''):
                 try:
                     self.image_store.fx, self.image_store.fy, self.image_store.cx, self.image_store.cy, self.image_store.cam_viewup = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup)
-                    self.image_store.set_camera_props()
+                    self.image_store.set_camera_intrinsics()
+                    self.image_store.set_camera_extrinsics()
+                    self.image_store.image_pv.translate(np.array([self.image_store.cx_offset, self.image_store.cy_offset, -self.image_store.object_distance]), inplace=True) # reset the image position
+                    self.image_store.object_distance = 1e-4 * self.image_store.fy # set the frame distance to the camera
+                    self.image_store.cx_offset = (self.image_store.cx - (self.image_store.width / 2.0)) * 1e-4
+                    self.image_store.cy_offset = (self.image_store.cy - (self.image_store.height / 2.0)) * 1e-4
+                    print(f"Image New Origin: {self.image_store.cx_offset, self.image_store.cy_offset}")
+                    self.image_store.image_pv.translate(np.array([-self.image_store.cx_offset, -self.image_store.cy_offset, self.image_store.object_distance]), inplace=True) # move the image to the camera distance
+                    self.image_store.reset_camera()
                 except:
                     self.image_store.fx, self.image_store.fy, self.image_store.cx, self.image_store.cy, self.image_store.cam_viewup = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup
                     utils.display_warning("Error occured, check the format of the input values")

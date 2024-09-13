@@ -50,10 +50,18 @@ class ImageStore(metaclass=Singleton):
         # self.cy = 242.04899
         # self.cam_viewup = (0, -1, 0)
 
-        self.fx = 1589.958
-        self.fy = 1590.548
-        self.cx = 957.475
-        self.cy = 714.920
+        # handal dataset camera parameters
+        # self.fx = 1589.958
+        # self.fy = 1590.548
+        # self.cx = 957.475
+        # self.cy = 714.920
+        # self.cam_viewup = (0, -1, 0)
+
+        # hb dataset camera parameters
+        self.fx = 537.4799
+        self.fy = 536.1447
+        self.cx = 318.8965
+        self.cy = 238.3781
         self.cam_viewup = (0, -1, 0)
 
     #^ Camera related
@@ -85,8 +93,8 @@ class ImageStore(metaclass=Singleton):
 
     def set_camera_props(self):
         self.set_camera_intrinsics()
-        self.object_distance = 1e-4 * self.fy # set the frame distance to the camera
         self.set_camera_extrinsics()
+        self.object_distance = 1e-4 * self.fy # set the frame distance to the camera
         self.reset_camera()
 
     #^ Set the plot size and update the camera intrinsics
@@ -101,7 +109,6 @@ class ImageStore(metaclass=Singleton):
     def add_image(self, image_source):
         # set the object distance to the camera in world coordinate
         self.set_camera_props()
-        # self.object_distance = 1e-4 * self.fy
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
@@ -142,10 +149,10 @@ class ImageStore(metaclass=Singleton):
         the center of the image and converting that to world space using the image spacing (1e-4).
         Note that if image spacing is [1e-4, 1e-4], it means that each pixel in the x and y directions corresponds to a world unit of 1e-4 in those directions.
         """
-        cx_offset = (self.cx - (PLOT_SIZE[0] / 2.0)) * 1e-4
-        cy_offset = (self.cy - (PLOT_SIZE[1] / 2.0)) * 1e-4
-        print(f"Image Origin: {cx_offset, cy_offset}")
-        self.image_pv.translate(np.array([-cx_offset, -cy_offset, self.object_distance]), inplace=True) # move the image to the camera distance
+        self.cx_offset = (self.cx - (self.width / 2.0)) * 1e-4
+        self.cy_offset = (self.cy - (self.height / 2.0)) * 1e-4
+        print(f"Image Origin: {self.cx_offset, self.cy_offset}")
+        self.image_pv.translate(np.array([-self.cx_offset, -self.cy_offset, self.object_distance]), inplace=True) # move the image to the camera distance
         
         return self.image_pv, image_source, channel
         
