@@ -42,12 +42,19 @@ class ImageStore(metaclass=Singleton):
         # self.cx = None
         # self.cy = None
         # self.cam_viewup = None
-        self.fx = 572.4114
-        self.fy = 573.57043
-        self.cx = 325.2611
-        self.cy = 242.04899
+
+        # linemod dataset camera parameters
+        # self.fx = 572.4114
+        # self.fy = 573.57043
+        # self.cx = 325.2611
+        # self.cy = 242.04899
+        # self.cam_viewup = (0, -1, 0)
+
+        self.fx = 1589.958
+        self.fy = 1590.548
+        self.cx = 957.475
+        self.cy = 714.920
         self.cam_viewup = (0, -1, 0)
-        self.object_distance = 100
 
     #^ Camera related
     def reset_camera(self):
@@ -78,6 +85,7 @@ class ImageStore(metaclass=Singleton):
 
     def set_camera_props(self):
         self.set_camera_intrinsics()
+        self.object_distance = 1e-4 * self.fy # set the frame distance to the camera
         self.set_camera_extrinsics()
         self.reset_camera()
 
@@ -93,7 +101,7 @@ class ImageStore(metaclass=Singleton):
     def add_image(self, image_source):
         # set the object distance to the camera in world coordinate
         self.set_camera_props()
-        self.object_distance = 1e-4 * self.fy
+        # self.object_distance = 1e-4 * self.fy
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')

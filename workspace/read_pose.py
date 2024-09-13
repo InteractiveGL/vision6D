@@ -15,7 +15,38 @@ def convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1e-3):
     
     return T
 
-if __name__ == "__main__":
+def compute_transformation_matrix(data):
+    """
+    Computes the 4x4 transformation matrix from the given JSON data.
+    
+    Parameters:
+        data (dict): A dictionary containing 'cam_R_m2c', 'cam_t_m2c', and 'obj_id'.
+        
+    Returns:
+        tuple: A tuple containing the 4x4 transformation matrix and the object ID.
+    """
+    # Extract rotation and translation
+    cam_R_m2c = data.get('cam_R_m2c')
+    cam_t_m2c = data.get('cam_t_m2c')
+    obj_id = data.get('obj_id')
+    
+    if cam_R_m2c is None or cam_t_m2c is None or obj_id is None:
+        raise ValueError("JSON data must contain 'cam_R_m2c', 'cam_t_m2c', and 'obj_id'.")
+
+    # Reshape rotation matrix
+    R = np.array(cam_R_m2c).reshape(3, 3)
+    
+    # Translation vector
+    t = np.array(cam_t_m2c).reshape(3, 1) * 1e-3
+    
+    # Construct the 4x4 transformation matrix
+    T = np.eye(4)
+    T[:3, :3] = R
+    T[:3, 3] = t.flatten()
+    
+    return T, obj_id
+
+def process_lmo_scene_gt():
     with open('workspace/lmo_scene_gt.json') as f: data = json.load(f)
 
     category = 3
@@ -47,12 +78,29 @@ if __name__ == "__main__":
         [[ 0.94893088,  0.30725587, -0.07208124,  0.13436598],
         [ 0.24200515, -0.85502122, -0.45872652,  0.04577287],
         [-0.20257109,  0.41784038, -0.88568011,  0.96478389],
-        [ 0.        ,  0.        ,  0.        ,  1.        ]]
-        Object ID 6:
-        [[ 0.29703922, -0.93721834, -0.18306752,  0.1152754 ],
-        [-0.93800115, -0.25040691, -0.23999963, -0.31364749],
-        [ 0.1790886 ,  0.24300114, -0.95341102,  1.21961181],
-        [ 0.        ,  0.        ,  0.        ,  1.        ]]
+        [ 0.        ,  0.        ,  0json_data = '''
+    {
+        "cam_R_m2c": [
+            0.10129456886055979, 0.9189831447333948, -0.3810634986656045,
+            -0.7756012795391442, -0.1669324403572813, -0.6087497150172678,
+            -0.6230425872254604, 0.3572163770773676, 0.6958551533552954
+        ],
+        "cam_t_m2c": [
+            -142.05746364858163, -220.30830799745368, 1466.9391337786517
+        ],
+        "obj_id": 10
+    }
+    '''
+
+    # Load JSON data
+    data = json.loads(json_data)
+    
+    # Compute transformation matrix and get obj_id
+    T, obj_id = compute_transformation_matrix(data)
+    
+    # Display results
+    print("4x4 Transformation Matrix:\n", T)
+    print("\nObject ID:", obj_id).        ,  1.        ]]
         Object ID 8:
         [[ 0.4322479 ,  0.90168944, -0.04564078,  0.10211878],
         [ 0.78623622, -0.40077365, -0.47233169, -0.08897942],
@@ -79,3 +127,23 @@ if __name__ == "__main__":
         [-0.359872 , -0.238445 , -0.902048 ,  1.00097  ],
         [ 0.       ,  0.       ,  0.       ,  1.       ]]
         """
+
+def process_handal_scene_gt():
+    json_data = '''
+    {"cam_R_m2c": [0.12859445765633806, -0.9916128764470056, 0.012937106499079004, -0.6445897580308265, -0.07366372714714388, 0.7609715494974508, -0.75363619160828, -0.10619585004738875, -0.6486562511306584], "cam_t_m2c": [-90.915909144169, -65.80266366640231, 1170.417891887966], "obj_id": 37}
+    '''
+
+    # Load JSON data
+    data = json.loads(json_data)
+    
+    # Compute transformation matrix and get obj_id
+    T, obj_id = compute_transformation_matrix(data)
+    
+    # Print with comma-separated values
+    formatted_matrix = np.array2string(T, separator=', ')
+    
+    print(f"Object ID {obj_id}:")
+    print(formatted_matrix)
+
+if __name__ == "__main__":
+    process_handal_scene_gt()
