@@ -278,7 +278,7 @@ class MyMainWindow(MainWindow):
         # # Mesh related key bindings 
         # QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.mesh_container.reset_gt_pose)
         # QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.mesh_container.update_gt_pose)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.mesh_container.undo_actor_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+z"), self).activated.connect(self.mesh_container.undo_actor_pose)
         # QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.mesh_container.toggle_surface_opacity(up))
         # QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.mesh_container.toggle_surface_opacity(up))
 
@@ -496,7 +496,18 @@ class MyMainWindow(MainWindow):
         row, column = 0, 0
 
         # Create the save button
-        self.save_button = QtWidgets.QPushButton("Save")
+        self.cnt = 0
+        # session one: test for the linemod dataset
+        # self.workspace_paths = ['workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000005.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000009.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000015.json',
+        #                         'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000005.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000015.json', 'workspace/linemod/obj_000009.json',
+        #                         'workspace/linemod/obj_000009.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000015.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000005.json']
+
+        # session two: test for the hb dataset
+        self.workspace_paths = ['workspace/hb/obj_000001.json', 'workspace/hb/obj_000002.json', 'workspace/hb/obj_000003.json', 'workspace/hb/obj_000004.json', 'workspace/hb/obj_000005.json', 'workspace/linemod/obj_000011.json', 'workspace/hb/obj_000012.json', 'workspace/hb/obj_000015.json', 'workspace/hb/obj_000020.json', 'workspace/hb/obj_000032.json']
+                                
+        
+        
+        self.save_button = QtWidgets.QPushButton(f"Save ({self.cnt + 1}/{len(self.workspace_paths)})")
         self.save_button.clicked.connect(self.save_and_move_to_next)
         top_grid_layout.addWidget(self.save_button, row, column)
 
@@ -589,13 +600,6 @@ class MyMainWindow(MainWindow):
         self.display.setLayout(display_layout)
         self.panel_layout.addWidget(self.display)
 
-        # session one: test for the linemod dataset
-        self.workspace_paths = ['workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000005.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000009.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000015.json',
-                                'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000005.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000015.json', 'workspace/linemod/obj_000009.json',
-                                'workspace/linemod/obj_000009.json', 'workspace/linemod/obj_000011.json', 'workspace/linemod/obj_000001.json', 'workspace/linemod/obj_000013.json', 'workspace/linemod/obj_000014.json', 'workspace/linemod/obj_000015.json', 'workspace/linemod/obj_000007.json', 'workspace/linemod/obj_000002.json', 'workspace/linemod/obj_000004.json', 'workspace/linemod/obj_000005.json']
-        
-        self.cnt = 0
-
         os.makedirs('user_study', exist_ok=True)
         self.df = pd.DataFrame({'Matrix': [],'Time (s)': []})
         self.uid = uuid.uuid4()
@@ -614,9 +618,10 @@ class MyMainWindow(MainWindow):
             self.add_workspace(workspace_path=self.workspace_paths[self.cnt])
             self.cnt += 1
             self.start_time = time.time()
+            self.save_button.setText(f"Save ({self.cnt}/{len(self.workspace_paths)})")
         else:
             self.save_button.setEnabled(False)
-            self.save_button.setText("Finished")
+            self.save_button.setText(f"Finished ({self.cnt}/{len(self.workspace_paths)})")
 
     def pause_timer(self):
         if not self.is_paused:
@@ -770,8 +775,6 @@ class MyMainWindow(MainWindow):
     def register_pose(self, pose):
         for mesh_data in self.mesh_store.meshes.values(): 
             mesh_data.actor.user_matrix = pose
-            mesh_data.undo_poses.append(pose)
-            mesh_data.undo_poses = mesh_data.undo_poses[-20:]
         
     def toggle_register(self, pose):
         self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
@@ -786,6 +789,8 @@ class MyMainWindow(MainWindow):
         if name in self.mesh_store.meshes:
             self.mesh_store.reference = name
             mesh_data = self.mesh_store.meshes[name]
+            mesh_data.undo_poses.append(mesh_data.actor.user_matrix)
+            mesh_data.undo_poses = mesh_data.undo_poses[-20:]
             text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
             mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
             mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
