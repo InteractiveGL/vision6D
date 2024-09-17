@@ -18,7 +18,7 @@ from PyQt5 import QtWidgets
 from ..tools import utils
 from ..components import ImageStore
 from ..widgets import CalibrationDialog, CameraPropsInputDialog
-
+        
 class ImageContainer:
     def __init__(self, 
                 plotter,

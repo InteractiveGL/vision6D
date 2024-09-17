@@ -44,18 +44,18 @@ class ImageStore(metaclass=Singleton):
         # self.cam_viewup = None
 
         # linemod dataset camera parameters
-        # self.fx = 572.4114
-        # self.fy = 573.57043
-        # self.cx = 325.2611
-        # self.cy = 242.04899
-        # self.cam_viewup = (0, -1, 0)
+        self.fx = 572.4114
+        self.fy = 573.57043
+        self.cx = 325.2611
+        self.cy = 242.04899
+        self.cam_viewup = (0, -1, 0)
 
         # handal dataset camera parameters
-        self.fx = 1589.958
-        self.fy = 1590.548
-        self.cx = 957.475
-        self.cy = 714.920
-        self.cam_viewup = (0, -1, 0)
+        # self.fx = 1589.958
+        # self.fy = 1590.548
+        # self.cx = 957.475
+        # self.cy = 714.920
+        # self.cam_viewup = (0, -1, 0)
 
         # hb dataset camera parameters
         # self.fx = 537.4799

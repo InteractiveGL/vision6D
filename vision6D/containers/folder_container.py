@@ -25,14 +25,14 @@ from ..components import FolderStore
 class FolderContainer:
     def __init__(self,
                 plotter,
-                play_video_button,
+                # play_video_button,
                 toggle_register,
                 add_folder,
                 load_mask,
                 output_text):
         
         self.plotter = plotter
-        self.play_video_button = play_video_button
+        # self.play_video_button = play_video_button
         self.toggle_register = toggle_register
         self.add_folder = add_folder
         self.load_mask = load_mask
@@ -97,7 +97,7 @@ class FolderContainer:
     def prev_info(self):
         if self.folder_store.folder_path:
             self.folder_store.prev_image()
-            self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
+            # self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
             self.add_folder(self.folder_store.folder_path)
         else: utils.display_warning("Need to load a folder!")
 
@@ -105,6 +105,6 @@ class FolderContainer:
         if self.folder_store.folder_path:
             self.save_info()
             self.folder_store.next_image()
-            self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
+            # self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
             self.add_folder(self.folder_store.folder_path)
         else: utils.display_warning("Need to load a folder!")

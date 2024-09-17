@@ -10,6 +10,7 @@ from .popup_dialog import PopUpDialog
 from .video_player import VideoPlayer
 from .video_sampler import VideoSampler
 from .search_bar import SearchBar
+from .pnp_window import PnPWindow
 
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     'PopUpDialog',
     'VideoPlayer',
     'VideoSampler',
-    'SearchBar'
+    'SearchBar',
+    'PnPWindow'
 ]

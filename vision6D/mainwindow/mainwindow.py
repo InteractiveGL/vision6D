@@ -27,6 +27,7 @@ from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from ..widgets import CustomQtInteractor
 from ..widgets import PopUpDialog
 from ..widgets import SearchBar
+from ..widgets import PnPWindow
 
 from ..components import ImageStore
 from ..components import MaskStore
@@ -153,7 +154,6 @@ class MyMainWindow(MainWindow):
         self.video_store = VideoStore()
         self.folder_store = FolderStore()
 
-        self.play_video_button = QtWidgets.QPushButton("Play Video")
         self.output_text = QtWidgets.QTextEdit()
 
         # Add a QLabel as an overlay hint label
@@ -221,7 +221,6 @@ class MyMainWindow(MainWindow):
                                         output_text=self.output_text)
         
         self.video_container = VideoContainer(plotter=self.plotter,
-                                            play_video_button=self.play_video_button, 
                                             hintLabel=self.hintLabel, 
                                             toggle_register=self.toggle_register,
                                             add_image=self.image_container.add_image,
@@ -230,7 +229,6 @@ class MyMainWindow(MainWindow):
                                             output_text=self.output_text)
         
         self.folder_container = FolderContainer(plotter=self.plotter,
-                                                play_video_button=self.play_video_button, 
                                                 toggle_register=self.toggle_register,
                                                 add_folder=self.add_folder,
                                                 load_mask=self.mask_container.load_mask,
@@ -459,6 +457,19 @@ class MyMainWindow(MainWindow):
         elif option == "Undo Pose (s)":
             self.mesh_container.undo_actor_pose()
 
+    def handle_transformation_matrix(self, transformation_matrix):
+        self.toggle_register(transformation_matrix)
+        self.mesh_container.update_gt_pose()
+
+    def pnp_register(self):
+        if not self.image_store.image_actor: utils.display_warning("Need to load an image first!"); return
+        if self.mesh_store.reference is None: utils.display_warning("Need to select a mesh first!"); return
+        image = utils.get_image_actor_scalars(self.image_store.image_actor)
+        self.pnp_window = PnPWindow(image_source=image, mesh_data=self.mesh_store.meshes[self.mesh_store.reference].pv_mesh, 
+                                    camera_intrinsics=self.image_store.camera_intrinsics.astype(np.float32))
+        self.pnp_window.show()
+        self.pnp_window.transformation_matrix_computed.connect(self.handle_transformation_matrix)
+        
     #^ Panel Display
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
@@ -495,6 +506,12 @@ class MyMainWindow(MainWindow):
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.pose_options_button, row, column)
 
+        # Create the video related button
+        self.pnp_register_button = QtWidgets.QPushButton("PnP Register")
+        self.pnp_register_button.clicked.connect(self.pnp_register)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.pnp_register_button, row, column)
+
         # Create the spacing button
         self.spacing_button = QtWidgets.QPushButton("Spacing")
         self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
@@ -524,11 +541,6 @@ class MyMainWindow(MainWindow):
         remove_button.clicked.connect(self.remove_actors_button)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(remove_button, row, column)
-
-        # Create the video related button
-        self.play_video_button.clicked.connect(self.video_container.play_video)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.play_video_button, row, column)
 
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
@@ -693,15 +705,11 @@ class MyMainWindow(MainWindow):
         self.plotter.add_camera_orientation_widget()
         self.plotter.show()
         self.show()
-
-    def register_pose(self, pose):
-        for mesh_data in self.mesh_store.meshes.values(): 
-            mesh_data.actor.user_matrix = pose
-            mesh_data.undo_poses.append(pose)
-            mesh_data.undo_poses = mesh_data.undo_poses[-20:]
         
     def toggle_register(self, pose):
         self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
+        self.mesh_store.meshes[self.mesh_store.reference].undo_poses.append(pose)
+        self.mesh_store.meshes[self.mesh_store.reference].undo_poses = self.mesh_store.meshes[self.mesh_store.reference].undo_poses[-20:]
             
     def check_button(self, name, output_text=True):  
         button = next((btn for btn in self.button_group_actors_names.buttons() if btn.text() == name), None)
@@ -719,6 +727,8 @@ class MyMainWindow(MainWindow):
             mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
             mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
             if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
+            self.mesh_store.meshes[self.mesh_store.reference].undo_poses.append(mesh_data.actor.user_matrix)
+            self.mesh_store.meshes[self.mesh_store.reference].undo_poses = self.mesh_store.meshes[self.mesh_store.reference].undo_poses[-20:]
         else:
             self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
 
@@ -855,8 +865,6 @@ class MyMainWindow(MainWindow):
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
                     for path in mesh_path: self.mesh_container.add_mesh_file(path)
                 if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
-                self.play_video_button.setEnabled(False)
-                self.play_video_button.setText(f"Image ({self.folder_store.current_image}/{self.folder_store.total_image})")
                 self.image_store.reset_camera()
             else:
                 self.folder_store.reset()
@@ -941,10 +949,6 @@ class MyMainWindow(MainWindow):
         self.workspace_path = ''
         self.track_actors_names.clear()
         self.reset_output_text()
-
-        self.play_video_button.setEnabled(True)
-        self.play_video_button.setText("Play Video")
-        
         self.hintLabel.show()
 
     def remove_custom_button_widget(self, button):

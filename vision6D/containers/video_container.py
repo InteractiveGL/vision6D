@@ -28,7 +28,7 @@ from ..tools import utils
 class VideoContainer:
     def __init__(self,
                 plotter,
-                play_video_button,
+                # play_video_button,
                 hintLabel, 
                 toggle_register,
                 add_image,
@@ -37,7 +37,7 @@ class VideoContainer:
                 output_text):
         
         self.plotter = plotter
-        self.play_video_button = play_video_button
+        # self.play_video_button = play_video_button
         self.hintLabel = hintLabel
         self.toggle_register = toggle_register
         self.add_image = add_image
@@ -59,8 +59,8 @@ class VideoContainer:
             if self.folder_store.folder_path: self.clear_plot() # main goal is to set folder_path to None
             self.hintLabel.hide()
             self.video_store.add_video(video_path)
-            self.play_video_button.setEnabled(True)
-            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            # self.play_video_button.setEnabled(True)
+            # self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.output_text.append(f"-> Load video {self.video_store.video_path} into vision6D")
             self.load_per_frame_info()
             self.sample_video()
@@ -81,7 +81,7 @@ class VideoContainer:
     def play_video(self):
         if self.video_store.video_path:
             self.video_store.play_video()
-            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            # self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         else: utils.display_warning("Need to load a video!")
     
@@ -153,7 +153,7 @@ class VideoContainer:
                 self.output_text.append(text)
             else: 
                 self.output_text.append(f"-> No saved pose for frame {self.video_store.current_frame}")
-            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            # self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         else: utils.display_warning("Need to load a video!")
 
@@ -173,6 +173,6 @@ class VideoContainer:
                 mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
                 mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
                 self.output_text.append(text)
-            self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
+            # self.play_video_button.setText(f"Play ({self.video_store.current_frame}/{self.video_store.total_frame})")
             self.load_per_frame_info()
         else: utils.display_warning("Need to load a video!")

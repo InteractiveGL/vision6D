@@ -24,7 +24,7 @@ import trimesh
 from PIL import Image
 import cv2
 # import pygeodesic.geodesic as geodesic
-import vtk.util.numpy_support as vtknp
+import vtk.util.numpy_support as vtknp # type: ignore
 
 from PyQt5 import QtWidgets
 
@@ -372,9 +372,6 @@ def get_image_actor_scalars(actor):
     point_array = vtknp.vtk_to_numpy(point_data)
     if len(point_array.shape) == 1: point_array = point_array.reshape(*point_array.shape, 1)
     scalars = point_array.reshape(*shape[1:], point_array.shape[-1])
-    # Due to the different coordinate system, we need to flip the image
-    scalars = np.flipud(scalars)
-    scalars = np.fliplr(scalars)
     return scalars
 
 def get_mask_actor_points(actor):

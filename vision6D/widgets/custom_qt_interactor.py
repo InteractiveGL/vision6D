@@ -19,13 +19,14 @@ class CustomQtInteractor(QtInteractor):
         self.cell_picker = None
 
     def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        if event.button() in (1, 2, 4):  # Left, right and middle mouse button
-            self.press_callback(self.iren.interactor)
+        # Call superclass method for left and middle buttons
+        if event.button() in (1, 4): super().mousePressEvent(event)
+        # Always call press_callback
+        self.press_callback(self.iren.interactor)
 
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
-        if event.button() in (1, 2, 4):  # Left, right and middle mouse button
+        if event.button() in (1, 2, 4):  # Left, right, and middle mouse buttons
             self.release_callback()
             if event.button() == 2 and self.main_window.button_group_actors_names.checkedButton() is not None:
                 if self.main_window.button_group_actors_names.checkedButton().text() == 'image':

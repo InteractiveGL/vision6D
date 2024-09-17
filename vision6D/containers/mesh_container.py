@@ -265,7 +265,7 @@ class MeshContainer:
                     rendered_image = PIL.Image.fromarray(image)
                     rendered_image.save(output_path)
                     self.output_text.append(f"-> Export mesh render to:\n {output_path}")
-        else: QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), "vision6D", "Need to load a mesh first", QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
+        else: utils.display_warning("Need to load a mesh first")
         return image
 
     def export_segmesh_render(self):
