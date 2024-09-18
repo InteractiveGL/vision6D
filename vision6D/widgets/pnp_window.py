@@ -10,46 +10,69 @@ class PnPLabel(QtWidgets.QLabel):
     def __init__(self, pixmap):
         super().__init__()
         self.setFocusPolicy(Qt.StrongFocus)
-        self.setPixmap(pixmap)
+        self.original_pixmap = pixmap
+        self.scaled_pixmap = pixmap
+        self.setPixmap(self.scaled_pixmap)
         self.setContentsMargins(0, 0, 0, 0)
-        
-        self.height = pixmap.height()
-        self.width = pixmap.width()
-        self.points = QtGui.QPolygon()
+        self.points = []
+        self.scale_factor_x = 1.0
+        self.scale_factor_y = 1.0
 
-    def get_2d_points(self):
-        points = []
-        for point in self.points: points.append([point.x(), point.y()])
-        points = np.array(points).astype('int32')
-        return points
+    def resizeEvent(self, event):
+        self.scaled_pixmap = self.original_pixmap.scaled(self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self.setPixmap(self.scaled_pixmap)
+        self.scale_factor_x = self.original_pixmap.width() / self.scaled_pixmap.width()
+        self.scale_factor_y = self.original_pixmap.height() / self.scaled_pixmap.height()
+        super().resizeEvent(event)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton: self.points.append(event.pos())
-        elif event.button() == Qt.RightButton and not self.points.isEmpty(): self.points.remove(self.points.size()-1)
-        self.update()
+        if event.button() == Qt.LeftButton:
+            # Calculate offset
+            label_width, label_height = self.width(), self.height()
+            pixmap_width, pixmap_height = self.scaled_pixmap.width(), self.scaled_pixmap.height()
+            self.offset_x = (label_width - pixmap_width) / 2
+            self.offset_y = (label_height - pixmap_height) / 2
+            x = event.pos().x() - self.offset_x
+            y = event.pos().y() - self.offset_y
+            # Check if the click is within the image area
+            if 0 <= x < pixmap_width and 0 <= y < pixmap_height:
+                # Map to original image coordinates
+                orig_x = x * self.scale_factor_x
+                orig_y = y * self.scale_factor_y
+                self.points.append((orig_x, orig_y))
+                self.update()
+        elif event.button() == Qt.RightButton and self.points:
+            self.points.pop()
+            self.update()
 
     def paintEvent(self, event):
         super().paintEvent(event)
         painter = QtGui.QPainter(self)
         painter.setPen(QtGui.QColor(255, 0, 0))
-        
-        if not self.points.isEmpty():
-            for i in range(self.points.size()):
-                point = self.points.point(i)
-                painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-                painter.drawEllipse(point, 4, 4)
-                painter.setPen(QtGui.QColor(255, 0, 0))
-                painter.drawText(point.x() + 10, point.y() + 10, str(i + 1))
+        for i, (orig_x, orig_y) in enumerate(self.points):
+            # Map original coordinates to scaled image coordinates
+            x = orig_x / self.scale_factor_x + self.offset_x
+            y = orig_y / self.scale_factor_y + self.offset_y
+            point = QtCore.QPointF(x, y)
+            painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+            painter.drawEllipse(point, 4, 4)
+            text_point = QtCore.QPoint(int(point.x() + 10), int(point.y() + 10))
+            painter.drawText(text_point, str(i + 1))
+
+    def get_2d_points(self):
+        return np.array(self.points).astype('int32')
 
 class PnPWindow(QtWidgets.QWidget):
     transformation_matrix_computed = QtCore.pyqtSignal(np.ndarray)
     def __init__(self, image_source, mesh_data, camera_intrinsics):
         super().__init__()
 
+        self.setWindowTitle("2D-to-3D Registration Using the PnP Algorithm") 
+
         self.camera_intrinsics = camera_intrinsics
         self.picked_3d_points = []
         self.point_labels = []
-        
+
         # Set window size and layout
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
@@ -74,6 +97,10 @@ class PnPWindow(QtWidgets.QWidget):
         right_panel.setLayout(right_layout)
         content_layout.addWidget(right_panel)
 
+        # Set stretch factors to make 2D and 3D views half and half
+        content_layout.setStretch(0, 1)
+        content_layout.setStretch(1, 1)
+
         # Add the content (2D image + 3D view) to the main vertical layout
         layout.addLayout(content_layout)
 
@@ -81,7 +108,9 @@ class PnPWindow(QtWidgets.QWidget):
         submit_button = QtWidgets.QPushButton("(At least four points to perform PnP registration) Submit")
         submit_button.clicked.connect(self.submit_to_pnp_register)
         layout.addWidget(submit_button)
-        self.show()
+
+        # Show the window maximized, and still include the close button
+        self.showMaximized()
 
     def submit_to_pnp_register(self):
         picked_2d_points = self.pnp_label.get_2d_points()
@@ -93,8 +122,7 @@ class PnPWindow(QtWidgets.QWidget):
                 imagePoints=np.array(picked_2d_points, dtype=np.float32),
                 cameraMatrix=self.camera_intrinsics,
                 distCoeffs=np.zeros((4, 1)),
-                flags=cv2.SOLVEPNP_EPNP
-            )
+                flags=cv2.SOLVEPNP_EPNP)
             if success:
                 transformation_matrix = np.eye(4)
                 rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
