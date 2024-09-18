@@ -467,7 +467,6 @@ class MyMainWindow(MainWindow):
         image = utils.get_image_actor_scalars(self.image_store.image_actor)
         self.pnp_window = PnPWindow(image_source=image, mesh_data=self.mesh_store.meshes[self.mesh_store.reference].pv_mesh, 
                                     camera_intrinsics=self.image_store.camera_intrinsics.astype(np.float32))
-        self.pnp_window.show()
         self.pnp_window.transformation_matrix_computed.connect(self.handle_transformation_matrix)
         
     #^ Panel Display

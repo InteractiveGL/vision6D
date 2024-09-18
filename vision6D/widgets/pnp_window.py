@@ -36,10 +36,10 @@ class PnPLabel(QtWidgets.QLabel):
         if not self.points.isEmpty():
             for i in range(self.points.size()):
                 point = self.points.point(i)
-                painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0))) # Set the brush color for the point
-                painter.drawEllipse(point, 4, 4) # Draw each point as a small circle (radius 8)
-                painter.setPen(QtGui.QColor(255, 0, 0)) # Set the pen color for the text (red)
-                painter.drawText(point.x() + 10, point.y() + 10, str(i + 1)) # Draw the label near the point
+                painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
+                painter.drawEllipse(point, 4, 4)
+                painter.setPen(QtGui.QColor(255, 0, 0))
+                painter.drawText(point.x() + 10, point.y() + 10, str(i + 1))
 
 class PnPWindow(QtWidgets.QWidget):
     transformation_matrix_computed = QtCore.pyqtSignal(np.ndarray)
@@ -48,6 +48,7 @@ class PnPWindow(QtWidgets.QWidget):
 
         self.camera_intrinsics = camera_intrinsics
         self.picked_3d_points = []
+        self.point_labels = []
         
         # Set window size and layout
         layout = QtWidgets.QVBoxLayout()
@@ -80,37 +81,49 @@ class PnPWindow(QtWidgets.QWidget):
         submit_button = QtWidgets.QPushButton("(At least four points to perform PnP registration) Submit")
         submit_button.clicked.connect(self.submit_to_pnp_register)
         layout.addWidget(submit_button)
+        self.show()
 
     def submit_to_pnp_register(self):
-        picked_2d_points = self.pnp_label.get_2d_points() # Get the picked 2D points from PnPLabel
-        if len(picked_2d_points) < 4 or len(picked_2d_points) != len(self.picked_3d_points): utils.display_warning("Please select at least 4 points to perform PnP algorithm and the picked 2D points should match the picked 3D points.")
+        picked_2d_points = self.pnp_label.get_2d_points()
+        if len(picked_2d_points) < 4 or len(picked_2d_points) != len(self.picked_3d_points):
+            utils.display_warning("Please select at least 4 points to perform PnP algorithm and the picked 2D points should match the picked 3D points.")
         else:
-            # Perform PnP pose estimation. Assuming no lens distortion since the distortion coefficients are set to zero
             success, rotation_vector, translation_vector = cv2.solvePnP(
                 objectPoints=np.array(self.picked_3d_points, dtype=np.float32),
                 imagePoints=np.array(picked_2d_points, dtype=np.float32),
                 cameraMatrix=self.camera_intrinsics,
-                distCoeffs=np.zeros((4,1)),
-                flags=cv2.SOLVEPNP_EPNP)
+                distCoeffs=np.zeros((4, 1)),
+                flags=cv2.SOLVEPNP_EPNP
+            )
             if success:
                 transformation_matrix = np.eye(4)
                 rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
                 transformation_matrix[:3, :3] = rotation_matrix
                 transformation_matrix[:3, 3] = translation_vector.reshape(3)
                 self.transformation_matrix_computed.emit(transformation_matrix)
-                self.window().close()
-            else:
-                utils.display_warning("Pose estimation failed. Please try to select different non-coplanar points.")
+                self.close()
+            else: utils.display_warning("Pose estimation failed. Please try to select different non-coplanar points.")
 
     def point_picking_callback(self, point):
         self.picked_3d_points.append(point)
-        self.pv_widget.add_point_labels(point, [str(len(self.picked_3d_points))], point_size=10, font_size=14, text_color="red")
-        self.pv_widget.reset_camera()
+        label_text = str(len(self.picked_3d_points))
+        label_actor = self.pv_widget.add_point_labels([point], [label_text], show_points=False, font_size=14, text_color="red", shape='rect', shape_opacity=1, pickable=False, reset_camera=False)
+        self.point_labels.append(label_actor)
+
+    def right_click_callback(self, *args):
+        if self.picked_3d_points:
+            self.picked_3d_points.pop()
+            self.pv_widget.renderer.RemoveActor(self.point_labels.pop())
+            self.pv_widget.render()
 
     def plot_3d_model(self, mesh_data):
         self.mesh_data = mesh_data
-        self.pv_widget.add_mesh(mesh_data)
-        self.pv_widget.enable_surface_point_picking(callback=self.point_picking_callback, show_message=False, show_point=True, point_size=8, left_clicking=True, color='red')
+        self.mesh_actor = self.pv_widget.add_mesh(mesh_data)
+        self.pv_widget.enable_surface_point_picking(callback=self.point_picking_callback, show_message=False, show_point=False, left_clicking=True, color='red')
+        self.pv_widget.iren.add_observer("RightButtonPressEvent", self.right_click_callback)
         self.pv_widget.reset_camera()
 
-
+    def closeEvent(self, event):
+        self.pv_widget.close()
+        self.pv_widget.deleteLater()
+        event.accept()
