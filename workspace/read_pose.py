@@ -1,7 +1,7 @@
 import json
 import numpy as np
 
-def convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1e-3):
+def convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1):
     # Convert rotation list to a 3x3 matrix
     R = np.array(cam_R_m2c).reshape(3, 3)
     
@@ -37,7 +37,7 @@ def compute_transformation_matrix(data):
     R = np.array(cam_R_m2c).reshape(3, 3)
     
     # Translation vector
-    t = np.array(cam_t_m2c).reshape(3, 1) * 1e-3
+    t = np.array(cam_t_m2c).reshape(3, 1)
     
     # Construct the 4x4 transformation matrix
     T = np.eye(4)

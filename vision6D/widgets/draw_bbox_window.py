@@ -54,6 +54,7 @@ class BboxLabel(QtWidgets.QLabel):
                 if pathlib.Path(self.output_path).suffix == '': self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.npy'))
                 np.save(self.output_path, points)
                 self.output_path_changed.emit(self.output_path)
+                self.window().close()
 
     def get_normalized_rect(self):
         left = min(self.rect_start.x(), self.rect_end.x())

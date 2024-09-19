@@ -85,7 +85,7 @@ class MeshStore(metaclass=Singleton):
                                 actor=None,
                                 color=self.colors[self.color_counter],
                                 opacity_spinbox=None,
-                                spacing=[1e-3, 1e-3, 1e-3])
+                                spacing=[1, 1, 1])
             
             # set spacing for the mesh
             mesh_data.pv_mesh.points *= mesh_data.spacing

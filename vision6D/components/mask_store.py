@@ -51,21 +51,21 @@ class MaskStore(metaclass=Singleton):
             contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             points = contours[0].squeeze()
 
-        points = points * 1e-4
+        points = points
         points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
         
         # Mirror points
-        mask_center = np.array([w//2, h//2, 0]) * 1e-4
+        mask_center = np.array([w//2, h//2, 0])
         self.render = utils.create_render(w, h)
         
         # Consider the mirror effect
-        if self.mirror_x: points[:, 0] = w*1e-4 - points[:, 0]
-        if self.mirror_y: points[:, 1] = h*1e-4 - points[:, 1]
+        if self.mirror_x: points[:, 0] = w - points[:, 0]
+        if self.mirror_y: points[:, 1] = h - points[:, 1]
 
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
         # Due to camera view change to (0, -1, 0): x->right, y->down, z->front
-        points = points - mask_center # equivalent to self.mask_pv.translate(np.array([(-w//2)*1e-4, (-h//2)*1e-4, object_distance]), inplace=True)
+        points = points - mask_center # equivalent to self.mask_pv.translate(np.array([(-w//2), (-h//2), object_distance]), inplace=True)
         self.mask_pv = pv.PolyData(points, cells).triangulate()
         self.mask_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to points += np.array([0, 0, object_distance])
         return self.mask_pv

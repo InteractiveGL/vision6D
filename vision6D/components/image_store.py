@@ -42,6 +42,13 @@ class ImageStore(metaclass=Singleton):
         # self.cy = None
         # self.cam_viewup = None
 
+        # for cochlear implant dataset
+        # self.fx = 18466.768907841793
+        # self.fy = 19172.02089833029
+        # self.cx = 954.4324739015676
+        # self.cy = 538.2131876789998
+        # self.cam_viewup = (0, -1, 0)
+
         # linemod dataset camera parameters
         self.fx = 572.4114
         self.fy = 573.57043
@@ -93,7 +100,7 @@ class ImageStore(metaclass=Singleton):
     def set_camera_props(self):
         self.set_camera_intrinsics()
         self.set_camera_extrinsics()
-        self.object_distance = 1e-4 * self.fy # set the frame distance to the camera
+        self.object_distance = self.fy # set the frame distance to the camera
         self.reset_camera()
     
     #^ Image related
@@ -127,17 +134,17 @@ class ImageStore(metaclass=Singleton):
         self.render = utils.create_render(self.width, self.height)
         
         # create the image pyvista object
-        self.image_pv = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[1e-4, 1e-4, 1], origin=(0.0, 0.0, 0.0))
+        self.image_pv = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
         self.image_pv.point_data["values"] = image_source.reshape((self.width * self.height, channel)) # order = 'C
         self.image_pv = self.image_pv.translate(-1 * np.array(self.image_pv.center), inplace=False) # center the image at (0, 0)
         """
         Do not need fx and fy (the focal lengths) for this calculation 
         because we are simply computing the offset of the principal point (cx, cy) in pixel space relative to 
-        the center of the image and converting that to world space using the image spacing (1e-4).
-        Note that if image spacing is [1e-4, 1e-4], it means that each pixel in the x and y directions corresponds to a world unit of 1e-4 in those directions.
+        the center of the image and converting that to world space using the image spacing (1).
+        Note that if image spacing is [1, 1], it means that each pixel in the x and y directions corresponds to a world unit of 1 in those directions.
         """
-        self.cx_offset = (self.cx - (self.width / 2.0)) * 1e-4
-        self.cy_offset = (self.cy - (self.height / 2.0)) * 1e-4
+        self.cx_offset = (self.cx - (self.width / 2.0))
+        self.cy_offset = (self.cy - (self.height / 2.0))
         print(f"Image Origin: {self.cx_offset, self.cy_offset}")
         self.image_pv.translate(np.array([-self.cx_offset, -self.cy_offset, self.object_distance]), inplace=True) # move the image to the camera distance
         

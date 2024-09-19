@@ -65,9 +65,9 @@ class ImageContainer:
                     self.image_store.set_camera_intrinsics()
                     self.image_store.set_camera_extrinsics()
                     self.image_store.image_pv.translate(np.array([self.image_store.cx_offset, self.image_store.cy_offset, -self.image_store.object_distance]), inplace=True) # reset the image position
-                    self.image_store.object_distance = 1e-4 * self.image_store.fy # set the frame distance to the camera
-                    self.image_store.cx_offset = (self.image_store.cx - (self.image_store.width / 2.0)) * 1e-4
-                    self.image_store.cy_offset = (self.image_store.cy - (self.image_store.height / 2.0)) * 1e-4
+                    self.image_store.object_distance = self.image_store.fy # set the frame distance to the camera
+                    self.image_store.cx_offset = (self.image_store.cx - (self.image_store.width / 2.0))
+                    self.image_store.cy_offset = (self.image_store.cy - (self.image_store.height / 2.0))
                     print(f"Image New Origin: {self.image_store.cx_offset, self.image_store.cy_offset}")
                     self.image_store.image_pv.translate(np.array([-self.image_store.cx_offset, -self.image_store.cy_offset, self.image_store.object_distance]), inplace=True) # move the image to the camera distance
                     self.image_store.reset_camera()

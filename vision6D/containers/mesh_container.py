@@ -71,7 +71,7 @@ class MeshContainer:
                 else:
                     self.add_mesh(mesh_data, np.array([[1, 0, 0, 0], 
                                                     [0, 1, 0, 0], 
-                                                    [0, 0, 1, 1], 
+                                                    [0, 0, 1, 1e+3], 
                                                     [0, 0, 0, 1]])) # set the initial pose, r_x, r_y, t_z includes the scaling too
             else: utils.display_warning("The mesh format is not supported!")
 
