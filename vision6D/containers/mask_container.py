@@ -8,16 +8,18 @@
 @desc: create container for mask related actions in application
 '''
 import os
-import ast
+import trimesh
 import pathlib
 
 import numpy as np
 import PIL.Image
 import matplotlib.colors
+import pyvista as pv
+
 
 from PyQt5 import QtWidgets
 
-from ..path import PKG_ROOT, PLOT_SIZE
+from ..path import PKG_ROOT
 from ..tools import utils, exception
 from ..components import ImageStore
 from ..components import MaskStore
@@ -78,7 +80,7 @@ class MaskContainer:
         self.mask_store.mask_actor = actor
         
     def add_mask(self, mask_source):
-        mask_surface = self.mask_store.add_mask(mask_source, self.image_store.object_distance, PLOT_SIZE)
+        mask_surface = self.mask_store.add_mask(mask_source, self.image_store.object_distance, (self.image_store.width, self.image_store.height))
         self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu
@@ -90,7 +92,7 @@ class MaskContainer:
         if self.mask_store.mask_path:
             self.mask_store.mirror_x = False
             self.mask_store.mirror_y = False
-            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.image_store.object_distance, PLOT_SIZE)
+            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.image_store.object_distance, (self.image_store.width, self.image_store.height))
             self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):

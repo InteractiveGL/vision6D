@@ -46,7 +46,7 @@ from ..containers import FolderContainer
 
 from ..tools import utils
 
-from ..path import ICON_PATH, PKG_ROOT, PLOT_SIZE
+from ..path import ICON_PATH, PKG_ROOT
 
 np.set_printoptions(suppress=True)
 
@@ -450,6 +450,8 @@ class MyMainWindow(MainWindow):
     def on_pose_options_selection_change(self, option):
         if option == "Set Pose":
             self.mesh_container.set_pose()
+        elif option == "PnP Register":
+            self.pnp_register()
         elif option == "Reset GT Pose (k)":
             self.mesh_container.reset_gt_pose()
         elif option == "Update GT Pose (l)":
@@ -485,7 +487,7 @@ class MyMainWindow(MainWindow):
         row, column = 0, 0
 
         # Create a QPushButton that will act as a drop-down button and QMenu to act as the drop-down menu
-        self.camera_options_button = QtWidgets.QPushButton("Camera")
+        self.camera_options_button = QtWidgets.QPushButton("Set Camera")
         self.camera_options_menu = QtWidgets.QMenu()
         self.camera_options_menu.addAction("Set Camera", lambda: self.on_camera_options_selection_change("Set Camera"))
         self.camera_options_menu.addAction("Reset Camera (c)", lambda: self.on_camera_options_selection_change("Reset Camera (c)"))
@@ -495,9 +497,10 @@ class MyMainWindow(MainWindow):
         self.camera_options_button.setMenu(self.camera_options_menu)
         top_grid_layout.addWidget(self.camera_options_button, row, column)
 
-        self.pose_options_button = QtWidgets.QPushButton("Pose")
+        self.pose_options_button = QtWidgets.QPushButton("Set Pose")
         self.pose_options_menu = QtWidgets.QMenu()
         self.pose_options_menu.addAction("Set Pose", lambda: self.on_pose_options_selection_change("Set Pose"))
+        self.pose_options_menu.addAction("PnP Register", lambda: self.on_pose_options_selection_change("PnP Register"))
         self.pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.on_pose_options_selection_change("Reset GT Pose (k)"))
         self.pose_options_menu.addAction("Update GT Pose (l)", lambda: self.on_pose_options_selection_change("Update GT Pose (l)"))
         self.pose_options_menu.addAction("Undo Pose (s)", lambda: self.on_pose_options_selection_change("Undo Pose (s)"))
@@ -505,42 +508,31 @@ class MyMainWindow(MainWindow):
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.pose_options_button, row, column)
 
-        # Create the video related button
-        self.pnp_register_button = QtWidgets.QPushButton("PnP Register")
-        self.pnp_register_button.clicked.connect(self.pnp_register)
+        # Draw buttons
+        self.draw_options_button = QtWidgets.QPushButton("Draw")
+        self.draw_options_menu = QtWidgets.QMenu()
+        self.draw_options_menu.addAction("Set Mask", self.mask_container.set_mask)
+        self.draw_options_menu.addAction("Draw Mask", self.mask_container.draw_mask)
+        self.draw_options_menu.addAction("Draw Bbox", self.bbox_container.draw_bbox)
+        self.draw_options_menu.addAction("Reset Mask (t)", self.mask_container.reset_mask)
+        self.draw_options_menu.addAction("Reset Bbox (f)", self.bbox_container.reset_bbox)
+        self.draw_options_button.setMenu(self.draw_options_menu)
         row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.pnp_register_button, row, column)
+        top_grid_layout.addWidget(self.draw_options_button, row, column)
 
-        # Create the spacing button
-        self.spacing_button = QtWidgets.QPushButton("Spacing")
-        self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
+        # Other buttons
+        self.other_options_button = QtWidgets.QPushButton("Other")
+        self.other_options_menu = QtWidgets.QMenu()
+        self.other_options_menu.addAction("Flip Left/Right", lambda direction="x": self.mirror_actors(direction))
+        self.other_options_menu.addAction("Flip Up/Down", lambda direction="y": self.mirror_actors(direction))
+        self.other_options_menu.addAction("Set Mesh Spacing", self.mesh_container.set_spacing)
+        self.other_options_menu.addAction("Set Image Distance", self.set_object_distance)
+        self.other_options_menu.addAction("Toggle Meshes", self.mesh_container.toggle_hide_meshes_button)
+        self.other_options_menu.addAction("Remove Actor", self.remove_actors_button)
+        self.other_options_button.setMenu(self.other_options_menu)
         row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.spacing_button, row, column)
-
-        # Create the hide button
-        hide_button = QtWidgets.QPushButton("Toggle Meshes")
-        hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(hide_button, row, column)
-
-        # Mirror buttons
-        # mirror_x mean mirror left/right
-        # mirror_y mean mirror up/down
-        self.mirror_x_button = QtWidgets.QPushButton("Flip Left/Right")
-        self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.mirror_x_button, row, column)
-        self.mirror_y_button = QtWidgets.QPushButton("Flip Up/Down")
-        self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.mirror_y_button, row, column)
-
-        # Create the remove button
-        remove_button = QtWidgets.QPushButton("Remove Actor")
-        remove_button.clicked.connect(self.remove_actors_button)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(remove_button, row, column)
-
+        top_grid_layout.addWidget(self.other_options_button, row, column)
+        
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
         top_layout.addWidget(top_grid_widget)
@@ -693,9 +685,7 @@ class MyMainWindow(MainWindow):
     #^ Plotter
     def create_plotter(self):
         self.frame = QtWidgets.QFrame()
-        self.frame.setFixedSize(*PLOT_SIZE)
         self.plotter = CustomQtInteractor(self.frame, self)
-        # self.plotter.setFixedSize(*PLOT_SIZE)
         self.signal_close.connect(self.plotter.close)
 
     def show_plot(self):

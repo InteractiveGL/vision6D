@@ -21,6 +21,7 @@ from PyQt5 import QtWidgets
 from ..tools import utils
 from ..tools import exception
 from ..components import MaskStore
+from ..components import ImageStore
 from ..components import MeshStore
 from ..widgets import GetPoseDialog
 
@@ -51,7 +52,8 @@ class MeshContainer:
         self.output_text = output_text
         
         self.toggle_hide_meshes_flag = False
-        
+
+        self.image_store = ImageStore()
         self.mask_store = MaskStore()
         self.mesh_store = MeshStore()
 
@@ -77,13 +79,13 @@ class MeshContainer:
         mesh_data = self.mesh_store.meshes[name]
         if direction == 'x': mesh_data.mirror_x = not mesh_data.mirror_x
         elif direction == 'y': mesh_data.mirror_y = not mesh_data.mirror_y
-        if mesh_data.initial_pose != np.eye(4): mesh_data.initial_pose = mesh_data.actor.user_matrix
+        if (mesh_data.initial_pose != np.eye(4)).all(): mesh_data.initial_pose = mesh_data.actor.user_matrix
         transformation_matrix = mesh_data.actor.user_matrix
         if mesh_data.mirror_x: 
-            transformation_matrix[0,0] = -1
+            transformation_matrix[0,0] *= -1
             mesh_data.mirror_x = False # very important
         if mesh_data.mirror_y: 
-            transformation_matrix[1,1] = -1
+            transformation_matrix[2,2] *= -1
             mesh_data.mirror_y = False # very important
         mesh_data.actor.user_matrix = transformation_matrix
         self.check_button(name=name, output_text=False)
@@ -243,6 +245,24 @@ class MeshContainer:
                 self.check_button(name=name) # very important, donnot change this line to "toggle_register"
         else: utils.display_warning("Choose a mesh actor first")
 
+    def render_mesh(self, camera):
+        render = utils.create_render(self.image_store.width, self.image_store.height); render.clear()
+        mesh_data = self.mesh_store.meshes[self.mesh_store.reference]
+        vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+        pv_mesh = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+        colors = utils.get_mesh_actor_scalars(mesh_data.actor)
+        if colors is not None: mesh = render.add_mesh(pv_mesh, scalars=colors, rgb=True, style='surface', opacity=1, name=self.mesh_store.reference)
+        else: mesh = render.add_mesh(pv_mesh, color=mesh_data.color, style='surface', opacity=1, name=self.mesh_store.reference)
+        mesh.user_matrix = mesh_data.actor.user_matrix
+        # set the light source to add the textures
+        light = pv.Light(light_type='headlight')
+        render.add_light(light)
+        render.camera = camera
+        render.disable()
+        render.show(auto_close=False)
+        image = render.last_image
+        return image
+
     def export_mesh_pose(self):
         for mesh_data in self.mesh_store.meshes.values():
             verts, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
@@ -257,7 +277,7 @@ class MeshContainer:
     def export_mesh_render(self, save_render=True):
         image = None
         if self.mesh_store.reference:
-            image = self.mesh_store.render_mesh(camera=self.plotter.camera.copy())
+            image = self.render_mesh(camera=self.plotter.camera.copy())
             if save_render:
                 output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.png)")
                 if output_path:
@@ -277,7 +297,7 @@ class MeshContainer:
                 self.load_mask(mask_surface)
                 segmask = self.mask_store.render_mask(camera=self.plotter.camera.copy())
                 if np.max(segmask) > 1: segmask = segmask / 255
-                image = self.mesh_store.render_mesh(camera=self.plotter.camera.copy())
+                image = self.render_mesh(camera=self.plotter.camera.copy())
                 image = (image * segmask).astype(np.uint8)
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)

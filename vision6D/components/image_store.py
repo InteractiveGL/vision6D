@@ -16,7 +16,6 @@ import PIL.Image
 
 from . import Singleton
 from ..tools import utils
-from ..path import PLOT_SIZE
 
 class ImageStore(metaclass=Singleton):
     def __init__(self, plotter):
@@ -87,8 +86,8 @@ class ImageStore(metaclass=Singleton):
             [0, 0, 1]
         ])
         
-        # Setting the view angle in degrees, PLOT_SIZE[1] is the height of the image
-        view_angle = (180 / math.pi) * (2.0 * math.atan2(PLOT_SIZE[1]/2.0, self.fy)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+        # Setting the view angle in degrees, self.height is the height of the image
+        view_angle = (180 / math.pi) * (2.0 * math.atan2(self.height/2.0, self.fy)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
         self.camera.SetViewAngle(view_angle) # view angle should be in degrees
 
     def set_camera_props(self):
@@ -96,19 +95,9 @@ class ImageStore(metaclass=Singleton):
         self.set_camera_extrinsics()
         self.object_distance = 1e-4 * self.fy # set the frame distance to the camera
         self.reset_camera()
-
-    #^ Set the plot size and update the camera intrinsics
-    def set_plot_size(self, width, height):
-        global PLOT_SIZE  # Declare that we are referring to the global variable
-        PLOT_SIZE = (width, height)  # This will update the global variable
-        # self.cx = PLOT_SIZE[0] // 2
-        # self.cy = PLOT_SIZE[1] // 2
-        self.set_camera_intrinsics()
     
     #^ Image related
     def add_image(self, image_source):
-        # set the object distance to the camera in world coordinate
-        self.set_camera_props()
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
@@ -128,14 +117,12 @@ class ImageStore(metaclass=Singleton):
 
         if len(image_source.shape) == 2: image_source = image_source[..., None]
         dim = image_source.shape
-        # set up the canvas size based on the image size
-        # make sure is (width, height)
-        self.set_plot_size(dim[1], dim[0]) 
         self.height, self.width, channel = dim[0], dim[1], dim[2]
+        self.set_camera_props()
 
         # Consider the mirror effect with the preprocessed image_source: image_source = np.fliplr(np.flipud(image_source))
-        if self.mirror_x: image_source = image_source[::-1, :, :]
-        if self.mirror_y: image_source = image_source[:, ::-1, :]
+        if self.mirror_x: image_source = image_source[:, ::-1, :]
+        if self.mirror_y: image_source = image_source[::-1, :, :]
 
         self.render = utils.create_render(self.width, self.height)
         

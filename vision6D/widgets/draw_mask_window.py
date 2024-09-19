@@ -1,13 +1,3 @@
-'''
-@author: Yike (Nicole) Zhang
-@license: (C) Copyright.
-@contact: yike.zhang@vanderbilt.edu
-@software: Vision6D
-@file: draw_mask_window.py
-@time: 2023-07-03 20:32
-@desc: create the window for mask labeling/drawing
-'''
-
 # General import
 import numpy as np
 import cv2
@@ -52,6 +42,7 @@ class MaskLabel(QtWidgets.QLabel):
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(self.output_path)
             self.output_path_changed.emit(self.output_path)
+            self.window().close()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:

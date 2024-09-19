@@ -18,7 +18,6 @@ import numpy as np
 
 from . import Singleton
 from ..tools import utils
-from ..path import PLOT_SIZE
 
 @dataclass
 class MeshData:
@@ -42,7 +41,6 @@ class MeshData:
 class MeshStore(metaclass=Singleton):
     def __init__(self):
         self.reference: Optional[str] = None
-        self.render = utils.create_render(PLOT_SIZE[0], PLOT_SIZE[1])
         self.meshes: Dict[str, MeshData] = {}
         self.color_counter = 0
         self.color_button = None
@@ -105,24 +103,6 @@ class MeshStore(metaclass=Singleton):
     def remove_mesh(self, name):
         del self.meshes[name]
         self.reference = None
-
-    def render_mesh(self, camera):
-        self.render.clear()
-        mesh_data = self.meshes[self.reference]
-        vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
-        pv_mesh = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-        colors = utils.get_mesh_actor_scalars(mesh_data.actor)
-        if colors is not None: mesh = self.render.add_mesh(pv_mesh, scalars=colors, rgb=True, style='surface', opacity=1, name=self.reference)
-        else: mesh = self.render.add_mesh(pv_mesh, color=mesh_data.color, style='surface', opacity=1, name=self.reference)
-        mesh.user_matrix = mesh_data.actor.user_matrix
-        # set the light source to add the textures
-        light = pv.Light(light_type='headlight')
-        self.render.add_light(light)
-        self.render.camera = camera
-        self.render.disable()
-        self.render.show(auto_close=False)
-        image = self.render.last_image
-        return image
     
     def get_poses_from_undo(self, mesh_data):
         transformation_matrix = mesh_data.undo_poses.pop()
