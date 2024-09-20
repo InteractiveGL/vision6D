@@ -116,9 +116,6 @@ class ImageStore(metaclass=Singleton):
         2. 3D Coordinate Systems: In a right-handed 3D coordinate system, the y-axis typically points upwards. 
         So, when we visualize a 2D image in a 3D space without adjustments, the image will appear flipped along the horizontal axis.
         """
-        if self.cam_viewup == (0, 0, 0): image_source = np.fliplr(np.flipud(image_source))
-        elif self.cam_viewup == (0, -1, 0): image_source = image_source
-        
         #^ save the image_source for mirroring image in the video
         self.image_source = copy.deepcopy(image_source)
 
