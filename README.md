@@ -43,7 +43,7 @@
   <a href="#license">License</a>
 </p>
 
-![screenshot](https://raw.githubusercontent.com/amitmerchant1990/electron-markdownify/master/app/img/markdownify.gif)
+![screenshot](./teaser/teaser.gif)
 
 ## Key Features
 
@@ -82,17 +82,23 @@ $ Vision6D
 ```
 
 ## Example Usage
-Set a ground-truth pose for visualization
+==**Set a ground-truth pose for visualization**==
+![screenshot](./teaser/set_ground_truth_pose.gif)
 
-PnP resgitration
+==**PnP resgitration**==
+![screenshot](./teaser/pnp_register.gif)
 
-Free-hand resgitration
+==**Free-hand resgitration**==
+![screenshot](./teaser/free_hand_registration.gif)
 
-Draw a segmentation mask
+==**Draw a segmentation mask**==
+![screenshot](./teaser/set_mask.gif)
 
-Draw a bounding box
+==**Draw a bounding box**==
+![screenshot](./teaser/set_bbox.gif)
 
-Render the mesh
+==**Render the mesh**==
+![screenshot](./teaser/mesh_render.gif)
 
 
 ## Download
@@ -112,18 +118,4 @@ This software uses the following open source packages:
 - [PyQt5](https://www.riverbankcomputing.com/static/Docs/PyQt5/)
 - [pyvistaqt](https://github.com/pyvista/pyvistaqt)
 - [NumPy](https://numpy.org/)
-
-<!-- ## Related
-
-[markdownify-web](https://github.com/amitmerchant1990/markdownify-web) - Web version of Markdownify -->
-
-## License
-
-GNU
-
----
-
-<!-- > [amitmerchant.com](https://www.amitmerchant.com) &nbsp;&middot;&nbsp; -->
-> GitHub [@ykzzyk](https://github.com/ykzzyk) &nbsp;&middot;&nbsp;
-
 
