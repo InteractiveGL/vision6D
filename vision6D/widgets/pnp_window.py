@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib
 import cv2
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -49,14 +50,17 @@ class PnPLabel(QtWidgets.QLabel):
         super().paintEvent(event)
         painter = QtGui.QPainter(self)
         painter.setPen(QtGui.QColor(255, 0, 0))
+        font = QtGui.QFont()
+        font.setPointSize(18)  # Set font size to 12 (you can change this to any size)
+        painter.setFont(font)
         for i, (orig_x, orig_y) in enumerate(self.points):
             # Map original coordinates to scaled image coordinates
             x = orig_x / self.scale_factor_x + self.offset_x
             y = orig_y / self.scale_factor_y + self.offset_y
             point = QtCore.QPointF(x, y)
             painter.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0)))
-            painter.drawEllipse(point, 4, 4)
-            text_point = QtCore.QPoint(int(point.x() + 10), int(point.y() + 10))
+            painter.drawEllipse(point, 8, 8)
+            text_point = QtCore.QPoint(int(point.x() + 12), int(point.y() + 12))
             painter.drawText(text_point, str(i + 1))
 
     def get_2d_points(self):
@@ -69,6 +73,7 @@ class PnPWindow(QtWidgets.QWidget):
 
         self.setWindowTitle("2D-to-3D Registration Using the PnP Algorithm") 
 
+        self.mesh_data = mesh_data
         self.camera_intrinsics = camera_intrinsics
         self.picked_3d_points = []
         self.point_labels = []
@@ -90,7 +95,7 @@ class PnPWindow(QtWidgets.QWidget):
 
         # Right panel: 3D visualization using PyVista
         self.pv_widget = QtInteractor(self)
-        self.plot_3d_model(mesh_data)
+        self.plot_3d_model()
         right_panel = QtWidgets.QWidget()
         right_layout = QtWidgets.QVBoxLayout()
         right_layout.addWidget(self.pv_widget)
@@ -135,7 +140,7 @@ class PnPWindow(QtWidgets.QWidget):
     def point_picking_callback(self, point):
         self.picked_3d_points.append(point)
         label_text = str(len(self.picked_3d_points))
-        label_actor = self.pv_widget.add_point_labels([point], [label_text], show_points=False, font_size=14, text_color="red", shape='rect', shape_opacity=1, pickable=False, reset_camera=False)
+        label_actor = self.pv_widget.add_point_labels([point], [label_text], show_points=False, font_size=20, text_color="red", shape='rect', shape_opacity=1, pickable=False, reset_camera=False)
         self.point_labels.append(label_actor)
 
     def right_click_callback(self, *args):
@@ -144,9 +149,17 @@ class PnPWindow(QtWidgets.QWidget):
             self.pv_widget.renderer.RemoveActor(self.point_labels.pop())
             self.pv_widget.render()
 
-    def plot_3d_model(self, mesh_data):
-        self.mesh_data = mesh_data
-        self.mesh_actor = self.pv_widget.add_mesh(mesh_data)
+    def plot_3d_model(self):
+        scalars = None
+        if self.mesh_data.color == "nocs": scalars = utils.color_mesh_nocs(self.mesh_data.pv_mesh.points)
+        elif self.mesh_data.color == "texture": scalars = np.load(self.mesh_data.texture_path) / 255
+        if scalars is not None: 
+            self.mesh_actor = self.pv_widget.add_mesh(self.mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=1, show_scalar_bar=False)
+        else: 
+            self.mesh_actor = self.pv_widget.add_mesh(self.mesh_data.pv_mesh, opacity=1, show_scalar_bar=False)
+            self.mesh_actor.GetMapper().SetScalarVisibility(0)
+            self.mesh_actor.GetProperty().SetColor(matplotlib.colors.to_rgb(self.mesh_data.color))
+        
         self.pv_widget.enable_surface_point_picking(callback=self.point_picking_callback, show_message=False, show_point=False, left_clicking=True, color='red')
         self.pv_widget.iren.add_observer("RightButtonPressEvent", self.right_click_callback)
         self.pv_widget.reset_camera()

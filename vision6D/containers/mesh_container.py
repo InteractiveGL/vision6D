@@ -124,7 +124,30 @@ class MeshContainer:
         else: utils.display_warning("Need to select a mesh actor first")
         
     def set_color(self, color, name):
+        scalars = None
         mesh_data = self.mesh_store.meshes[name]
+        if color == "nocs": scalars = utils.color_mesh_nocs(mesh_data.pv_mesh.points)
+        elif color == "texture":
+            texture_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy)")
+            if texture_path: 
+                mesh_data.texture_path = texture_path
+                scalars = np.load(texture_path) / 255 # make sure the color range is from 0 to 1
+
+        if scalars is not None: mesh = self.plotter.add_mesh(mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=mesh_data.opacity, name=name)
+        else:
+            mesh = self.plotter.add_mesh(mesh_data.pv_mesh, opacity=mesh_data.opacity, name=name)
+            mesh.GetMapper().SetScalarVisibility(0)
+            if color in self.mesh_store.colors: mesh.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
+            else:
+                mesh_data.color = "wheat"
+                mesh.GetProperty().SetColor(matplotlib.colors.to_rgb(mesh_data.color))
+
+        mesh.user_matrix = mesh_data.actor.user_matrix
+        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=name)
+        mesh_data.actor = actor #^ very import to change the actor too!
+        if scalars is None and color == 'texture': color = mesh_data.color
+        return color
+        """
         if color in self.mesh_store.colors:
             mesh_data.actor.GetMapper().SetScalarVisibility(0)
             mesh_data.actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
@@ -132,11 +155,21 @@ class MeshContainer:
             if color == "nocs": scalars = utils.color_mesh_nocs(mesh_data.pv_mesh.points)
             else: 
                 texture_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy)")
-                if texture_path: scalars = np.load(texture_path) / 255 # make sure the color range is from 0 to 1
-            mesh = self.plotter.add_mesh(mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=mesh_data.opacity, name=name)
+                if texture_path:
+                    mesh_data.texture_path = texture_path
+                    scalars = np.load(texture_path) / 255 # make sure the color range is from 0 to 1
+            if scalars is not None: 
+                mesh = self.plotter.add_mesh(mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=mesh_data.opacity, name=name)
+            else: 
+                mesh = self.plotter.add_mesh(mesh_data.pv_mesh, opacity=mesh_data.opacity, name=name)
+                mesh.GetMapper().SetScalarVisibility(0)
+                mesh.GetProperty().SetColor(matplotlib.colors.to_rgb(mesh_data.color))
             mesh.user_matrix = mesh_data.actor.user_matrix
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=name)
             mesh_data.actor = actor #^ very import to change the actor too!
+            if scalars is None and color == 'texture': color = mesh_data.color
+        return color
+        """
             
     def set_mesh_opacity(self, name: str, mesh_opacity: float):
         mesh_data = self.mesh_store.meshes[name]

@@ -467,7 +467,8 @@ class MyMainWindow(MainWindow):
         if not self.image_store.image_actor: utils.display_warning("Need to load an image first!"); return
         if self.mesh_store.reference is None: utils.display_warning("Need to select a mesh first!"); return
         image = utils.get_image_actor_scalars(self.image_store.image_actor)
-        self.pnp_window = PnPWindow(image_source=image, mesh_data=self.mesh_store.meshes[self.mesh_store.reference].pv_mesh, 
+        self.pnp_window = PnPWindow(image_source=image, 
+                                    mesh_data=self.mesh_store.meshes[self.mesh_store.reference],
                                     camera_intrinsics=self.image_store.camera_intrinsics.astype(np.float32))
         self.pnp_window.transformation_matrix_computed.connect(self.handle_transformation_matrix)
         
@@ -780,11 +781,12 @@ class MyMainWindow(MainWindow):
                 self.bbox_store.color_button.setStyleSheet(f"background-color: {self.bbox_store.color}")
         elif name in self.mesh_store.meshes:
             try:
-                self.mesh_container.set_color(color, name)
+                color = self.mesh_container.set_color(color, name)
                 self.mesh_store.meshes[name].color = color
+                if color != "nocs" and color != "texture": 
+                    self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
             except ValueError:
                 utils.display_warning(f"Cannot set color ({color}) to {name}")
-                self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
 
     def tap_toggle_opacity(self):
         if self.mesh_store.meshes[self.mesh_store.reference].opacity == 1.0: 

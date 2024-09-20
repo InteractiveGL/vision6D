@@ -29,6 +29,7 @@ class MeshData:
     opacity_spinbox: Optional[str]
     color_button: Optional[str]
     color: str
+    texture_path: Optional[str] = None
     spacing: List[float] = field(default_factory=[1, 1, 1])
     mirror_x: bool = False
     mirror_y: bool = False
@@ -84,6 +85,7 @@ class MeshStore(metaclass=Singleton):
                                 color_button=None,
                                 actor=None,
                                 color=self.colors[self.color_counter],
+                                texture_path=None,
                                 opacity_spinbox=None,
                                 spacing=[1, 1, 1])
             
