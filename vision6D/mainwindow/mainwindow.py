@@ -475,7 +475,7 @@ class MyMainWindow(MainWindow):
     def panel_display(self):
         self.display = QtWidgets.QGroupBox("Console")
         display_layout = QtWidgets.QVBoxLayout()
-        display_layout.setContentsMargins(10, 15, 10, 5)
+        display_layout.setContentsMargins(10, 20, 10, 5)
 
         #* Create the top widgets (layout)
         top_layout = QtWidgets.QHBoxLayout()
@@ -566,7 +566,7 @@ class MyMainWindow(MainWindow):
         # Add a spacer to the top of the main layout
         self.output = QtWidgets.QGroupBox("Output")
         output_layout = QtWidgets.QVBoxLayout()
-        output_layout.setContentsMargins(10, 15, 10, 5)
+        output_layout.setContentsMargins(10, 20, 10, 5)
 
         #* Create the top widgets (layout)
         top_layout = QtWidgets.QHBoxLayout()
