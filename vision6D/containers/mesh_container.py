@@ -23,7 +23,7 @@ from ..tools import exception
 from ..components import MaskStore
 from ..components import ImageStore
 from ..components import MeshStore
-from ..widgets import GetPoseDialog
+from ..widgets import GetPoseDialog, AffineWidget3D
 
 from ..path import PKG_ROOT
 
@@ -89,6 +89,31 @@ class MeshContainer:
             mesh_data.mirror_y = False # very important
         mesh_data.actor.user_matrix = transformation_matrix
         self.check_button(name=name, output_text=False)
+
+    def update_widget_origin(self, widget, mesh, actor, *args):
+        """
+        Callback function to update the widget's origin based on the actor's center.
+        
+        Parameters:
+        - transform: The transformation matrix applied by the widget.
+        """
+        # Retrieve the current transformation matrix of the actor
+        user_matrix = actor.user_matrix
+        print(user_matrix)
+
+        if user_matrix is not None:
+            # Apply the transformation matrix to the actor's points
+            vertices = mesh.points
+            transformed_vertices = (vertices @ user_matrix[:3, :3].T) + user_matrix[:3, 3]
+            
+            # Calculate the new geometric center after the transformation
+            new_origin = np.mean(transformed_vertices, axis=0)
+            
+            # Update the widget's origin with the new center
+            widget.origin = new_origin
+
+            # Redraw the plotter to reflect changes
+            self.plotter.render()
         
     def add_mesh(self, mesh_data, transformation_matrix):
         """ add a mesh to the pyqt frame """
@@ -96,6 +121,19 @@ class MeshContainer:
         mesh.user_matrix = transformation_matrix
         actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_data.name)
         mesh_data.actor = actor
+
+        widget = AffineWidget3D(plotter=self.plotter, 
+                        actor=actor, 
+                        origin=actor.center, 
+                        start=True, 
+                        scale=0.15, 
+                        line_radius=0.02, 
+                        always_visible=True,
+                        interact_callback=lambda *args: self.update_widget_origin(widget, mesh_data.pv_mesh, actor),
+                        release_callback=lambda *args: self.update_widget_origin(widget, mesh_data.pv_mesh, actor)
+                    )
+        
+        mesh_data.widget = widget
 
         # add remove current mesh to removeMenu
         if mesh_data.name not in self.track_actors_names:

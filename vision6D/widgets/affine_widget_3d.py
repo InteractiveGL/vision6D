@@ -4,7 +4,6 @@ from typing import Tuple
 from typing import cast
 import numpy as np
 import pyvista
-import pyvista as pv
 import vtk
 import sys
 import traceback
@@ -226,56 +225,56 @@ class AffineWidget3D:
                 actor.mapper.SetResolveCoincidentTopologyToPolygonOffset()
                 actor.mapper.SetRelativeCoincidentTopologyPolygonOffsetParameters(0, -20000)
 
+    def sync_widget_to_actor(self):
+        """Synchronize the widget's transformation with the actor's user_matrix."""
+        # Get the current transformation matrix of the actor
+        user_matrix = self._main_actor.user_matrix
+        
+        if user_matrix is not None:
+            # Apply the actor's transformation matrix to all widget components
+            for component in self._arrows + self._circles:
+                component.user_matrix = user_matrix
+
+            # Redraw the plotter to reflect changes
+            self._pl.render()
+
     def _get_world_coord_rot(self, interactor):
-        """Get the world coordinates given an interactor.
-
-        Unlike ``_get_world_coord_trans``, these coordinates are physically
-        accurate, but sensitive to the position of the camera. Rotation is zoom
-        independent.
-
-        """
+        """Compute rotation coordinates in the object's local space."""
         x, y = interactor.GetLastEventPosition()
         coordinate = vtk.vtkCoordinate()
         coordinate.SetCoordinateSystemToDisplay()
         coordinate.SetValue(x, y, 0)
         ren = interactor.GetRenderWindow().GetRenderers().GetFirstRenderer()
         point = np.array(coordinate.GetComputedWorldValue(ren))
+
         if self._selected_actor:
             index = self._circles.index(self._selected_actor)
-            to_widget = np.array(ren.camera.position - self._origin)
-            point = ray_plane_intersection(point, to_widget, self._origin, self.axes[index])
+            normal = self.axes[index]
+
+            # Transform point to local object space for rotation
+            local_point = self.world_to_local(point)
+            to_widget = np.array(self._origin - local_point)
+
+            # Perform interaction in local space
+            local_point = ray_plane_intersection(local_point, to_widget, self._origin, normal)
+            return self.local_to_world(local_point)
         return point
-
+    
     def _get_world_coord_trans(self, interactor):
-        """Get the world coordinates given an interactor.
+        """Get the world coordinates (including Z) for translation using the picker."""
+        x, y = interactor.GetEventPosition()  # Get the mouse coordinates
+        picker = vtk.vtkCellPicker()  # Create a picker
+        renderer = interactor.GetRenderWindow().GetRenderers().GetFirstRenderer()
 
-        This uses a modified scaled approach to get the world coordinates that
-        are not physically accurate, but ignores zoom and works for
-        translation.
+        # Perform picking at the mouse location
+        picker.Pick(x, y, 0, renderer)
 
-        """
-        x, y = interactor.GetLastEventPosition()
-        ren = interactor.GetRenderWindow().GetRenderers().GetFirstRenderer()
+        # Get the world coordinates of the picked position
+        world_position = picker.GetPickPosition()  # Returns (x, y, z) in world space
 
-        # Get normalized view coordinates (-1, 1)
-        width, height = ren.GetSize()
-        ndc_x = 2 * (x / width) - 1
-        ndc_y = 2 * (y / height) - 1
-        ndc_z = 1
+        if picker.GetCellId() == -1: return None
 
-        # convert camera coordinates to world coordinates
-        camera = ren.GetActiveCamera()
-        projection_matrix = pyvista.array_from_vtkmatrix(
-            camera.GetProjectionTransformMatrix(ren.GetTiledAspectRatio(), 0, 1),
-        )
-        inverse_projection_matrix = np.linalg.inv(projection_matrix)
-        camera_coords = np.dot(inverse_projection_matrix, [ndc_x, ndc_y, ndc_z, 1])
-        modelview_matrix = pyvista.array_from_vtkmatrix(camera.GetModelViewTransformMatrix())
-        inverse_modelview_matrix = np.linalg.inv(modelview_matrix)
-        world_coords = np.dot(inverse_modelview_matrix, camera_coords)
-
-        # Scale by twice actor length (experimentally determined for good UX)
-        return world_coords[:3] * self._actor_length * 2
+        return np.array(world_position)
 
     def _move_callback(self, interactor, _event):
         """Process actions for the move mouse event."""
@@ -285,47 +284,51 @@ class AffineWidget3D:
         renderer = interactor.GetInteractorStyle()._parent()._plotter.iren.get_poked_renderer()
         picker.Pick(click_x, click_y, click_z, renderer)
         actor = picker.GetActor()
+        current_pos = self._get_world_coord_trans(interactor)
+        matrix = self._main_actor.user_matrix
 
         if self._pressing_down:
             if self._selected_actor in self._arrows:
-                current_pos = self._get_world_coord_trans(interactor)
                 index = self._arrows.index(self._selected_actor)
-                diff = current_pos - self.init_position
-                trans_matrix = np.eye(4)
-                trans_matrix[:3, -1] = self.axes[index] * np.dot(diff, self.axes[index])
-                matrix = trans_matrix @ self._cached_matrix
-            elif self._selected_actor in self._circles:
-                current_pos = self._get_world_coord_rot(interactor)
-                index = self._circles.index(self._selected_actor)
-                vec_current = current_pos - self._origin
-                vec_init = self.init_position - self._origin
-                normal = self.axes[index]
-                vec_current = vec_current - np.dot(vec_current, normal) * normal
-                vec_init = vec_init - np.dot(vec_init, normal) * normal
-                vec_current /= np.linalg.norm(vec_current)
-                vec_init /= np.linalg.norm(vec_init)
-                angle = get_angle(vec_init, vec_current)
-                cross = np.cross(vec_init, vec_current)
-                if cross[index] < 0:
-                    angle = -angle
+                if current_pos is not None:
+                    diff = current_pos - self.init_position
+                    trans_matrix = np.eye(4)
+                    trans_matrix[:3, -1] = self.axes[index] * np.dot(diff, self.axes[index])
+                    matrix = trans_matrix @ self._cached_matrix
+            # elif self._selected_actor in self._circles:
+            #     current_pos = self._get_world_coord_rot(interactor)
+            #     index = self._circles.index(self._selected_actor)
+            #     vec_current = current_pos - self._origin
+            #     vec_init = self.init_position - self._origin
+            #     normal = self.axes[index]
+            #     vec_current = vec_current - np.dot(vec_current, normal) * normal
+            #     vec_init = vec_init - np.dot(vec_init, normal) * normal
+            #     vec_current /= np.linalg.norm(vec_current)
+            #     vec_init /= np.linalg.norm(vec_init)
+            #     angle = get_angle(vec_init, vec_current)
+            #     cross = np.cross(vec_init, vec_current)
+            #     if cross[index] < 0:
+            #         angle = -angle
 
-                trans = vtk.vtkTransform()
-                trans.Translate(self._origin)
-                trans.RotateWXYZ(
-                    angle,
-                    self._axes[index][0],
-                    self._axes[index][1],
-                    self._axes[index][2],
-                )
-                trans.Translate(-self._origin)
-                trans.Update()
-                rot_matrix = pyvista.array_from_vtkmatrix(trans.GetMatrix())
-                matrix = rot_matrix @ self._cached_matrix
+            #     trans = vtk.vtkTransform()
+            #     trans.Translate(self._origin)
+            #     trans.RotateWXYZ(
+            #         angle,
+            #         self._axes[index][0],
+            #         self._axes[index][1],
+            #         self._axes[index][2],
+            #     )
+            #     trans.Translate(-self._origin)
+            #     trans.Update()
+            #     rot_matrix = pyvista.array_from_vtkmatrix(trans.GetMatrix())
+            #     matrix = rot_matrix @ self._cached_matrix
 
             if self._user_interact_callback:
                 try_callback(self._user_interact_callback, self._main_actor.user_matrix)
 
             self._main_actor.user_matrix = matrix
+
+            self.sync_widget_to_actor()
 
         elif self._selected_actor and self._selected_actor is not actor:
             # Return the color of the currently selected actor to normal and
@@ -359,7 +362,7 @@ class AffineWidget3D:
             if self._selected_actor in self._circles:
                 self.init_position = self._get_world_coord_rot(interactor)
             else:
-                self.init_position = self._get_world_coord_trans(interactor)
+                self.init_position = self._main_actor.user_matrix[:3, -1]
 
     def _release_callback(self, _interactor, _event):
         """Process actions for the mouse button release event."""
@@ -368,6 +371,8 @@ class AffineWidget3D:
         self._cached_matrix = self._main_actor.user_matrix
         if self._user_release_callback:
             try_callback(self._user_release_callback, self._main_actor.user_matrix)
+
+        self.sync_widget_to_actor()
 
     def _reset(self):
         """Reset the actor and cached transform."""
@@ -467,69 +472,3 @@ class AffineWidget3D:
             self._pl.remove_actor(actor)
         self._circles = []
         self._arrows = []
-
-def update_widget_origin(widget, actor, *args):
-    """
-    Callback function to update the widget's origin based on the actor's center.
-    
-    Parameters:
-    - transform: The transformation matrix applied by the widget.
-    """
-    # Retrieve the current transformation matrix of the actor
-    user_matrix = actor.user_matrix
-    print(user_matrix)
-
-    if user_matrix is not None:
-        # Apply the transformation matrix to the actor's points
-        vertices = sphere.points
-        transformed_vertices = (vertices @ user_matrix[:3, :3].T) + user_matrix[:3, 3]
-        
-        # Calculate the new geometric center after the transformation
-        new_origin = np.mean(transformed_vertices, axis=0)
-        
-        # Update the widget's origin with the new center
-        widget.origin = new_origin
-
-        # Redraw the plotter to reflect changes
-        plotter.render()
-
-# Initialize the PyVista plotter
-plotter = pv.Plotter()
-
-# Create sphere and box meshes
-sphere = pv.Sphere()
-box = pv.Box()
-
-# Add the sphere to the plotter and retrieve the actor
-sphere_actor = plotter.add_mesh(box, name='Sphere', color='lightblue', opacity=0.8)
-
-# Add the box to the plotter and retrieve the actor
-box_actor = plotter.add_mesh(box, name='Box', color='lightgreen', opacity=0.8)
-
-# Create an AffineWidget3D for the sphere
-sphere_widget = AffineWidget3D(
-    plotter=plotter, 
-    actor=sphere_actor, 
-    origin=sphere_actor.center, 
-    start=True, 
-    scale=0.15, 
-    line_radius=0.02, 
-    always_visible=True,
-    interact_callback=lambda *args: update_widget_origin(sphere_widget, sphere_actor)
-)
-
-# Create an AffineWidget3D for the box
-box_widget = AffineWidget3D(
-    plotter=plotter, 
-    actor=box_actor, 
-    origin=box_actor.center, 
-    start=True, 
-    scale=0.15, 
-    line_radius=0.02, 
-    always_visible=True,
-    interact_callback=lambda *args: update_widget_origin(box_widget, box_actor)
-)
-
-# Display the plotter with both meshes and their widgets
-plotter.show()
-

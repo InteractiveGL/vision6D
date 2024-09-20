@@ -26,6 +26,7 @@ class MeshData:
     source_mesh: trimesh.Trimesh
     pv_mesh: pv.PolyData
     actor: pv.Actor
+    widget: pv.Actor
     opacity_spinbox: Optional[str]
     color_button: Optional[str]
     color: str
@@ -83,6 +84,7 @@ class MeshStore(metaclass=Singleton):
                                 pv_mesh=pv_mesh,
                                 color_button=None,
                                 actor=None,
+                                widget=None,
                                 color=self.colors[self.color_counter],
                                 opacity_spinbox=None,
                                 spacing=[1, 1, 1])
