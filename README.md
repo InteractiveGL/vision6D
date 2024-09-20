@@ -82,22 +82,22 @@ $ Vision6D
 ```
 
 ## Example Usage
-==**Set a ground-truth pose for visualization**==
+**Set a ground-truth pose for visualization**
 ![screenshot](./teaser/set_ground_truth_pose.gif)
 
-==**PnP resgitration**==
+**PnP resgitration**
 ![screenshot](./teaser/pnp_register.gif)
 
-==**Free-hand resgitration**==
+**Free-hand resgitration**
 ![screenshot](./teaser/free_hand_registration.gif)
 
-==**Draw a segmentation mask**==
+**Draw a segmentation mask**
 ![screenshot](./teaser/set_mask.gif)
 
-==**Draw a bounding box**==
+**Draw a bounding box**
 ![screenshot](./teaser/set_bbox.gif)
 
-==**Render the mesh**==
+**Render the mesh**
 ![screenshot](./teaser/mesh_render.gif)
 
 
