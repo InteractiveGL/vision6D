@@ -105,6 +105,9 @@ class MeshStore(metaclass=Singleton):
     def remove_mesh(self, name):
         del self.meshes[name]
         self.reference = None
+
+    def remove_widget(self, name):
+        self.meshes[name].widget.remove()
     
     def get_poses_from_undo(self, mesh_data):
         transformation_matrix = mesh_data.undo_poses.pop()

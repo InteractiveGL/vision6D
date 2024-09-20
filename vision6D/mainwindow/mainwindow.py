@@ -462,6 +462,7 @@ class MyMainWindow(MainWindow):
     def handle_transformation_matrix(self, transformation_matrix):
         self.toggle_register(transformation_matrix)
         self.mesh_container.update_gt_pose()
+        self.check_button(self.mesh_store.reference)
 
     def pnp_register(self):
         if not self.image_store.image_actor: utils.display_warning("Need to load an image first!"); return
@@ -718,6 +719,8 @@ class MyMainWindow(MainWindow):
             if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
             self.mesh_store.meshes[self.mesh_store.reference].undo_poses.append(mesh_data.actor.user_matrix)
             self.mesh_store.meshes[self.mesh_store.reference].undo_poses = self.mesh_store.meshes[self.mesh_store.reference].undo_poses[-20:]
+            self.mesh_store.meshes[self.mesh_store.reference].widget.sync_widget_to_actor()
+            self.mesh_store.meshes[self.mesh_store.reference].widget._cached_matrix = mesh_data.actor.user_matrix
         else:
             self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
 
@@ -882,6 +885,7 @@ class MyMainWindow(MainWindow):
             self.bbox_store.reset()
         elif name in self.mesh_store.meshes: 
             actor = self.mesh_store.meshes[name].actor
+            self.mesh_store.remove_widget(name)
             self.mesh_store.remove_mesh(name)
 
         self.plotter.remove_actor(actor)
@@ -923,6 +927,7 @@ class MyMainWindow(MainWindow):
                 self.bbox_store.mirror_y = False
             elif name in self.mesh_store.meshes: 
                 actor = self.mesh_store.meshes[name].actor
+                self.mesh_store.remove_widget(name)
                 self.mesh_store.remove_mesh(name)
 
             self.plotter.remove_actor(actor)
