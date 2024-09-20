@@ -269,8 +269,8 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("d"), self).activated.connect(self.folder_container.next_info)
 
         # todo: create the swith button for mesh and ct "ctrl + tap"
+        QtWidgets.QShortcut(QtGui.QKeySequence("Tab"), self).activated.connect(self.tap_toggle_opacity)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self).activated.connect(self.ctrl_tap_opacity)
-
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+w"), self).activated.connect(self.clear_plot)
 
     def showMaximized(self):
@@ -785,6 +785,20 @@ class MyMainWindow(MainWindow):
             except ValueError:
                 utils.display_warning(f"Cannot set color ({color}) to {name}")
                 self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
+
+    def tap_toggle_opacity(self):
+        if self.mesh_store.meshes[self.mesh_store.reference].opacity == 1.0: 
+            self.mesh_store.meshes[self.mesh_store.reference].opacity = 0.0
+            self.image_store.image_opacity = 1.0
+        elif self.mesh_store.meshes[self.mesh_store.reference].opacity == 0.9:
+            self.mesh_store.meshes[self.mesh_store.reference].opacity = 1.0
+            self.image_store.image_opacity = 0.0
+        else:
+            self.mesh_store.meshes[self.mesh_store.reference].opacity = 0.9
+            self.image_store.image_opacity = 0.9
+        self.image_store.image_actor.GetProperty().opacity = self.image_store.image_opacity
+        self.image_store.opacity_spinbox.setValue(self.image_store.image_opacity)
+        self.mesh_store.meshes[self.mesh_store.reference].opacity_spinbox.setValue(self.mesh_store.meshes[self.mesh_store.reference].opacity)
 
     def ctrl_tap_opacity(self):
         if self.mesh_store.reference is not None:
