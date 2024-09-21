@@ -45,7 +45,7 @@
   <a href="#license">License</a>
 </p>
 
-![screenshot](./teaser/free_hand_registration.gif)
+![screenshot](./teaser/freehand_registration.gif)
 
 ## Key Features
 
@@ -86,23 +86,22 @@ $ Vision6D
 ## Examples
 Note that when fisrt load the application, it may take some time. Once it load successfully, the interactive experience will be smooth.
 
-**Set a ground-truth pose for visualization**
-<p float="left">
-  <img src="./teaser/set_pose1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
-  <img src="./teaser/set_pose2.png" alt="screenshot 2" width="45%" />
-</p>
-
-**PnP resgitration**
+**PnP resgitration of the benchvise**
 <p float="left">
   <img src="./teaser/pnp1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
   <img src="./teaser/pnp2.png" alt="screenshot 2" width="45%" />
 </p>
 
-**Free-hand registration**
-<p>
-  <img src="./teaser/free_hand_registration.gif" alt="screenshot" width="92%" />
+**Set a ground-truth pose for visualization of the benchvise (ground-truth pose is obtained from the public 6D pose dataset Linemod)**
+<p float="left">
+  <img src="./teaser/set_pose1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="./teaser/set_pose2.png" alt="screenshot 2" width="45%" />
 </p>
 
+**Free-hand registration of the benchvise**
+<p>
+  <img src="./teaser/freehand_registration.gif" alt="screenshot" width="92%" />
+</p>
 
 **Draw a segmentation mask on the duck in this scene**
 <p float="left">
@@ -116,12 +115,11 @@ Note that when fisrt load the application, it may take some time. Once it load s
   <img src="./teaser/draw_bbox_2.png" alt="screenshot 2" width="45%" />
 </p>
 
-**Render the mesh**
+**Render the benchwise mesh**
 <p float="left">
   <img src="./teaser/render_mesh_1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
   <img src="./teaser/render_mesh_2.png" alt="screenshot 2" width="45%" />
 </p>
-
 
 ## Download
 
