@@ -124,7 +124,7 @@ Note that when fisrt load the application, it may take some time. Once it load s
 
 ## Download
 
-You can [download](https://github.com/InteractiveGL/vision6D/releases/tag/0.3.9) the latest installable version of Vision6D for Windows, macOS and Linux.
+You can [download](https://github.com/InteractiveGL/vision6D/releases/) the latest installable version of Vision6D for Windows, macOS and Linux.
 
 ## Emailware
 
