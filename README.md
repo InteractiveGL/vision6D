@@ -63,6 +63,12 @@
 
 To clone and run this application, you'll need [Git](https://git-scm.com) and [Python](https://www.python.org/) installed on your computer. From your command line:
 
+**Vision6D can be directly installed from PyPi**
+```bash
+$ pip install vision6D
+```
+
+**Another way to use this software is to clone from this repository**
 ```bash
 # (Optional) Create a conda environment
 $ conda create -n vision6D python=3.10
