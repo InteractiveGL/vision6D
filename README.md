@@ -1,6 +1,6 @@
 <h1 align="center">
   <br>
-  <a href=""><img src="./teaser/vision6D_logo.png" alt="Vision6D" width="300"></a>
+  <a href=""><img src="https://github.com/user-attachments/assets/77a97754-8a34-44e9-b22a-a506842699a2" alt="Vision6D" width="300"></a>
   <br>
   VISION6D
   <br>
@@ -45,7 +45,8 @@
   <a href="#license">License</a>
 </p>
 
-![screenshot](./teaser/freehand_registration.gif)
+![screenshot](https://github.com/user-attachments/assets/a3697ff5-1270-4da6-9273-a1f2ae1e19be)
+
 
 ## Key Features
 
@@ -64,7 +65,7 @@
 
 ## How To Use
 
-To clone and run this application, you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
+To clone and run this application, you'll need [Git](https://git-scm.com) and [Python](https://www.python.org/) installed on your computer. From your command line:
 
 ```bash
 # (Optional) Create a conda environment
@@ -88,37 +89,37 @@ Note that when fisrt load the application, it may take some time. Once it load s
 
 **PnP resgitration of the benchvise**
 <p float="left">
-  <img src="./teaser/pnp1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
-  <img src="./teaser/pnp2.png" alt="screenshot 2" width="45%" />
+  <img src="https://github.com/user-attachments/assets/e1968f74-dcdd-4c01-a3dc-69c54b97dc84" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="https://github.com/user-attachments/assets/2fb62058-b5d1-4adf-851d-036065735fcd" alt="screenshot 2" width="45%" />
 </p>
 
 **Set a ground-truth pose for visualization of the benchvise (ground-truth pose is obtained from the public 6D pose dataset Linemod)**
 <p float="left">
-  <img src="./teaser/set_pose1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
-  <img src="./teaser/set_pose2.png" alt="screenshot 2" width="45%" />
+  <img src="https://github.com/user-attachments/assets/da9c1eb8-abbd-4045-bc54-200bef15452d" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="https://github.com/user-attachments/assets/9f6fed68-0c45-4969-b0e4-62bfc6efc255" alt="screenshot 2" width="45%" />
 </p>
 
 **Free-hand registration of the benchvise**
 <p>
-  <img src="./teaser/freehand_registration.gif" alt="screenshot" width="92%" />
+  <img src="https://github.com/user-attachments/assets/0b5468bb-3fdc-4932-8821-da253d33d722" alt="screenshot" width="92%" />
 </p>
 
 **Draw a segmentation mask on the duck in this scene**
 <p float="left">
-  <img src="./teaser/draw_mask1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
-  <img src="./teaser/draw_mask2.png" alt="screenshot 2" width="45%" />
+  <img src="https://github.com/user-attachments/assets/fe1e71a0-edab-46c0-84d0-e9e5296c4841" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="https://github.com/user-attachments/assets/76b7bfcc-df15-4bfd-a4e0-e5348e559ac3" alt="screenshot 2" width="45%" />
 </p>
 
 **Draw a bounding box around the duck in this scene**
 <p float="left">
-  <img src="./teaser/draw_bbox_1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
-  <img src="./teaser/draw_bbox_2.png" alt="screenshot 2" width="45%" />
+  <img src="https://github.com/user-attachments/assets/fcf2b64d-3d3f-4b8a-8b57-19a5b3e7117e" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="https://github.com/user-attachments/assets/7e3a8f39-e54a-463a-a1e9-1f4bc266c2ac" alt="screenshot 2" width="45%" />
 </p>
 
 **Render the benchwise mesh**
 <p float="left">
-  <img src="./teaser/render_mesh_1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
-  <img src="./teaser/render_mesh_2.png" alt="screenshot 2" width="45%" />
+  <img src="https://github.com/user-attachments/assets/1fb83ebe-68e3-469c-b704-53cbbc7570d8" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="https://github.com/user-attachments/assets/2cb28dc9-65af-4037-bcfa-e6ea5907e253" alt="screenshot 2" width="45%" />
 </p>
 
 ## Download
