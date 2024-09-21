@@ -2,11 +2,11 @@
   <br>
   <a href=""><img src="./teaser/vision6D_logo.png" alt="Vision6D" width="300"></a>
   <br>
-  Vision6D
+  VISION6D
   <br>
 </h1>
 
-<h4 align="center">Vision6D: 3D-to-2D visualization and annotation tool for 6D pose estimation desktop app built on top of <a href="https://docs.pyvista.org" target="_blank">Pyvista</a>, <a href="https://vtk.org/" target="_blank">VTK</a>, <a href="https://www.riverbankcomputing.com/static/Docs/PyQt5/" target="_blank">PyQT5</a>, <a href="https://github.com/pyvista/pyvistaqt" target="_blank">pyvistaqt</a>. This python-based app is designed to work on Windows and Linux (Ubuntu-tested). The generated 6D pose results can be seamlessly integrate into any scripts. </h4>
+<h4 align="center">VISION6D: 3D-to-2D visualization and annotation tool for 6D pose estimation desktop app built on top of <a href="https://docs.pyvista.org" target="_blank">Pyvista</a>, <a href="https://vtk.org/" target="_blank">VTK</a>, <a href="https://www.riverbankcomputing.com/static/Docs/PyQt5/" target="_blank">PyQT5</a>, <a href="https://github.com/pyvista/pyvistaqt" target="_blank">pyvistaqt</a>. This python-based app is designed to work on Windows and Linux (Ubuntu-tested). The generated 6D pose results can be seamlessly integrate into any scripts. </h4>
 
 <p align="center">
   <a href="https://github.com/InteractiveGL/vision6D/releases">
@@ -82,7 +82,7 @@ $ Vision6D
 ```
 
 ## Example Usage
-<span style="background-color: yellow">Note that when you fisrt load the application, it may take some time, and please be patient. Once it is loaded successfully, the interactive experience is smooth. </span>
+Note that when you fisrt load the application, it may take some time, and please be patient. Once it is loaded successfully, the interactive experience is smooth.
 
 **Set a ground-truth pose for visualization**
 ![screenshot](./teaser/set_ground_truth_pose.gif)
