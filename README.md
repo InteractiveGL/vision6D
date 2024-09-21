@@ -6,7 +6,7 @@
   <br>
 </h1>
 
-<h4 align="center">VISION6D: 3D-to-2D visualization and annotation tool for 6D pose estimation desktop app. This python-based application is designed to work on Windows and Linux (Ubuntu-tested).</h4>
+<h4 align="center">VISION6D: 3D-to-2D visualization and annotation desktop app for 6D pose estimation related tasks. This python-based application is designed to work on Windows and Linux (Ubuntu-tested).</h4>
 
 <p align="center">
   <a href="https://github.com/InteractiveGL/vision6D/releases">
