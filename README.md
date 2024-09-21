@@ -38,7 +38,9 @@
 <p align="center">
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
+  <a href="#examples">Examples</a> •
   <a href="#download">Download</a> •
+  <a href="#emailware">Emailware</a> •
   <a href="#credits">Credits</a> •
   <a href="#license">License</a>
 </p>
@@ -81,7 +83,7 @@ $ pip install .
 $ Vision6D
 ```
 
-## Example Usage
+## Examples
 Note that when you fisrt load the application, it may take some time, and please be patient. Once it is loaded successfully, the interactive experience is smooth.
 
 **Set a ground-truth pose for visualization**
@@ -121,3 +123,8 @@ This software uses the following open source packages:
 - [pyvistaqt](https://github.com/pyvista/pyvistaqt)
 - [NumPy](https://numpy.org/)
 
+## License
+
+GNU
+
+---
