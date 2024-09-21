@@ -84,7 +84,7 @@ $ Vision6D
 ```
 
 ## Examples
-Note that when you fisrt load the application, it may take some time, and please be patient. Once it is loaded successfully, the interactive experience is smooth.
+Note that when fisrt load the application, it may take some time. Once it load successfully, the interactive experience will be smooth.
 
 **Set a ground-truth pose for visualization**
 ![screenshot](./teaser/set_ground_truth_pose.gif)
