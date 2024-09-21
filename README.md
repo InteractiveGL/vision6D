@@ -9,25 +9,21 @@
 <h4 align="center">3D-to-2D visualization and annotation desktop app for 6D pose estimation related tasks. This python-based application is designed to work on Windows and Linux (Ubuntu-tested).</h4>
 
 <p align="center">
+  <a href="https://pypi.org/project/vision6D/">
+    <img src="https://img.shields.io/pypi/v/vision6D"
+         alt="pypi_release">
+  </a>
   <a href="https://github.com/InteractiveGL/vision6D/releases">
     <img src="https://img.shields.io/github/v/release/InteractiveGL/vision6D"
          alt="github_release">
   </a>
-  <!-- <a href="https://github.com/InteractiveGL/vision6D/blob/main/LICENSE">
+  <a href="https://github.com/InteractiveGL/vision6D/blob/main/LICENSE">
     <img src="https://img.shields.io/github/license/InteractiveGL/vision6D"
          alt="github_license">
-  </a> -->
-  <a href="https://github.com/InteractiveGL/vision6D/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/last-commit/InteractiveGL/vision6D/main"
-         alt="github_commit">
   </a>
   <a href="https://github.com/InteractiveGL/vision6D/">
     <img src="https://img.shields.io/github/downloads/InteractiveGL/vision6D/total"
          alt="github_downloads">
-  </a>
-  <a href="https://github.com/InteractiveGL/vision6D/graphs/contributors">
-    <img src="https://img.shields.io/github/contributors/InteractiveGL/vision6D"
-         alt="github_contributes">
   </a>
   <a href="https://github.com/InteractiveGL/vision6D">
     <img src="https://img.shields.io/github/stars/InteractiveGL/vision6D"
@@ -142,6 +138,6 @@ This software uses the following open source packages:
 
 ## License
 
-GNU
+GNU General Public License v3.0
 
 ---
