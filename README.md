@@ -61,7 +61,7 @@
 
 ## How To Use
 
-To clone and run this application, you'll need [Git](https://git-scm.com) and [Python](https://www.python.org/) installed on your computer. From your command line:
+To run this application, you'll need [Git](https://git-scm.com), [Python](https://www.python.org/), and [Miniconda](https://docs.anaconda.com/miniconda/) (optional) installed on your computer. From your command line:
 
 **Vision6D can be directly installed from PyPi**
 ```bash
