@@ -31,14 +31,14 @@ class BboxStore(metaclass=Singleton):
         self.previous_opacity = 0.5
         self.opacity_spinbox = None
 
-    def add_bbox(self, bbox_source, width, height, object_distance):
+    def add_bbox(self, bbox_source, image_center, width, height):
         # default is '.npy' file
         if isinstance(bbox_source, pathlib.Path) or isinstance(bbox_source, str):
             self.bbox_path = str(bbox_source)
             bbox_source = np.load(bbox_source)
 
         # find the center of the image
-        self.image_center = np.array([width // 2, height // 2, 0])
+        bbox_center = np.array([width//2, height//2, 0])
 
         if bbox_source.shape == (4, ): points = np.array([[bbox_source[0], bbox_source[1], 0], 
                                                         [bbox_source[0], bbox_source[3], 0], 
@@ -51,9 +51,8 @@ class BboxStore(metaclass=Singleton):
         if self.mirror_y: points[:, 1] = height - points[:, 1]
         
         # Due to camera view change to right handed coordinate system
-        points = points - self.image_center
+        points = points - bbox_center - image_center
         cells = np.array([[2, 0, 1], [2, 1, 2], [2, 2, 3], [2, 3, 0]]).ravel()
         self.bbox_pv = pv.UnstructuredGrid(cells, np.full((4,), vtk.VTK_LINE, dtype=np.uint8), points.astype(np.float32))
-        self.bbox_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to # points += np.array([0, 0, object_distance])
     
         return self.bbox_pv

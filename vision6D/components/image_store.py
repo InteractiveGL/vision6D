@@ -144,6 +144,7 @@ class ImageStore(metaclass=Singleton):
         self.cy_offset = (self.cy - (self.height / 2.0))
         # print(f"Image Origin: {self.cx_offset, self.cy_offset}")
         self.image_pv.translate(np.array([-self.cx_offset, -self.cy_offset, self.object_distance]), inplace=True) # move the image to the camera distance
+        self.image_center = np.array([self.cx_offset, self.cy_offset, -self.object_distance])
         
         return self.image_pv, image_source, channel
         

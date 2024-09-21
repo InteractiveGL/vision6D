@@ -80,7 +80,7 @@ class MaskContainer:
         self.mask_store.mask_actor = actor
         
     def add_mask(self, mask_source):
-        mask_surface = self.mask_store.add_mask(mask_source, self.image_store.object_distance, (self.image_store.width, self.image_store.height))
+        mask_surface = self.mask_store.add_mask(mask_source, self.image_store.image_center, (self.image_store.width, self.image_store.height))
         self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu
@@ -92,7 +92,7 @@ class MaskContainer:
         if self.mask_store.mask_path:
             self.mask_store.mirror_x = False
             self.mask_store.mirror_y = False
-            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.image_store.object_distance, (self.image_store.width, self.image_store.height))
+            mask_surface = self.mask_store.add_mask(self.mask_store.mask_path, self.image_store.image_center, (self.image_store.width, self.image_store.height))
             self.load_mask(mask_surface)
 
     def set_mask_opacity(self, mask_opacity: float):

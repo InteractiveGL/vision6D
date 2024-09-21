@@ -59,7 +59,7 @@ class BboxContainer:
                 
     def add_bbox(self, bbox_source):
         if self.image_store.image_actor:
-            bbox = self.bbox_store.add_bbox(bbox_source, self.image_store.width, self.image_store.height, self.image_store.object_distance)
+            bbox = self.bbox_store.add_bbox(bbox_source, self.image_store.image_center, self.image_store.width, self.image_store.height)
             self.load_bbox(bbox)
             
             # Add remove current image to removeMenu
@@ -92,7 +92,7 @@ class BboxContainer:
         if self.bbox_store.bbox_path:
             self.bbox_store.mirror_x = False
             self.bbox_store.mirror_y = False
-            bbox = self.bbox_store.add_bbox(self.bbox_store.bbox_path, self.image_store.width, self.image_store.height, self.image_store.object_distance)
+            bbox = self.bbox_store.add_bbox(self.bbox_store.bbox_path, self.image_store.image_center, self.image_store.width, self.image_store.height)
             self.load_bbox(bbox)
 
     def export_bbox(self):

@@ -34,7 +34,7 @@ class MaskStore(metaclass=Singleton):
         self.previous_opacity = 0.5
         self.opacity_spinbox = None
     
-    def add_mask(self, mask_source, object_distance, size):
+    def add_mask(self, mask_source, image_center, size):
         w, h = size[0], size[1]
 
         if isinstance(mask_source, pathlib.Path) or isinstance(mask_source, str):
@@ -51,7 +51,6 @@ class MaskStore(metaclass=Singleton):
             contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             points = contours[0].squeeze()
 
-        points = points
         points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
         
         # Mirror points
@@ -65,9 +64,10 @@ class MaskStore(metaclass=Singleton):
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
         # Due to camera view change to (0, -1, 0): x->right, y->down, z->front
-        points = points - mask_center # equivalent to self.mask_pv.translate(np.array([(-w//2), (-h//2), object_distance]), inplace=True)
+        points = points - mask_center - image_center # equivalent to self.mask_pv.translate(np.array([(-w//2-image_center[0]), (-h//2-image_center[1]), object_distance]), inplace=True)
         self.mask_pv = pv.PolyData(points, cells).triangulate()
-        self.mask_pv.translate(np.array([0, 0, object_distance]), inplace=True) # equivalent to points += np.array([0, 0, object_distance])
+        # self.mask_pv.translate(np.array([(-w/2), (-h/2), object_distance]), inplace=True)
+        # self.mask_pv.translate(-image_center, inplace=True)
         return self.mask_pv
 
     def update_mask(self):
