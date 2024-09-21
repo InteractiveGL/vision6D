@@ -719,8 +719,8 @@ class MyMainWindow(MainWindow):
             if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
             self.mesh_store.meshes[self.mesh_store.reference].undo_poses.append(mesh_data.actor.user_matrix)
             self.mesh_store.meshes[self.mesh_store.reference].undo_poses = self.mesh_store.meshes[self.mesh_store.reference].undo_poses[-20:]
-        else:
-            self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
+        # else:
+        #     self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
 
     def add_button_actor_name(self, name):
         button_widget = CustomButtonWidget(name)

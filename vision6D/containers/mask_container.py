@@ -16,7 +16,6 @@ import PIL.Image
 import matplotlib.colors
 import pyvista as pv
 
-
 from PyQt5 import QtWidgets
 
 from ..path import PKG_ROOT

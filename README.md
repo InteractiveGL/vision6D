@@ -45,7 +45,7 @@
   <a href="#license">License</a>
 </p>
 
-![screenshot](./teaser/teaser.gif)
+![screenshot](./teaser/free_hand_registration.gif)
 
 ## Key Features
 
@@ -87,22 +87,40 @@ $ Vision6D
 Note that when fisrt load the application, it may take some time. Once it load successfully, the interactive experience will be smooth.
 
 **Set a ground-truth pose for visualization**
-![screenshot](./teaser/set_ground_truth_pose.gif)
+<p float="left">
+  <img src="./teaser/set_pose1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="./teaser/set_pose2.png" alt="screenshot 2" width="45%" />
+</p>
 
 **PnP resgitration**
-![screenshot](./teaser/pnp_register.gif)
+<p float="left">
+  <img src="./teaser/pnp1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="./teaser/pnp2.png" alt="screenshot 2" width="45%" />
+</p>
 
-**Free-hand resgitration**
-![screenshot](./teaser/free_hand_registration.gif)
+**Free-hand registration**
+<p>
+  <img src="./teaser/free_hand_registration.gif" alt="screenshot" width="92%" />
+</p>
 
-**Draw a segmentation mask**
-![screenshot](./teaser/set_mask.gif)
 
-**Draw a bounding box**
-![screenshot](./teaser/set_bbox.gif)
+**Draw a segmentation mask on the duck in this scene**
+<p float="left">
+  <img src="./teaser/draw_mask1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="./teaser/draw_mask2.png" alt="screenshot 2" width="45%" />
+</p>
+
+**Draw a bounding box around the duck in this scene**
+<p float="left">
+  <img src="./teaser/draw_bbox_1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="./teaser/draw_bbox_2.png" alt="screenshot 2" width="45%" />
+</p>
 
 **Render the mesh**
-![screenshot](./teaser/mesh_render.gif)
+<p float="left">
+  <img src="./teaser/render_mesh_1.png" alt="screenshot 1" width="45%" style="margin-right: 20px;" />
+  <img src="./teaser/render_mesh_2.png" alt="screenshot 2" width="45%" />
+</p>
 
 
 ## Download
