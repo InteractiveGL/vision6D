@@ -369,16 +369,19 @@ class MyMainWindow(MainWindow):
         set_mask.triggered.connect(self.mask_container.set_mask)
 
         draw_mask_menu = QtWidgets.QMenu('Draw Mask', self)  # Create a submenu for 'Draw Mask'
+        free_hand = QtWidgets.QAction('Free Hand', self)
+        free_hand.triggered.connect(functools.partial(self.mask_container.draw_mask, live_wire=False, sam=False))  # Connect to a slot
         live_wire = QtWidgets.QAction('Live Wire', self)
-        live_wire.triggered.connect(self.mask_container.draw_mask)  # Connect to a slot
-        # sam = QtWidgets.QAction('SAM', self)
-        # sam.triggered.connect(functools.partial(self.mask_container.draw_mask, sam=True))  # Connect to another slot
+        live_wire.triggered.connect(functools.partial(self.mask_container.draw_mask, live_wire=True, sam=False))  # Connect to a slot
+        sam = QtWidgets.QAction('SAM', self)
+        sam.triggered.connect(functools.partial(self.mask_container.draw_mask, live_wire=False, sam=True))  # Connect to another slot
+        draw_mask_menu.addAction(free_hand)
+        draw_mask_menu.addAction(live_wire)
+        draw_mask_menu.addAction(sam)
         
         draw_bbox = QtWidgets.QAction('Draw BBox', self)
         draw_bbox.triggered.connect(self.bbox_container.draw_bbox)
-        draw_mask_menu.addAction(live_wire)
-        # draw_mask_menu.addAction(sam)
-
+        
         reset_mask = QtWidgets.QAction('Reset Mask (t)', self)
         reset_mask.triggered.connect(self.mask_container.reset_mask)
         reset_bbox = QtWidgets.QAction('Reset Bbox (f)', self)
@@ -513,7 +516,11 @@ class MyMainWindow(MainWindow):
         self.draw_options_button = QtWidgets.QPushButton("Draw")
         self.draw_options_menu = QtWidgets.QMenu()
         self.draw_options_menu.addAction("Set Mask", self.mask_container.set_mask)
-        self.draw_options_menu.addAction("Draw Mask", self.mask_container.draw_mask)
+        draw_mask_menu = QtWidgets.QMenu("Draw Mask", self.draw_options_menu)
+        draw_mask_menu.addAction("Free Hand", functools.partial(self.mask_container.draw_mask, live_wire=False, sam=False))
+        draw_mask_menu.addAction("Live Wire", functools.partial(self.mask_container.draw_mask, live_wire=True, sam=False))
+        draw_mask_menu.addAction("SAM", functools.partial(self.mask_container.draw_mask, live_wire=False, sam=True))
+        self.draw_options_menu.addMenu(draw_mask_menu)
         self.draw_options_menu.addAction("Draw Bbox", self.bbox_container.draw_bbox)
         self.draw_options_menu.addAction("Reset Mask (t)", self.mask_container.reset_mask)
         self.draw_options_menu.addAction("Reset Bbox (f)", self.bbox_container.reset_bbox)
