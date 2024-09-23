@@ -12,6 +12,7 @@ from .video_player import VideoPlayer
 from .video_sampler import VideoSampler
 from .search_bar import SearchBar
 from .pnp_window import PnPWindow
+from .custom_button_widget import CustomButtonWidget
 
 
 __all__ = [
@@ -28,5 +29,6 @@ __all__ = [
     'VideoPlayer',
     'VideoSampler',
     'SearchBar',
-    'PnPWindow'
+    'PnPWindow',
+    'CustomButtonWidget',
 ]
