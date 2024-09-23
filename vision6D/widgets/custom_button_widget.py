@@ -19,40 +19,29 @@ class PreviewButton(QtWidgets.QPushButton):
 
     def enterEvent(self, event):
         if self.pixmap:
-            # Get the size of the window
             window = self.window()
             window_width = window.width()
             window_height = window.height()
-
-            # Define the percentage of the window size for the preview
-            percentage = 0.3  # Adjust the percentage as needed
-
-            # Calculate the desired preview size
+            percentage = 0.3
             preview_width = int(window_width * percentage)
             preview_height = int(window_height * percentage)
 
             # Get the original image size
             pixmap_width = self.pixmap.width()
             pixmap_height = self.pixmap.height()
-
-            # Use the minimum between the calculated size and the original image size
             preview_width = min(preview_width, pixmap_width)
             preview_height = min(preview_height, pixmap_height)
 
-            # Scale the pixmap accordingly
             scaled_pixmap = self.pixmap.scaled(preview_width, preview_height, Qt.KeepAspectRatio)
 
-            # Create the preview label
             self.preview_label = QtWidgets.QLabel()
             self.preview_label.setPixmap(scaled_pixmap)
             self.preview_label.adjustSize()
 
-            # Position the label near the button
             button_pos = self.mapToGlobal(QPoint(0, 0))
             preview_x = button_pos.x() + self.width()
             preview_y = button_pos.y()
 
-            # Ensure the preview doesn't go off-screen
             screen = QtWidgets.QApplication.primaryScreen()
             screen_geometry = screen.availableGeometry()
             if preview_x + scaled_pixmap.width() > screen_geometry.width():
@@ -96,7 +85,7 @@ class CustomButtonWidget(QtWidgets.QWidget):
 
         # Create the square button
         self.square_button = SquareButton()
-        self.square_button.setFixedSize(50, 40)
+        self.square_button.setFixedSize(35, 35)
         if self.image_path is not None:
             pixmap = QtGui.QPixmap(self.image_path)
             scaled_pixmap = pixmap.scaled(self.square_button.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -129,9 +118,9 @@ class CustomButtonWidget(QtWidgets.QWidget):
         layout.addWidget(self.double_spinbox)
 
         # Set the stretch factors
-        layout.setStretch(0, 20)  # Main Button stretch factor
-        layout.setStretch(1, 1)   # Square Button stretch factor
-        layout.setStretch(2, 1)   # SpinBox stretch factor
+        layout.setStretch(0, 20)
+        layout.setStretch(1, 1)
+        layout.setStretch(2, 1)
 
         # Set the layout for the widget
         self.setLayout(layout)
