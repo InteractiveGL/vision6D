@@ -8,6 +8,7 @@
 @desc: create store for mesh related base functions
 '''
 
+import uuid
 import pathlib
 from typing import Optional, Dict, List
 from dataclasses import dataclass, field

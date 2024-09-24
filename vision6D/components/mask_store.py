@@ -64,9 +64,9 @@ class MaskStore(metaclass=Singleton):
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
         # Due to camera view change to (0, -1, 0): x->right, y->down, z->front
-        points = points - mask_center - image_center # equivalent to self.mask_pv.translate(np.array([(-w//2-image_center[0]), (-h//2-image_center[1]), object_distance]), inplace=True)
+        points = points - mask_center - image_center # equivalent to self.mask_pv.translate(np.array([(-w//2-image_center[0]), (-h//2-image_center[1]), distance2camera]), inplace=True)
         self.mask_pv = pv.PolyData(points, cells).triangulate()
-        # self.mask_pv.translate(np.array([(-w/2), (-h/2), object_distance]), inplace=True)
+        # self.mask_pv.translate(np.array([(-w/2), (-h/2), distance2camera]), inplace=True)
         # self.mask_pv.translate(-image_center, inplace=True)
         return self.mask_pv
 

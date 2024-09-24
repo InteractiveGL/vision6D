@@ -1,13 +1,5 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
-from . import PopUpDialog
-
-class SquareButton(QtWidgets.QPushButton):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-    def resizeEvent(self, event):
-        self.setFixedSize(40, 40)
         
 class PreviewButton(QtWidgets.QPushButton):
     def __init__(self, text='', image_path=None, parent=None):
@@ -60,10 +52,10 @@ class PreviewButton(QtWidgets.QPushButton):
             self.preview_label = None # avoid the memory leak
         super().leaveEvent(event)
 
-class CustomButtonWidget(QtWidgets.QWidget):
+class CustomImageButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, image_path=None, parent=None):
-        super(CustomButtonWidget, self).__init__(parent)
+        super(CustomImageButtonWidget, self).__init__(parent)
         self.setFixedHeight(50)
         self.image_path = image_path
 
@@ -82,28 +74,6 @@ class CustomButtonWidget(QtWidgets.QWidget):
         self.button = PreviewButton(button_name, image_path=self.image_path)
         self.button.setFixedHeight(50)
         button_layout.addWidget(self.button, 0, 0, 1, 1)
-
-        # Create the square button
-        self.square_button = SquareButton()
-        self.square_button.setFixedSize(35, 35)
-        if self.image_path is not None:
-            pixmap = QtGui.QPixmap(self.image_path)
-            scaled_pixmap = pixmap.scaled(self.square_button.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.square_button.setIcon(QtGui.QIcon(scaled_pixmap))
-            self.square_button.setIconSize(self.square_button.size())
-            self.square_button.clicked.connect(self.show_image_preview)
-        else: 
-            self.square_button.clicked.connect(self.show_color_popup)
-
-        # Create a horizontal layout for the square button and spacer
-        square_button_layout = QtWidgets.QHBoxLayout()
-        square_button_layout.addWidget(self.square_button)
-        square_button_layout.addSpacing(5)  # Add 10 pixels of space to the right
-        square_button_layout.setContentsMargins(0, 0, 0, 0)
-        square_button_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-
-        # Add the square button layout to the main button layout
-        button_layout.addLayout(square_button_layout, 0, 0, 1, 1, Qt.AlignRight | Qt.AlignVCenter)
 
         # Add the button container to the main layout
         layout.addWidget(button_container)
@@ -124,41 +94,3 @@ class CustomButtonWidget(QtWidgets.QWidget):
 
         # Set the layout for the widget
         self.setLayout(layout)
-
-    def update_square_button_color(self, text, popup):
-        self.square_button.setObjectName(text)
-        if text == 'nocs' or text == 'texture':
-            gradient_str = """
-            background-color: qlineargradient(
-                spread:pad, x1:0, y1:0, x2:1, y2:1,
-                stop:0 red, stop:0.17 orange, stop:0.33 yellow,
-                stop:0.5 green, stop:0.67 blue, stop:0.83 indigo, stop:1 violet);
-            """
-            self.square_button.setStyleSheet(gradient_str)
-        else:
-            self.square_button.setStyleSheet(f"background-color: {text}")
-        self.colorChanged.emit(text, self.button.text()) # the order is important (color, name)
-        popup.close() # automatically close the popup window
-
-    def show_color_popup(self):
-        button_name = self.button.text()
-        if button_name != 'image':
-            popup = PopUpDialog(self, on_button_click=lambda text: self.update_square_button_color(text, popup))
-            button_position = self.square_button.mapToGlobal(QPoint(0, 0))
-            popup.move(button_position + QPoint(self.square_button.width(), 0))
-            popup.exec_()
-
-    def show_image_preview(self):
-        dialog = QtWidgets.QDialog(self)
-        dialog.setWindowTitle("Image Preview")
-        dialog.setWindowFlags(Qt.Window | Qt.WindowStaysOnTopHint | Qt.WindowCloseButtonHint | Qt.CustomizeWindowHint)
-        layout = QtWidgets.QVBoxLayout(dialog)
-        label = QtWidgets.QLabel()
-        pixmap = QtGui.QPixmap(self.image_path)
-        window = self.window()
-        preview_width = int(window.width() * 0.8)
-        preview_height = int(window.height() * 0.8)
-        scaled_pixmap = pixmap.scaled(preview_width, preview_height, Qt.KeepAspectRatio)
-        label.setPixmap(scaled_pixmap)
-        layout.addWidget(label)
-        dialog.exec_()

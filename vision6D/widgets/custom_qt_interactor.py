@@ -28,9 +28,8 @@ class CustomQtInteractor(QtInteractor):
         super().mouseReleaseEvent(event)
         if event.button() in (1, 2, 4):  # Left, right, and middle mouse buttons
             self.release_callback()
-            if event.button() == 2 and self.main_window.button_group_actors_names.checkedButton() is not None:
-                if self.main_window.button_group_actors_names.checkedButton().text() == 'image':
-                    self.main_window.draw_menu(event)
+            if event.button() == 2 and self.main_window.image_button_group_actors.checkedButton() is not None:
+                self.main_window.draw_menu(event)
             
     def press_callback(self, obj, *args):
         x, y = obj.GetEventPosition()
@@ -38,13 +37,13 @@ class CustomQtInteractor(QtInteractor):
         if cell_picker.Pick(x, y, 0, self.renderer): 
             self.cell_picker = cell_picker
         else:
-            if self.main_window.image_store.image_actor: 
-                self.main_window.check_button('image')
+            if self.main_window.image_store.reference: 
+                self.main_window.check_image_button(self.main_window.image_store.reference)
 
     def release_callback(self):
         if self.cell_picker: 
             picked_actor = self.cell_picker.GetActor()
             name = picked_actor.name
-            if (name in self.main_window.mesh_store.meshes) or (name == 'mask'):
-                self.main_window.check_button(name)
+            if name in self.main_window.mesh_store.meshes:
+                self.main_window.check_mesh_button(name, output_text=True)
         self.cell_picker = None

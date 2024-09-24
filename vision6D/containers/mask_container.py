@@ -28,14 +28,14 @@ class MaskContainer:
     def __init__(self, 
                 plotter, 
                 hintLabel,
-                track_actors_names, 
-                add_button_actor_name,
+                track_actors, 
+                add_button,
                 output_text):
 
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.track_actors_names = track_actors_names
-        self.add_button_actor_name = add_button_actor_name
+        self.track_actors = track_actors
+        self.add_button = add_button
         self.output_text = output_text
 
         self.image_store = ImageStore()
@@ -83,9 +83,9 @@ class MaskContainer:
         self.load_mask(mask_surface)
         
         # Add remove current image to removeMenu
-        if 'mask' not in self.track_actors_names:
-            self.track_actors_names.append('mask')
-            self.add_button_actor_name('mask')
+        if 'mask' not in self.track_actors:
+            self.track_actors.append('mask')
+            self.add_button('mask')
     
     def reset_mask(self):
         if self.mask_store.mask_path:
@@ -108,8 +108,8 @@ class MaskContainer:
             if output_path:
                 self.mask_store.mask_path = output_path
                 self.add_mask(self.mask_store.mask_path)
-        if self.image_store.image_actor:
-            image = utils.get_image_actor_scalars(self.image_store.image_actor)
+        if self.image_store.image_data[self.image_store.reference].actor:
+            image = utils.get_image_actor_scalars(self.image_store.image_data[self.image_store.reference].actor)
             if sam: self.mask_window = SamWindow(image)
             elif live_wire: self.mask_window = LiveWireWindow(image)
             else: self.mask_window = MaskWindow(image)

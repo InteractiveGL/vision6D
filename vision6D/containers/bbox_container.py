@@ -26,14 +26,14 @@ class BboxContainer:
     def __init__(self, 
                 plotter, 
                 hintLabel,
-                track_actors_names, 
-                add_button_actor_name, 
+                track_actors, 
+                add_button, 
                 output_text):
 
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.track_actors_names = track_actors_names
-        self.add_button_actor_name = add_button_actor_name
+        self.track_actors = track_actors
+        self.add_button = add_button
         self.output_text = output_text
 
         self.image_store = ImageStore()
@@ -58,14 +58,14 @@ class BboxContainer:
         self.bbox_store.bbox_actor = actor
                 
     def add_bbox(self, bbox_source):
-        if self.image_store.image_actor:
+        if self.image_store.image_data[self.image_store.reference].actor:
             bbox = self.bbox_store.add_bbox(bbox_source, self.image_store.image_center, self.image_store.width, self.image_store.height)
             self.load_bbox(bbox)
             
             # Add remove current image to removeMenu
-            if 'bbox' not in self.track_actors_names:
-                self.track_actors_names.append('bbox')
-                self.add_button_actor_name('bbox')
+            if 'bbox' not in self.track_actors:
+                self.track_actors.append('bbox')
+                self.add_button('bbox')
         else: utils.display_warning("Need to load an image first!")
     
     def draw_bbox(self):
@@ -73,8 +73,8 @@ class BboxContainer:
             if output_path:
                 self.bbox_store.bbox_path = output_path
                 self.add_bbox(self.bbox_store.bbox_path)
-        if self.image_store.image_actor:
-            image = utils.get_image_actor_scalars(self.image_store.image_actor)
+        if self.image_store.image_data[self.image_store.reference].actor:
+            image = utils.get_image_actor_scalars(self.image_store.image_data[self.image_store.reference].actor)
             self.bbox_window = BboxWindow(image)
             self.bbox_window.bbox_label.output_path_changed.connect(handle_output_path_change)
         else: utils.display_warning("Need to load an image first!")

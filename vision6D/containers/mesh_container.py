@@ -31,9 +31,9 @@ class MeshContainer:
     def __init__(self,
                 plotter, 
                 hintLabel,
-                track_actors_names, 
-                add_button_actor_name, 
-                button_group_actors_names,
+                track_actors, 
+                add_button, 
+                button_group_actors,
                 check_button,
                 reset_camera,
                 toggle_register,
@@ -42,9 +42,9 @@ class MeshContainer:
 
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.track_actors_names = track_actors_names
-        self.add_button_actor_name = add_button_actor_name
-        self.button_group_actors_names = button_group_actors_names
+        self.track_actors = track_actors
+        self.add_button = add_button
+        self.button_group_actors = button_group_actors
         self.check_button = check_button
         self.reset_camera = reset_camera
         self.toggle_register = toggle_register
@@ -65,8 +65,7 @@ class MeshContainer:
             mesh_data = self.mesh_store.add_mesh(mesh_source=mesh_path)
             if mesh_data: 
                 if self.mesh_store.reference is not None:
-                    name = self.mesh_store.reference
-                    reference_matrix = self.mesh_store.meshes[name].actor.user_matrix
+                    reference_matrix = self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix
                     self.add_mesh(mesh_data, reference_matrix)
                 else:
                     self.add_mesh(mesh_data, np.array([[1, 0, 0, 0], 
@@ -88,7 +87,7 @@ class MeshContainer:
             transformation_matrix[2,2] *= -1
             mesh_data.mirror_y = False # very important
         mesh_data.actor.user_matrix = transformation_matrix
-        self.check_button(name=name, output_text=False)
+        self.check_button(name=mesh_data.name, output_text=False)
         
     def add_mesh(self, mesh_data, transformation_matrix):
         """ add a mesh to the pyqt frame """
@@ -98,15 +97,15 @@ class MeshContainer:
         mesh_data.actor = actor
 
         # add remove current mesh to removeMenu
-        if mesh_data.name not in self.track_actors_names:
-            self.track_actors_names.append(mesh_data.name)
-            self.add_button_actor_name(mesh_data.name)
+        if mesh_data.name not in self.track_actors:
+            self.track_actors.append(mesh_data.name)
+            self.add_button(mesh_data.name, self.output_text)
         #* very important for mirroring
         self.check_button(name=mesh_data.name, output_text=False) 
         self.reset_camera()
         
     def set_spacing(self):
-        checked_button = self.button_group_actors_names.checkedButton()
+        checked_button = self.button_group_actors.checkedButton()
         if checked_button:
             name = checked_button.text()
             if name in self.mesh_store.meshes:
@@ -179,7 +178,7 @@ class MeshContainer:
         mesh_data.actor.GetProperty().opacity = mesh_opacity
 
     def toggle_surface_opacity(self, up):
-        checked_button = self.button_group_actors_names.checkedButton()
+        checked_button = self.button_group_actors.checkedButton()
         if checked_button:
             name = checked_button.text()
             if name in self.mesh_store.meshes: 
@@ -191,9 +190,9 @@ class MeshContainer:
                 self.mesh_store.meshes[name].opacity_spinbox.setValue(current_opacity)
                 
     def handle_hide_meshes_opacity(self, flag):
-        checked_button = self.button_group_actors_names.checkedButton()
+        checked_button = self.button_group_actors.checkedButton()
         checked_name = checked_button.text() if checked_button else None
-        for button in self.button_group_actors_names.buttons():
+        for button in self.button_group_actors.buttons():
             name = button.text()
             if name not in self.mesh_store.meshes: continue
             if len(self.mesh_store.meshes) != 1 and name == checked_name: continue
@@ -271,11 +270,10 @@ class MeshContainer:
         else: utils.display_warning("Need to set a reference mesh first")
 
     def undo_actor_pose(self):
-        if self.button_group_actors_names.checkedButton():
-            name = self.button_group_actors_names.checkedButton().text()
-            if name in self.mesh_store.meshes:
-                self.mesh_store.undo_actor_pose(name)
-                self.check_button(name=name) # very important, donnot change this line to "toggle_register"
+        if self.button_group_actors.checkedButton():
+            name = self.button_group_actors.checkedButton().text()
+            self.mesh_store.undo_actor_pose(name)
+            self.check_button(name=name) # very important, donnot change this line to "toggle_register"
         else: utils.display_warning("Choose a mesh actor first")
 
     def render_mesh(self, camera):

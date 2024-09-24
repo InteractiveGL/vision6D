@@ -12,8 +12,10 @@ from .video_player import VideoPlayer
 from .video_sampler import VideoSampler
 from .search_bar import SearchBar
 from .pnp_window import PnPWindow
-from .custom_button_widget import CustomButtonWidget
-
+from .custom_image_button_widget import CustomImageButtonWidget
+from .custom_mesh_button_widget import CustomMeshButtonWidget
+from .custom_bbox_button_widget import CustomBboxButtonWidget
+from .custom_mask_button_widget import CustomMaskButtonWidget
 
 __all__ = [
     'CalibrationDialog',
@@ -30,5 +32,8 @@ __all__ = [
     'VideoSampler',
     'SearchBar',
     'PnPWindow',
-    'CustomButtonWidget',
+    'CustomImageButtonWidget',
+    'CustomMeshButtonWidget',
+    'CustomBboxButtonWidget',
+    'CustomMaskButtonWidget',
 ]

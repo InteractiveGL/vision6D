@@ -23,16 +23,15 @@ class ImageContainer:
     def __init__(self, 
                 plotter,
                 hintLabel,
-                track_actors_names, 
-                add_button_actor_name,
+                track_actors, 
+                add_button,
                 output_text):
           
         self.plotter = plotter
         self.hintLabel = hintLabel
-        self.track_actors_names = track_actors_names
-        self.add_button_actor_name = add_button_actor_name
+        self.track_actors = track_actors
+        self.add_button = add_button
         self.output_text = output_text
-
         self.image_store = ImageStore()
 
     #^ Camera related
@@ -64,12 +63,12 @@ class ImageContainer:
                     self.image_store.fx, self.image_store.fy, self.image_store.cx, self.image_store.cy, self.image_store.cam_viewup = ast.literal_eval(fx), ast.literal_eval(fy), ast.literal_eval(cx), ast.literal_eval(cy), ast.literal_eval(cam_viewup)
                     self.image_store.set_camera_intrinsics()
                     self.image_store.set_camera_extrinsics()
-                    self.image_store.image_pv.translate(np.array([self.image_store.cx_offset, self.image_store.cy_offset, -self.image_store.object_distance]), inplace=True) # reset the image position
-                    self.image_store.object_distance = self.image_store.fy # set the frame distance to the camera
+                    self.image_store.image_pv.translate(np.array([self.image_store.cx_offset, self.image_store.cy_offset, -self.image_store.distance2camera]), inplace=True) # reset the image position
+                    self.image_store.distance2camera = self.image_store.fy # set the frame distance to the camera
                     self.image_store.cx_offset = (self.image_store.cx - (self.image_store.width / 2.0))
                     self.image_store.cy_offset = (self.image_store.cy - (self.image_store.height / 2.0))
                     print(f"Image New Origin: {self.image_store.cx_offset, self.image_store.cy_offset}")
-                    self.image_store.image_pv.translate(np.array([-self.image_store.cx_offset, -self.image_store.cy_offset, self.image_store.object_distance]), inplace=True) # move the image to the camera distance
+                    self.image_store.image_pv.translate(np.array([-self.image_store.cx_offset, -self.image_store.cy_offset, self.image_store.distance2camera]), inplace=True) # move the image to the camera distance
                     self.image_store.reset_camera()
                 except:
                     self.image_store.fx, self.image_store.fy, self.image_store.cx, self.image_store.cy, self.image_store.cam_viewup = pre_fx, pre_fy, pre_cx, pre_cy, pre_cam_viewup
@@ -103,24 +102,27 @@ class ImageContainer:
 
     def add_image(self, image_source):
         # self.set_camera()
-        image, _, channel = self.image_store.add_image(image_source)
-        if channel == 1: image = self.plotter.add_mesh(image, cmap='gray', opacity=self.image_store.image_opacity, name='image')
-        else: image = self.plotter.add_mesh(image, rgb=True, opacity=self.image_store.image_opacity, name='image')
-        actor, _ = self.plotter.add_actor(image, pickable=False, name='image')
-        self.image_store.image_actor = actor
+        image_data = self.image_store.add_image(image_source)
+        if image_data.channel == 1: 
+            image = self.plotter.add_mesh(image_data.image_pv, cmap='gray', opacity=image_data.opacity, name=image_data.name)
+        else: 
+            image = self.plotter.add_mesh(image_data.image_pv, rgb=True, opacity=image_data.opacity, name=image_data.name)
+        actor, _ = self.plotter.add_actor(image, pickable=False, name=image_data.name)
+        image_data.actor = actor
         # add remove current image to removeMenu
-        if 'image' not in self.track_actors_names:
-            self.track_actors_names.append('image')
-            self.add_button_actor_name('image')
+        if image_data.name not in self.track_actors:
+            self.track_actors.append(image_data.name)
+            self.add_button(image_data.name)
         self.image_store.reset_camera()
                                           
-    def set_image_opacity(self, image_opacity: float):
-        self.image_store.previous_opacity = self.image_store.image_opacity
-        self.image_store.image_opacity = image_opacity
-        self.image_store.image_actor.GetProperty().opacity = image_opacity
+    def set_image_opacity(self, name: str, opacity: float):
+        image_data = self.image_store.images[name]
+        image_data.previous_opacity = image_data.opacity
+        image_data.opacity = opacity
+        image_data.actor.GetProperty().opacity = opacity
 
     def export_image(self):
-        if self.image_store.image_actor:
+        if self.image_store.reference:
             output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Image Files (*.png)")
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
@@ -128,5 +130,4 @@ class ImageContainer:
                 rendered_image = PIL.Image.fromarray(image_rendered)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export image render to:\n {output_path}")
-            self.image_store.image_path = output_path
         else: utils.display_warning("Need to load an image first!")
