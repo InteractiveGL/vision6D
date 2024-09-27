@@ -56,7 +56,7 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, image_path=None, parent=None):
         super(CustomImageButtonWidget, self).__init__(parent)
-        self.setFixedHeight(50)
+        self.setFixedHeight(30)
         self.image_path = image_path
 
         # Main layout for the widget
@@ -67,12 +67,12 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
         # Container widget for the buttons
         button_container = QtWidgets.QWidget()
         button_layout = QtWidgets.QGridLayout(button_container)
-        button_layout.setContentsMargins(0, 0, 10, 0)
+        button_layout.setContentsMargins(0, 0, 5, 0)
         button_layout.setSpacing(0)
 
         # Create the main button using PreviewButton
         self.button = PreviewButton(button_name, image_path=self.image_path)
-        self.button.setFixedHeight(50)
+        self.button.setFixedHeight(30)
         button_layout.addWidget(self.button, 0, 0, 1, 1)
 
         # Add the button container to the main layout
@@ -80,7 +80,7 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
 
         # Create the double spin box and add it to the layout
         self.double_spinbox = QtWidgets.QDoubleSpinBox()
-        self.double_spinbox.setFixedHeight(45)
+        self.double_spinbox.setFixedHeight(28)
         self.double_spinbox.setMinimum(0.0)
         self.double_spinbox.setMaximum(1.0)
         self.double_spinbox.setDecimals(2)

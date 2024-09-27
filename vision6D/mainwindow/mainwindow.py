@@ -12,6 +12,9 @@
 import os
 os.environ["QT_API"] = "pyqt5" # Setting the Qt bindings for QtPy
 import json
+import math
+import pickle
+import trimesh
 import pathlib
 import functools
 
@@ -31,23 +34,12 @@ from ..widgets import CustomImageButtonWidget
 from ..widgets import CustomMeshButtonWidget
 from ..widgets import CustomBboxButtonWidget
 from ..widgets import CustomMaskButtonWidget
-
-from ..components import ImageStore
-from ..components import MaskStore
-from ..components import BboxStore
-from ..components import MeshStore
-from ..components import VideoStore
-from ..components import FolderStore
-
-from ..containers import ImageContainer
-from ..containers import MaskContainer
-from ..containers import BboxContainer
-from ..containers import MeshContainer
-from ..containers import PnPContainer
-from ..containers import VideoContainer
-from ..containers import FolderContainer
+from ..widgets import GetPoseDialog
+from ..widgets import GetMaskDialog
 
 from ..tools import utils
+from ..tools import exception
+from ..containers import Scene
 
 from ..path import ICON_PATH, PKG_ROOT
 
@@ -67,23 +59,13 @@ class MyMainWindow(MainWindow):
 
         # Initialize
         self.workspace_path = ''
-        self.track_image_actors = []
-        self.track_mask_actors = []
-        self.track_mesh_actors = []
-        self.track_bbox_actors = []
+        
         self.image_button_group_actors = QtWidgets.QButtonGroup(self)
         self.mask_button_group_actors = QtWidgets.QButtonGroup(self)
         self.mesh_button_group_actors = QtWidgets.QButtonGroup(self)
         self.bbox_button_group_actors = QtWidgets.QButtonGroup(self)
         # Create the plotter
         self.create_plotter()
-
-        self.image_store = ImageStore(self.plotter)
-        self.mask_store = MaskStore()
-        self.bbox_store = BboxStore()
-        self.mesh_store = MeshStore()
-        self.video_store = VideoStore()
-        self.folder_store = FolderStore()
 
         self.output_text = QtWidgets.QTextEdit()
 
@@ -98,9 +80,10 @@ class MyMainWindow(MainWindow):
                                     """)
         self.hintLabel.setAlignment(Qt.AlignCenter)
 
-        # create containers
-        self.initial_containers()
+        self.scene = Scene(self.plotter, self.output_text)
                 
+        self.toggle_hide_meshes_flag = False
+
         # Set bars
         self.set_panel_bar()
         self.set_menu_bars()
@@ -121,87 +104,28 @@ class MyMainWindow(MainWindow):
         # Shortcut key bindings
         self.key_bindings()
 
-    def initial_containers(self):
-
-        # set up the camera props
-        self.image_container = ImageContainer(plotter=self.plotter, 
-                                            hintLabel=self.hintLabel,
-                                            track_actors=self.track_image_actors, 
-                                            add_button=self.add_image_button,
-                                            output_text=self.output_text)
-        
-        self.mask_container = MaskContainer(plotter=self.plotter,
-                                            hintLabel=self.hintLabel,
-                                            track_actors=self.track_mask_actors, 
-                                            add_button=self.add_mask_button,
-                                            output_text=self.output_text)
-         
-        self.mesh_container = MeshContainer(plotter=self.plotter,
-                                            hintLabel=self.hintLabel,
-                                            track_actors=self.track_mesh_actors,
-                                            add_button=self.add_mesh_button,
-                                            button_group_actors =self.mesh_button_group_actors,
-                                            check_button=self.handle_mesh_click,
-                                            reset_camera=self.image_store.reset_camera,
-                                            toggle_register=self.toggle_register,
-                                            load_mask = self.mask_container.load_mask,
-                                            output_text=self.output_text)
-        
-        self.pnp_container = PnPContainer(plotter=self.plotter,
-                                        export_mesh_render=self.mesh_container.export_mesh_render,
-                                        output_text=self.output_text)
-        
-        self.video_container = VideoContainer(plotter=self.plotter,
-                                            hintLabel=self.hintLabel, 
-                                            toggle_register=self.toggle_register,
-                                            add_image=self.image_container.add_image,
-                                            load_mask=self.mask_container.load_mask,
-                                            clear_plot=self.clear_plot,
-                                            output_text=self.output_text)
-        
-        self.folder_container = FolderContainer(plotter=self.plotter,
-                                                toggle_register=self.toggle_register,
-                                                add_folder=self.add_folder,
-                                                load_mask=self.mask_container.load_mask,
-                                                output_text=self.output_text)
-        
-        self.bbox_container = BboxContainer(plotter=self.plotter,
-                                            hintLabel=self.hintLabel,
-                                            track_actors=self.track_bbox_actors, 
-                                            add_button=self.add_bbox_button,
-                                            output_text=self.output_text)
-
     def key_bindings(self):
         # Camera related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.image_store.reset_camera)
-        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.image_store.zoom_out)
-        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.image_store.zoom_in)
+        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.scene.camera_store.reset_camera)
+        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.scene.camera_store.zoom_out)
+        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.scene.camera_store.zoom_in)
 
         # Mask related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.mask_container.reset_mask)
+        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.scene.mask_container.reset_mask)
 
         # Bbox related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.bbox_container.reset_bbox)
+        QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.scene.bbox_container.reset_bbox)
 
         # Mesh related key bindings 
-        QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.mesh_container.reset_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.mesh_container.update_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.mesh_container.undo_actor_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.mesh_container.toggle_surface_opacity(up))
-        QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.mesh_container.toggle_surface_opacity(up))
-
-        # Video related key bindings 
-        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.video_container.next_info)
-        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.video_container.prev_info)
-        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.video_container.play_video)
-
-        # Folder related key bindings 
-        QtWidgets.QShortcut(QtGui.QKeySequence("a"), self).activated.connect(self.folder_container.prev_info)
-        QtWidgets.QShortcut(QtGui.QKeySequence("d"), self).activated.connect(self.folder_container.next_info)
+        QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.scene.reset_gt_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.scene.update_gt_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.scene.mesh_store.undo_actor_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.toggle_surface_opacity(up))
+        QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.toggle_surface_opacity(up))
 
         # todo: create the swith button for mesh and ct "ctrl + tap"
-        QtWidgets.QShortcut(QtGui.QKeySequence("Tab"), self).activated.connect(self.tap_toggle_opacity)
-        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self).activated.connect(self.ctrl_tap_opacity)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Tab"), self).activated.connect(self.scene.tap_toggle_opacity)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self).activated.connect(self.scene.ctrl_tap_opacity)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+w"), self).activated.connect(self.clear_plot)
 
     def showMaximized(self):
@@ -214,6 +138,177 @@ class MyMainWindow(MainWindow):
         else:
             e.ignore()
 
+    def add_image_file(self, image_path='', prompt=False):
+        if prompt:
+            image_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
+        if image_path:
+            self.hintLabel.hide()
+            image_data = self.scene.image_container.add_image(image_path)
+            # add remove current image to removeMenu
+            if image_data.name not in self.scene.track_image_actors:
+                self.scene.track_image_actors.append(image_data.name)
+                self.add_image_button(image_data.name)
+            self.scene.camera_store.reset_camera()
+
+    def add_mask_file(self, mask_path='', prompt=False):
+        if prompt:
+            mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
+        if mask_path:
+            self.hintLabel.hide()
+            mask_data = self.scene.mask_container.add_mask(mask_path)
+            # Add remove current image to removeMenu
+            if mask_data.name not in self.scene.track_mask_actors:
+                self.scene.track_mask_actors.append('mask')
+                self.add_mask_button(mask_data.name)
+
+    def set_mask(self):
+        get_mask_dialog = GetMaskDialog()
+        res = get_mask_dialog.exec_()
+        if res == QtWidgets.QDialog.Accepted:
+            if get_mask_dialog.mask_path: self.add_mask_file(get_mask_dialog.mask_path)
+            else:
+                user_text = get_mask_dialog.get_text()
+                points = exception.set_data_format(user_text)
+                if points is not None:
+                    if points.shape[1] == 2:
+                        os.makedirs(PKG_ROOT.parent / "output", exist_ok=True)
+                        os.makedirs(PKG_ROOT.parent / "output" / "mask_points", exist_ok=True)
+                        if self.scene.image_store.image_path: mask_path = PKG_ROOT.parent / "output" / "mask_points" / f"{pathlib.Path(self.scene.image_store.image_path).stem}.npy"
+                        else: mask_path = PKG_ROOT.parent / "output" / "mask_points" / "mask_points.npy"
+                        np.save(mask_path, points)
+                        self.add_mask_file(mask_path)
+                    else:
+                        utils.display_warning("It needs to be a n by 2 matrix")
+
+    def add_bbox_file(self, bbox_path='', prompt=False):
+        if prompt:
+            bbox_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy)") 
+        if bbox_path:
+            self.hintLabel.hide()
+            bbox_data = self.scene.bbox_container.add_bbox(bbox_path)
+            # Add remove current image to removeMenu
+            if bbox_data.name not in self.scene.track_bbox_actors:
+                self.scene.track_bbox_actors.append(bbox_data.name)
+                self.add_bbox_button(bbox_data.name)
+
+    def add_mesh_file(self, mesh_path='', prompt=False):
+        if prompt: 
+            mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
+        if mesh_path:
+            self.hintLabel.hide()
+            mesh_data = self.scene.mesh_store.add_mesh(mesh_source=mesh_path)
+            if mesh_data: 
+                if self.scene.mesh_store.reference is not None:
+                    reference_matrix = self.scene.mesh_store.meshes[self.scene.mesh_store.reference].actor.user_matrix
+                    mesh_data = self.scene.mesh_container.add_mesh(mesh_data, reference_matrix)
+                else:
+                    mesh_data = self.scene.mesh_container.add_mesh(mesh_data, np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]])) # set the initial pose, r_x, r_y, t_z includes the scaling too
+            else: utils.display_warning("The mesh format is not supported!")
+            # add remove current mesh to removeMenu
+            if mesh_data.name not in self.scene.track_mesh_actors:
+                self.scene.track_mesh_actors.append(mesh_data.name)
+                self.add_mesh_button(mesh_data.name, self.output_text)
+            #* very important for mirroring
+            self.check_mesh_button(name=mesh_data.name, output_text=False) 
+            self.scene.camera_store.reset_camera()
+
+    def mirror_mesh(self, name, direction):
+        mesh_data = self.scene.mesh_store.meshes[name]
+        if direction == 'x': mesh_data.mirror_x = not mesh_data.mirror_x
+        elif direction == 'y': mesh_data.mirror_y = not mesh_data.mirror_y
+        if (mesh_data.initial_pose != np.eye(4)).all(): mesh_data.initial_pose = mesh_data.actor.user_matrix
+        transformation_matrix = mesh_data.actor.user_matrix
+        if mesh_data.mirror_x: 
+            transformation_matrix[0,0] *= -1
+            mesh_data.mirror_x = False # very important
+        if mesh_data.mirror_y: 
+            transformation_matrix[2,2] *= -1
+            mesh_data.mirror_y = False # very important
+        mesh_data.actor.user_matrix = transformation_matrix
+        self.check_mesh_button(name=mesh_data.name, output_text=False)
+
+    def set_spacing(self):
+        checked_button = self.mesh_button_group_actors.checkedButton()
+        if checked_button:
+            name = checked_button.text()
+            if name in self.scene.mesh_store.meshes:
+                mesh_data = self.scene.mesh_store.meshes[name]
+                spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(mesh_data.spacing))
+                if ok:
+                    mesh_data.spacing = exception.set_spacing(spacing)
+                    # Calculate the centroid
+                    centroid = np.mean(mesh_data.source_mesh.vertices, axis=0)
+                    offset = mesh_data.source_mesh.vertices - centroid
+                    scaled_offset = offset * mesh_data.spacing
+                    vertices = centroid + scaled_offset
+                    mesh_data.pv_mesh.points = vertices
+            else: utils.display_warning("Need to select a mesh object instead")
+        else: utils.display_warning("Need to select a mesh actor first")
+
+    def toggle_surface_opacity(self, up):
+        checked_button = self.mesh_button_group_actors.checkedButton()
+        if checked_button:
+            name = checked_button.text()
+            if name in self.scene.mesh_store.meshes: 
+                change = 0.05
+                if not up: change *= -1
+                current_opacity = self.scene.mesh_store.meshes[name].opacity_spinbox.value()
+                current_opacity += change
+                current_opacity = np.clip(current_opacity, 0, 1)
+                self.scene.mesh_store.meshes[name].opacity_spinbox.setValue(current_opacity)
+                
+    def handle_hide_meshes_opacity(self, flag):
+        checked_button = self.mesh_button_group_actors.checkedButton()
+        checked_name = checked_button.text() if checked_button else None
+        for button in self.mesh_button_group_actors.buttons():
+            name = button.text()
+            if name not in self.scene.mesh_store.meshes: continue
+            if len(self.scene.mesh_store.meshes) != 1 and name == checked_name: continue
+            mesh_data = self.scene.mesh_store.meshes[name]
+            if flag: self.scene.mesh_container.set_mesh_opacity(name, 0)
+            else: self.scene.mesh_container.set_mesh_opacity(name, mesh_data.previous_opacity)
+            
+    def toggle_hide_meshes_button(self):
+        self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
+        self.handle_hide_meshes_opacity(self.toggle_hide_meshes_flag)
+
+    def add_pose_file(self, pose_path):
+        if pose_path:
+            self.hintLabel.hide()
+            if isinstance(pose_path, list): transformation_matrix = np.array(pose_path)
+            else: transformation_matrix = np.load(pose_path)
+            mesh_data = self.scene.mesh_store.meshes[self.scene.mesh_store.reference]
+            if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+            self.scene.add_pose(matrix=transformation_matrix)
+
+    def set_pose(self):
+        if self.scene.mesh_store.reference:
+            mesh_data = self.scene.mesh_store.meshes[self.scene.mesh_store.reference]
+            get_pose_dialog = GetPoseDialog(mesh_data.actor.user_matrix)
+            res = get_pose_dialog.exec_()
+            if res == QtWidgets.QDialog.Accepted:
+                user_text = get_pose_dialog.get_text()
+                if "," not in user_text:
+                    user_text = user_text.replace(" ", ",")
+                    user_text =user_text.strip().replace("[,", "[")
+                gt_pose = exception.set_data_format(user_text, mesh_data.actor.user_matrix)
+                if gt_pose.shape == (4, 4):
+                    self.hintLabel.hide()
+                    transformation_matrix = gt_pose
+                    if mesh_data.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    if mesh_data.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
+                    self.scene.add_pose(matrix=transformation_matrix)
+                else: utils.display_warning("It needs to be a 4 by 4 matrix")
+        else: utils.display_warning("Needs to select a mesh first")
+
+    def undo_actor_pose(self):
+        if self.button_group_actors.checkedButton():
+            name = self.button_group_actors.checkedButton().text()
+            self.scene.mesh_store.undo_actor_pose(name)
+            self.check_mesh_button(name=name) # very important, donnot change this line to "toggle_register"
+        else: utils.display_warning("Choose a mesh actor first")
+
     def dropEvent(self, e):
         for url in e.mimeData().urls():
             file_path = url.toLocalFile()
@@ -223,18 +318,18 @@ class MyMainWindow(MainWindow):
                 if file_path.endswith(('.json')): self.add_workspace(workspace_path=file_path)
                 # Load mesh file
                 elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
-                    self.mesh_container.add_mesh_file(mesh_path=file_path)
+                    self.scene.mesh_container.add_mesh_file(mesh_path=file_path)
                 # Load video file
                 elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
-                    self.video_container.add_video_file(video_path=file_path)
+                    self.scene.video_container.add_video_file(video_path=file_path)
                 # Load image/mask file
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                     file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
                     unique, _ = np.unique(file_data, return_counts=True)
-                    if len(unique) == 2: self.mask_container.add_mask_file(mask_path=file_path)
-                    else: self.image_container.add_image_file(image_path=file_path) 
+                    if len(unique) == 2: self.scene.mask_container.add_mask_file(mask_path=file_path)
+                    else: self.add_image_file(image_path=file_path) 
                         
-                elif file_path.endswith('.npy'): self.mesh_container.add_pose_file(pose_path=file_path)
+                elif file_path.endswith('.npy'): self.scene.mesh_container.add_pose_file(pose_path=file_path)
                 else: utils.display_warning("File format is not supported!")
 
     def resizeEvent(self, e):
@@ -250,76 +345,53 @@ class MyMainWindow(MainWindow):
         # allow to add files
         fileMenu = mainMenu.addMenu('File')
         fileMenu.addAction('Add Workspace', functools.partial(self.add_workspace, prompt=True))
-        fileMenu.addAction('Add Folder', functools.partial(self.add_folder, prompt=True))
-        fileMenu.addAction('Add Video', functools.partial(self.video_container.add_video_file, prompt=True))
-        fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
-        fileMenu.addAction('Add Mask', self.mask_container.set_mask)
-        fileMenu.addAction('Add Bbox', functools.partial(self.bbox_container.add_bbox_file, prompt=True))
-        fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
+        fileMenu.addAction('Add Image', functools.partial(self.add_image_file, prompt=True))
+        fileMenu.addAction('Add Mask', self.set_mask)
+        fileMenu.addAction('Add Bbox', functools.partial(self.add_bbox_file, prompt=True))
+        fileMenu.addAction('Add Mesh', functools.partial(self.add_mesh_file, prompt=True))
         fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
         exportMenu.addAction('Workspace', self.export_workspace)
-        exportMenu.addAction('Image', self.image_container.export_image)
-        exportMenu.addAction('Mask', self.mask_container.export_mask)
-        exportMenu.addAction('Bbox', self.bbox_container.export_bbox)
-        exportMenu.addAction('Mesh/Pose', self.mesh_container.export_mesh_pose)
-        exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
-        exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
-        exportMenu.addAction('Camera Info', self.image_container.export_camera_info)
-        
-        # Add video related actions
-        VideoMenu = mainMenu.addMenu('Video')
-        VideoMenu.addAction('Play', self.video_container.play_video)
-        VideoMenu.addAction('Sample', self.video_container.sample_video)
-        VideoMenu.addAction('Save', self.video_container.save_info)
-        VideoMenu.addAction('Prev', self.video_container.prev_info)
-        VideoMenu.addAction('Next', self.video_container.next_info)
+        exportMenu.addAction('Image', self.export_image)
+        exportMenu.addAction('Mask', self.export_mask)
+        exportMenu.addAction('Bbox', self.export_bbox)
+        exportMenu.addAction('Mesh/Pose', self.export_mesh_pose)
+        exportMenu.addAction('Mesh Render', self.export_mesh_render)
+        exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
+        exportMenu.addAction('Camera Info', self.export_camera_info)
 
-        # Add folder related actions
-        FolderMenu = mainMenu.addMenu('Folder')
-        FolderMenu.addAction('Save', self.folder_container.save_info)
-        FolderMenu.addAction('Prev', self.folder_container.prev_info)
-        FolderMenu.addAction('Next', self.folder_container.next_info)
-
-        # Add pnp algorithm related actions
-        PnPMenu = mainMenu.addMenu('PnP')
-        PnPMenu.addAction('EPnP with mesh', self.pnp_container.epnp_mesh)
-        PnPMenu.addAction('EPnP with nocs mask', functools.partial(self.pnp_container.epnp_mask, True))
-        PnPMenu.addAction('EPnP with latlon mask', functools.partial(self.pnp_container.epnp_mask, False))
-
-    # create draw menu when right click on the image
     def draw_menu(self, event):
         context_menu = QtWidgets.QMenu(self)
 
         set_distance = QtWidgets.QAction('Set Distance', self)
         set_distance.triggered.connect(self.set_distance2camera)
 
-        set_mask = QtWidgets.QAction('Set Mask', self)
-        set_mask.triggered.connect(self.mask_container.set_mask)
+        set_mask_act = QtWidgets.QAction('Set Mask', self)
+        set_mask_act.triggered.connect(self.set_mask)
 
         draw_mask_menu = QtWidgets.QMenu('Draw Mask', self)  # Create a submenu for 'Draw Mask'
         free_hand = QtWidgets.QAction('Free Hand', self)
-        free_hand.triggered.connect(functools.partial(self.mask_container.draw_mask, live_wire=False, sam=False))  # Connect to a slot
+        free_hand.triggered.connect(functools.partial(self.scene.mask_container.draw_mask, live_wire=False, sam=False))  # Connect to a slot
         live_wire = QtWidgets.QAction('Live Wire', self)
-        live_wire.triggered.connect(functools.partial(self.mask_container.draw_mask, live_wire=True, sam=False))  # Connect to a slot
+        live_wire.triggered.connect(functools.partial(self.scene.mask_container.draw_mask, live_wire=True, sam=False))  # Connect to a slot
         sam = QtWidgets.QAction('SAM', self)
-        sam.triggered.connect(functools.partial(self.mask_container.draw_mask, live_wire=False, sam=True))  # Connect to another slot
+        sam.triggered.connect(functools.partial(self.scene.mask_container.draw_mask, live_wire=False, sam=True))  # Connect to another slot
         draw_mask_menu.addAction(free_hand)
         draw_mask_menu.addAction(live_wire)
         draw_mask_menu.addAction(sam)
         
         draw_bbox = QtWidgets.QAction('Draw BBox', self)
-        draw_bbox.triggered.connect(self.bbox_container.draw_bbox)
+        draw_bbox.triggered.connect(self.scene.bbox_container.draw_bbox)
         
         reset_mask = QtWidgets.QAction('Reset Mask (t)', self)
-        reset_mask.triggered.connect(self.mask_container.reset_mask)
+        reset_mask.triggered.connect(self.scene.mask_container.reset_mask)
         reset_bbox = QtWidgets.QAction('Reset Bbox (f)', self)
-        reset_bbox.triggered.connect(self.bbox_container.reset_bbox)
+        reset_bbox.triggered.connect(self.scene.bbox_container.reset_bbox)
         
         context_menu.addAction(set_distance)
-        context_menu.addAction(set_mask)
+        context_menu.addAction(set_mask_act)
         context_menu.addMenu(draw_mask_menu)
         context_menu.addAction(draw_bbox)
         context_menu.addAction(reset_mask)
@@ -342,8 +414,8 @@ class MyMainWindow(MainWindow):
         self.setMenuBar(self.panel_bar)
 
         self.panel_console()
-        self.panel_mesh_actors()
         self.panel_images_actors()
+        self.panel_mesh_actors()
         self.panel_mask_actors()
         self.panel_bbox_actors()
         self.panel_output()
@@ -369,43 +441,27 @@ class MyMainWindow(MainWindow):
             column = 0
         return row, column
     
-    def on_camera_options_selection_change(self, option):
-        if option == "Set Camera":
-            self.image_container.set_camera()
-        elif option == "Reset Camera (c)":
-            self.image_store.reset_camera()
-        elif option == "Zoom In (x)":
-            self.image_store.zoom_in()
-        elif option == "Zoom Out (z)":
-            self.image_store.zoom_out()
-        elif option == "Calibrate":
-            self.image_container.camera_calibrate()
+    def pnp_register(self):
+        if not self.scene.image_store.reference: utils.display_warning("Need to load an image first!"); return
+        if self.scene.mesh_store.reference is None: utils.display_warning("Need to select a mesh first!"); return
+        image = utils.get_image_actor_scalars(self.scene.image_store.reference)
+        self.pnp_window = PnPWindow(image_source=image, 
+                                    mesh_data=self.scene.mesh_store.meshes[self.scene.mesh_store.reference],
+                                    camera_intrinsics=self.scene.image_store.camera_intrinsics.astype(np.float32))
+        self.pnp_window.transformation_matrix_computed.connect(self.scene.handle_transformation_matrix)
     
     def on_pose_options_selection_change(self, option):
         if option == "Set Pose":
-            self.mesh_container.set_pose()
+            self.scene.mesh_container.set_pose()
         elif option == "PnP Register":
             self.pnp_register()
         elif option == "Reset GT Pose (k)":
-            self.mesh_container.reset_gt_pose()
+            self.scene.mesh_container.reset_gt_pose()
         elif option == "Update GT Pose (l)":
-            self.mesh_container.update_gt_pose()
+            self.scene.mesh_container.update_gt_pose()
         elif option == "Undo Pose (s)":
-            self.mesh_container.undo_actor_pose()
+            self.scene.mesh_container.undo_actor_pose()
 
-    def handle_transformation_matrix(self, transformation_matrix):
-        self.toggle_register(transformation_matrix)
-        self.mesh_container.update_gt_pose()
-
-    def pnp_register(self):
-        if not self.image_store.reference: utils.display_warning("Need to load an image first!"); return
-        if self.mesh_store.reference is None: utils.display_warning("Need to select a mesh first!"); return
-        image = utils.get_image_actor_scalars(self.image_store.reference)
-        self.pnp_window = PnPWindow(image_source=image, 
-                                    mesh_data=self.mesh_store.meshes[self.mesh_store.reference],
-                                    camera_intrinsics=self.image_store.camera_intrinsics.astype(np.float32))
-        self.pnp_window.transformation_matrix_computed.connect(self.handle_transformation_matrix)
-    
     def panel_console(self):
         self.console_group = QtWidgets.QGroupBox("Console")       # self.display = QtWidgets.QGroupBox("Console")
         self.display_layout = QtWidgets.QVBoxLayout()
@@ -423,21 +479,21 @@ class MyMainWindow(MainWindow):
         # Create a QPushButton that will act as a drop-down button and QMenu to act as the drop-down menu
         self.camera_options_button = QtWidgets.QPushButton("Set Camera")
         self.camera_options_menu = QtWidgets.QMenu()
-        self.camera_options_menu.addAction("Set Camera", lambda: self.on_camera_options_selection_change("Set Camera"))
-        self.camera_options_menu.addAction("Reset Camera (c)", lambda: self.on_camera_options_selection_change("Reset Camera (c)"))
-        self.camera_options_menu.addAction("Zoom In (x)", lambda: self.on_camera_options_selection_change("Zoom In (x)"))
-        self.camera_options_menu.addAction("Zoom Out (z)", lambda: self.on_camera_options_selection_change("Zoom Out (z)"))
-        self.camera_options_menu.addAction("Calibrate", lambda: self.on_camera_options_selection_change("Calibrate"))
+        self.camera_options_menu.addAction("Set Camera", lambda: self.scene.on_camera_options_selection_change("Set Camera"))
+        self.camera_options_menu.addAction("Reset Camera (c)", lambda: self.scene.on_camera_options_selection_change("Reset Camera (c)"))
+        self.camera_options_menu.addAction("Zoom In (x)", lambda: self.scene.on_camera_options_selection_change("Zoom In (x)"))
+        self.camera_options_menu.addAction("Zoom Out (z)", lambda: self.scene.on_camera_options_selection_change("Zoom Out (z)"))
+        self.camera_options_menu.addAction("Calibrate", lambda: self.scene.on_camera_options_selection_change("Calibrate"))
         self.camera_options_button.setMenu(self.camera_options_menu)
         top_grid_layout.addWidget(self.camera_options_button, row, column)
 
         self.pose_options_button = QtWidgets.QPushButton("Set Pose")
         self.pose_options_menu = QtWidgets.QMenu()
-        self.pose_options_menu.addAction("Set Pose", lambda: self.on_pose_options_selection_change("Set Pose"))
-        self.pose_options_menu.addAction("PnP Register", lambda: self.on_pose_options_selection_change("PnP Register"))
-        self.pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.on_pose_options_selection_change("Reset GT Pose (k)"))
-        self.pose_options_menu.addAction("Update GT Pose (l)", lambda: self.on_pose_options_selection_change("Update GT Pose (l)"))
-        self.pose_options_menu.addAction("Undo Pose (s)", lambda: self.on_pose_options_selection_change("Undo Pose (s)"))
+        self.pose_options_menu.addAction("Set Pose", lambda: self.scene.on_pose_options_selection_change("Set Pose"))
+        self.pose_options_menu.addAction("PnP Register", lambda: self.scene.on_pose_options_selection_change("PnP Register"))
+        self.pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.scene.on_pose_options_selection_change("Reset GT Pose (k)"))
+        self.pose_options_menu.addAction("Update GT Pose (l)", lambda: self.scene.on_pose_options_selection_change("Update GT Pose (l)"))
+        self.pose_options_menu.addAction("Undo Pose (s)", lambda: self.scene.on_pose_options_selection_change("Undo Pose (s)"))
         self.pose_options_button.setMenu(self.pose_options_menu)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.pose_options_button, row, column)
@@ -445,15 +501,15 @@ class MyMainWindow(MainWindow):
         # Draw buttons
         self.draw_options_button = QtWidgets.QPushButton("Draw")
         self.draw_options_menu = QtWidgets.QMenu()
-        self.draw_options_menu.addAction("Set Mask", self.mask_container.set_mask)
+        self.draw_options_menu.addAction("Set Mask", self.set_mask)
         draw_mask_menu = QtWidgets.QMenu("Draw Mask", self.draw_options_menu)
-        draw_mask_menu.addAction("Free Hand", functools.partial(self.mask_container.draw_mask, live_wire=False, sam=False))
-        draw_mask_menu.addAction("Live Wire", functools.partial(self.mask_container.draw_mask, live_wire=True, sam=False))
-        draw_mask_menu.addAction("SAM", functools.partial(self.mask_container.draw_mask, live_wire=False, sam=True))
+        draw_mask_menu.addAction("Free Hand", functools.partial(self.scene.mask_container.draw_mask, live_wire=False, sam=False))
+        draw_mask_menu.addAction("Live Wire", functools.partial(self.scene.mask_container.draw_mask, live_wire=True, sam=False))
+        draw_mask_menu.addAction("SAM", functools.partial(self.scene.mask_container.draw_mask, live_wire=False, sam=True))
         self.draw_options_menu.addMenu(draw_mask_menu)
-        self.draw_options_menu.addAction("Draw Bbox", self.bbox_container.draw_bbox)
-        self.draw_options_menu.addAction("Reset Mask (t)", self.mask_container.reset_mask)
-        self.draw_options_menu.addAction("Reset Bbox (f)", self.bbox_container.reset_bbox)
+        self.draw_options_menu.addAction("Draw Bbox", self.scene.bbox_container.draw_bbox)
+        self.draw_options_menu.addAction("Reset Mask (t)", self.scene.mask_container.reset_mask)
+        self.draw_options_menu.addAction("Reset Bbox (f)", self.scene.bbox_container.reset_bbox)
         self.draw_options_button.setMenu(self.draw_options_menu)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.draw_options_button, row, column)
@@ -463,9 +519,9 @@ class MyMainWindow(MainWindow):
         self.other_options_menu = QtWidgets.QMenu()
         self.other_options_menu.addAction("Flip Left/Right", lambda direction="x": self.mirror_actors(direction))
         self.other_options_menu.addAction("Flip Up/Down", lambda direction="y": self.mirror_actors(direction))
-        self.other_options_menu.addAction("Set Mesh Spacing", self.mesh_container.set_spacing)
+        self.other_options_menu.addAction("Set Mesh Spacing", self.set_spacing)
         self.other_options_menu.addAction("Set Image Distance", self.set_distance2camera)
-        self.other_options_menu.addAction("Toggle Meshes", self.mesh_container.toggle_hide_meshes_button)
+        self.other_options_menu.addAction("Toggle Meshes", self.toggle_hide_meshes_button)
         self.other_options_button.setMenu(self.other_options_menu)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.other_options_button, row, column)
@@ -476,39 +532,6 @@ class MyMainWindow(MainWindow):
         self.display_layout.addLayout(top_layout)
         self.console_group.setLayout(self.display_layout)
         self.panel_layout.addWidget(self.console_group)
-
-    def panel_mesh_actors(self):
-        self.mesh_actors_group = QtWidgets.QGroupBox("Mesh")
-        self.mesh_actors_group.setCheckable(True)
-        self.mesh_actors_group.setChecked(True)
-        self.mesh_actors_group.setStyleSheet("""
-            QGroupBox::indicator:checked {
-                background-color: green;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-            QGroupBox::indicator:unchecked {
-                background-color: red;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-        """)
-        self.mesh_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mesh_actors_group, checked))
-        self.display_layout = QtWidgets.QVBoxLayout()
-        self.display_layout.setContentsMargins(10, 20, 10, 5)
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        self.display_layout.addWidget(scroll_area)
-        custom_widget_container = QtWidgets.QWidget()
-        self.mesh_widget_layout = QtWidgets.QVBoxLayout()
-        self.mesh_widget_layout.setSpacing(0)
-        custom_widget_container.setLayout(self.mesh_widget_layout)
-        self.mesh_widget_layout.addStretch()
-        scroll_area.setWidget(custom_widget_container)
-        self.mesh_actors_group.setLayout(self.display_layout)
-        self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_images_actors(self):
         self.images_actors_group = QtWidgets.QGroupBox("Image")
@@ -542,6 +565,39 @@ class MyMainWindow(MainWindow):
         scroll_area.setWidget(custom_widget_container)
         self.images_actors_group.setLayout(self.display_layout)
         self.panel_layout.addWidget(self.images_actors_group)
+
+    def panel_mesh_actors(self):
+        self.mesh_actors_group = QtWidgets.QGroupBox("Mesh")
+        self.mesh_actors_group.setCheckable(True)
+        self.mesh_actors_group.setChecked(True)
+        self.mesh_actors_group.setStyleSheet("""
+            QGroupBox::indicator:checked {
+                background-color: green;
+                border: 2px solid black;
+                border-radius: 6px;
+                padding: 2px;
+            }
+            QGroupBox::indicator:unchecked {
+                background-color: red;
+                border: 2px solid black;
+                border-radius: 6px;
+                padding: 2px;
+            }
+        """)
+        self.mesh_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mesh_actors_group, checked))
+        self.display_layout = QtWidgets.QVBoxLayout()
+        self.display_layout.setContentsMargins(10, 20, 10, 5)
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        self.display_layout.addWidget(scroll_area)
+        custom_widget_container = QtWidgets.QWidget()
+        self.mesh_widget_layout = QtWidgets.QVBoxLayout()
+        self.mesh_widget_layout.setSpacing(0)
+        custom_widget_container.setLayout(self.mesh_widget_layout)
+        self.mesh_widget_layout.addStretch()
+        scroll_area.setWidget(custom_widget_container)
+        self.mesh_actors_group.setLayout(self.display_layout)
+        self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_mask_actors(self):
         self.mask_actors_group = QtWidgets.QGroupBox("Mask")
@@ -752,182 +808,95 @@ class MyMainWindow(MainWindow):
         self.plotter.add_camera_orientation_widget()
         self.plotter.show()
         self.show()
-        
-    def toggle_register(self, pose):
-        self.mesh_store.meshes[self.mesh_store.reference].actor.user_matrix = pose
-        self.mesh_store.meshes[self.mesh_store.reference].undo_poses.append(pose)
-        self.mesh_store.meshes[self.mesh_store.reference].undo_poses = self.mesh_store.meshes[self.mesh_store.reference].undo_poses[-20:]
-            
+                    
     def check_mesh_button(self, name, output_text):
         button = next((btn for btn in self.mesh_button_group_actors.buttons() if btn.text() == name), None)
         if button:
             button.setChecked(True)
-            self.handle_mesh_click(name=name, output_text=output_text)
+            self.scene.handle_mesh_click(name=name, output_text=output_text)
 
     def check_image_button(self, name):
         button = next((btn for btn in self.image_button_group_actors.buttons() if btn.text() == name), None)
         if button:
             button.setChecked(True)
-            self.handle_image_click(name=name)
+            self.scene.handle_image_click(name=name)
 
     def check_mask_button(self, name):
         button = next((btn for btn in self.mask_button_group_actors.buttons() if btn.text() == name), None)
         if button:
             button.setChecked(True)
-            self.handle_mask_click(name=name)
+            self.scene.handle_mask_click(name=name)
 
     def check_bbox_button(self, name):
         button = next((btn for btn in self.bbox_button_group_actors.buttons() if btn.text() == name), None)
         if button:
             button.setChecked(True)
-            self.handle_bbox_click(name=name)
-
-    def handle_mesh_click(self, name, output_text):
-        self.mesh_store.reference = name
-        mesh_data = self.mesh_store.meshes[name]
-        text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-            mesh_data.actor.user_matrix[0, 0], mesh_data.actor.user_matrix[0, 1], mesh_data.actor.user_matrix[0, 2], mesh_data.actor.user_matrix[0, 3], 
-            mesh_data.actor.user_matrix[1, 0], mesh_data.actor.user_matrix[1, 1], mesh_data.actor.user_matrix[1, 2], mesh_data.actor.user_matrix[1, 3], 
-            mesh_data.actor.user_matrix[2, 0], mesh_data.actor.user_matrix[2, 1], mesh_data.actor.user_matrix[2, 2], mesh_data.actor.user_matrix[2, 3],
-            mesh_data.actor.user_matrix[3, 0], mesh_data.actor.user_matrix[3, 1], mesh_data.actor.user_matrix[3, 2], mesh_data.actor.user_matrix[3, 3])
-        if output_text:
-            self.output_text.append(f"--> Mesh {name} pose is:")
-            self.output_text.append(text)
-        self.mesh_store.meshes[self.mesh_store.reference].undo_poses.append(mesh_data.actor.user_matrix)
-        self.mesh_store.meshes[self.mesh_store.reference].undo_poses = self.mesh_store.meshes[self.mesh_store.reference].undo_poses[-20:]
-
-    def handle_image_click(self, name):
-        self.image_store.reference = name
-        for image_name, image_data in self.image_store.images.items():
-            if image_name != name: image_data.opacity = 0.0; image_data.opacity_spinbox.setValue(0.0)
-            else: image_data.opacity = 0.9; image_data.opacity_spinbox.setValue(0.9)
-
-    def handle_mask_click(self, name):
-        # Add your mask handling code here
-        pass
-
-    def handle_bbox_click(self, name):
-        # Add your bbox handling code here
-        pass #* For fixing some bugs in segmesh render function
+            self.scene.handle_bbox_click(name=name)
 
     def add_image_button(self, name):
-        button_widget = CustomImageButtonWidget(name, image_path=self.image_store.images[name].image_path)
+        button_widget = CustomImageButtonWidget(name, image_path=self.scene.image_store.images[name].image_path)
         button = button_widget.button
-        self.image_store.images[name].opacity_spinbox = button_widget.double_spinbox
-        self.image_store.images[name].opacity_spinbox.setValue(self.image_store.images[name].opacity)
-        self.image_store.images[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.image_container.set_image_opacity(name, value))
+        self.scene.image_store.images[name].opacity_spinbox = button_widget.double_spinbox
+        self.scene.image_store.images[name].opacity_spinbox.setValue(self.scene.image_store.images[name].opacity)
+        self.scene.image_store.images[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.image_container.set_image_opacity(name, value))
         # check the button
         button.setCheckable(True)
         button.setChecked(True)
-        button.clicked.connect(lambda _, name=name: self.handle_image_click(name))
+        button.clicked.connect(lambda _, name=name: self.scene.handle_image_click(name))
         self.image_widget_layout.insertWidget(0, button_widget)
         self.image_button_group_actors.addButton(button_widget.button)
-        self.handle_image_click(name=name)
+        self.scene.handle_image_click(name=name)
 
     def add_mask_button(self, name):
         button_widget = CustomMaskButtonWidget(name)
-        button_widget.colorChanged.connect(lambda color, name=name: self.color_value_change(color, name))
+        button_widget.colorChanged.connect(lambda color, name=name: self.scene.color_value_change(color, name))
         button = button_widget.button
-        self.mask_store.opacity_spinbox = button_widget.double_spinbox
-        self.mask_store.opacity_spinbox.setValue(self.mask_store.mask_opacity)
-        self.mask_store.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.mask_container.set_mask_opacity(value))
-        self.mask_store.color_button = button_widget.square_button
-        self.mask_store.color_button.setStyleSheet(f"background-color: {self.mask_store.color}")
+        self.scene.mask_store.opacity_spinbox = button_widget.double_spinbox
+        self.scene.mask_store.opacity_spinbox.setValue(self.scene.mask_store.mask_opacity)
+        self.scene.mask_store.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.mask_container.set_mask_opacity(value))
+        self.scene.mask_store.color_button = button_widget.square_button
+        self.scene.mask_store.color_button.setStyleSheet(f"background-color: {self.scene.mask_store.color}")
         # check the button
         button.setCheckable(True)
         button.setChecked(True)
-        button.clicked.connect(lambda _, name=name: self.handle_mask_click(name))
+        button.clicked.connect(lambda _, name=name: self.scene.handle_mask_click(name))
         self.mask_widget_layout.insertWidget(0, button_widget)
         self.mask_button_group_actors.addButton(button)
-        self.handle_mask_click(name=name)
+        self.scene.handle_mask_click(name=name)
 
     def add_bbox_button(self, name):
         button_widget = CustomBboxButtonWidget(name)
-        button_widget.colorChanged.connect(lambda color, name=name: self.color_value_change(color, name))
+        button_widget.colorChanged.connect(lambda color, name=name: self.scene.color_value_change(color, name))
         button = button_widget.button
-        self.bbox_store.opacity_spinbox = button_widget.double_spinbox
-        self.bbox_store.opacity_spinbox.setValue(self.bbox_store.bbox_opacity)
-        self.bbox_store.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.bbox_container.set_bbox_opacity(value))
-        self.bbox_store.color_button = button_widget.square_button
-        self.bbox_store.color_button.setStyleSheet(f"background-color: {self.bbox_store.color}")
+        self.scene.bbox_store.opacity_spinbox = button_widget.double_spinbox
+        self.scene.bbox_store.opacity_spinbox.setValue(self.scene.bbox_store.bbox_opacity)
+        self.scene.bbox_store.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.bbox_container.set_bbox_opacity(value))
+        self.scene.bbox_store.color_button = button_widget.square_button
+        self.scene.bbox_store.color_button.setStyleSheet(f"background-color: {self.scene.bbox_store.color}")
         # check the button
         button.setCheckable(True)
         button.setChecked(True)
-        button.clicked.connect(lambda _, name=name: self.handle_bbox_click(name))
+        button.clicked.connect(lambda _, name=name: self.scene.handle_bbox_click(name))
         self.bbox_widget_layout.insertWidget(0, button_widget)
         self.bbox_button_group_actors.addButton(button)
-        self.handle_bbox_click(name=name)
+        self.scene.handle_bbox_click(name=name)
 
     def add_mesh_button(self, name, output_text):
         button_widget = CustomMeshButtonWidget(name)
-        button_widget.colorChanged.connect(lambda color, name=name: self.color_value_change(color, name))
+        button_widget.colorChanged.connect(lambda color, name=name: self.scene.color_value_change(color, name))
         button = button_widget.button
-        self.mesh_store.meshes[name].opacity_spinbox = button_widget.double_spinbox
-        self.mesh_store.meshes[name].opacity_spinbox.setValue(self.mesh_store.meshes[name].opacity)
-        self.mesh_store.meshes[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.mesh_container.set_mesh_opacity(name, value))
-        self.mesh_store.meshes[name].color_button = button_widget.square_button
-        self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
+        self.scene.mesh_store.meshes[name].opacity_spinbox = button_widget.double_spinbox
+        self.scene.mesh_store.meshes[name].opacity_spinbox.setValue(self.scene.mesh_store.meshes[name].opacity)
+        self.scene.mesh_store.meshes[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.mesh_container.set_mesh_opacity(name, value))
+        self.scene.mesh_store.meshes[name].color_button = button_widget.square_button
+        self.scene.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.scene.mesh_store.meshes[name].color}")
         # check the button
         button.setCheckable(True)
         button.setChecked(True)
-        button.clicked.connect(lambda _, name=name: self.handle_mesh_click(name))
+        button.clicked.connect(lambda _, name=name, output_text=output_text: self.scene.handle_mesh_click(name, output_text))
         self.mesh_widget_layout.insertWidget(0, button_widget)
         self.mesh_button_group_actors.addButton(button)
-        self.handle_mesh_click(name=name, output_text=output_text)
-
-    def color_value_change(self, color, name):
-        if name == 'mask': 
-            try:
-                self.mask_container.set_mask_color(color)
-                self.mask_store.color = color
-            except ValueError: 
-                utils.display_warning(f"Cannot set color ({color}) to mask")
-                self.mask_store.color_button.setStyleSheet(f"background-color: {self.mask_store.color}")
-        elif name == 'bbox':
-            try:
-                self.bbox_container.set_bbox_color(color)
-                self.bbox_store.color = color
-            except ValueError: 
-                utils.display_warning(f"Cannot set color ({color}) to bbox")
-                self.bbox_store.color_button.setStyleSheet(f"background-color: {self.bbox_store.color}")
-        elif name in self.mesh_store.meshes:
-            try:
-                color = self.mesh_container.set_color(color, name)
-                self.mesh_store.meshes[name].color = color
-                if color != "nocs" and color != "texture": 
-                    self.mesh_store.meshes[name].color_button.setStyleSheet(f"background-color: {self.mesh_store.meshes[name].color}")
-            except ValueError:
-                utils.display_warning(f"Cannot set color ({color}) to {name}")
-
-    def tap_toggle_opacity(self):
-        if self.mesh_store.meshes[self.mesh_store.reference].opacity == 1.0: 
-            self.mesh_store.meshes[self.mesh_store.reference].opacity = 0.0
-            self.image_store.opacity = 1.0
-        elif self.mesh_store.meshes[self.mesh_store.reference].opacity == 0.9:
-            self.mesh_store.meshes[self.mesh_store.reference].opacity = 1.0
-            self.image_store.opacity = 0.0
-        else:
-            self.mesh_store.meshes[self.mesh_store.reference].opacity = 0.9
-            self.image_store.opacity = 0.9
-        self.image_store.image_data[self.image_store.reference].GetProperty().opacity = self.image_store.opacity
-        self.image_store.opacity_spinbox.setValue(self.image_store.opacity)
-        self.mesh_store.meshes[self.mesh_store.reference].opacity_spinbox.setValue(self.mesh_store.meshes[self.mesh_store.reference].opacity)
-
-    def ctrl_tap_opacity(self):
-        if self.mesh_store.reference is not None:
-            for mesh_data in self.mesh_store.meshes.values():
-                if mesh_data.opacity != 0: mesh_data.opacity_spinbox.setValue(0)
-                else: mesh_data.opacity_spinbox.setValue(mesh_data.previous_opacity)
-        else:
-            if self.image_store.reference is not None:
-                if self.image_store.opacity != 0: self.image_store.opacity_spinbox.setValue(0)
-                else: self.image_store.opacity_spinbox.setValue(self.image_store.previous_opacity)
-            if self.mask_store.mask_actor is not None:
-                if self.mask_store.mask_opacity != 0: self.mask_store.opacity_spinbox.setValue(0)
-                else: self.mask_store.opacity_spinbox.setValue(self.mask_store.previous_opacity)
-            if self.bbox_store.bbox_actor is not None:
-                if self.bbox_store.bbox_opacity != 0: self.bbox_store.opacity_spinbox.setValue(0)
-                else: self.bbox_store.opacity_spinbox.setValue(self.bbox_store.previous_opacity)
+        self.scene.handle_mesh_click(name=name, output_text=output_text)
 
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
@@ -944,24 +913,23 @@ class MyMainWindow(MainWindow):
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
             root = PKG_ROOT.parent.parent.parent
-            if 'image_path' in workspace and workspace['image_path'] is not None: self.image_container.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
-            if 'video_path' in workspace and workspace['video_path'] is not None: self.video_container.add_video_file(video_path=root / pathlib.Path(*workspace['video_path'].split("\\")))
-            if 'mask_path' in workspace and workspace['mask_path'] is not None: self.mask_container.add_mask_file(mask_path=root / pathlib.Path(*workspace['mask_path'].split("\\")))
-            if 'bbox_path' in workspace and workspace['bbox_path'] is not None: self.bbox_container.add_bbox_file(bbox_path=root / pathlib.Path(*workspace['bbox_path'].split("\\")))
+            if 'image_path' in workspace and workspace['image_path'] is not None: self.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
+            if 'mask_path' in workspace and workspace['mask_path'] is not None: self.add_mask_file(mask_path=root / pathlib.Path(*workspace['mask_path'].split("\\")))
+            if 'bbox_path' in workspace and workspace['bbox_path'] is not None: self.add_bbox_file(bbox_path=root / pathlib.Path(*workspace['bbox_path'].split("\\")))
             if 'mesh_path' in workspace:
                 meshes = workspace['mesh_path']
                 for item in meshes: 
                     mesh_path, pose = meshes[item]
-                    self.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
-                    self.mesh_container.add_pose_file(pose)
-            self.image_store.reset_camera()
+                    self.scene.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
+                    self.scene.mesh_container.add_pose_file(pose)
+            self.scene.camera_store.reset_camera()
 
     def export_workspace(self):
         workspace_dict = {"mesh_path": {}}
-        workspace_dict["image_path"] = self.image_store.image_path
-        workspace_dict["mask_path"] = self.mask_store.mask_path
-        workspace_dict["bbox_path"] = self.bbox_store.bbox_path
-        for mesh_data in self.mesh_store.meshes.values(): 
+        workspace_dict["image_path"] = self.scene.image_store.image_path
+        workspace_dict["mask_path"] = self.scene.mask_store.mask_path
+        workspace_dict["bbox_path"] = self.scene.bbox_store.bbox_path
+        for mesh_data in self.scene.mesh_store.meshes.values(): 
             workspace_dict["mesh_path"][mesh_data.name] = (mesh_data.mesh_path, mesh_data.actor.user_matrix.tolist())
         # write the dict to json file
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.json)")
@@ -972,18 +940,18 @@ class MyMainWindow(MainWindow):
         if prompt: 
             folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
         if folder_path:
-            if self.video_store.video_path or self.workspace_path: self.clear_plot() # main goal is to set video_path to None
-            image_path, mask_path, pose_path, mesh_path = self.folder_store.add_folder(folder_path=folder_path, meshes=self.mesh_store.meshes)
+            if self.scene.video_store.video_path or self.workspace_path: self.clear_plot() # main goal is to set video_path to None
+            image_path, mask_path, pose_path, mesh_path = self.scene.folder_store.add_folder(folder_path=folder_path, meshes=self.scene.mesh_store.meshes)
             if image_path or mask_path or pose_path or mesh_path:
-                if image_path: self.image_container.add_image_file(image_path=image_path)
-                if mask_path: self.mask_container.add_mask_file(mask_path=mask_path)
+                if image_path: self.scene.image_container.add_image_file(image_path=image_path)
+                if mask_path: self.scene.mask_container.add_mask_file(mask_path=mask_path)
                 if mesh_path: 
                     with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
-                    for path in mesh_path: self.mesh_container.add_mesh_file(path)
-                if pose_path: self.mesh_container.add_pose_file(pose_path=pose_path)
-                self.image_store.reset_camera()
+                    for path in mesh_path: self.scene.mesh_container.add_mesh_file(path)
+                if pose_path: self.scene.mesh_container.add_pose_file(pose_path=pose_path)
+                self.scene.camera_store.reset_camera()
             else:
-                self.folder_store.reset()
+                self.scene.folder_store.reset()
                 utils.display_warning("Not a valid folder, please reload a folder")
 
     def mirror_actors(self, direction):
@@ -999,32 +967,32 @@ class MyMainWindow(MainWindow):
 
     def remove_actor(self, button):
         name = button.text()
-        if name in self.image_store.images: 
-            actor = self.image_store.images[name].actor
+        if name in self.scene.image_store.images: 
+            actor = self.scene.image_store.images[name].actor
             self.track_image_actors.remove(name)
-            self.image_store.reset()
+            self.scene.image_store.reset()
             # remove the button from the button group
             self.image_button_group_actors.removeButton(button)
             self.remove_image_button_widget(button)
             button.deleteLater()
         elif name == 'mask':
-            actor = self.mask_store.mask_actor
+            actor = self.scene.mask_store.mask_actor
             self.track_mask_actors.remove(name)
-            self.mask_store.reset()
+            self.scene.mask_store.reset()
             self.mask_button_group_actors.removeButton(button)
             self.remove_mask_button_widget(button)
             button.deleteLater()
         elif name == 'bbox':
-            actor = self.bbox_store.bbox_actor
+            actor = self.scene.bbox_store.bbox_actor
             self.track_bbox_actors.remove(name)
-            self.bbox_store.reset()
+            self.scene.bbox_store.reset()
             self.bbox_button_group_actors.removeButton(button)
             self.remove_bbox_button_widget(button)
             button.deleteLater()
-        elif name in self.mesh_store.meshes: 
-            actor = self.mesh_store.meshes[name].actor
+        elif name in self.scene.mesh_store.meshes: 
+            actor = self.scene.mesh_store.meshes[name].actor
             self.track_mesh_actors.remove(name)
-            self.mesh_store.remove_mesh(name)
+            self.scene.mesh_store.remove_mesh(name)
             self.mesh_button_group_actors.removeButton(button)
             self.remove_mesh_button_widget(button)
             button.deleteLater()
@@ -1032,42 +1000,42 @@ class MyMainWindow(MainWindow):
         self.plotter.remove_actor(actor)
 
         # clear out the plot if there is no actor
-        if (self.image_store.images is None) and (self.mask_store.mask_actor is None) and (len(self.mesh_store.meshes) == 0): 
+        if (self.scene.image_store.images is None) and (self.scene.mask_store.mask_actor is None) and (len(self.scene.mesh_store.meshes) == 0): 
             self.clear_plot()
 
     def remove_image_button(self, button):
-        actor = self.image_store.images[button.text()].actor
-        self.image_store.images[button.text()].reset()
-        self.image_store.images[button.text()].mirror_x = False
-        self.image_store.images[button.text()].mirror_y = False
+        actor = self.scene.image_store.images[button.text()].actor
+        self.scene.image_store.images[button.text()].reset()
+        self.scene.image_store.images[button.text()].mirror_x = False
+        self.scene.image_store.images[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
         self.image_button_group_actors.removeButton(button)
         self.remove_image_button_widget(button)
         button.deleteLater()
 
     def remove_mask_button(self, button):
-        actor = self.mask_store.mask_actor
-        self.mask_store.reset()
-        self.mask_store.mirror_x = False
-        self.mask_store.mirror_y = False
+        actor = self.scene.mask_store.mask_actor
+        self.scene.mask_store.reset()
+        self.scene.mask_store.mirror_x = False
+        self.scene.mask_store.mirror_y = False
         self.plotter.remove_actor(actor)
         self.mask_button_group_actors.removeButton(button)
         self.remove_mask_button_widget(button)
         button.deleteLater()
 
     def remove_bbox_button(self, button):
-        actor = self.bbox_store.bbox_actor
-        self.bbox_store.reset()
-        self.bbox_store.mirror_x = False
-        self.bbox_store.mirror_y = False
+        actor = self.scene.bbox_store.bbox_actor
+        self.scene.bbox_store.reset()
+        self.scene.bbox_store.mirror_x = False
+        self.scene.bbox_store.mirror_y = False
         self.plotter.remove_actor(actor)
         self.bbox_button_group_actors.removeButton(button)
         self.remove_bbox_button_widget(button)
         button.deleteLater()
 
     def remove_mesh_button(self, button):
-        actor = self.mesh_store.meshes[button.text()].actor
-        self.mesh_store.remove_mesh(button.text())
+        actor = self.scene.mesh_store.meshes[button.text()].actor
+        self.scene.mesh_store.remove_mesh(button.text())
         self.plotter.remove_actor(actor)
         self.mesh_button_group_actors.removeButton(button)
         self.remove_mesh_button_widget(button)
@@ -1076,43 +1044,43 @@ class MyMainWindow(MainWindow):
     def clear_plot(self):
         # Clear out everything in the remove menu
         for button in self.image_button_group_actors.buttons():
-            actor = self.image_store.images[button.text()].actor
-            self.image_store.images[button.text()].reset()
-            self.image_store.images[button.text()].mirror_x = False
-            self.image_store.images[button.text()].mirror_y = False
+            actor = self.scene.image_store.images[button.text()].actor
+            self.scene.image_store.images[button.text()].reset()
+            self.scene.image_store.images[button.text()].mirror_x = False
+            self.scene.image_store.images[button.text()].mirror_y = False
             self.plotter.remove_actor(actor)
             self.image_button_group_actors.removeButton(button)
             self.remove_image_button_widget(button)
             button.deleteLater()
         for button in self.mask_button_group_actors.buttons():
-            actor = self.mask_store.mask_actor
-            self.mask_store.reset()
-            self.mask_store.mirror_x = False
-            self.mask_store.mirror_y = False
+            actor = self.scene.mask_store.mask_actor
+            self.scene.mask_store.reset()
+            self.scene.mask_store.mirror_x = False
+            self.scene.mask_store.mirror_y = False
             self.plotter.remove_actor(actor)
             self.image_button_group_actors.removeButton(button)
             self.remove_mask_button_widget(button)
             button.deleteLater()
         for button in self.bbox_button_group_actors.buttons():
-            actor = self.bbox_store.bbox_actor
-            self.bbox_store.reset()
-            self.bbox_store.mirror_x = False
-            self.bbox_store.mirror_y = False
+            actor = self.scene.bbox_store.bbox_actor
+            self.scene.bbox_store.reset()
+            self.scene.bbox_store.mirror_x = False
+            self.scene.bbox_store.mirror_y = False
             self.plotter.remove_actor(actor)
             self.image_button_group_actors.removeButton(button)
             self.remove_bbox_button_widget(button)
             button.deleteLater()
         for button in self.mesh_button_group_actors.buttons():
-            actor = self.mesh_store.meshes[button.text()].actor
-            self.mesh_store.remove_mesh(button.text())
+            actor = self.scene.mesh_store.meshes[button.text()].actor
+            self.scene.mesh_store.remove_mesh(button.text())
             self.plotter.remove_actor(actor)
             self.image_button_group_actors.removeButton(button)
             self.remove_mesh_button_widget(button)
             button.deleteLater()
 
-        self.mesh_store.reset()
-        self.video_store.reset()
-        self.folder_store.reset()
+        self.scene.mesh_store.reset()
+        self.scene.video_store.reset()
+        self.scene.folder_store.reset()
         self.workspace_path = ''
         self.track_image_actors.clear()
         self.track_mask_actors.clear()
@@ -1152,21 +1120,100 @@ class MyMainWindow(MainWindow):
                 self.mesh_widget_layout.removeWidget(widget)
                 widget.deleteLater()
                 break
-            
 
     def set_distance2camera(self):
-        distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.image_store.distance2camera))
+        distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.image_store.images[self.image_store.reference].distance2camera))
         if ok:
-            distance = float(distance)
-            if self.image_store.image_data[self.image_store.reference] is not None:
-                self.image_store.image_data[self.image_store.reference].image_pv.translate(-np.array([0, 0, self.image_store.image_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-                self.image_store.image_data[self.image_store.reference].image_pv.translate(np.array([0, 0, distance]), inplace=True)
-            if self.mask_store.mask_actor is not None:
-                self.mask_store.mask_pv.translate(-np.array([0, 0, self.mask_store.mask_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-                self.mask_store.mask_pv.translate(np.array([0, 0, distance]), inplace=True)
-            if self.bbox_store.bbox_actor is not None:
-                self.bbox_store.bbox_pv.translate(-np.array([0, 0, self.bbox_store.bbox_pv.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-                self.bbox_store.bbox_pv.translate(np.array([0, 0, distance]), inplace=True)
-            #! do not modify the distance2camera for meshes, because it will mess up the pose
-            self.image_store.distance2camera = distance
-            self.image_store.reset_camera()
+            self.scene.set_distance2camera(distance)
+        
+    def export_mesh_pose(self):
+        for mesh_data in self.scene.mesh_store.meshes.values():
+            verts, faces = utils.get_mesh_actor_vertices_faces(mesh_data.actor)
+            vertices = utils.transform_vertices(verts, mesh_data.actor.user_matrix)
+            os.makedirs(PKG_ROOT.parent / "output" / "export_mesh", exist_ok=True)
+            output_path = PKG_ROOT.parent / "output" / "export_mesh" / (mesh_data.name + '.ply')
+            mesh = trimesh.Trimesh(vertices, faces, process=False)
+            ply_file = trimesh.exchange.ply.export_ply(mesh)
+            with open(output_path, "wb") as fid: fid.write(ply_file)
+            self.output_text.append(f"Export {mesh_data.name} mesh to:\n {output_path}")
+                
+    def export_mesh_render(self, save_render=True):
+        image = None
+        if self.scene.mesh_store.reference:
+            image = self.render_mesh(camera=self.plotter.camera.copy())
+            if save_render:
+                output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.png)")
+                if output_path:
+                    if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                    rendered_image = PIL.Image.fromarray(image)
+                    rendered_image.save(output_path)
+                    self.output_text.append(f"-> Export mesh render to:\n {output_path}")
+        else: utils.display_warning("Need to load a mesh first")
+        return image
+
+    def export_segmesh_render(self):
+        if self.scene.mesh_store.reference and self.scene.mask_store.mask_actor:
+            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "SegMesh Files (*.png)")
+            if output_path:
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                mask_surface = self.scene.mask_store.update_mask()
+                self.scene.mask_container.load_mask(mask_surface)
+                segmask = self.scene.mask_store.render_mask(camera=self.plotter.camera.copy())
+                if np.max(segmask) > 1: segmask = segmask / 255
+                image = self.scene.mesh_container.render_mesh(camera=self.plotter.camera.copy())
+                image = (image * segmask).astype(np.uint8)
+                rendered_image = PIL.Image.fromarray(image)
+                rendered_image.save(output_path)
+                self.output_text.append(f"-> Export segmask render:\n to {output_path}")
+        else: utils.display_warning("Need to load a mesh or mask first")
+
+    def export_bbox(self):
+        if self.scene.bbox_store.actor:
+            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Bbox Files (*.npy)")
+            if output_path:
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                # Store the transformed bbox actor if there is any transformation
+                points = utils.get_bbox_actor_points(self.scene.bbox_store.bbox_actor, self.scene.bbox_store.image_center)
+                np.save(output_path, points)
+                self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
+            self.scene.bbox_store.bbox_data.bbox_path = output_path
+        else: utils.display_warning("Need to load a bounding box first!")
+
+    def export_mask(self):
+        if self.scene.mask_store.mask_actor:
+            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
+            if output_path:
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                # Store the transformed mask actor if there is any transformation
+                mask_surface = self.scene.mask_store.update_mask()
+                self.scene.mask_container.load_mask(mask_surface)
+                image = self.scene.mask_store.render_mask(camera=self.plotter.camera.copy())
+                rendered_image = PIL.Image.fromarray(image)
+                rendered_image.save(output_path)
+                # self.output_text.append(f"-> Export mask render to:\n {output_path}")
+            self.scene.mask_store.mask_path = output_path
+        else: utils.display_warning("Need to load a mask first!")
+
+    def export_image(self):
+        if self.scene.image_store.reference:
+            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Image Files (*.png)")
+            if output_path:
+                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
+                image_rendered = self.scene.image_store.render_image(camera=self.plotter.camera.copy())
+                rendered_image = PIL.Image.fromarray(image_rendered)
+                rendered_image.save(output_path)
+                # self.output_text.append(f"-> Export image render to:\n {output_path}")
+        else: utils.display_warning("Need to load an image first!")
+
+    def export_camera_info(self):
+        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Camera Info Files (*.pkl)")
+        if output_path:
+            if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.pkl')
+            camera_intrinsics = self.scene.image_store.camera_intrinsics.astype('float32')
+            if self.scene.image_store.height:
+                focal_length = (self.scene.image_store.height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
+                camera_intrinsics[0, 0] = focal_length
+                camera_intrinsics[1, 1] = focal_length
+            camera_info = {'camera_intrinsics': camera_intrinsics}
+            with open(output_path,"wb") as f: pickle.dump(camera_info, f)
+            # self.output_text.append(f"-> Export camera info to:\n {output_path}")

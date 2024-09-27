@@ -37,13 +37,13 @@ class CustomQtInteractor(QtInteractor):
         if cell_picker.Pick(x, y, 0, self.renderer): 
             self.cell_picker = cell_picker
         else:
-            if self.main_window.image_store.reference: 
-                self.main_window.check_image_button(self.main_window.image_store.reference)
+            if self.main_window.scene.image_store.reference: 
+                self.main_window.check_image_button(self.main_window.scene.image_store.reference)
 
     def release_callback(self):
         if self.cell_picker: 
             picked_actor = self.cell_picker.GetActor()
             name = picked_actor.name
-            if name in self.main_window.mesh_store.meshes:
+            if name in self.main_window.scene.mesh_store.meshes:
                 self.main_window.check_mesh_button(name, output_text=True)
         self.cell_picker = None

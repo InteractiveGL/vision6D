@@ -7,13 +7,13 @@ class SquareButton(QtWidgets.QPushButton):
         super().__init__(parent)
 
     def resizeEvent(self, event):
-        self.setFixedSize(40, 40)
+        self.setFixedSize(20, 20)
 
 class CustomBboxButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, parent=None):
         super(CustomBboxButtonWidget, self).__init__(parent)
-        self.setFixedHeight(50)
+        self.setFixedHeight(30)
 
         # Main layout for the widget
         layout = QtWidgets.QHBoxLayout(self)
@@ -23,7 +23,7 @@ class CustomBboxButtonWidget(QtWidgets.QWidget):
         # Container widget for the buttons
         button_container = QtWidgets.QWidget()
         button_layout = QtWidgets.QGridLayout(button_container)
-        button_layout.setContentsMargins(0, 0, 10, 0)
+        button_layout.setContentsMargins(0, 0, 5, 0)
         button_layout.setSpacing(0)
 
         # Create the main button using PreviewButton
@@ -33,7 +33,6 @@ class CustomBboxButtonWidget(QtWidgets.QWidget):
 
         # Create the square button
         self.square_button = SquareButton()
-        self.square_button.setFixedSize(35, 35)
         self.square_button.clicked.connect(self.show_color_popup)
 
         # Create a horizontal layout for the square button and spacer
@@ -51,7 +50,7 @@ class CustomBboxButtonWidget(QtWidgets.QWidget):
 
         # Create the double spin box and add it to the layout
         self.double_spinbox = QtWidgets.QDoubleSpinBox()
-        self.double_spinbox.setFixedHeight(45)
+        self.double_spinbox.setFixedHeight(30)
         self.double_spinbox.setMinimum(0.0)
         self.double_spinbox.setMaximum(1.0)
         self.double_spinbox.setDecimals(2)

@@ -9,6 +9,8 @@
 '''
 
 import pathlib
+from dataclasses import dataclass
+from typing import Optional, Dict
 
 import cv2
 import PIL.Image
@@ -18,30 +20,37 @@ import pyvista as pv
 from . import Singleton
 from ..tools import utils
 
+@dataclass
+class MaskData:
+    mask_path: str=None
+    name: str=None
+    mask_source: np.ndarray=None
+    mask_pv: pv.PolyData=None
+    actor: pv.Actor=None
+    opacity: float=0.5
+    previous_opacity: float=0.5
+    opacity_spinbox: Optional[str]=None
+    mirror_x: bool=False
+    mirror_y: bool=False
+    color: str="white"
+
 class MaskStore(metaclass=Singleton):
     def __init__(self):
-        self.reset()
-        self.mirror_x = False
-        self.mirror_y = False
+        self.reference: Optional[str] = None
+        self.masks: Dict[str, MaskData] = {}
+        self.mask_data = MaskData()
 
     def reset(self):
-        self.color = "white"
-        self.color_button = None
-        self.mask_path = None
-        self.mask_pv = None
-        self.mask_actor = None
-        self.mask_opacity = 0.5
-        self.previous_opacity = 0.5
-        self.opacity_spinbox = None
+        pass
     
     def add_mask(self, mask_source, image_center, size):
         w, h = size[0], size[1]
 
         if isinstance(mask_source, pathlib.Path) or isinstance(mask_source, str):
-            self.mask_path = str(mask_source)
+            mask_path = str(mask_source)
 
-        if pathlib.Path(self.mask_path).suffix == '.npy':
-            points = np.load(self.mask_path).squeeze()
+        if pathlib.Path(mask_path).suffix == '.npy':
+            points = np.load(mask_path).squeeze()
         else:
             mask_source = np.array(PIL.Image.open(mask_source), dtype='uint8')
             h, w = mask_source.shape[0], mask_source.shape[1]
@@ -51,6 +60,8 @@ class MaskStore(metaclass=Singleton):
             contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             points = contours[0].squeeze()
 
+        name = pathlib.Path(mask_path).stem
+        while name in self.masks: name += "_copy"
         points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
         
         # Mirror points
@@ -58,17 +69,27 @@ class MaskStore(metaclass=Singleton):
         self.render = utils.create_render(w, h)
         
         # Consider the mirror effect
-        if self.mirror_x: points[:, 0] = w - points[:, 0]
-        if self.mirror_y: points[:, 1] = h - points[:, 1]
+        if self.mask_data.mirror_x: points[:, 0] = w - points[:, 0]
+        if self.mask_data.mirror_y: points[:, 1] = h - points[:, 1]
 
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
-        # Due to camera view change to (0, -1, 0): x->right, y->down, z->front
-        points = points - mask_center - image_center # equivalent to self.mask_pv.translate(np.array([(-w//2-image_center[0]), (-h//2-image_center[1]), distance2camera]), inplace=True)
-        self.mask_pv = pv.PolyData(points, cells).triangulate()
-        # self.mask_pv.translate(np.array([(-w/2), (-h/2), distance2camera]), inplace=True)
-        # self.mask_pv.translate(-image_center, inplace=True)
-        return self.mask_pv
+        points = points - mask_center - image_center
+        mask_pv = pv.PolyData(points, cells).triangulate()
+        mask_data = MaskData(mask_source=mask_source, 
+                            mask_pv=mask_pv,
+                            mask_path=mask_path,
+                            name=name,
+                            actor=None,
+                            opacity=0.5, 
+                            previous_opacity=0.5, 
+                            opacity_spinbox=None,
+                            mirror_x=False, 
+                            mirror_y=False, 
+                            color="white")
+        self.masks[name] = mask_data
+        
+        return mask_data
 
     def update_mask(self):
         tranformed_points = utils.get_mask_actor_points(self.mask_actor)

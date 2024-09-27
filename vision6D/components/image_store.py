@@ -8,13 +8,13 @@
 @desc: create store for image related base functions
 '''
 import copy
-import uuid
 import math
 import numpy as np
 import pathlib
 import pyvista as pv
 import PIL.Image
 
+from . import CameraStore
 from dataclasses import dataclass
 from typing import Optional, Dict, Tuple
 
@@ -25,7 +25,6 @@ from ..tools import utils
 class ImageData:
     image_path: str=None
     name: str=None
-    id: uuid.UUID=None
     image_source: np.ndarray=None
     image_pv: pv.ImageData=None
     actor: pv.Actor=None
@@ -37,6 +36,13 @@ class ImageData:
     mirror_y: bool = False
     width: Optional[int] = None
     height: Optional[int] = None
+    fx: Optional[float] = 572.4114
+    fy: Optional[float] = 573.57043
+    cx: Optional[float] = 325.2611
+    cy: Optional[float] = 242.04899
+    cam_viewup: Optional[Tuple[int, int, int]] = (0, -1, 0)
+    cx_offset: Optional[float] = 0.0
+    cy_offset: Optional[float] = 0.0
     distance2camera: Optional[float] = 0.0
     image_center: Optional[np.ndarray] = np.array([0, 0, 0])
 
@@ -46,8 +52,7 @@ class ImageStore(metaclass=Singleton):
         self.images: Dict[str, ImageData] = {}
         self.image_data = ImageData()
         self.plotter = plotter
-        self.camera = pv.Camera() # camera related parameters, do not reset the camera!
-        self.reset()
+        self.camera_store = CameraStore(plotter)
         
     def reset(self):
         # image related parameters
@@ -94,29 +99,7 @@ class ImageStore(metaclass=Singleton):
         # # self.cx = 318.8965
         # # self.cy = 238.3781
         # # self.cam_viewup = (0, -1, 0)
-
-    #^ Camera related
-    def reset_camera(self):
-        self.plotter.camera = self.camera.copy()
-
-    def zoom_in(self):
-        self.plotter.camera.zoom(2)
-
-    def zoom_out(self):
-        self.plotter.camera.zoom(0.5)
-
-    def set_camera_extrinsics(self, cam_viewup):
-        self.camera.SetPosition((0, 0, -1e-8)) # Set the camera position at the origin of the world coordinate system
-        self.camera.SetFocalPoint((0, 0, 0)) # Get the camera window center
-        self.camera.SetViewUp(cam_viewup)
     
-    def set_camera_intrinsics(self, fx, fy, cx, cy, height):
-        # Set camera intrinsic attribute
-        self.camera_intrinsics = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
-        view_angle = (180 / math.pi) * (2.0 * math.atan2(height/2.0, fy)) # or view_angle = np.degrees(2.0 * math.atan2(height/2.0, f)) # focal_length = (height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
-        self.camera.SetViewAngle(view_angle) # view angle should be in degrees
-    
-    #^ Image related
     def add_image(self, image_source):
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             image_path = str(image_source)
@@ -144,10 +127,9 @@ class ImageStore(metaclass=Singleton):
         cy = 242.04899
         cam_viewup = (0, -1, 0)
 
-        self.set_camera_intrinsics(fx, fy, cx, cy, height)
-        self.set_camera_extrinsics(cam_viewup)
-        self.image_data.distance2camera = fy # set the frame distance to the camera
-        self.reset_camera()
+        self.camera_store.set_camera_intrinsics(fx, fy, cx, cy, height)
+        self.camera_store.set_camera_extrinsics(cam_viewup)
+        self.camera_store.reset_camera()
 
         # Consider the mirror effect with the preprocessed image_source: image_source = np.fliplr(np.flipud(image_source))
         if self.image_data.mirror_x: image_source = image_source[:, ::-1, :]
@@ -168,12 +150,30 @@ class ImageStore(metaclass=Singleton):
         cx_offset = (cx - (width / 2.0))
         cy_offset = (cy - (height / 2.0))
         # print(f"Image Origin: {self.cx_offset, self.cy_offset}")
-        image_pv.translate(np.array([-cx_offset, -cy_offset, self.image_data.distance2camera]), inplace=True) # move the image to the camera distance
-        image_center = np.array([cx_offset, cy_offset, -self.image_data.distance2camera])
+        image_pv.translate(np.array([-cx_offset, -cy_offset, fy]), inplace=True) # move the image to the camera distance
+        image_center = np.array([cx_offset, cy_offset, -fy])
         
-        image_data = ImageData(image_source=image_source, image_pv=image_pv,
-                               image_path=image_path, name=name, id=uuid.uuid4(), opacity=0.9, previous_opacity=0.9, opacity_spinbox=None, channel=None, mirror_x=False, mirror_y=False, width=width, height=height, distance2camera=self.image_data.distance2camera,
-                               image_center=image_center)
+        image_data = ImageData(image_source=image_source, 
+                                image_pv=image_pv,
+                                image_path=image_path, 
+                                name=name,
+                                opacity=0.9, 
+                                previous_opacity=0.9, 
+                                opacity_spinbox=None, 
+                                channel=None, 
+                                mirror_x=False, 
+                                mirror_y=False, 
+                                fx=fx,
+                                fy=fy,
+                                cx=cx,
+                                cy=cy,
+                                cam_viewup=cam_viewup,
+                                cx_offset=cx_offset,
+                                cy_offset=cy_offset,
+                                width=width, 
+                                height=height, 
+                                distance2camera=fy,
+                                image_center=image_center)
         self.images[name] = image_data
         return image_data
         
