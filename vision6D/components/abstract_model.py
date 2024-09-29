@@ -18,11 +18,6 @@ class AbstractData(ABC):
     height: Optional[int] = None
     mirror_x: bool = False
     mirror_y: bool = False
-    fx: Optional[float] = 572.4114
-    fy: Optional[float] = 573.57043
-    cx: Optional[float] = 325.2611
-    cy: Optional[float] = 242.04899
-    cam_viewup: Optional[Tuple[int, int, int]] = (0, -1, 0)
 
     @abstractmethod
     def clear_attributes(self):

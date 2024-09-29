@@ -163,27 +163,27 @@ class MyMainWindow(MainWindow):
     def set_camera(self):
         reference_image = self.scene.image_container.images[self.scene.image_container.image_model.reference]
         dialog = CameraPropsInputDialog(
-            line1=("Fx", reference_image.fx), 
-            line2=("Fy", reference_image.fy), 
-            line3=("Cx", reference_image.cx), 
-            line4=("Cy", reference_image.cy), 
-            line5=("View Up", reference_image.cam_viewup))
+            line1=("Fx", self.scene.fx), 
+            line2=("Fy", self.scene.fy), 
+            line3=("Cx", self.scene.cx), 
+            line4=("Cy", self.scene.cy), 
+            line5=("View Up", self.scene.cam_viewup))
         if dialog.exec():
             fx, fy, cx, cy, cam_viewup = dialog.getInputs()
-            pre_fx = reference_image.fx
-            pre_fy = reference_image.fy
-            pre_cx = reference_image.cx
-            pre_cy = reference_image.cy
-            pre_cam_viewup = reference_image.cam_viewup
+            pre_fx = self.scene.fx
+            pre_fy = self.scene.fy
+            pre_cx = self.scene.cx
+            pre_cy = self.scene.cy
+            pre_cam_viewup = self.scene.cam_viewup
             if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == ''):
                 try:
-                    reference_image.fx = ast.literal_eval(fx)
-                    reference_image.fy = ast.literal_eval(fy)
-                    reference_image.cx = ast.literal_eval(cx)
-                    reference_image.cy = ast.literal_eval(cy)
-                    reference_image.cam_viewup = ast.literal_eval(cam_viewup)
-                    self.scene.set_camera_intrinsics(reference_image.fx, reference_image.fy, reference_image.cx, reference_image.cy, reference_image.height)
-                    self.scene.set_camera_extrinsics(reference_image.cam_viewup)
+                    self.scene.fx = ast.literal_eval(fx)
+                    self.scene.fy = ast.literal_eval(fy)
+                    self.scene.cx = ast.literal_eval(cx)
+                    self.scene.cy = ast.literal_eval(cy)
+                    self.scene.cam_viewup = ast.literal_eval(cam_viewup)
+                    self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, reference_image.height)
+                    self.scene.set_camera_extrinsics(self.scene.cam_viewup)
                     reference_image.pv_obj.translate(reference_image.center, inplace=True) # reset the image position
                     reference_image.distance2camera = reference_image.fy # set the frame distance to the camera
                     reference_image.cx_offset = (reference_image.cx - (reference_image.width / 2.0))
@@ -193,11 +193,11 @@ class MyMainWindow(MainWindow):
                     reference_image.pv_obj.translate(reference_image.center, inplace=True) # move the image to the camera distance
                     self.scene.reset_camera()
                 except:
-                    reference_image.fx = pre_fx
-                    reference_image.fy = pre_fy
-                    reference_image.cx = pre_cx
-                    reference_image.cy = pre_cy
-                    reference_image.cam_viewup = pre_cam_viewup
+                    self.scene.fx = pre_fx
+                    self.scene.fy = pre_fy
+                    self.scene.cx = pre_cx
+                    self.scene.cy = pre_cy
+                    self.scene.cam_viewup = pre_cam_viewup
                     utils.display_warning("Error occured, check the format of the input values")
 
     def add_image_file(self, image_path='', prompt=False):
@@ -206,8 +206,8 @@ class MyMainWindow(MainWindow):
         if image_path:
             self.hintLabel.hide()
             image_model = self.scene.image_container.add_image(image_path)
-            self.scene.set_camera_intrinsics(image_model.fx, image_model.fy, image_model.cx, image_model.cy, image_model.height)
-            self.scene.set_camera_extrinsics(image_model.cam_viewup)
+            self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, image_model.height)
+            self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             self.scene.reset_camera()
             # add remove current image to removeMenu
             if image_model.name not in self.scene.track_image_actors:
@@ -517,13 +517,13 @@ class MyMainWindow(MainWindow):
     
     def on_pose_options_selection_change(self, option):
         if option == "Set Pose":
-            self.scene.mesh_container.set_pose()
+            self.set_pose()
         elif option == "PnP Register":
             self.pnp_register()
         elif option == "Reset GT Pose (k)":
-            self.scene.mesh_container.reset_gt_pose()
+            self.scene.reset_gt_pose()
         elif option == "Update GT Pose (l)":
-            self.scene.mesh_container.update_gt_pose()
+            self.scene.update_gt_pose()
         elif option == "Undo Pose (s)":
             self.scene.mesh_container.undo_actor_pose()
 

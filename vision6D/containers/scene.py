@@ -24,6 +24,13 @@ class Scene():
         self.track_mesh_actors = []
         self.track_bbox_actors = []
 
+        # set camera related attributes
+        self.fx = 572.4114
+        self.fy = 573.57043
+        self.cx = 325.2611
+        self.cy = 242.04899
+        self.cam_viewup = (0, -1, 0)
+
     def reset_camera(self):
         self.plotter.camera = self.camera.copy()
 
@@ -97,7 +104,7 @@ class Scene():
 
     def handle_transformation_matrix(self, transformation_matrix):
         self.toggle_register(transformation_matrix)
-        self.mesh_container.update_gt_pose()
+        self.update_gt_pose()
 
     def toggle_register(self, pose):
         self.mesh_container.meshes[self.mesh_container.reference].actor.user_matrix = pose
