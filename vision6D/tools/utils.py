@@ -28,9 +28,8 @@ import vtk.util.numpy_support as vtknp # type: ignore
 
 from PyQt5 import QtWidgets
 
-from ..path import LATLON_PATH
-
 logger = logging.getLogger("vision6D")
+PKG_ROOT = pathlib.Path(os.path.abspath(__file__)).parent # vision6D
 
 def fread(fid, _len, _type):
     if _len == 0:
@@ -293,7 +292,7 @@ def rigid_transform_3D(A, B):
 def load_latitude_longitude():
     # get the latitude and longitude
     # latlon_map_path = pkg_resources.resource_filename('vision6D', 'data/ossiclesCoordinateMapping.json')
-    with open(LATLON_PATH, "r") as f: data = json.load(f)
+    with open(PKG_ROOT / "data" / "ossiclesCoordinateMapping2.json", "r") as f: data = json.load(f)
     
     latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
     longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
