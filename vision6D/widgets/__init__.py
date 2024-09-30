@@ -16,6 +16,7 @@ from .custom_image_button_widget import CustomImageButtonWidget
 from .custom_mesh_button_widget import CustomMeshButtonWidget
 from .custom_bbox_button_widget import CustomBboxButtonWidget
 from .custom_mask_button_widget import CustomMaskButtonWidget
+from .custom_group_box import CustomGroupBox
 
 __all__ = [
     'CalibrationDialog',
@@ -36,4 +37,5 @@ __all__ = [
     'CustomMeshButtonWidget',
     'CustomBboxButtonWidget',
     'CustomMaskButtonWidget',
+    'CustomGroupBox'
 ]

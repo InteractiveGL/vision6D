@@ -54,18 +54,13 @@ class ImageContainer(metaclass=Singleton):
     def reset(self, name):
         self.images[name].clear_attributes()
 
-    #^ Image related
-    def mirror_image(self, direction):
-        if direction == 'x': self.image_model.mirror_x = not self.image_model.mirror_x
-        elif direction == 'y': self.image_model.mirror_y = not self.image_model.mirror_y
-        self.add_image(self.image_model.source_obj)
-
-    def add_image(self, image_source):
+    def add_image(self, image_source, fy, cx, cy):
         # self.set_camera()
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_model.path = str(image_source)
             name = pathlib.Path(self.image_model.path).stem
             while name in self.images: name = name + "_copy"
+            self.image_model.name = name
             self.image_model.source_obj = np.array(PIL.Image.open(self.image_model.path), dtype='uint8')
         else:
             self.image_model.source_obj = image_source
@@ -82,7 +77,7 @@ class ImageContainer(metaclass=Singleton):
 
         # create the image pyvista object
         self.image_model.pv_obj = pv.ImageData(dimensions=(self.image_model.width, self.image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
-        self.image_model.pv_obj.point_data["values"] = image_source.reshape((self.image_model.width * self.image_model.height, self.image_model.channel)) # order = 'C
+        self.image_model.pv_obj.point_data["values"] = self.image_model.source_obj.reshape((self.image_model.width * self.image_model.height, self.image_model.channel)) # order = 'C
         self.image_model.pv_obj = self.image_model.pv_obj.translate(-1 * np.array(self.image_model.pv_obj.center), inplace=False) # center the image at (0, 0)
         """
         Do not directly feed fx and fy (the focal lengths) for this calculation 
@@ -90,12 +85,12 @@ class ImageContainer(metaclass=Singleton):
         the center of the image and converting that to world space using the image spacing (1).
         Note that if image spacing is [1, 1], it means that each pixel in the x and y directions corresponds to a world unit of 1 in those directions.
         """
-        self.image_model.cx_offset = (self.image_model.cx - (self.image_model.width / 2.0))
-        self.image_model.cy_offset = (self.image_model.cy - (self.image_model.height / 2.0))
+        self.image_model.cx_offset = (cx - (self.image_model.width / 2.0))
+        self.image_model.cy_offset = (cy - (self.image_model.height / 2.0))
         print(f"Image Origin: {self.image_model.cx_offset, self.image_model.cy_offset}")
         # move the image to the camera distance
-        self.image_model.pv_obj.translate(np.array([-self.image_model.cx_offset, -self.image_model.cy_offset, self.image_model.fy]), inplace=True)
-        self.image_model.center = np.array([self.image_model.cx_offset, self.image_model.cy_offset, -self.image_model.fy])
+        self.image_model.pv_obj.translate(np.array([-self.image_model.cx_offset, -self.image_model.cy_offset, fy]), inplace=True)
+        self.image_model.center = np.array([self.image_model.cx_offset, self.image_model.cy_offset, -fy])
         self.images[name] = self.image_model
         if self.image_model.channel == 1: image = self.plotter.add_mesh(self.image_model.pv_obj, cmap='gray', opacity=self.image_model.opacity, name=self.image_model.name)
         else: image = self.plotter.add_mesh(self.image_model.pv_obj, rgb=True, opacity=self.image_model.opacity, name=self.image_model.name)

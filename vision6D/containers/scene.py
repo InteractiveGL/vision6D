@@ -69,6 +69,11 @@ class Scene():
         reference_image.distance2camera = distance
         self.reset_camera()
 
+    def mirror_image(self, name, direction):
+        if direction == 'x': self.image_container.images[name].mirror_x = self.image_container.images[name].mirror_x
+        elif direction == 'y': self.image_container.images[name].mirror_y = not self.image_container.images[name].mirror_y
+        self.image_container.add_image(self.image_container.images[name].source_obj, self.fy, self.cx, self.cy)
+
     def tap_toggle_opacity(self):
         if self.mesh_container.meshes[self.mesh_container.reference].opacity == 1.0: 
             self.mesh_container.meshes[self.mesh_container.reference].opacity = 0.0

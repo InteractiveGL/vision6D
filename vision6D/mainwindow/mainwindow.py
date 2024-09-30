@@ -43,6 +43,7 @@ from ..widgets import MaskWindow
 from ..widgets import LiveWireWindow
 from ..widgets import SamWindow
 from ..widgets import BboxWindow
+from ..widgets import CustomGroupBox
 
 from ..tools import utils
 from ..tools import exception
@@ -51,7 +52,7 @@ from ..containers import Scene
 from ..path import ICON_PATH, PKG_ROOT
 
 np.set_printoptions(suppress=True)
-
+        
 class MyMainWindow(MainWindow):
     def __init__(self, parent=None):
         QtWidgets.QMainWindow.__init__(self, parent)
@@ -205,7 +206,7 @@ class MyMainWindow(MainWindow):
             image_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
         if image_path:
             self.hintLabel.hide()
-            image_model = self.scene.image_container.add_image(image_path)
+            image_model = self.scene.image_container.add_image(image_path, self.scene.fy, self.scene.cx, self.scene.cy)
             self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, image_model.height)
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             self.scene.reset_camera()
@@ -610,142 +611,129 @@ class MyMainWindow(MainWindow):
         self.console_group.setLayout(self.display_layout)
         self.panel_layout.addWidget(self.console_group)
 
+    # In your main class or wherever you're using panel_images_actors
     def panel_images_actors(self):
-        self.images_actors_group = QtWidgets.QGroupBox("Image")
-        self.images_actors_group.setCheckable(True)
-        self.images_actors_group.setChecked(True)
-        self.images_actors_group.setStyleSheet("""
-            QGroupBox::indicator:checked {
-                background-color: green;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-            QGroupBox::indicator:unchecked {
-                background-color: red;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-        """)
-        self.images_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.images_actors_group, checked))
-        self.display_layout = QtWidgets.QVBoxLayout()
-        self.display_layout.setContentsMargins(10, 20, 10, 5)
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        self.display_layout.addWidget(scroll_area)
-        custom_widget_container = QtWidgets.QWidget()
-        self.image_widget_layout = QtWidgets.QVBoxLayout()
-        self.image_widget_layout.setSpacing(0)
-        custom_widget_container.setLayout(self.image_widget_layout)
-        self.image_widget_layout.addStretch()
-        scroll_area.setWidget(custom_widget_container)
-        self.images_actors_group.setLayout(self.display_layout)
+        self.images_actors_group = CustomGroupBox("Image", self)
+        self.images_actors_group.addButtonClicked.connect(lambda image_path='', prompt=True: self.add_image_file(image_path, prompt))
         self.panel_layout.addWidget(self.images_actors_group)
 
     def panel_mesh_actors(self):
-        self.mesh_actors_group = QtWidgets.QGroupBox("Mesh")
-        self.mesh_actors_group.setCheckable(True)
-        self.mesh_actors_group.setChecked(True)
-        self.mesh_actors_group.setStyleSheet("""
-            QGroupBox::indicator:checked {
-                background-color: green;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-            QGroupBox::indicator:unchecked {
-                background-color: red;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-        """)
-        self.mesh_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mesh_actors_group, checked))
-        self.display_layout = QtWidgets.QVBoxLayout()
-        self.display_layout.setContentsMargins(10, 20, 10, 5)
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        self.display_layout.addWidget(scroll_area)
-        custom_widget_container = QtWidgets.QWidget()
-        self.mesh_widget_layout = QtWidgets.QVBoxLayout()
-        self.mesh_widget_layout.setSpacing(0)
-        custom_widget_container.setLayout(self.mesh_widget_layout)
-        self.mesh_widget_layout.addStretch()
-        scroll_area.setWidget(custom_widget_container)
-        self.mesh_actors_group.setLayout(self.display_layout)
+        # self.mesh_actors_group = QtWidgets.QGroupBox("Mesh")
+        # self.mesh_actors_group.setCheckable(True)
+        # self.mesh_actors_group.setChecked(True)
+        # self.mesh_actors_group.setStyleSheet("""
+        #     QGroupBox::indicator:checked {
+        #         background-color: green;
+        #         border: 2px solid black;
+        #         border-radius: 6px;
+        #         padding: 2px;
+        #     }
+        #     QGroupBox::indicator:unchecked {
+        #         background-color: red;
+        #         border: 2px solid black;
+        #         border-radius: 6px;
+        #         padding: 2px;
+        #     }
+        # """)
+        # self.mesh_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mesh_actors_group, checked))
+        # self.display_layout = QtWidgets.QVBoxLayout()
+        # self.display_layout.setContentsMargins(10, 20, 10, 5)
+        # scroll_area = QtWidgets.QScrollArea()
+        # scroll_area.setWidgetResizable(True)
+        # self.display_layout.addWidget(scroll_area)
+        # custom_widget_container = QtWidgets.QWidget()
+        # self.mesh_widget_layout = QtWidgets.QVBoxLayout()
+        # self.mesh_widget_layout.setSpacing(0)
+        # custom_widget_container.setLayout(self.mesh_widget_layout)
+        # self.mesh_widget_layout.addStretch()
+        # scroll_area.setWidget(custom_widget_container)
+        # self.mesh_actors_group.setLayout(self.display_layout)
+        # self.panel_layout.addWidget(self.mesh_actors_group)
+
+        self.mesh_actors_group = CustomGroupBox("Mesh", self)
+        self.mesh_actors_group.addButtonClicked.connect(lambda mesh_path='', prompt=True: self.add_mesh_file(mesh_path, prompt))
         self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_mask_actors(self):
-        self.mask_actors_group = QtWidgets.QGroupBox("Mask")
-        self.mask_actors_group.setCheckable(True)
-        self.mask_actors_group.setStyleSheet("""
-            QGroupBox::indicator:checked {
-                background-color: green;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-            QGroupBox::indicator:unchecked {
-                background-color: red;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-        """)
-        self.mask_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mask_actors_group, checked))
-        self.display_layout = QtWidgets.QVBoxLayout()
-        self.display_layout.setContentsMargins(10, 20, 10, 5)
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        self.display_layout.addWidget(scroll_area)
-        custom_widget_container = QtWidgets.QWidget()
-        self.mask_widget_layout = QtWidgets.QVBoxLayout()
-        self.mask_widget_layout.setSpacing(0)
-        custom_widget_container.setLayout(self.mask_widget_layout)
-        self.mask_widget_layout.addStretch()
-        scroll_area.setWidget(custom_widget_container)
-        self.mask_actors_group.setLayout(self.display_layout)
+        # self.mask_actors_group = QtWidgets.QGroupBox("Mask")
+        # self.mask_actors_group.setCheckable(True)
+        # self.mask_actors_group.setStyleSheet("""
+        #     QGroupBox::indicator:checked {
+        #         background-color: green;
+        #         border: 2px solid black;
+        #         border-radius: 6px;
+        #         padding: 2px;
+        #     }
+        #     QGroupBox::indicator:unchecked {
+        #         background-color: red;
+        #         border: 2px solid black;
+        #         border-radius: 6px;
+        #         padding: 2px;
+        #     }
+        # """)
+        # self.mask_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mask_actors_group, checked))
+        # self.display_layout = QtWidgets.QVBoxLayout()
+        # self.display_layout.setContentsMargins(10, 20, 10, 5)
+        # scroll_area = QtWidgets.QScrollArea()
+        # scroll_area.setWidgetResizable(True)
+        # self.display_layout.addWidget(scroll_area)
+        # custom_widget_container = QtWidgets.QWidget()
+        # self.mask_widget_layout = QtWidgets.QVBoxLayout()
+        # self.mask_widget_layout.setSpacing(0)
+        # custom_widget_container.setLayout(self.mask_widget_layout)
+        # self.mask_widget_layout.addStretch()
+        # scroll_area.setWidget(custom_widget_container)
+        # self.mask_actors_group.setLayout(self.display_layout)
+        # self.panel_layout.addWidget(self.mask_actors_group)
+        # # set the mask group to be unchecked
+        # self.mask_actors_group.setChecked(False)
+        # self.panel_layout.update()
+
+        self.mask_actors_group = CustomGroupBox("Mask", self)
+        self.mask_actors_group.content_widget.setVisible(False)
+        self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
         self.panel_layout.addWidget(self.mask_actors_group)
-        # set the mask group to be unchecked
-        self.mask_actors_group.setChecked(False)
-        self.panel_layout.update()
 
     def panel_bbox_actors(self):
-        self.bbox_actors_group = QtWidgets.QGroupBox("Bbox")
-        self.bbox_actors_group.setCheckable(True)
-        self.bbox_actors_group.setChecked(True)
-        self.bbox_actors_group.setStyleSheet("""
-            QGroupBox::indicator:checked {
-                background-color: green;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-            QGroupBox::indicator:unchecked {
-                background-color: red;
-                border: 2px solid black;
-                border-radius: 6px;
-                padding: 2px;
-            }
-        """)
-        self.bbox_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.bbox_actors_group, checked))
-        self.display_layout = QtWidgets.QVBoxLayout()
-        self.display_layout.setContentsMargins(10, 20, 10, 5)
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        self.display_layout.addWidget(scroll_area)
-        custom_widget_container = QtWidgets.QWidget()
-        self.bbox_widget_layout = QtWidgets.QVBoxLayout()
-        self.bbox_widget_layout.setSpacing(0)
-        custom_widget_container.setLayout(self.bbox_widget_layout)
-        self.bbox_widget_layout.addStretch()
-        scroll_area.setWidget(custom_widget_container)
-        self.bbox_actors_group.setLayout(self.display_layout)
+        # self.bbox_actors_group = QtWidgets.QGroupBox("Bbox")
+        # self.bbox_actors_group.setCheckable(True)
+        # self.bbox_actors_group.setChecked(True)
+        # self.bbox_actors_group.setStyleSheet("""
+        #     QGroupBox::indicator:checked {
+        #         background-color: green;
+        #         border: 2px solid black;
+        #         border-radius: 6px;
+        #         padding: 2px;
+        #     }
+        #     QGroupBox::indicator:unchecked {
+        #         background-color: red;
+        #         border: 2px solid black;
+        #         border-radius: 6px;
+        #         padding: 2px;
+        #     }
+        # """)
+        # self.bbox_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.bbox_actors_group, checked))
+        # self.display_layout = QtWidgets.QVBoxLayout()
+        # self.display_layout.setContentsMargins(10, 20, 10, 5)
+        # scroll_area = QtWidgets.QScrollArea()
+        # scroll_area.setWidgetResizable(True)
+        # self.display_layout.addWidget(scroll_area)
+        # custom_widget_container = QtWidgets.QWidget()
+        # self.bbox_widget_layout = QtWidgets.QVBoxLayout()
+        # self.bbox_widget_layout.setSpacing(0)
+        # custom_widget_container.setLayout(self.bbox_widget_layout)
+        # self.bbox_widget_layout.addStretch()
+        # scroll_area.setWidget(custom_widget_container)
+        # self.bbox_actors_group.setLayout(self.display_layout)
+        # self.panel_layout.addWidget(self.bbox_actors_group)
+        # # set the bbox group to be unchecked
+        # self.bbox_actors_group.setChecked(False)
+        # self.panel_layout.update()
+
+        self.bbox_actors_group = CustomGroupBox("Bbox", self)
+        self.bbox_actors_group.content_widget.setVisible(False)
+        self.bbox_actors_group.addButtonClicked.connect(lambda bbox_path='', prompt=True: self.add_bbox_file(bbox_path, prompt))
         self.panel_layout.addWidget(self.bbox_actors_group)
-        # set the bbox group to be unchecked
-        self.bbox_actors_group.setChecked(False)
-        self.panel_layout.update()
 
     #^ Panel Output
     def panel_output(self):
@@ -920,7 +908,7 @@ class MyMainWindow(MainWindow):
         button.setCheckable(True)
         button.setChecked(True)
         button.clicked.connect(lambda _, name=name: self.scene.handle_image_click(name))
-        self.image_widget_layout.insertWidget(0, button_widget)
+        self.images_actors_group.widget_layout.insertWidget(0, button_widget)
         self.image_button_group_actors.addButton(button_widget.button)
         self.scene.handle_image_click(name=name)
 
@@ -937,7 +925,7 @@ class MyMainWindow(MainWindow):
         button.setCheckable(True)
         button.setChecked(True)
         button.clicked.connect(lambda _, name=name: self.scene.handle_mask_click(name))
-        self.mask_widget_layout.insertWidget(0, button_widget)
+        self.mask_actors_group.widget_layout.insertWidget(0, button_widget)
         self.mask_button_group_actors.addButton(button)
         self.scene.handle_mask_click(name=name)
 
@@ -978,7 +966,7 @@ class MyMainWindow(MainWindow):
         button.setCheckable(True)
         button.setChecked(True)
         button.clicked.connect(lambda _, name=name: self.scene.handle_bbox_click(name))
-        self.bbox_widget_layout.insertWidget(0, button_widget)
+        self.bbox_actors_group.widget_layout.insertWidget(0, button_widget)
         self.bbox_button_group_actors.addButton(button)
         self.scene.handle_bbox_click(name=name)
 
@@ -995,7 +983,7 @@ class MyMainWindow(MainWindow):
         button.setCheckable(True)
         button.setChecked(True)
         button.clicked.connect(lambda _, name=name, output_text=output_text: self.scene.handle_mesh_click(name, output_text))
-        self.mesh_widget_layout.insertWidget(0, button_widget)
+        self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
         self.mesh_button_group_actors.addButton(button)
         self.scene.handle_mesh_click(name=name, output_text=output_text)
 
@@ -1193,34 +1181,34 @@ class MyMainWindow(MainWindow):
         self.hintLabel.show()
     
     def remove_image_button_widget(self, button):
-        for i in range(self.image_widget_layout.count()): 
-            widget = self.image_widget_layout.itemAt(i).widget()
+        for i in range(self.images_actors_group.widget_layout.count()): 
+            widget = self.images_actors_group.widget_layout.itemAt(i).widget()
             if widget is not None and hasattr(widget, 'button') and widget.button == button:
-                self.image_widget_layout.removeWidget(widget)
+                self.images_actors_group.widget_layout.removeWidget(widget)
                 widget.deleteLater()
                 break
     
     def remove_mask_button_widget(self, button):
-        for i in range(self.mask_widget_layout.count()): 
-            widget = self.mask_widget_layout.itemAt(i).widget()
+        for i in range(self.mask_actors_group.widget_layout.count()): 
+            widget = self.mask_actors_group.widget_layout.itemAt(i).widget()
             if widget is not None and hasattr(widget, 'button') and widget.button == button:
-                self.mask_widget_layout.removeWidget(widget)
+                self.mask_actors_group.widget_layout.removeWidget(widget)
                 widget.deleteLater()
                 break
     
     def remove_bbox_button_widget(self, button):
-        for i in range(self.bbox_widget_layout.count()): 
-            widget = self.bbox_widget_layout.itemAt(i).widget()
+        for i in range(self.bbox_actors_group.widget_layout.count()): 
+            widget = self.bbox_actors_group.widget_layout.itemAt(i).widget()
             if widget is not None and hasattr(widget, 'button') and widget.button == button:
-                self.bbox_widget_layout.removeWidget(widget)
+                self.bbox_actors_group.widget_layout.removeWidget(widget)
                 widget.deleteLater()
                 break
 
     def remove_mesh_button_widget(self, button):
-        for i in range(self.mesh_widget_layout.count()): 
-            widget = self.mesh_widget_layout.itemAt(i).widget()
+        for i in range(self.mesh_actors_group.widget_layout.count()): 
+            widget = self.mesh_actors_group.widget_layout.itemAt(i).widget()
             if widget is not None and hasattr(widget, 'button') and widget.button == button:
-                self.mesh_widget_layout.removeWidget(widget)
+                self.mesh_actors_group.widget_layout.removeWidget(widget)
                 widget.deleteLater()
                 break
 
