@@ -138,7 +138,10 @@ class Scene():
 
     def handle_mask_click(self, name):
         # Add your mask handling code here
-        pass
+        self.mask_container.reference = name
+        for mask_name, mask_model in self.mask_container.masks.items():
+            if mask_name != name: mask_model.opacity = 0.0; mask_model.opacity_spinbox.setValue(0.0)
+            else: mask_model.opacity = 0.9; mask_model.opacity_spinbox.setValue(0.9)
 
     def handle_bbox_click(self, name):
         # Add your bbox handling code here

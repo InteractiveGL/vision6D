@@ -148,7 +148,7 @@ class MyMainWindow(MainWindow):
 
     #^ Camera related
     def camera_calibrate(self):
-        path = self.scene.image_container.images[self.scene.image_container.image_model.reference].path
+        path = self.scene.image_container.images[self.scene.image_container.reference].path
         if path:
             original_image = np.array(PIL.Image.open(path), dtype='uint8')
             # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
@@ -162,7 +162,7 @@ class MyMainWindow(MainWindow):
         else: utils.display_warning("Need to load an image first!")
 
     def set_camera(self):
-        reference_image = self.scene.image_container.images[self.scene.image_container.image_model.reference]
+        reference_image = self.scene.image_container.images[self.scene.image_container.reference]
         dialog = CameraPropsInputDialog(
             line1=("Fx", self.scene.fx), 
             line2=("Fy", self.scene.fy), 
@@ -221,7 +221,10 @@ class MyMainWindow(MainWindow):
             mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
         if mask_path:
             self.hintLabel.hide()
-            mask_model = self.scene.mask_container.add_mask(mask_path)
+            mask_model = self.scene.mask_container.add_mask(mask_source=mask_path,
+                                                image_center=self.scene.image_container.images[self.scene.image_container.reference].center,
+                                                w = self.scene.image_container.images[self.scene.image_container.reference].width,
+                                                h = self.scene.image_container.images[self.scene.image_container.reference].height)
             # Add remove current image to removeMenu
             if mask_model.name not in self.scene.track_mask_actors:
                 self.scene.track_mask_actors.append('mask')
@@ -392,10 +395,10 @@ class MyMainWindow(MainWindow):
                 elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                     file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
                     unique, _ = np.unique(file_data, return_counts=True)
-                    if len(unique) == 2: self.scene.mask_container.add_mask_file(mask_path=file_path)
+                    if len(unique) == 2: self.add_mask_file(mask_path=file_path)
                     else: self.add_image_file(image_path=file_path) 
                         
-                elif file_path.endswith('.npy'): self.scene.mesh_container.add_pose_file(pose_path=file_path)
+                elif file_path.endswith('.npy'): self.add_pose_file(pose_path=file_path)
                 else: utils.display_warning("File format is not supported!")
 
     def resizeEvent(self, e):
@@ -449,7 +452,7 @@ class MyMainWindow(MainWindow):
         draw_mask_menu.addAction(sam)
         
         draw_bbox = QtWidgets.QAction('Draw BBox', self)
-        draw_bbox.triggered.connect(self.scene.bbox_container.draw_bbox)
+        draw_bbox.triggered.connect(self.draw_bbox)
         
         reset_mask = QtWidgets.QAction('Reset Mask (t)', self)
         reset_mask.triggered.connect(self.scene.mask_container.reset_mask)
@@ -913,8 +916,9 @@ class MyMainWindow(MainWindow):
         self.scene.handle_image_click(name=name)
 
     def add_mask_button(self, name):
+        self.mask_actors_group.content_widget.setVisible(True)
         button_widget = CustomMaskButtonWidget(name)
-        button_widget.colorChanged.connect(lambda color, name=name: self.scene.color_value_change(color, name))
+        button_widget.colorChanged.connect(lambda color, name=name: self.scene.mask_color_value_change(name, color))
         button = button_widget.button
         self.scene.mask_container.masks[name].opacity_spinbox = button_widget.double_spinbox
         self.scene.mask_container.masks[name].opacity_spinbox.setValue(self.scene.mask_container.masks[name].opacity)
@@ -932,10 +936,13 @@ class MyMainWindow(MainWindow):
     def draw_mask(self, live_wire=False, sam=False):
         def handle_output_path_change(output_path):
             if output_path:
-                self.scene.mask_container.mask_model.path = output_path
-                self.scene.mask_container.add_mask(self.scene.mask_container.mask_model.path)
-        if self.scene.image_container.images[self.scene.image_container.image_model.reference].actor:
-            image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.image_model.reference].actor)
+                self.scene.mask_container.add_mask(mask_source=output_path,
+                                                image_center=self.scene.image_container.images[self.scene.image_container.reference].center,
+                                                w = self.scene.image_container.images[self.scene.image_container.reference].width,
+                                                h = self.scene.image_container.images[self.scene.image_container.reference].height)
+                self.add_mask_button(self.scene.mask_container.reference)
+        if self.scene.image_container.images[self.scene.image_container.reference].actor:
+            image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
             if sam: self.mask_window = SamWindow(image)
             elif live_wire: self.mask_window = LiveWireWindow(image)
             else: self.mask_window = MaskWindow(image)
@@ -947,8 +954,8 @@ class MyMainWindow(MainWindow):
             if output_path:
                 self.scene.bbox_container.bbox_model.path = output_path
                 self.scene.bbox_container.add_bbox(self.scene.bbox_container.bbox_model.path)
-        if self.scene.image_container.images[self.scene.image_container.image_model.reference].actor:
-            image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.image_model.reference].actor)
+        if self.scene.image_container.images[self.scene.image_container.reference].actor:
+            image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
             self.bbox_window = BboxWindow(image)
             self.bbox_window.bbox_label.output_path_changed.connect(handle_output_path_change)
         else: utils.display_warning("Need to load an image first!")
@@ -972,7 +979,7 @@ class MyMainWindow(MainWindow):
 
     def add_mesh_button(self, name, output_text):
         button_widget = CustomMeshButtonWidget(name)
-        button_widget.colorChanged.connect(lambda color, name=name: self.scene.color_value_change(color, name))
+        button_widget.colorChanged.connect(lambda color, name=name: self.scene.mesh_color_value_change(name, color))
         button = button_widget.button
         self.scene.mesh_container.meshes[name].opacity_spinbox = button_widget.double_spinbox
         self.scene.mesh_container.meshes[name].opacity_spinbox.setValue(self.scene.mesh_container.meshes[name].opacity)
@@ -1010,7 +1017,7 @@ class MyMainWindow(MainWindow):
                 for item in meshes: 
                     mesh_path, pose = meshes[item]
                     self.scene.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
-                    self.scene.mesh_container.add_pose_file(pose)
+                    self.add_pose_file(pose)
             self.scene.reset_camera()
 
     def export_workspace(self):
@@ -1040,7 +1047,7 @@ class MyMainWindow(MainWindow):
         #         if mesh_path: 
         #             with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
         #             for path in mesh_path: self.scene.mesh_container.add_mesh_file(path)
-        #         if pose_path: self.scene.mesh_container.add_pose_file(pose_path=pose_path)
+        #         if pose_path: self.add_pose_file(pose_path=pose_path)
         #         self.scene.reset_camera()
         #     else:
         #         self.scene.folder_store.reset()
