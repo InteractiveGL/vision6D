@@ -155,7 +155,9 @@ class MyMainWindow(MainWindow):
             original_image = original_image[..., :3]
             if len(original_image.shape) == 2: original_image = original_image[..., None]
             if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
-            calibrated_image = np.array(self.scene.image_container.render_image(self.plotter.camera.copy()), dtype='uint8')
+            calibrated_image = np.array(self.scene.image_container.render_image(self.scene.image_container.reference,
+                                                                                self.plotter.camera.copy()), 
+                                                                                dtype='uint8')
             if original_image.shape != calibrated_image.shape:
                 utils.display_warning("Original image shape is not equal to calibrated image shape!")
             else: CalibrationDialog(calibrated_image, original_image).exec_()
@@ -265,14 +267,7 @@ class MyMainWindow(MainWindow):
             mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_path:
             self.hintLabel.hide()
-            mesh_model = self.scene.mesh_container.add_mesh(mesh_source=mesh_path)
-            if mesh_model: 
-                if self.scene.mesh_container.reference is not None:
-                    reference_matrix = self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix
-                    mesh_model = self.scene.mesh_container.add_mesh(mesh_model, reference_matrix)
-                else:
-                    mesh_model = self.scene.mesh_container.add_mesh(mesh_model, np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]])) # set the initial pose, r_x, r_y, t_z includes the scaling too
-            else: utils.display_warning("The mesh format is not supported!")
+            mesh_model = self.scene.mesh_container.add_mesh(mesh_source=mesh_path, transformation_matrix=np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]]))
             # add remove current mesh to removeMenu
             if mesh_model.name not in self.scene.track_mesh_actors:
                 self.scene.track_mesh_actors.append(mesh_model.name)
@@ -387,7 +382,7 @@ class MyMainWindow(MainWindow):
                 if file_path.endswith(('.json')): self.add_workspace(workspace_path=file_path)
                 # Load mesh file
                 elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
-                    self.scene.mesh_container.add_mesh_file(mesh_path=file_path)
+                    self.add_mesh_file(mesh_path=file_path)
                 # # Load video file
                 # elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
                 #     self.scene.video_container.add_video_file(video_path=file_path)
@@ -922,7 +917,7 @@ class MyMainWindow(MainWindow):
         button = button_widget.button
         self.scene.mask_container.masks[name].opacity_spinbox = button_widget.double_spinbox
         self.scene.mask_container.masks[name].opacity_spinbox.setValue(self.scene.mask_container.masks[name].opacity)
-        self.scene.mask_container.masks[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.mask_container.set_mask_opacity(value))
+        self.scene.mask_container.masks[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.mask_container.set_mask_opacity(name, value))
         self.scene.mask_container.masks[name].color_button = button_widget.square_button
         self.scene.mask_container.masks[name].color_button.setStyleSheet(f"background-color: {self.scene.mask_container.masks[name].color}")
         # check the button
@@ -1016,7 +1011,7 @@ class MyMainWindow(MainWindow):
                 meshes = workspace['mesh_path']
                 for item in meshes: 
                     mesh_path, pose = meshes[item]
-                    self.scene.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
+                    self.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
                     self.add_pose_file(pose)
             self.scene.reset_camera()
 
@@ -1267,9 +1262,9 @@ class MyMainWindow(MainWindow):
             if output_path:
                 if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
                 # Store the transformed mask actor if there is any transformation
-                mask_surface = self.scene.mask_container.update_mask()
+                mask_surface = self.scene.mask_container.update_mask(name)
                 self.scene.mask_container.load_mask(mask_surface)
-                image = self.scene.mask_container.render_mask(camera=self.plotter.camera.copy())
+                image = self.scene.mask_container.render_mask(name=name, camera=self.plotter.camera.copy())
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 # self.output_text.append(f"-> Export mask render to:\n {output_path}")

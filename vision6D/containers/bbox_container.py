@@ -21,20 +21,23 @@ class BboxContainer(metaclass=Singleton):
         self.plotter = plotter
         self.reference = None
         self.bboxes: Dict[str, BboxModel] = {}
-        self.bbox_model = BboxModel()
 
     def reset(self, name):
         self.bboxes[name].clear_attributes()
     
-    def mirror_bbox(self, direction):
-        if direction == 'x': self.bbox_model.mirror_x = not self.bbox_model.mirror_x
-        elif direction == 'y': self.bbox_model.mirror_y = not self.bbox_model.mirror_y
-        self.add_bbox(self.bbox_model.path)
+    def mirror_bbox(self, name, direction):
+        bbox_model = self.bboxes[name]
+        if direction == 'x': bbox_model.mirror_x = not bbox_model.mirror_x
+        elif direction == 'y': bbox_model.mirror_y = not bbox_model.mirror_y
+        self.add_bbox(bbox_model.path)
                 
     def add_bbox(self, bbox_source, image_center, w, h):
+        # Create a new BboxModel instance
+        bbox_model = BboxModel()
+
         if isinstance(bbox_source, pathlib.Path) or isinstance(bbox_source, str):
-            self.bbox_model.path = str(bbox_source)
-            self.bbox_model.name = pathlib.Path(self.bbox_model.path).stem
+            bbox_model.path = str(bbox_source)
+            bbox_model.name = pathlib.Path(bbox_model.path).stem
             bbox_source = np.load(bbox_source)
         
         # find the center of the image
@@ -47,27 +50,26 @@ class BboxContainer(metaclass=Singleton):
                                                         [bbox_source[2], bbox_source[1], 0]])
         elif bbox_source.shape == (4, 3): points = bbox_source
 
-        self.bbox_model.source_obj = bbox_source
-        self.bbox_model.width = w
-        self.bbox_model.height = h
+        bbox_model.source_obj = bbox_source
+        bbox_model.width = w
+        bbox_model.height = h
         
         # Consider the mirror effect
-        if self.bbox_model.mirror_x: points[:, 0] = w - points[:, 0]
-        if self.bbox_model.mirror_y: points[:, 1] = h - points[:, 1]
+        if bbox_model.mirror_x: points[:, 0] = w - points[:, 0]
+        if bbox_model.mirror_y: points[:, 1] = h - points[:, 1]
         
         # Due to camera view change to right handed coordinate system
         points = points - bbox_center - image_center
         cells = np.array([[2, 0, 1], [2, 1, 2], [2, 2, 3], [2, 3, 0]]).ravel()
-        self.bbox_model.pv_obj = pv.UnstructuredGrid(cells, np.full((4,), vtk.VTK_LINE, dtype=np.uint8), points.astype(np.float32))
-        self.bbox_model.opacity=0.5 
-        self.bbox_model.previous_opacity=0.5
+        bbox_model.pv_obj = pv.UnstructuredGrid(cells, np.full((4,), vtk.VTK_LINE, dtype=np.uint8), points.astype(np.float32))
+        bbox_model.opacity=0.5 
+        bbox_model.previous_opacity=0.5
         # Add bbox surface object to the plot
-        bbox_mesh = self.plotter.add_mesh(self.bbox_model.pv_obj, color=self.bbox_model.color, opacity=self.bbox_model.opacity, line_width=2)
-        actor, _ = self.plotter.add_actor(bbox_mesh, pickable=True, name=self.bbox_model.name)
-        self.bbox_model.actor = actor
-        self.bboxes[self.bbox_model.name] = self.bbox_model
-        self.reference = self.bbox_model.name
-        return self.bbox_model
+        bbox_mesh = self.plotter.add_mesh(bbox_model.pv_obj, color=bbox_model.color, opacity=bbox_model.opacity, line_width=2)
+        actor, _ = self.plotter.add_actor(bbox_mesh, pickable=True, name=bbox_model.name)
+        bbox_model.actor = actor
+        self.bboxes[bbox_model.name] = bbox_model
+        return bbox_model
 
     def set_bbox_color(self, color, name):
         self.bboxes[name].actor.GetMapper().SetScalarVisibility(0)

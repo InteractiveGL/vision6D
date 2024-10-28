@@ -24,11 +24,17 @@ class Scene():
         self.track_mesh_actors = []
         self.track_bbox_actors = []
 
-        # set camera related attributes
-        self.fx = 572.4114
-        self.fy = 573.57043
-        self.cx = 325.2611
-        self.cy = 242.04899
+        # set camera related attributes for the linemod dataset
+        # self.fx = 572.4114
+        # self.fy = 573.57043
+        # self.cx = 325.2611
+        # self.cy = 242.04899
+
+        self.fx = 18466.768907841793
+        self.fy = 19172.02089833029
+        self.cx = 954.4324739015676
+        self.cy = 538.2131876789998
+
         self.cam_viewup = (0, -1, 0)
 
     def reset_camera(self):
@@ -118,7 +124,7 @@ class Scene():
 
     def handle_mesh_click(self, name, output_text):
         self.mesh_container.reference = name
-        mesh_model = self.mesh_container.meshes[name]
+        mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
         text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
             mesh_model.actor.user_matrix[0, 0], mesh_model.actor.user_matrix[0, 1], mesh_model.actor.user_matrix[0, 2], mesh_model.actor.user_matrix[0, 3], 
             mesh_model.actor.user_matrix[1, 0], mesh_model.actor.user_matrix[1, 1], mesh_model.actor.user_matrix[1, 2], mesh_model.actor.user_matrix[1, 3], 

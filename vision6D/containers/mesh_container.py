@@ -26,12 +26,11 @@ class MeshContainer(metaclass=Singleton):
         self.reference = None
         self.meshes: Dict[str, MeshModel] = {}
         self.colors = ["wheat", "cyan", "magenta", "yellow", "lime", "dodgerblue", "white", "black"]
-        self.mesh_model = MeshModel()
 
     def reset(self):
         pass
         
-    def add_mesh(self, mesh_source, transformation_matrix, w, h):
+    def add_mesh(self, mesh_source, transformation_matrix=np.eye(4)):
         source_mesh = None
 
         if isinstance(mesh_source, pathlib.Path) or isinstance(mesh_source, str):
@@ -53,27 +52,40 @@ class MeshContainer(metaclass=Singleton):
         
         if source_mesh is not None:
             name = pathlib.Path(mesh_path).stem
-            while name in self.meshes.keys(): name += "_copy"
-            self.mesh_model.name = name
-            self.mesh_model.path = mesh_path
-            self.mesh_model.source_obj = source_mesh
-            self.mesh_model.pv_obj = pv_mesh
-            
-            # set spacing for the mesh
-            self.mesh_model.pv_obj.points *= self.mesh_model.spacing
+            while name in self.meshes.keys():
+                name += "_copy"
 
-            self.meshes[self.mesh_model.name] = self.mesh_model
-            self.mesh_model.color = self.colors[self.meshes.index(self.mesh_model) % len(self.colors)]
+            # Create a new MeshModel instance
+            mesh_model = MeshModel()
+            mesh_model.name = name
+            mesh_model.path = mesh_path
+            mesh_model.source_obj = source_mesh
+            mesh_model.pv_obj = pv_mesh
+
+            # Set spacing for the mesh
+            mesh_model.pv_obj.points *= mesh_model.spacing
+
+            # Add the new mesh_model to the meshes dictionary
+            self.meshes[mesh_model.name] = mesh_model
+            mesh_model.color = self.colors[(len(self.meshes) - 1) % len(self.colors)]
+
+            # Add the mesh to the plotter
+            mesh = self.plotter.add_mesh(
+                mesh_model.pv_obj,
+                color=mesh_model.color,
+                opacity=mesh_model.opacity,
+                name=mesh_model.name
+            )
+            mesh.user_matrix = (
+                transformation_matrix if self.reference is None
+                else self.meshes[self.reference].actor.user_matrix.copy()
+            )
+            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_model.name)
+            mesh_model.actor = actor
+
+            return mesh_model
         
-            """ add a mesh to the pyqt frame """
-            mesh = self.plotter.add_mesh(self.mesh_model.pv_obj, color=self.mesh_model.color, opacity=self.mesh_model.opacity, name=self.mesh_model.name)
-            mesh.user_matrix = transformation_matrix
-            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=self.mesh_model.name)
-            self.mesh_model.actor = actor
-            self.reference = self.mesh_model.name
-            return self.mesh_model
-        
-    def set_color(self, color, name):
+    def set_color(self, name, color):
         scalars = None
         mesh_model = self.meshes[name]
         if color == "nocs": scalars = utils.color_mesh_nocs(mesh_model.pv_obj.points)
