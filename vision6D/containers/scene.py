@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import pyvista as pv
+from functools import partial
 from ..tools import utils
 from . import ImageContainer
 from . import MaskContainer
@@ -59,12 +60,15 @@ class Scene():
 
     def set_distance2camera(self, distance):
         distance = float(distance)
-        reference_image = self.image_container.images[self.image_container.image_model.reference]
-        reference_mask = self.mask_container.masks[self.mask_container.mask_model.reference]
-        reference_bbox = self.bbox_container.bboxes[self.bbox_container.bbox_model.reference]
-        if reference_image is not None:
-            reference_image.pv_obj.translate(-np.array([0, 0, reference_image.pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-            reference_image.pv_obj.translate(np.array([0, 0, distance]), inplace=True)
+        image_model = self.image_container.images[self.image_container.reference]
+        reference_mask = self.mask_container.masks[self.mask_container.reference]
+        reference_bbox = self.bbox_container.bboxes[self.bbox_container.reference]
+        if image_model is not None:
+            pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
+            pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel)) # order = 'C
+            pv_obj.translate(-1 * np.array(pv_obj.center), inplace=True) # center the image at (0, 0)
+            pv_obj.translate(-np.array([0, 0, pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
+            pv_obj.translate(np.array([0, 0, distance]), inplace=True)
         if reference_mask is not None:
             reference_mask.pv_obj.translate(-np.array([0, 0, reference_mask.pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
             reference_mask.pv_obj.translate(np.array([0, 0, distance]), inplace=True)
@@ -72,13 +76,22 @@ class Scene():
             reference_bbox.pv_obj.translate(-np.array([0, 0, reference_bbox.pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
             reference_bbox.pv_obj.translate(np.array([0, 0, distance]), inplace=True)
         #! do not modify the distance2camera for meshes, because it will mess up the pose
-        reference_image.distance2camera = distance
+        image_model.distance2camera = distance
         self.reset_camera()
 
     def mirror_image(self, name, direction):
-        if direction == 'x': self.image_container.images[name].mirror_x = self.image_container.images[name].mirror_x
-        elif direction == 'y': self.image_container.images[name].mirror_y = not self.image_container.images[name].mirror_y
-        self.image_container.add_image(self.image_container.images[name].source_obj, self.fy, self.cx, self.cy)
+        # Mirror the image
+        image_model = self.image_container.images[name]
+        if direction == 'x': image_model.mirror_x = not image_model.mirror_x
+        elif direction == 'y': image_model.mirror_y = not image_model.mirror_y
+        if image_model.mirror_x: image_model.source_obj = image_model.source_obj[:, ::-1, :]
+        if image_model.mirror_y: image_model.source_obj = image_model.source_obj[::-1, :, :]
+        self.image_container.add_image_actor(image_model)
+
+        # Set up the camera
+        self.set_camera_intrinsics(image_model.fx, image_model.fy, image_model.cx, image_model.cy, image_model.height)
+        self.set_camera_extrinsics(self.cam_viewup)
+        self.reset_camera()
 
     def tap_toggle_opacity(self):
         if self.mesh_container.meshes[self.mesh_container.reference].opacity == 1.0: 
@@ -137,11 +150,37 @@ class Scene():
         self.mesh_container.meshes[self.mesh_container.reference].undo_poses = self.mesh_container.meshes[self.mesh_container.reference].undo_poses[-20:]
 
     def handle_image_click(self, name):
+        # Add a new image as current reference
         self.image_container.reference = name
-        for image_name, image_model in self.image_container.images.items():
-            if image_name != name: image_model.opacity = 0.0; image_model.opacity_spinbox.setValue(0.0)
-            else: image_model.opacity = 0.9; image_model.opacity_spinbox.setValue(0.9)
+        image_model = self.image_container.images[self.image_container.reference]
+        self.image_container.add_image_actor(image_model)
 
+        # Set up the camera
+        self.set_camera_intrinsics(image_model.fx, image_model.fy, image_model.cx, image_model.cy, image_model.height)
+        self.set_camera_extrinsics(self.cam_viewup)
+        self.reset_camera()
+
+        # Set up the opacity box
+        # Disconnect existing connections to prevent accumulation
+        try: image_model.opacity_spinbox.valueChanged.disconnect()
+        except TypeError: pass  # No existing connection
+
+        image_model.opacity_spinbox.setValue(image_model.opacity)
+        self.image_container.images[name].opacity_spinbox.valueChanged.connect(partial(self.image_container.set_image_opacity, name))
+
+        # Update opacity for all images
+        for image_name, img_model in self.image_container.images.items():
+            if image_name != name:
+                img_model.opacity = 0.0
+                img_model.opacity_spinbox.setValue(0.0)
+                # Remove the other actors exist to free memory (very important)
+                if hasattr(img_model, 'actor') and img_model.actor in self.plotter.renderer.actors.values():
+                    self.plotter.remove_actor(img_model.actor)
+                    del img_model.actor  # Remove reference to the actor
+            else:
+                img_model.opacity = 0.9
+                img_model.opacity_spinbox.setValue(0.9)
+        
     def handle_mask_click(self, name):
         # Add your mask handling code here
         self.mask_container.reference = name

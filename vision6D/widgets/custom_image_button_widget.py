@@ -2,6 +2,8 @@ from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
         
 class PreviewButton(QtWidgets.QPushButton):
+    active_preview_label = None  # Class variable to track the active preview label
+
     def __init__(self, text='', image_path=None, parent=None):
         super().__init__(text, parent)
         self.image_path = image_path
@@ -10,6 +12,12 @@ class PreviewButton(QtWidgets.QPushButton):
         self.pixmap = QtGui.QPixmap(self.image_path) if self.image_path else None
 
     def enterEvent(self, event):
+        # Close any existing preview labels
+        if PreviewButton.active_preview_label:
+            PreviewButton.active_preview_label.close()
+            PreviewButton.active_preview_label.deleteLater()
+            PreviewButton.active_preview_label = None
+
         if self.pixmap:
             window = self.window()
             window_width = window.width()
@@ -44,14 +52,31 @@ class PreviewButton(QtWidgets.QPushButton):
             self.preview_label.setWindowFlags(Qt.ToolTip)
             self.preview_label.show()
 
+            # Update the active preview label
+            PreviewButton.active_preview_label = self.preview_label
+
         super().enterEvent(event)
 
     def leaveEvent(self, event):
         if self.preview_label:
             self.preview_label.close()
-            self.preview_label = None # avoid the memory leak
+            self.preview_label.deleteLater()
+            # Reset the active preview label if it belongs to this button
+            if PreviewButton.active_preview_label == self.preview_label:
+                PreviewButton.active_preview_label = None
+            self.preview_label = None  # Avoid memory leak
         super().leaveEvent(event)
 
+    def closeEvent(self, event):
+        # Clean up resources
+        if self.preview_label:
+            self.preview_label.close()
+            self.preview_label.deleteLater()
+            self.preview_label = None
+        if self.pixmap:
+            self.pixmap = None
+        super().closeEvent(event)
+        
 class CustomImageButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, image_path=None, parent=None):

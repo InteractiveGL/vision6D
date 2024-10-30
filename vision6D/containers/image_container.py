@@ -53,10 +53,10 @@ class ImageContainer(metaclass=Singleton):
     def reset(self, name):
         self.images[name].clear_attributes()
 
-    def add_image(self, image_source, fy, cx, cy):
+    def add_image_attributes(self, image_source, fx, fy, cx, cy):
         # Create a new ImageModel instance
         image_model = ImageModel()
-        
+
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             image_model.path = str(image_source)
             name = pathlib.Path(image_model.path).stem
@@ -65,57 +65,83 @@ class ImageContainer(metaclass=Singleton):
             image_model.source_obj = np.array(PIL.Image.open(image_model.path), dtype='uint8')
         else:
             image_model.source_obj = image_source
+            # Generate a unique name if none is provided
+            name = f"image_{len(self.images)}"
+            while name in self.images: name = name + "_copy"
+            image_model.name = name
 
         if len(image_model.source_obj.shape) == 2: image_model.source_obj = image_model.source_obj[..., None]
         dim = image_model.source_obj.shape
         image_model.height = dim[0]
         image_model.width = dim[1]
         image_model.channel = dim[2]
-        self.render = utils.create_render(image_model.width, image_model.height)
+        image_model.fx = fx
+        image_model.fy = fy
+        image_model.cx = cx
+        image_model.cy = cy
 
-        if image_model.mirror_x: image_model.source_obj = image_model.source_obj[:, ::-1, :]
-        if image_model.mirror_y: image_model.source_obj = image_model.source_obj[::-1, :, :]
-
-        # create the image pyvista object
-        image_model.pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
-        image_model.pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel)) # order = 'C
-        image_model.pv_obj = image_model.pv_obj.translate(-1 * np.array(image_model.pv_obj.center), inplace=False) # center the image at (0, 0)
-        """
-        Do not directly feed fx and fy (the focal lengths) for this calculation 
-        because we are simply computing the offset of the principal point (cx, cy) in pixel space relative to 
-        the center of the image and converting that to world space using the image spacing (1).
-        Note that if image spacing is [1, 1], it means that each pixel in the x and y directions corresponds to a world unit of 1 in those directions.
-        """
-        image_model.cx_offset = (cx - (image_model.width / 2.0))
-        image_model.cy_offset = (cy - (image_model.height / 2.0))
-        print(f"Image Origin: {image_model.cx_offset, image_model.cy_offset}")
-        # move the image to the camera distance
-        image_model.pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, fy]), inplace=True)
-        image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -fy])
-        self.images[name] = image_model
-        if image_model.channel == 1: image = self.plotter.add_mesh(image_model.pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)
-        else: image = self.plotter.add_mesh(image_model.pv_obj, rgb=True, opacity=image_model.opacity, name=image_model.name)
-        actor, _ = self.plotter.add_actor(image, pickable=False, name=image_model.name)
-        image_model.actor = actor
-
+        self.images[image_model.name] = image_model
         return image_model
-                                          
+
+    def add_image_actor(self, image_model):
+        # # Remove existing actor if it exists
+        # if hasattr(image_model, 'actor') and image_model.actor in self.plotter.renderer.actors.values():
+        #     self.plotter.remove_actor(image_model.actor)
+
+        # Create the image pyvista object
+        pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
+        pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel))
+        pv_obj = pv_obj.translate(-np.array(pv_obj.center), inplace=False) # Center the image at (0, 0)
+        # Compute offsets
+        image_model.cx_offset = image_model.cx - (image_model.width / 2.0)
+        image_model.cy_offset = image_model.cy - (image_model.height / 2.0)
+        print(f"Image Origin: {image_model.cx_offset, image_model.cy_offset}")
+        # Move the image to the camera distance fy
+        pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, image_model.fy]), inplace=False)
+        image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -image_model.fy])
+
+        # Add the mesh to the plotter
+        if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)
+        else: image_actor = self.plotter.add_mesh(pv_obj, rgb=True, opacity=image_model.opacity, name=image_model.name)
+
+        # Store the actor in the image_model
+        image_model.actor = image_actor
+
+        # Update the image_model in self.images
+        self.images[image_model.name] = image_model
+
     def set_image_opacity(self, name: str, opacity: float):
-        self.images[name].previous_opacity = self.images[name].opacity
-        self.images[name].opacity = opacity
-        self.images[name].actor.GetProperty().opacity = opacity
+        if name in self.images:
+            image_model = self.images[name]
+            image_model.previous_opacity = image_model.opacity
+            image_model.opacity = opacity
+            if hasattr(image_model, 'actor'):
+                image_model.actor.GetProperty().opacity = opacity
 
     def remove_image(self, name):
-        del self.images[name]
+        if name in self.images:
+            image_model = self.images[name]
+            # Remove the actor from the plotter
+            if hasattr(image_model, 'actor') and image_model.actor in self.plotter.renderer.actors.values():
+                self.plotter.remove_actor(image_model.actor)
+            # Remove the image model from the dictionary
+            del self.images[name]
 
     def render_image(self, name, camera):
-        self.render.clear()
-        image_model = self.images[name]
-        render_actor = image_model.actor.copy(deep=True)
-        render_actor.GetProperty().opacity = 1
-        self.render.add_actor(render_actor, pickable=False)
-        self.render.camera = camera
-        self.render.disable()
-        self.render.show(auto_close=False)
-        image = self.render.last_image
-        return image
+        if name in self.images:
+            image_model = self.images[name]
+            render = utils.create_render(image_model.width, image_model.height)
+            render.clear()
+            # Ensure actor exists
+            if hasattr(image_model, 'actor'):
+                render_actor = image_model.actor.copy(deep=True)
+                render_actor.GetProperty().opacity = 1
+                render.add_actor(render_actor, pickable=False)
+                render.camera = camera
+                render.disable()
+                render.show(auto_close=False)
+                image = render.last_image
+                return image
+            else:
+                print(f"No actor found for image '{name}'.")
+                return None

@@ -16,6 +16,10 @@ class AbstractData(ABC):
     opacity_spinbox: Optional[str]=None
     width: Optional[int] = None
     height: Optional[int] = None
+    fx: Optional[float] = None
+    fy: Optional[float] = None
+    cx: Optional[float] = None
+    cy: Optional[float] = None
     mirror_x: bool = False
     mirror_y: bool = False
 

@@ -69,6 +69,7 @@ class MyMainWindow(MainWindow):
         self.workspace_path = ''
         
         self.image_button_group_actors = QtWidgets.QButtonGroup(self)
+        self.image_buttons = []  # List to store buttons in order
         self.mask_button_group_actors = QtWidgets.QButtonGroup(self)
         self.mesh_button_group_actors = QtWidgets.QButtonGroup(self)
         self.bbox_button_group_actors = QtWidgets.QButtonGroup(self)
@@ -135,6 +136,25 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("Tab"), self).activated.connect(self.scene.tap_toggle_opacity)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self).activated.connect(self.scene.ctrl_tap_opacity)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+w"), self).activated.connect(self.clear_plot)
+
+        QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self).activated.connect(self.go_to_next_image_down_button)
+
+    def go_to_next_image_down_button(self):
+        # Uncheck the current button
+        current_button_index = next((i for i, btn in enumerate(self.image_buttons) if btn.isChecked()), None)
+        current_button = self.image_buttons[current_button_index]
+        current_button.setChecked(False)
+
+        # Move to the next button, wrapping around if at the end
+        current_button_index = (current_button_index + 1) % len(self.image_buttons)
+        next_button = self.image_buttons[current_button_index]
+
+        # Check the next button and trigger its click event
+        next_button.setChecked(True)
+        self.scene.handle_image_click(next_button.text())
+
+        # Ensure the next button is always visible in the scroll area
+        self.images_actors_group.scroll_area.ensureWidgetVisible(next_button)
 
     def showMaximized(self):
         super(MyMainWindow, self).showMaximized()
@@ -205,18 +225,16 @@ class MyMainWindow(MainWindow):
 
     def add_image_file(self, image_path='', prompt=False):
         if prompt:
-            image_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
-        if image_path:
+            image_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
+        if image_paths:
             self.hintLabel.hide()
-            image_model = self.scene.image_container.add_image(image_path, self.scene.fy, self.scene.cx, self.scene.cy)
-            self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, image_model.height)
-            self.scene.set_camera_extrinsics(self.scene.cam_viewup)
-            self.scene.reset_camera()
-            # add remove current image to removeMenu
-            if image_model.name not in self.scene.track_image_actors:
-                self.scene.track_image_actors.append(image_model.name)
-                self.add_image_button(image_model.name)
-            self.scene.reset_camera()
+            for image_path in image_paths:
+                image_model = self.scene.image_container.add_image_attributes(image_path, self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy)
+                # add remove current image to removeMenu
+                if image_model.name not in self.scene.track_image_actors:
+                    self.scene.track_image_actors.append(image_model.name)
+                    self.add_image_button(image_model.name)
+            self.scene.handle_image_click(image_model.name)
 
     def add_mask_file(self, mask_path='', prompt=False):
         if prompt:
@@ -900,16 +918,15 @@ class MyMainWindow(MainWindow):
         button_widget = CustomImageButtonWidget(name, image_path=self.scene.image_container.images[name].path)
         button = button_widget.button
         self.scene.image_container.images[name].opacity_spinbox = button_widget.double_spinbox
-        self.scene.image_container.images[name].opacity_spinbox.setValue(self.scene.image_container.images[name].opacity)
-        self.scene.image_container.images[name].opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.image_container.set_image_opacity(name, value))
         # check the button
         button.setCheckable(True)
-        button.setChecked(True)
+        button.setChecked(True) 
         button.clicked.connect(lambda _, name=name: self.scene.handle_image_click(name))
-        self.images_actors_group.widget_layout.insertWidget(0, button_widget)
+        # Store the button in the list and group
+        self.image_buttons.append(button)
         self.image_button_group_actors.addButton(button_widget.button)
-        self.scene.handle_image_click(name=name)
-
+        self.images_actors_group.widget_layout.insertWidget(-1, button_widget)
+        
     def add_mask_button(self, name):
         self.mask_actors_group.content_widget.setVisible(True)
         button_widget = CustomMaskButtonWidget(name)

@@ -26,7 +26,6 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         button_layout.setContentsMargins(0, 0, 5, 0)
         button_layout.setSpacing(0)
 
-        # Create the main button using PreviewButton
         self.button = QtWidgets.QPushButton(button_name)
         self.button.setFixedHeight(30)
         button_layout.addWidget(self.button, 0, 0, 1, 1)

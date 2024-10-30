@@ -53,15 +53,15 @@ class CustomGroupBox(QtWidgets.QWidget):
     def init_content(self):
         # Add your content widgets here
         self.display_layout = QtWidgets.QVBoxLayout()
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        self.display_layout.addWidget(scroll_area)
+        self.scroll_area = QtWidgets.QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.display_layout.addWidget(self.scroll_area)
         custom_widget_container = QtWidgets.QWidget()
         self.widget_layout = QtWidgets.QVBoxLayout()
         self.widget_layout.setSpacing(0)
         custom_widget_container.setLayout(self.widget_layout)
         self.widget_layout.addStretch()
-        scroll_area.setWidget(custom_widget_container)
+        self.scroll_area.setWidget(custom_widget_container)
         self.content_layout.addLayout(self.display_layout)
 
     def on_checkbox_toggled(self):
