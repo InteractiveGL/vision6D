@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtGui
 from PyQt5.QtCore import Qt, QPoint, pyqtSignal
-        
+
 class PreviewButton(QtWidgets.QPushButton):
     active_preview_label = None  # Class variable to track the active preview label
 
@@ -8,6 +8,7 @@ class PreviewButton(QtWidgets.QPushButton):
         super().__init__(text, parent)
         self.image_path = image_path
         self.preview_label = None
+        self.is_closing = False  # Flag to indicate if the widget is closing
         self.setMouseTracking(True)
         self.pixmap = QtGui.QPixmap(self.image_path) if self.image_path else None
 
@@ -58,6 +59,7 @@ class PreviewButton(QtWidgets.QPushButton):
         super().enterEvent(event)
 
     def leaveEvent(self, event):
+        if self.is_closing: return  # Skip if the widget is closing
         if self.preview_label:
             self.preview_label.close()
             self.preview_label.deleteLater()
@@ -68,6 +70,7 @@ class PreviewButton(QtWidgets.QPushButton):
         super().leaveEvent(event)
 
     def closeEvent(self, event):
+        self.is_closing = True  # Set the closing flag
         # Clean up resources
         if self.preview_label:
             self.preview_label.close()
