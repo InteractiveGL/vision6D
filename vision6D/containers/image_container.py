@@ -102,7 +102,7 @@ class ImageContainer(metaclass=Singleton):
 
         # Add the mesh to the plotter
         if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)
-        else: image_actor = self.plotter.add_mesh(pv_obj, rgb=True, opacity=image_model.opacity, name=image_model.name)
+        else: image_actor = self.plotter.add_mesh(pv_obj, rgb=True, opacity=image_model.opacity, pickable=False, name=image_model.name)
 
         # Store the actor in the image_model
         image_model.actor = image_actor

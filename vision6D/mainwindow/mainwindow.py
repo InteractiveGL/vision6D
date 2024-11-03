@@ -137,22 +137,20 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self).activated.connect(self.scene.ctrl_tap_opacity)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+w"), self).activated.connect(self.clear_plot)
 
-        QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self).activated.connect(self.go_to_next_image_down_button)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Up"), self).activated.connect(lambda up=True: self.key_next_image_button(up))
+        QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self).activated.connect(lambda up=False: self.key_next_image_button(up))
 
-    def go_to_next_image_down_button(self):
+    def key_next_image_button(self, up=False):
         # Uncheck the current button
         current_button_index = next((i for i, btn in enumerate(self.image_buttons) if btn.isChecked()), None)
         current_button = self.image_buttons[current_button_index]
         current_button.setChecked(False)
-
-        # Move to the next button, wrapping around if at the end
-        current_button_index = (current_button_index + 1) % len(self.image_buttons)
+        if up: current_button_index = (current_button_index + 1) % len(self.image_buttons)
+        else: current_button_index = (current_button_index - 1) % len(self.image_buttons)
         next_button = self.image_buttons[current_button_index]
-
         # Check the next button and trigger its click event
         next_button.setChecked(True)
         self.scene.handle_image_click(next_button.text())
-
         # Ensure the next button is always visible in the scroll area
         self.images_actors_group.scroll_area.ensureWidgetVisible(next_button)
 
@@ -925,7 +923,7 @@ class MyMainWindow(MainWindow):
         # Store the button in the list and group
         self.image_buttons.append(button)
         self.image_button_group_actors.addButton(button_widget.button)
-        self.images_actors_group.widget_layout.insertWidget(-1, button_widget)
+        self.images_actors_group.widget_layout.insertWidget(0, button_widget)
         
     def add_mask_button(self, name):
         self.mask_actors_group.content_widget.setVisible(True)
