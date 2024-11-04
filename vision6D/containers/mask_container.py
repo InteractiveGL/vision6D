@@ -103,9 +103,9 @@ class MaskContainer(metaclass=Singleton):
     
     def update_mask(self, name):
         mask_model = self.masks[name]
-        tranformed_points = utils.get_mask_actor_points(mask_model.actor)
-        cells = np.hstack([[tranformed_points.shape[0]], np.arange(tranformed_points.shape[0]), 0])
-        mask_surface = pv.PolyData(tranformed_points, cells).triangulate()
+        transformed_points = utils.get_mask_actor_points(mask_model.actor)
+        cells = np.hstack([[transformed_points.shape[0]], np.arange(transformed_points.shape[0]), 0])
+        mask_surface = pv.PolyData(transformed_points, cells).triangulate()
         return mask_surface
     
     def remove_mask(self, name):
