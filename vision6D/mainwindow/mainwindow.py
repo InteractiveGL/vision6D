@@ -298,21 +298,6 @@ class MyMainWindow(MainWindow):
             self.check_mesh_button(name=mesh_model.name, output_text=False) 
             self.scene.reset_camera()
 
-    def mirror_mesh(self, name, direction):
-        mesh_model = self.scene.mesh_container.meshes[name]
-        if direction == 'x': mesh_model.mirror_x = not mesh_model.mirror_x
-        elif direction == 'y': mesh_model.mirror_y = not mesh_model.mirror_y
-        if (mesh_model.initial_pose != np.eye(4)).all(): mesh_model.initial_pose = mesh_model.actor.user_matrix
-        transformation_matrix = mesh_model.actor.user_matrix
-        if mesh_model.mirror_x: 
-            transformation_matrix[0,0] *= -1
-            mesh_model.mirror_x = False # very important
-        if mesh_model.mirror_y: 
-            transformation_matrix[2,2] *= -1
-            mesh_model.mirror_y = False # very important
-        mesh_model.actor.user_matrix = transformation_matrix
-        self.check_mesh_button(name=mesh_model.name, output_text=False)
-
     def set_spacing(self):
         checked_button = self.mesh_button_group_actors.checkedButton()
         if checked_button:
@@ -363,9 +348,6 @@ class MyMainWindow(MainWindow):
             self.hintLabel.hide()
             if isinstance(pose_path, list): transformation_matrix = np.array(pose_path)
             else: transformation_matrix = np.load(pose_path)
-            mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
-            if mesh_model.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-            if mesh_model.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
             self.scene.add_pose(matrix=transformation_matrix)
 
     def set_pose(self):
@@ -375,6 +357,7 @@ class MyMainWindow(MainWindow):
             res = get_pose_dialog.exec_()
             if res == QtWidgets.QDialog.Accepted:
                 user_text = get_pose_dialog.get_text()
+                mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
                 if "," not in user_text:
                     user_text = user_text.replace(" ", ",")
                     user_text =user_text.strip().replace("[,", "[")
@@ -382,8 +365,6 @@ class MyMainWindow(MainWindow):
                 if gt_pose.shape == (4, 4):
                     self.hintLabel.hide()
                     transformation_matrix = gt_pose
-                    if mesh_model.mirror_x: transformation_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
-                    if mesh_model.mirror_y: transformation_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]) @ transformation_matrix
                     self.scene.add_pose(matrix=transformation_matrix)
                 else: utils.display_warning("It needs to be a 4 by 4 matrix")
         else: utils.display_warning("Needs to select a mesh first")
@@ -429,7 +410,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Mask', self.set_mask)
         fileMenu.addAction('Add Bbox', functools.partial(self.add_bbox_file, prompt=True))
         fileMenu.addAction('Add Mesh', functools.partial(self.add_mesh_file, prompt=True))
-        fileMenu.addAction('Clear', self.clear_plot)
 
         # allow to export files
         exportMenu = mainMenu.addMenu('Export')
@@ -614,6 +594,7 @@ class MyMainWindow(MainWindow):
         self.other_options_menu.addAction("Set Mesh Spacing", self.set_spacing)
         self.other_options_menu.addAction("Set Image Distance", self.set_distance2camera)
         self.other_options_menu.addAction("Toggle Meshes", self.toggle_hide_meshes_button)
+        self.other_options_menu.addAction('Clear All', self.clear_plot)
         self.other_options_button.setMenu(self.other_options_menu)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.other_options_button, row, column)
@@ -817,6 +798,8 @@ class MyMainWindow(MainWindow):
 
     def add_image_button(self, name):
         button_widget = CustomImageButtonWidget(name, image_path=self.scene.image_container.images[name].path, parent=self)
+        button_widget.mirrorXChanged.connect(lambda direction: self.scene.mirror_image(name, direction))
+        button_widget.mirrorYChanged.connect(lambda direction: self.scene.mirror_image(name, direction))
         button = button_widget.button
         self.scene.image_container.images[name].opacity_spinbox = button_widget.double_spinbox
         # check the button
@@ -893,6 +876,8 @@ class MyMainWindow(MainWindow):
     def add_mesh_button(self, name, output_text):
         button_widget = CustomMeshButtonWidget(name, self)
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.mesh_color_value_change(name, color))
+        button_widget.mirrorXChanged.connect(lambda direction: self.scene.mirror_mesh(name, direction))
+        button_widget.mirrorYChanged.connect(lambda direction: self.scene.mirror_mesh(name, direction))
         button = button_widget.button
         self.scene.mesh_container.meshes[name].opacity_spinbox = button_widget.double_spinbox
         self.scene.mesh_container.meshes[name].opacity_spinbox.setValue(self.scene.mesh_container.meshes[name].opacity)
@@ -948,21 +933,8 @@ class MyMainWindow(MainWindow):
         if output_path != "":
             with open(output_path, 'w') as f: json.dump(workspace_dict, f, indent=4)
 
-    def mirror_actors(self, direction):
-        # checked_button = self.button_group_actors.checkedButton()
-        # if checked_button:
-        #     name = checked_button.text()
-        #     if name in self.image_container.images: self.image_container.mirror_image(name, direction)
-        #     elif name == 'mask': self.mask_container.mirror_mask(direction)
-        #     elif name == 'bbox': self.bbox_container.mirror_bbox(direction)
-        #     elif name in self.mesh_container.meshes: self.mesh_container.mirror_mesh(name, direction)
-        # else: utils.display_warning("Need to select an actor first")
-        pass
-
     def remove_image_button(self, button):
         actor = self.scene.image_container.images[button.text()].actor
-        self.scene.image_container.images[button.text()].mirror_x = False
-        self.scene.image_container.images[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
         del self.scene.image_container.images[button.text()]
         self.image_button_group_actors.removeButton(button)
@@ -972,8 +944,6 @@ class MyMainWindow(MainWindow):
 
     def remove_mask_button(self, button):
         actor = self.scene.mask_container.masks[button.text()].actor
-        self.scene.mask_container.masks[button.text()].mirror_x = False
-        self.scene.mask_container.masks[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
         del self.scene.mask_container.masks[button.text()]
         self.mask_button_group_actors.removeButton(button)
@@ -983,8 +953,6 @@ class MyMainWindow(MainWindow):
 
     def remove_bbox_button(self, button):
         actor = self.scene.bbox_container.bboxes[button.text()].actor
-        self.scene.bbox_container.bboxes[button.text()].mirror_x = False
-        self.scene.bbox_container.bboxes[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
         del self.scene.bbox_container.bboxes[button.text()]
         self.bbox_button_group_actors.removeButton(button)
@@ -994,8 +962,6 @@ class MyMainWindow(MainWindow):
 
     def remove_mesh_button(self, button):
         actor = self.scene.mesh_container.meshes[button.text()].actor
-        self.scene.mesh_container.meshes[button.text()].mirror_x = False
-        self.scene.mesh_container.meshes[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
         del self.scene.mesh_container.meshes[button.text()]
         self.mesh_button_group_actors.removeButton(button)

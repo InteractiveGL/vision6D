@@ -10,7 +10,9 @@ class SquareButton(QtWidgets.QPushButton):
         self.setFixedSize(20, 20)
 
 class CustomMaskButtonWidget(QtWidgets.QWidget):
-    colorChanged = pyqtSignal(str, str) 
+    colorChanged = pyqtSignal(str, str)
+    mirrorXChanged = pyqtSignal(str)
+    mirrorYChanged = pyqtSignal(str)
     def __init__(self, button_name, parent=None):
         super(CustomMaskButtonWidget, self).__init__(parent)
         self.main_window = parent
@@ -31,16 +33,27 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         self.button.setFixedHeight(30)
         button_layout.addWidget(self.button, 0, 0, 1, 1)
 
-        # Create the square button
+        # Create the additional buttons
+        self.mirror_x_button = SquareButton("|")
+        self.mirror_y_button = SquareButton("—")
         self.square_button = SquareButton()
+        self.mirror_x_button.clicked.connect(self.on_mirror_x_clicked)
+        self.mirror_y_button.clicked.connect(self.on_mirror_y_clicked)
         self.square_button.clicked.connect(self.show_color_popup)
 
-        # Create a horizontal layout for the square button and spacer
+        # Create a horizontal layout for the square buttons and spacer
         square_button_layout = QtWidgets.QHBoxLayout()
-        square_button_layout.addWidget(self.square_button)
-        square_button_layout.addSpacing(5)  # Add 10 pixels of space to the right
         square_button_layout.setContentsMargins(0, 0, 0, 0)
+        square_button_layout.setSpacing(5)  # Adjust spacing between buttons
         square_button_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        # Add the square buttons to the layout
+        square_button_layout.addWidget(self.mirror_x_button)
+        square_button_layout.addWidget(self.mirror_y_button)
+        square_button_layout.addWidget(self.square_button)
+
+        # Optionally, add spacing to the right
+        square_button_layout.addSpacing(5)
 
         # Add the square button layout to the main button layout
         button_layout.addLayout(square_button_layout, 0, 0, 1, 1, Qt.AlignRight | Qt.AlignVCenter)
@@ -73,6 +86,12 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
 
     def remove_self(self):
         self.parent().remove_mask_button(self.button)
+
+    def on_mirror_x_clicked(self):
+        self.mirrorXChanged.emit("x")
+
+    def on_mirror_y_clicked(self):
+        self.mirrorYChanged.emit("y")
 
     def update_square_button_color(self, text, popup):
         self.square_button.setObjectName(text)

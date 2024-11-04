@@ -27,10 +27,10 @@ class MaskContainer(metaclass=Singleton):
     def reset(self, name):
         self.masks[name].clear_attributes()
 
-    def mirror_mask(self, mask_model, direction):
-        if direction == 'x': mask_model.mirror_x = not mask_model.mirror_x
-        elif direction == 'y': mask_model.mirror_y = not mask_model.mirror_y
-        self.add_mask(mask_model.path)
+    # def mirror_mask(self, mask_model, direction):
+    #     if direction == 'x': mask_model.mirror_x = not mask_model.mirror_x
+    #     elif direction == 'y': mask_model.mirror_y = not mask_model.mirror_y
+    #     self.add_mask(mask_model.path)
 
     def add_mask(self, mask_source, image_center, w, h):
         # Create a new MaskModel instance
@@ -62,8 +62,8 @@ class MaskContainer(metaclass=Singleton):
         self.render = utils.create_render(mask_model.width, mask_model.height)
         
         # Consider the mirror effect
-        if mask_model.mirror_x: points[:, 0] = mask_model.width - points[:, 0]
-        if mask_model.mirror_y: points[:, 1] = mask_model.height - points[:, 1]
+        # if mask_model.mirror_x: points[:, 0] = mask_model.width - points[:, 0]
+        # if mask_model.mirror_y: points[:, 1] = mask_model.height - points[:, 1]
 
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
@@ -87,8 +87,6 @@ class MaskContainer(metaclass=Singleton):
         pass
     
     def reset_mask(self):
-        self.masks[self.reference].mirror_x = False
-        self.masks[self.reference].mirror_y = False
         _ = self.add_mask(mask_source=self.masks[self.reference].path, image_center=self.masks[self.reference].image_center, w = self.masks[self.reference].width, h = self.masks[self.reference].height)
 
     def set_mask_opacity(self, name, opacity: float):

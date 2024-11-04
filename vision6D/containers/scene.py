@@ -81,18 +81,19 @@ class Scene():
         self.reset_camera()
 
     def mirror_image(self, name, direction):
-        # Mirror the image
         image_model = self.image_container.images[name]
-        if direction == 'x': image_model.mirror_x = not image_model.mirror_x
-        elif direction == 'y': image_model.mirror_y = not image_model.mirror_y
-        if image_model.mirror_x: image_model.source_obj = image_model.source_obj[:, ::-1, :]
-        if image_model.mirror_y: image_model.source_obj = image_model.source_obj[::-1, :, :]
-        self.image_container.add_image_actor(image_model, self.fy, self.cx, self.cy)
+        if direction == 'x': image_model.source_obj = image_model.source_obj[:, ::-1, :]
+        elif direction == 'y': image_model.source_obj = image_model.source_obj[::-1, :, :]
+        self.handle_image_click(image_model.name)
 
-        # Set up the camera
-        self.set_camera_intrinsics(self.fx, self.fy, self.cx, self.cy, self.canvas_height)
-        self.set_camera_extrinsics(self.cam_viewup)
-        self.reset_camera()
+    def mirror_mesh(self, name, direction):
+        mesh_model = self.mesh_container.meshes[name]
+        if (mesh_model.initial_pose != np.eye(4)).all(): mesh_model.initial_pose = mesh_model.actor.user_matrix
+        transformation_matrix = mesh_model.actor.user_matrix
+        if direction == 'x': transformation_matrix = np.array([[-1,  0,  0, 0], [ 0,  1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
+        elif direction == 'y': transformation_matrix = np.array([[ 1,  0,  0, 0], [ 0,  -1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
+        mesh_model.actor.user_matrix = transformation_matrix
+        self.handle_mesh_click(name=mesh_model.name, output_text=False)
 
     def tap_toggle_opacity(self):
         if self.mesh_container.meshes[self.mesh_container.reference].opacity == 1.0: 

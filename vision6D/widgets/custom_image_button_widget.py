@@ -3,7 +3,6 @@ from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 
 class PreviewButton(QtWidgets.QPushButton):
     active_preview_label = None  # Class variable to track the active preview label
-
     def __init__(self, text='', image_path=None, parent=None):
         super().__init__(text, parent)
         self.image_path = image_path
@@ -79,9 +78,17 @@ class PreviewButton(QtWidgets.QPushButton):
         if self.pixmap:
             self.pixmap = None
         super().closeEvent(event)
+
+class SquareButton(QtWidgets.QPushButton):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def resizeEvent(self, event):
+        self.setFixedSize(20, 20)
         
 class CustomImageButtonWidget(QtWidgets.QWidget):
-    colorChanged = pyqtSignal(str, str) 
+    mirrorXChanged = pyqtSignal(str)
+    mirrorYChanged = pyqtSignal(str)
     def __init__(self, button_name, image_path=None, parent=None):
         super(CustomImageButtonWidget, self).__init__(parent)
         self.main_window = parent
@@ -103,6 +110,28 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
         self.button = PreviewButton(button_name, image_path=self.image_path)
         self.button.setFixedHeight(30)
         button_layout.addWidget(self.button, 0, 0, 1, 1)
+
+        # Create the additional buttons
+        self.mirror_x_button = SquareButton("|")
+        self.mirror_y_button = SquareButton("—")
+        self.mirror_x_button.clicked.connect(self.on_mirror_x_clicked)
+        self.mirror_y_button.clicked.connect(self.on_mirror_y_clicked)
+
+        # Create a horizontal layout for the square buttons and spacer
+        square_button_layout = QtWidgets.QHBoxLayout()
+        square_button_layout.setContentsMargins(0, 0, 0, 0)
+        square_button_layout.setSpacing(5)  # Adjust spacing between buttons
+        square_button_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        # Add the square buttons to the layout
+        square_button_layout.addWidget(self.mirror_x_button)
+        square_button_layout.addWidget(self.mirror_y_button)
+
+        # Optionally, add spacing to the right
+        square_button_layout.addSpacing(5)
+
+        # Add the square button layout to the main button layout
+        button_layout.addLayout(square_button_layout, 0, 0, 1, 1, Qt.AlignRight | Qt.AlignVCenter)
 
         # Add the button container to the main layout
         layout.addWidget(button_container)
@@ -132,3 +161,9 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
 
     def remove_self(self):
         self.main_window.remove_image_button(self.button)
+
+    def on_mirror_x_clicked(self):
+        self.mirrorXChanged.emit("x")
+
+    def on_mirror_y_clicked(self):
+        self.mirrorYChanged.emit("y")

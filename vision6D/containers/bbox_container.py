@@ -25,11 +25,11 @@ class BboxContainer(metaclass=Singleton):
     def reset(self, name):
         self.bboxes[name].clear_attributes()
     
-    def mirror_bbox(self, name, direction):
-        bbox_model = self.bboxes[name]
-        if direction == 'x': bbox_model.mirror_x = not bbox_model.mirror_x
-        elif direction == 'y': bbox_model.mirror_y = not bbox_model.mirror_y
-        self.add_bbox(bbox_model.path)
+    # def mirror_bbox(self, name, direction):
+    #     bbox_model = self.bboxes[name]
+    #     if direction == 'x': bbox_model.mirror_x = not bbox_model.mirror_x
+    #     elif direction == 'y': bbox_model.mirror_y = not bbox_model.mirror_y
+    #     self.add_bbox(bbox_model.path)
                 
     def add_bbox(self, bbox_source, image_center, w, h):
         # Create a new BboxModel instance
@@ -55,8 +55,8 @@ class BboxContainer(metaclass=Singleton):
         bbox_model.height = h
         
         # Consider the mirror effect
-        if bbox_model.mirror_x: points[:, 0] = w - points[:, 0]
-        if bbox_model.mirror_y: points[:, 1] = h - points[:, 1]
+        # if bbox_model.mirror_x: points[:, 0] = w - points[:, 0]
+        # if bbox_model.mirror_y: points[:, 1] = h - points[:, 1]
         
         # Due to camera view change to right handed coordinate system
         points = points - bbox_center - image_center
@@ -82,6 +82,4 @@ class BboxContainer(metaclass=Singleton):
         
     def reset_bbox(self, name, image_center):
         if self.bboxes[name].path:
-            self.bboxes[name].mirror_x = False
-            self.bboxes[name].mirror_y = False
             _ = self.add_bbox(self.bboxes[name].path, image_center, self.bboxes[name].width, self.bboxes[name].height)
