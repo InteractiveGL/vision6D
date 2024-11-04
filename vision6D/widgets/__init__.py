@@ -8,8 +8,6 @@ from .draw_sam_window import SamWindow
 from .draw_livewire_window import LiveWireWindow
 from .draw_bbox_window import BboxWindow
 from .popup_dialog import PopUpDialog
-from .video_player import VideoPlayer
-from .video_sampler import VideoSampler
 from .search_bar import SearchBar
 from .pnp_window import PnPWindow
 from .custom_image_button_widget import CustomImageButtonWidget
@@ -29,8 +27,6 @@ __all__ = [
     'SamWindow',
     'BboxWindow',
     'PopUpDialog',
-    'VideoPlayer',
-    'VideoSampler',
     'SearchBar',
     'PnPWindow',
     'CustomImageButtonWidget',

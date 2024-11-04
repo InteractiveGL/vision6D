@@ -398,16 +398,12 @@ class MyMainWindow(MainWindow):
             # Load mesh file
             elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
                 self.add_mesh_file(mesh_path=file_path)
-            # # Load video file
-            # elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
-            #     self.scene.video_container.add_video_file(video_path=file_path)
-            # Load image/mask file
+            # Load image or mask file
             elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
                 file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
                 unique, _ = np.unique(file_data, return_counts=True)
                 if len(unique) == 2: self.add_mask_file(mask_path=file_path)
                 else: self.add_image_file(image_path=file_path) 
-                    
             elif file_path.endswith('.npy'): self.add_pose_file(pose_path=file_path)
             else: utils.display_warning("File format is not supported!")
 
