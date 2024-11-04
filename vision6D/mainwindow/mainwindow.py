@@ -233,6 +233,7 @@ class MyMainWindow(MainWindow):
                     self.scene.track_image_actors.append(image_model.name)
                     self.add_image_button(image_model.name)
             self.scene.handle_image_click(image_model.name)
+            self.scene.reset_camera()
 
     def add_mask_file(self, mask_path='', prompt=False):
         if prompt:
@@ -392,25 +393,23 @@ class MyMainWindow(MainWindow):
     def dropEvent(self, e):
         for url in e.mimeData().urls():
             file_path = url.toLocalFile()
-            if os.path.isdir(file_path): self.add_folder(folder_path=file_path)
-            else:
-                # Load workspace json file
-                if file_path.endswith(('.json')): self.add_workspace(workspace_path=file_path)
-                # Load mesh file
-                elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
-                    self.add_mesh_file(mesh_path=file_path)
-                # # Load video file
-                # elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
-                #     self.scene.video_container.add_video_file(video_path=file_path)
-                # Load image/mask file
-                elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
-                    file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
-                    unique, _ = np.unique(file_data, return_counts=True)
-                    if len(unique) == 2: self.add_mask_file(mask_path=file_path)
-                    else: self.add_image_file(image_path=file_path) 
-                        
-                elif file_path.endswith('.npy'): self.add_pose_file(pose_path=file_path)
-                else: utils.display_warning("File format is not supported!")
+            # Load workspace json file
+            if file_path.endswith(('.json')): self.add_workspace(workspace_path=file_path)
+            # Load mesh file
+            elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
+                self.add_mesh_file(mesh_path=file_path)
+            # # Load video file
+            # elif file_path.endswith(('.avi', '.mp4', '.mkv', '.mov', '.fly', '.wmv', '.mpeg', '.asf', '.webm')):
+            #     self.scene.video_container.add_video_file(video_path=file_path)
+            # Load image/mask file
+            elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
+                file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
+                unique, _ = np.unique(file_data, return_counts=True)
+                if len(unique) == 2: self.add_mask_file(mask_path=file_path)
+                else: self.add_image_file(image_path=file_path) 
+                    
+            elif file_path.endswith('.npy'): self.add_pose_file(pose_path=file_path)
+            else: utils.display_warning("File format is not supported!")
 
     def resizeEvent(self, e):
         x = (self.plotter.size().width() - self.hintLabel.width()) // 2
@@ -524,7 +523,7 @@ class MyMainWindow(MainWindow):
     def pnp_register(self):
         if not self.scene.image_container.reference: utils.display_warning("Need to load an image first!"); return
         if self.scene.mesh_container.reference is None: utils.display_warning("Need to select a mesh first!"); return
-        image = utils.get_image_actor_scalars(self.scene.image_container.reference)
+        image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
         self.pnp_window = PnPWindow(image_source=image, 
                                     mesh_model=self.scene.mesh_container.meshes[self.scene.mesh_container.reference],
                                     camera_intrinsics=self.scene.camera_intrinsics.astype(np.float32))
@@ -947,25 +946,6 @@ class MyMainWindow(MainWindow):
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.json)")
         if output_path != "":
             with open(output_path, 'w') as f: json.dump(workspace_dict, f, indent=4)
-
-    def add_folder(self, folder_path='', prompt=False):
-        # if prompt: 
-        #     folder_path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder")
-        # if folder_path:
-        #     if self.scene.video_store.video_path or self.workspace_path: self.clear_plot() # main goal is to set video_path to None
-        #     image_path, mask_path, pose_path, mesh_path = self.scene.folder_store.add_folder(folder_path=folder_path, meshes=self.scene.mesh_container.meshes)
-        #     if image_path or mask_path or pose_path or mesh_path:
-        #         if image_path: self.scene.image_container.add_image_file(image_path=image_path)
-        #         if mask_path: self.scene.mask_container.add_mask_file(mask_path=mask_path)
-        #         if mesh_path: 
-        #             with open(mesh_path, 'r') as f: mesh_path = f.read().splitlines()
-        #             for path in mesh_path: self.scene.mesh_container.add_mesh_file(path)
-        #         if pose_path: self.add_pose_file(pose_path=pose_path)
-        #         self.scene.reset_camera()
-        #     else:
-        #         self.scene.folder_store.reset()
-        #         utils.display_warning("Not a valid folder, please reload a folder")
-        pass
 
     def mirror_actors(self, direction):
         # checked_button = self.button_group_actors.checkedButton()

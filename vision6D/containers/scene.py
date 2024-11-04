@@ -158,7 +158,6 @@ class Scene():
         # Set up the camera
         self.set_camera_intrinsics(image_model.fx, image_model.fy, image_model.cx, image_model.cy, image_model.height)
         self.set_camera_extrinsics(self.cam_viewup)
-        self.reset_camera()
 
         # Set up the opacity box
         # Disconnect existing connections to prevent accumulation
