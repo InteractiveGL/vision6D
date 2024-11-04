@@ -27,9 +27,6 @@ class MeshContainer(metaclass=Singleton):
         self.meshes: Dict[str, MeshModel] = {}
         self.colors = ["wheat", "cyan", "magenta", "yellow", "lime", "dodgerblue", "white", "black"]
 
-    def reset(self):
-        pass
-        
     def add_mesh(self, mesh_source, transformation_matrix=np.eye(4)):
         source_mesh = None
 
@@ -118,10 +115,6 @@ class MeshContainer(metaclass=Singleton):
         mesh_model.actor.user_matrix = pv.array_from_vtkmatrix(mesh_model.actor.GetMatrix())
         mesh_model.actor.GetProperty().opacity = mesh_opacity
 
-    def remove_mesh(self, name):
-        del self.meshes[name]
-        self.reference = None
-    
     def get_poses_from_undo(self, name):
         transformation_matrix = self.meshes[name].undo_poses.pop()
         while self.meshes[name].undo_poses and (transformation_matrix == self.meshes[name].actor.user_matrix).all(): 

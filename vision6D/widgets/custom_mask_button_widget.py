@@ -13,6 +13,7 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, parent=None):
         super(CustomMaskButtonWidget, self).__init__(parent)
+        self.main_window = parent
         self.setFixedHeight(30)
 
         # Main layout for the widget
@@ -71,7 +72,7 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         context_menu.exec_(event.globalPos())
 
     def remove_self(self):
-        self.parent().remove_custom_button_widget(self.button)
+        self.parent().remove_mask_button(self.button)
 
     def update_square_button_color(self, text, popup):
         self.square_button.setObjectName(text)

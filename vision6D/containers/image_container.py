@@ -53,7 +53,7 @@ class ImageContainer(metaclass=Singleton):
     def reset(self, name):
         self.images[name].clear_attributes()
 
-    def add_image_attributes(self, image_source, fx, fy, cx, cy):
+    def add_image_attributes(self, image_source):
         # Create a new ImageModel instance
         image_model = ImageModel()
 
@@ -75,15 +75,11 @@ class ImageContainer(metaclass=Singleton):
         image_model.height = dim[0]
         image_model.width = dim[1]
         image_model.channel = dim[2]
-        image_model.fx = fx
-        image_model.fy = fy
-        image_model.cx = cx
-        image_model.cy = cy
 
         self.images[image_model.name] = image_model
         return image_model
 
-    def add_image_actor(self, image_model):
+    def add_image_actor(self, image_model, fy, cx, cy):
         # # Remove existing actor if it exists
         # if hasattr(image_model, 'actor') and image_model.actor in self.plotter.renderer.actors.values():
         #     self.plotter.remove_actor(image_model.actor)
@@ -93,12 +89,12 @@ class ImageContainer(metaclass=Singleton):
         pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel))
         pv_obj = pv_obj.translate(-np.array(pv_obj.center), inplace=False) # Center the image at (0, 0)
         # Compute offsets
-        image_model.cx_offset = image_model.cx - (image_model.width / 2.0)
-        image_model.cy_offset = image_model.cy - (image_model.height / 2.0)
+        image_model.cx_offset = cx - (image_model.width / 2.0)
+        image_model.cy_offset = cy - (image_model.height / 2.0)
         print(f"Image Origin: {image_model.cx_offset, image_model.cy_offset}")
         # Move the image to the camera distance fy
-        pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, image_model.fy]), inplace=False)
-        image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -image_model.fy])
+        pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, fy]), inplace=False)
+        image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -fy])
 
         # Add the mesh to the plotter
         if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)
@@ -117,15 +113,6 @@ class ImageContainer(metaclass=Singleton):
             image_model.opacity = opacity
             if hasattr(image_model, 'actor'):
                 image_model.actor.GetProperty().opacity = opacity
-
-    def remove_image(self, name):
-        if name in self.images:
-            image_model = self.images[name]
-            # Remove the actor from the plotter
-            if hasattr(image_model, 'actor') and image_model.actor in self.plotter.renderer.actors.values():
-                self.plotter.remove_actor(image_model.actor)
-            # Remove the image model from the dictionary
-            del self.images[name]
 
     def render_image(self, name, camera):
         if name in self.images:

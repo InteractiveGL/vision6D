@@ -35,7 +35,8 @@ class Scene():
         self.fy = 19172.02089833029
         self.cx = 954.4324739015676
         self.cy = 538.2131876789998
-
+        self.canvas_height = 1080
+        self.canvas_width = 1920
         self.cam_viewup = (0, -1, 0)
 
     def reset_camera(self):
@@ -86,10 +87,10 @@ class Scene():
         elif direction == 'y': image_model.mirror_y = not image_model.mirror_y
         if image_model.mirror_x: image_model.source_obj = image_model.source_obj[:, ::-1, :]
         if image_model.mirror_y: image_model.source_obj = image_model.source_obj[::-1, :, :]
-        self.image_container.add_image_actor(image_model)
+        self.image_container.add_image_actor(image_model, self.fy, self.cx, self.cy)
 
         # Set up the camera
-        self.set_camera_intrinsics(image_model.fx, image_model.fy, image_model.cx, image_model.cy, image_model.height)
+        self.set_camera_intrinsics(self.fx, self.fy, self.cx, self.cy, self.canvas_height)
         self.set_camera_extrinsics(self.cam_viewup)
         self.reset_camera()
 
@@ -153,10 +154,10 @@ class Scene():
         # Add a new image as current reference
         self.image_container.reference = name
         image_model = self.image_container.images[self.image_container.reference]
-        self.image_container.add_image_actor(image_model)
+        self.image_container.add_image_actor(image_model, self.fx, self.cx, self.cy)
 
         # Set up the camera
-        self.set_camera_intrinsics(image_model.fx, image_model.fy, image_model.cx, image_model.cy, image_model.height)
+        self.set_camera_intrinsics(self.fx, self.fy, self.cx, self.cy, self.canvas_height)
         self.set_camera_extrinsics(self.cam_viewup)
 
         # Set up the opacity box
@@ -169,7 +170,7 @@ class Scene():
 
         # Update opacity for all images
         for image_name, img_model in self.image_container.images.items():
-            if image_name != name:
+            if image_name != name and img_model is not None:
                 img_model.opacity = 0.0
                 img_model.opacity_spinbox.setValue(0.0)
                 # Remove the other actors exist to free memory (very important)

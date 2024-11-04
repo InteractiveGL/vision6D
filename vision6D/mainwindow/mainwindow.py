@@ -182,19 +182,22 @@ class MyMainWindow(MainWindow):
         else: utils.display_warning("Need to load an image first!")
 
     def set_camera(self):
-        reference_image = self.scene.image_container.images[self.scene.image_container.reference]
         dialog = CameraPropsInputDialog(
             line1=("Fx", self.scene.fx), 
             line2=("Fy", self.scene.fy), 
             line3=("Cx", self.scene.cx), 
             line4=("Cy", self.scene.cy), 
-            line5=("View Up", self.scene.cam_viewup))
+            line5=("Canvas Height", self.scene.canvas_height),
+            line6=("Canvas Width", self.scene.canvas_width),
+            line7=("Camera View Up", self.scene.cam_viewup))
         if dialog.exec():
-            fx, fy, cx, cy, cam_viewup = dialog.getInputs()
+            fx, fy, cx, cy, canvas_height, canvas_width, cam_viewup = dialog.getInputs()
             pre_fx = self.scene.fx
             pre_fy = self.scene.fy
             pre_cx = self.scene.cx
             pre_cy = self.scene.cy
+            pre_canvas_height = self.scene.canvas_height
+            pre_canvas_width = self.scene.canvas_width
             pre_cam_viewup = self.scene.cam_viewup
             if not (fx == '' or fy == '' or cx == '' or cy == '' or cam_viewup == ''):
                 try:
@@ -202,22 +205,21 @@ class MyMainWindow(MainWindow):
                     self.scene.fy = ast.literal_eval(fy)
                     self.scene.cx = ast.literal_eval(cx)
                     self.scene.cy = ast.literal_eval(cy)
+                    self.scene.canvas_height = ast.literal_eval(canvas_height)
+                    self.scene.canvas_width = ast.literal_eval(canvas_width)
                     self.scene.cam_viewup = ast.literal_eval(cam_viewup)
-                    self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, reference_image.height)
+                    self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_height)
                     self.scene.set_camera_extrinsics(self.scene.cam_viewup)
-                    reference_image.pv_obj.translate(reference_image.center, inplace=True) # reset the image position
-                    reference_image.distance2camera = reference_image.fy # set the frame distance to the camera
-                    reference_image.cx_offset = (reference_image.cx - (reference_image.width / 2.0))
-                    reference_image.cy_offset = (reference_image.cy - (reference_image.height / 2.0))
-                    print(f"Image New Origin: {reference_image.cx_offset, reference_image.cy_offset}")
-                    reference_image.center = np.array([reference_image.cx_offset, reference_image.cy_offset, -reference_image.fy])
-                    reference_image.pv_obj.translate(reference_image.center, inplace=True) # move the image to the camera distance
+                    if self.scene.image_container.reference is not None: 
+                        self.scene.handle_image_click(self.scene.image_container.reference)
                     self.scene.reset_camera()
                 except:
                     self.scene.fx = pre_fx
                     self.scene.fy = pre_fy
                     self.scene.cx = pre_cx
                     self.scene.cy = pre_cy
+                    self.scene.canvas_height = pre_canvas_height
+                    self.scene.canvas_width = pre_canvas_width
                     self.scene.cam_viewup = pre_cam_viewup
                     utils.display_warning("Error occured, check the format of the input values")
 
@@ -227,7 +229,7 @@ class MyMainWindow(MainWindow):
         if image_paths:
             self.hintLabel.hide()
             for image_path in image_paths:
-                image_model = self.scene.image_container.add_image_attributes(image_path, self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy)
+                image_model = self.scene.image_container.add_image_attributes(image_path)
                 # add remove current image to removeMenu
                 if image_model.name not in self.scene.track_image_actors:
                     self.scene.track_image_actors.append(image_model.name)
@@ -284,6 +286,9 @@ class MyMainWindow(MainWindow):
             mesh_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_path:
             self.hintLabel.hide()
+            # Set up the camera
+            self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_height)
+            self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             mesh_model = self.scene.mesh_container.add_mesh(mesh_source=mesh_path, transformation_matrix=np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]]))
             # add remove current mesh to removeMenu
             if mesh_model.name not in self.scene.track_mesh_actors:
@@ -811,7 +816,7 @@ class MyMainWindow(MainWindow):
             self.scene.handle_bbox_click(name=name)
 
     def add_image_button(self, name):
-        button_widget = CustomImageButtonWidget(name, image_path=self.scene.image_container.images[name].path)
+        button_widget = CustomImageButtonWidget(name, image_path=self.scene.image_container.images[name].path, parent=self)
         button = button_widget.button
         self.scene.image_container.images[name].opacity_spinbox = button_widget.double_spinbox
         # check the button
@@ -825,7 +830,7 @@ class MyMainWindow(MainWindow):
         
     def add_mask_button(self, name):
         self.mask_actors_group.content_widget.setVisible(True)
-        button_widget = CustomMaskButtonWidget(name)
+        button_widget = CustomMaskButtonWidget(name, self)
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.mask_color_value_change(name, color))
         button = button_widget.button
         self.scene.mask_container.masks[name].opacity_spinbox = button_widget.double_spinbox
@@ -869,7 +874,7 @@ class MyMainWindow(MainWindow):
         else: utils.display_warning("Need to load an image first!")
 
     def add_bbox_button(self, name):
-        button_widget = CustomBboxButtonWidget(name)
+        button_widget = CustomBboxButtonWidget(name, self)
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.bbox_color_value_change(name, color))
         button = button_widget.button
         self.scene.bbox_container.bboxes[name].opacity_spinbox = button_widget.double_spinbox
@@ -886,7 +891,7 @@ class MyMainWindow(MainWindow):
         self.scene.handle_bbox_click(name=name)
 
     def add_mesh_button(self, name, output_text):
-        button_widget = CustomMeshButtonWidget(name)
+        button_widget = CustomMeshButtonWidget(name, self)
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.mesh_color_value_change(name, color))
         button = button_widget.button
         self.scene.mesh_container.meshes[name].opacity_spinbox = button_widget.double_spinbox
@@ -954,59 +959,15 @@ class MyMainWindow(MainWindow):
         # else: utils.display_warning("Need to select an actor first")
         pass
 
-    def remove_image_actor(self, button):
-        name = button.text()
-        if name in self.scene.image_container.images: 
-            actor = self.scene.image_container.images[name].actor
-            self.scene.track_image_actors.remove(name)
-            self.scene.image_container.reset()
-            # remove the button from the button group
-            self.image_button_group_actors.removeButton(button)
-            self.remove_image_button_widget(button)
-            button.deleteLater()
-            self.plotter.remove_actor(actor)
-
-    def remove_mesh_actor(self, button):
-        name = button.text()
-        if name in self.scene.mesh_container.meshes: 
-            actor = self.scene.mesh_container.meshes[name].actor
-            self.scene.track_mesh_actors.remove(name)
-            self.scene.mesh_container.remove_mesh(name)
-            self.mesh_button_group_actors.removeButton(button)
-            self.remove_mesh_button_widget(button)
-            button.deleteLater()
-            self.plotter.remove_actor(actor)
-
-    def remove_mask_actor(self, button):
-        name = button.text()
-        if name in self.scene.mask_container.masks:
-            actor = self.scene.mask_container.masks[name].actor
-            self.scene.track_mask_actors.remove(name)
-            self.scene.mask_container.reset()
-            self.mask_button_group_actors.removeButton(button)
-            self.remove_mask_button_widget(button)
-            button.deleteLater()
-            self.plotter.remove_actor(actor)
-
-    def remove_bbox_actor(self, button):
-        name = button.text()
-        if name in self.scene.bbox_container.bboxes:
-            actor = self.scene.bbox_container.bboxes[name].actor
-            self.scene.track_bbox_actors.remove(name)
-            self.scene.bbox_container.reset()
-            self.bbox_button_group_actors.removeButton(button)
-            self.remove_bbox_button_widget(button)
-            button.deleteLater()
-            self.plotter.remove_actor(actor)
-
     def remove_image_button(self, button):
         actor = self.scene.image_container.images[button.text()].actor
-        self.scene.image_container.images[button.text()].reset()
         self.scene.image_container.images[button.text()].mirror_x = False
         self.scene.image_container.images[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
+        del self.scene.image_container.images[button.text()]
         self.image_button_group_actors.removeButton(button)
         self.remove_image_button_widget(button)
+        self.scene.image_container.reference = None
         button.deleteLater()
 
     def remove_mask_button(self, button):
@@ -1014,8 +975,10 @@ class MyMainWindow(MainWindow):
         self.scene.mask_container.masks[button.text()].mirror_x = False
         self.scene.mask_container.masks[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
+        del self.scene.mask_container.masks[button.text()]
         self.mask_button_group_actors.removeButton(button)
         self.remove_mask_button_widget(button)
+        self.scene.mask_container.reference = None
         button.deleteLater()
 
     def remove_bbox_button(self, button):
@@ -1023,51 +986,28 @@ class MyMainWindow(MainWindow):
         self.scene.bbox_container.bboxes[button.text()].mirror_x = False
         self.scene.bbox_container.bboxes[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
+        del self.scene.bbox_container.bboxes[button.text()]
         self.bbox_button_group_actors.removeButton(button)
         self.remove_bbox_button_widget(button)
+        self.scene.bbox_container.reference = None
         button.deleteLater()
 
     def remove_mesh_button(self, button):
         actor = self.scene.mesh_container.meshes[button.text()].actor
-        self.scene.mesh_container.meshes(button.text()).mirror_x = False
-        self.scene.mesh_container.meshes(button.text()).mirror_y = False
+        self.scene.mesh_container.meshes[button.text()].mirror_x = False
+        self.scene.mesh_container.meshes[button.text()].mirror_y = False
         self.plotter.remove_actor(actor)
+        del self.scene.mesh_container.meshes[button.text()]
         self.mesh_button_group_actors.removeButton(button)
         self.remove_mesh_button_widget(button)
+        self.scene.mesh_container.reference = None
         button.deleteLater()
 
     def clear_plot(self):
-        # Clear out everything in the remove menu
-        for button in self.image_button_group_actors.buttons():
-            actor = self.scene.image_container.images[button.text()].actor
-            self.scene.image_container.remove_image(button.text())
-            self.plotter.remove_actor(actor)
-            self.image_button_group_actors.removeButton(button)
-            self.remove_image_button_widget(button)
-            button.deleteLater()
-        for button in self.mask_button_group_actors.buttons():
-            actor = self.scene.mask_container.masks[button.text()].actor
-            self.scene.mask_container.remove_mask(button.text())
-            self.plotter.remove_actor(actor)
-            self.image_button_group_actors.removeButton(button)
-            self.remove_mask_button_widget(button)
-            button.deleteLater()
-        for button in self.bbox_button_group_actors.buttons():
-            actor = self.scene.bbox_container.bboxes[button.text()].actor
-            self.scene.bbox_container.remove_bbox(button.text())
-            self.plotter.remove_actor(actor)
-            self.image_button_group_actors.removeButton(button)
-            self.remove_bbox_button_widget(button)
-            button.deleteLater()
-        for button in self.mesh_button_group_actors.buttons():
-            actor = self.scene.mesh_container.meshes[button.text()].actor
-            self.scene.mesh_container.remove_mesh(button.text())
-            self.plotter.remove_actor(actor)
-            self.image_button_group_actors.removeButton(button)
-            self.remove_mesh_button_widget(button)
-            button.deleteLater()
-
-        self.scene.mesh_container.reset()
+        for button in self.image_button_group_actors.buttons(): self.remove_image_button(button)
+        for button in self.mask_button_group_actors.buttons(): self.remove_mask_button(button)
+        for button in self.bbox_button_group_actors.buttons(): self.remove_bbox_button(button)
+        for button in self.mesh_button_group_actors.buttons(): self.remove_mesh_button(button)
         self.workspace_path = ''
         self.scene.track_image_actors.clear()
         self.scene.track_mask_actors.clear()

@@ -107,9 +107,6 @@ class MaskContainer(metaclass=Singleton):
         cells = np.hstack([[transformed_points.shape[0]], np.arange(transformed_points.shape[0]), 0])
         mask_surface = pv.PolyData(transformed_points, cells).triangulate()
         return mask_surface
-    
-    def remove_mask(self, name):
-        del self.masks[name]
 
     def render_mask(self, name, camera):
         mask_model = self.masks[name]

@@ -84,6 +84,7 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str) 
     def __init__(self, button_name, image_path=None, parent=None):
         super(CustomImageButtonWidget, self).__init__(parent)
+        self.main_window = parent
         self.setFixedHeight(30)
         self.image_path = image_path
 
@@ -122,3 +123,12 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
 
         # Set the layout for the widget
         self.setLayout(layout)
+    
+    def contextMenuEvent(self, event):
+        context_menu = QtWidgets.QMenu(self)
+        remove_action = context_menu.addAction("Remove")
+        remove_action.triggered.connect(self.remove_self)
+        context_menu.exec_(event.globalPos())
+
+    def remove_self(self):
+        self.main_window.remove_image_button(self.button)

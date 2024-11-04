@@ -85,6 +85,3 @@ class BboxContainer(metaclass=Singleton):
             self.bboxes[name].mirror_x = False
             self.bboxes[name].mirror_y = False
             _ = self.add_bbox(self.bboxes[name].path, image_center, self.bboxes[name].width, self.bboxes[name].height)
-
-    def remove_bbox(self, name):
-        del self.bboxes[name]
