@@ -632,118 +632,21 @@ class MyMainWindow(MainWindow):
         self.panel_layout.addWidget(self.images_actors_group)
 
     def panel_mesh_actors(self):
-        # self.mesh_actors_group = QtWidgets.QGroupBox("Mesh")
-        # self.mesh_actors_group.setCheckable(True)
-        # self.mesh_actors_group.setChecked(True)
-        # self.mesh_actors_group.setStyleSheet("""
-        #     QGroupBox::indicator:checked {
-        #         background-color: green;
-        #         border: 2px solid black;
-        #         border-radius: 6px;
-        #         padding: 2px;
-        #     }
-        #     QGroupBox::indicator:unchecked {
-        #         background-color: red;
-        #         border: 2px solid black;
-        #         border-radius: 6px;
-        #         padding: 2px;
-        #     }
-        # """)
-        # self.mesh_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mesh_actors_group, checked))
-        # self.display_layout = QtWidgets.QVBoxLayout()
-        # self.display_layout.setContentsMargins(10, 20, 10, 5)
-        # scroll_area = QtWidgets.QScrollArea()
-        # scroll_area.setWidgetResizable(True)
-        # self.display_layout.addWidget(scroll_area)
-        # custom_widget_container = QtWidgets.QWidget()
-        # self.mesh_widget_layout = QtWidgets.QVBoxLayout()
-        # self.mesh_widget_layout.setSpacing(0)
-        # custom_widget_container.setLayout(self.mesh_widget_layout)
-        # self.mesh_widget_layout.addStretch()
-        # scroll_area.setWidget(custom_widget_container)
-        # self.mesh_actors_group.setLayout(self.display_layout)
-        # self.panel_layout.addWidget(self.mesh_actors_group)
-
+        link_mesh_button = QtWidgets.QPushButton("Link")
+        link_mesh_button.setFixedSize(20, 20)
+        # link_mesh_button.clicked.connect(self.on_link_mesh_button_clicked)
         self.mesh_actors_group = CustomGroupBox("Mesh", self)
         self.mesh_actors_group.addButtonClicked.connect(lambda mesh_path='', prompt=True: self.add_mesh_file(mesh_path, prompt))
+        self.mesh_actors_group.add_button_to_header(link_mesh_button)
         self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_mask_actors(self):
-        # self.mask_actors_group = QtWidgets.QGroupBox("Mask")
-        # self.mask_actors_group.setCheckable(True)
-        # self.mask_actors_group.setStyleSheet("""
-        #     QGroupBox::indicator:checked {
-        #         background-color: green;
-        #         border: 2px solid black;
-        #         border-radius: 6px;
-        #         padding: 2px;
-        #     }
-        #     QGroupBox::indicator:unchecked {
-        #         background-color: red;
-        #         border: 2px solid black;
-        #         border-radius: 6px;
-        #         padding: 2px;
-        #     }
-        # """)
-        # self.mask_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.mask_actors_group, checked))
-        # self.display_layout = QtWidgets.QVBoxLayout()
-        # self.display_layout.setContentsMargins(10, 20, 10, 5)
-        # scroll_area = QtWidgets.QScrollArea()
-        # scroll_area.setWidgetResizable(True)
-        # self.display_layout.addWidget(scroll_area)
-        # custom_widget_container = QtWidgets.QWidget()
-        # self.mask_widget_layout = QtWidgets.QVBoxLayout()
-        # self.mask_widget_layout.setSpacing(0)
-        # custom_widget_container.setLayout(self.mask_widget_layout)
-        # self.mask_widget_layout.addStretch()
-        # scroll_area.setWidget(custom_widget_container)
-        # self.mask_actors_group.setLayout(self.display_layout)
-        # self.panel_layout.addWidget(self.mask_actors_group)
-        # # set the mask group to be unchecked
-        # self.mask_actors_group.setChecked(False)
-        # self.panel_layout.update()
-
         self.mask_actors_group = CustomGroupBox("Mask", self)
         self.mask_actors_group.content_widget.setVisible(False)
         self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
         self.panel_layout.addWidget(self.mask_actors_group)
 
     def panel_bbox_actors(self):
-        # self.bbox_actors_group = QtWidgets.QGroupBox("Bbox")
-        # self.bbox_actors_group.setCheckable(True)
-        # self.bbox_actors_group.setChecked(True)
-        # self.bbox_actors_group.setStyleSheet("""
-        #     QGroupBox::indicator:checked {
-        #         background-color: green;
-        #         border: 2px solid black;
-        #         border-radius: 6px;
-        #         padding: 2px;
-        #     }
-        #     QGroupBox::indicator:unchecked {
-        #         background-color: red;
-        #         border: 2px solid black;
-        #         border-radius: 6px;
-        #         padding: 2px;
-        #     }
-        # """)
-        # self.bbox_actors_group.toggled.connect(lambda checked: self.toggle_group_content(self.bbox_actors_group, checked))
-        # self.display_layout = QtWidgets.QVBoxLayout()
-        # self.display_layout.setContentsMargins(10, 20, 10, 5)
-        # scroll_area = QtWidgets.QScrollArea()
-        # scroll_area.setWidgetResizable(True)
-        # self.display_layout.addWidget(scroll_area)
-        # custom_widget_container = QtWidgets.QWidget()
-        # self.bbox_widget_layout = QtWidgets.QVBoxLayout()
-        # self.bbox_widget_layout.setSpacing(0)
-        # custom_widget_container.setLayout(self.bbox_widget_layout)
-        # self.bbox_widget_layout.addStretch()
-        # scroll_area.setWidget(custom_widget_container)
-        # self.bbox_actors_group.setLayout(self.display_layout)
-        # self.panel_layout.addWidget(self.bbox_actors_group)
-        # # set the bbox group to be unchecked
-        # self.bbox_actors_group.setChecked(False)
-        # self.panel_layout.update()
-
         self.bbox_actors_group = CustomGroupBox("Bbox", self)
         self.bbox_actors_group.content_widget.setVisible(False)
         self.bbox_actors_group.addButtonClicked.connect(lambda bbox_path='', prompt=True: self.add_bbox_file(bbox_path, prompt))
