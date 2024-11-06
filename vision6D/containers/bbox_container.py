@@ -72,14 +72,17 @@ class BboxContainer(metaclass=Singleton):
         return bbox_model
 
     def set_bbox_color(self, color, name):
-        self.bboxes[name].actor.GetMapper().SetScalarVisibility(0)
-        self.bboxes[name].actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
+        bbox_model = self.bboxes[name]
+        bbox_model.actor.GetMapper().SetScalarVisibility(0)
+        bbox_model.actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
 
     def set_bbox_opacity(self, name:str, opacity: float):
-        self.bboxes[name].previous_opacity = self.bboxes[name].opacity
-        self.bboxes[name].opacity = opacity
-        self.bboxes[name].actor.GetProperty().opacity = opacity
+        bbox_model = self.bboxes[name]
+        bbox_model.previous_opacity = bbox_model.opacity
+        bbox_model.opacity = opacity
+        bbox_model.actor.GetProperty().opacity = opacity
         
     def reset_bbox(self, name, image_center):
-        if self.bboxes[name].path:
-            _ = self.add_bbox(self.bboxes[name].path, image_center, self.bboxes[name].width, self.bboxes[name].height)
+        bbox_model = self.bboxes[name]
+        if bbox_model.path:
+            _ = self.add_bbox(bbox_model.path, image_center, bbox_model.width, bbox_model.height)

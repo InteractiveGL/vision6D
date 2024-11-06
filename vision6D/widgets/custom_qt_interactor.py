@@ -34,11 +34,7 @@ class CustomQtInteractor(QtInteractor):
     def press_callback(self, obj, *args):
         x, y = obj.GetEventPosition()
         cell_picker = vtk.vtkCellPicker()
-        if cell_picker.Pick(x, y, 0, self.renderer): 
-            self.cell_picker = cell_picker
-        else:
-            if self.main_window.scene.image_container.reference: 
-                self.main_window.check_image_button(self.main_window.scene.image_container.reference)
+        if cell_picker.Pick(x, y, 0, self.renderer): self.cell_picker = cell_picker
 
     def release_callback(self):
         if self.cell_picker: 
@@ -46,4 +42,8 @@ class CustomQtInteractor(QtInteractor):
             name = picked_actor.name
             if name in self.main_window.scene.mesh_container.meshes:
                 self.main_window.check_mesh_button(name, output_text=True)
+            elif name in self.main_window.scene.mask_container.masks:
+                self.main_window.check_mask_button(name, output_text=True)
+            elif name in self.main_window.scene.bbox_container.bboxes:
+                self.main_window.check_bbox_button(name, output_text=True)
         self.cell_picker = None

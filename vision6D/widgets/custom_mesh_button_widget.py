@@ -79,6 +79,7 @@ class CustomMeshButtonWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def contextMenuEvent(self, event):
+        self.button.click()
         context_menu = QtWidgets.QMenu(self)
         remove_action = context_menu.addAction("Remove")
         remove_action.triggered.connect(self.remove_self)

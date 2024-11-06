@@ -87,7 +87,8 @@ class MaskContainer(metaclass=Singleton):
         pass
     
     def reset_mask(self):
-        _ = self.add_mask(mask_source=self.masks[self.reference].path, image_center=self.masks[self.reference].image_center, w = self.masks[self.reference].width, h = self.masks[self.reference].height)
+        mask_model = self.masks[self.reference]
+        _ = self.add_mask(mask_source=mask_model.path, image_center=mask_model.image_center, w = mask_model.width, h = mask_model.height)
 
     def set_mask_opacity(self, name, opacity: float):
         mask_model = self.masks[name]
@@ -96,8 +97,9 @@ class MaskContainer(metaclass=Singleton):
         mask_model.actor.GetProperty().opacity = opacity
 
     def set_mask_color(self, name, color):
-        self.masks[name].actor.GetMapper().SetScalarVisibility(0)
-        self.masks[name].actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
+        mask_model = self.masks[name]
+        mask_model.actor.GetMapper().SetScalarVisibility(0)
+        mask_model.actor.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
     
     def update_mask(self, name):
         mask_model = self.masks[name]

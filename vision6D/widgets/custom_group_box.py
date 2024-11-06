@@ -1,6 +1,5 @@
 from PyQt5 import QtWidgets, QtGui
-from pyvistaqt import MainWindow
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 
 class CustomGroupBox(QtWidgets.QWidget):
     addButtonClicked = pyqtSignal()

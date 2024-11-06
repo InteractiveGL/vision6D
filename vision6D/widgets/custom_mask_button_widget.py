@@ -79,13 +79,14 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def contextMenuEvent(self, event):
+        self.button.click()
         context_menu = QtWidgets.QMenu(self)
         remove_action = context_menu.addAction("Remove")
         remove_action.triggered.connect(self.remove_self)
         context_menu.exec_(event.globalPos())
 
     def remove_self(self):
-        self.parent().remove_mask_button(self.button)
+        self.main_window.remove_mask_button(self.button)
 
     def on_mirror_x_clicked(self):
         self.mirrorXChanged.emit("x")

@@ -116,14 +116,11 @@ class MeshContainer(metaclass=Singleton):
         mesh_model.actor.GetProperty().opacity = mesh_opacity
 
     def get_poses_from_undo(self, name):
-        transformation_matrix = self.meshes[name].undo_poses.pop()
-        while self.meshes[name].undo_poses and (transformation_matrix == self.meshes[name].actor.user_matrix).all(): 
-            transformation_matrix = self.meshes[name].undo_poses.pop()
-        self.meshes[name].actor.user_matrix = transformation_matrix
-            
-    def undo_actor_pose(self, name):
         mesh_model = self.meshes[name]
-        self.get_poses_from_undo(mesh_model)
+        transformation_matrix = mesh_model.undo_poses.pop()
+        while mesh_model.undo_poses and (transformation_matrix == mesh_model.actor.user_matrix).all(): 
+            transformation_matrix = mesh_model.undo_poses.pop()
+        mesh_model.actor.user_matrix = transformation_matrix
 
     def render_mesh(self, name, camera, width, height):
         render = utils.create_render(width, height); render.clear()

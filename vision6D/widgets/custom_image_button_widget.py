@@ -107,7 +107,7 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
         button_layout.setSpacing(0)
 
         # Create the main button using PreviewButton
-        self.button = PreviewButton(button_name, image_path=self.image_path)
+        self.button = PreviewButton(button_name, image_path=self.image_path) # self.button = QtWidgets.QPushButton(button_name)
         self.button.setFixedHeight(30)
         button_layout.addWidget(self.button, 0, 0, 1, 1)
 
@@ -154,6 +154,7 @@ class CustomImageButtonWidget(QtWidgets.QWidget):
         self.setLayout(layout)
     
     def contextMenuEvent(self, event):
+        self.button.click()
         context_menu = QtWidgets.QMenu(self)
         remove_action = context_menu.addAction("Remove")
         remove_action.triggered.connect(self.remove_self)
