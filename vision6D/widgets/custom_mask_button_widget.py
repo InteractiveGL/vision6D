@@ -11,11 +11,9 @@ class SquareButton(QtWidgets.QPushButton):
 
 class CustomMaskButtonWidget(QtWidgets.QWidget):
     colorChanged = pyqtSignal(str, str)
-    mirrorXChanged = pyqtSignal(str)
-    mirrorYChanged = pyqtSignal(str)
+    removeButtonClicked = pyqtSignal(QtWidgets.QPushButton)
     def __init__(self, button_name, parent=None):
         super(CustomMaskButtonWidget, self).__init__(parent)
-        self.main_window = parent
         self.setFixedHeight(30)
 
         # Main layout for the widget
@@ -34,11 +32,7 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         button_layout.addWidget(self.button, 0, 0, 1, 1)
 
         # Create the additional buttons
-        self.mirror_x_button = SquareButton("|")
-        self.mirror_y_button = SquareButton("—")
         self.square_button = SquareButton()
-        self.mirror_x_button.clicked.connect(self.on_mirror_x_clicked)
-        self.mirror_y_button.clicked.connect(self.on_mirror_y_clicked)
         self.square_button.clicked.connect(self.show_color_popup)
 
         # Create a horizontal layout for the square buttons and spacer
@@ -48,8 +42,6 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         square_button_layout.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
         # Add the square buttons to the layout
-        square_button_layout.addWidget(self.mirror_x_button)
-        square_button_layout.addWidget(self.mirror_y_button)
         square_button_layout.addWidget(self.square_button)
 
         # Optionally, add spacing to the right
@@ -85,15 +77,6 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         remove_action.triggered.connect(self.remove_self)
         context_menu.exec_(event.globalPos())
 
-    def remove_self(self):
-        self.main_window.remove_mask_button(self.button)
-
-    def on_mirror_x_clicked(self):
-        self.mirrorXChanged.emit("x")
-
-    def on_mirror_y_clicked(self):
-        self.mirrorYChanged.emit("y")
-
     def update_square_button_color(self, text, popup):
         self.square_button.setObjectName(text)
         if text == 'nocs' or text == 'texture':
@@ -114,4 +97,7 @@ class CustomMaskButtonWidget(QtWidgets.QWidget):
         button_position = self.square_button.mapToGlobal(QPoint(0, 0))
         popup.move(button_position + QPoint(self.square_button.width(), 0))
         popup.exec_()
+
+    def remove_self(self):
+        self.removeButtonClicked.emit(self.button)
 

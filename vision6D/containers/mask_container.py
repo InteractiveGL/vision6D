@@ -57,9 +57,7 @@ class MaskContainer(metaclass=Singleton):
         mask_model.width = w
         mask_model.height = h
         
-        # Mirror points
         mask_center = np.array([mask_model.width//2, mask_model.height//2, 0])
-        self.render = utils.create_render(mask_model.width, mask_model.height)
         
         # Consider the mirror effect
         # if mask_model.mirror_x: points[:, 0] = mask_model.width - points[:, 0]

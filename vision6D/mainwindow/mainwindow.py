@@ -230,10 +230,16 @@ class MyMainWindow(MainWindow):
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             for image_path in image_paths:
                 image_model = self.scene.image_container.add_image_attributes(image_path)
-                # add remove current image to removeMenu
                 if image_model.name not in self.scene.track_image_actors:
                     self.scene.track_image_actors.append(image_model.name)
-                    self.add_image_button(image_model.name)
+                    button_widget = CustomImageButtonWidget(image_model.name, image_path=image_model.path)
+                    button_widget.removeButtonClicked.connect(self.remove_image_button)
+                    image_model.opacity_spinbox = button_widget.double_spinbox
+                    button = button_widget.button
+                    button.setCheckable(True)
+                    button.clicked.connect(lambda _, name=image_model.name: self.scene.handle_image_click(name))
+                    self.image_button_group_actors.addButton(button_widget.button)
+                    self.images_actors_group.widget_layout.insertWidget(0, button_widget)
             self.check_image_button(image_model.name)
             self.scene.reset_camera()
 
@@ -297,7 +303,19 @@ class MyMainWindow(MainWindow):
                 # add remove current mesh to removeMenu
                 if mesh_model.name not in self.scene.track_mesh_actors:
                     self.scene.track_mesh_actors.append(mesh_model.name)
-                    self.add_mesh_button(mesh_model.name, output_text=True)
+                    button_widget = CustomMeshButtonWidget(mesh_model.name)
+                    button_widget.colorChanged.connect(lambda color, name=mesh_model.name: self.scene.mesh_color_value_change(name, color))
+                    button_widget.removeButtonClicked.connect(self.remove_mesh_button)
+                    mesh_model.color_button = button_widget.square_button
+                    mesh_model.color_button.setStyleSheet(f"background-color: {mesh_model.color}")
+                    mesh_model.opacity_spinbox = button_widget.double_spinbox
+                    mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
+                    mesh_model.opacity_spinbox.valueChanged.connect(lambda value, name=mesh_model.name: self.scene.mesh_container.set_mesh_opacity(name, value))
+                    button = button_widget.button
+                    button.setCheckable(True)
+                    button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.scene.handle_mesh_click(name, output_text))
+                    self.mesh_button_group_actors.addButton(button_widget.button)
+                    self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
             self.check_mesh_button(name=mesh_model.name, output_text=True)
             self.scene.reset_camera()
 
@@ -610,17 +628,31 @@ class MyMainWindow(MainWindow):
 
     # In your main class or wherever you're using panel_images_actors
     def panel_images_actors(self):
+        mirror_button = QtWidgets.QPushButton("Flip")
+        mirror_button.setFixedSize(50, 20)
+        mirror_options_menu = QtWidgets.QMenu()
+        mirror_options_menu.addAction("x-axis", functools.partial(self.mirror_image, direction="x"))
+        mirror_options_menu.addAction("y-axis", functools.partial(self.mirror_image, direction="y"))
+        mirror_button.setMenu(mirror_options_menu)
         self.images_actors_group = CustomGroupBox("Image", self)
         self.images_actors_group.addButtonClicked.connect(lambda image_path='', prompt=True: self.add_image_file(image_path, prompt))
+        self.images_actors_group.add_button_to_header(mirror_button)
         self.panel_layout.addWidget(self.images_actors_group)
 
     def panel_mesh_actors(self):
+        mirror_button = QtWidgets.QPushButton("Flip")
+        mirror_button.setFixedSize(50, 20)
+        mirror_options_menu = QtWidgets.QMenu()
+        mirror_options_menu.addAction("x-axis", functools.partial(self.mirror_mesh, direction="x"))
+        mirror_options_menu.addAction("y-axis", functools.partial(self.mirror_mesh, direction="y"))
+        mirror_button.setMenu(mirror_options_menu)
         link_mesh_button = QtWidgets.QPushButton("Link")
         link_mesh_button.setFixedSize(20, 20)
         # link_mesh_button.clicked.connect(self.on_link_mesh_button_clicked)
         self.mesh_actors_group = CustomGroupBox("Mesh", self)
         self.mesh_actors_group.addButtonClicked.connect(lambda mesh_path='', prompt=True: self.add_mesh_file(mesh_path, prompt))
         self.mesh_actors_group.add_button_to_header(link_mesh_button)
+        self.mesh_actors_group.add_button_to_header(mirror_button)
         self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_mask_actors(self):
@@ -792,39 +824,33 @@ class MyMainWindow(MainWindow):
         button = next((btn for btn in self.bbox_button_group_actors.buttons() if btn.text() == name), None)
         if button: button.click()
 
-    def mirror_image(self, name, direction):
-        image_model = self.scene.image_container.images[name]
-        if direction == 'x': image_model.source_obj = image_model.source_obj[:, ::-1, :]
-        elif direction == 'y': image_model.source_obj = image_model.source_obj[::-1, :, :]
+    def mirror_image(self, direction):
+        if self.scene.image_container.reference is not None:
+            image_model = self.scene.image_container.images[self.scene.image_container.reference]
+        if direction == 'x': 
+            image_model.source_obj = image_model.source_obj[:, ::-1, :]
+        elif direction == 'y': 
+            image_model.source_obj = image_model.source_obj[::-1, :, :]
         self.check_image_button(image_model.name)
 
-    def mirror_mesh(self, name, direction):
-        mesh_model = self.scene.mesh_container.meshes[name]
-        if (mesh_model.initial_pose != np.eye(4)).all(): mesh_model.initial_pose = mesh_model.actor.user_matrix
+    def mirror_mesh(self, direction):
+        if self.scene.mesh_container.reference is not None:
+            mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+        if (mesh_model.initial_pose != np.eye(4)).all(): 
+            mesh_model.initial_pose = mesh_model.actor.user_matrix
         transformation_matrix = mesh_model.actor.user_matrix
-        if direction == 'x': transformation_matrix = np.array([[-1,  0,  0, 0], [ 0,  1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
-        elif direction == 'y': transformation_matrix = np.array([[ 1,  0,  0, 0], [ 0,  -1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
+        if direction == 'x': 
+            transformation_matrix = np.array([[-1,  0,  0, 0], [ 0,  1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
+        elif direction == 'y': 
+            transformation_matrix = np.array([[ 1,  0,  0, 0], [ 0,  -1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
         mesh_model.actor.user_matrix = transformation_matrix
         self.check_mesh_button(name=mesh_model.name, output_text=True)
 
-    def add_image_button(self, name):
-        image_model = self.scene.image_container.images[name]
-        button_widget = CustomImageButtonWidget(name, image_path=image_model.path, parent=self)
-        button_widget.mirrorXChanged.connect(lambda direction: self.mirror_image(name, direction))
-        button_widget.mirrorYChanged.connect(lambda direction: self.mirror_image(name, direction))
-        button = button_widget.button
-        image_model.opacity_spinbox = button_widget.double_spinbox
-        # check the button
-        button.setCheckable(True)
-        button.setChecked(False)
-        button.clicked.connect(lambda _, name=name: self.scene.handle_image_click(name))
-        self.image_button_group_actors.addButton(button_widget.button)
-        self.images_actors_group.widget_layout.insertWidget(0, button_widget)
-        
     def add_mask_button(self, name):
         self.mask_actors_group.content_widget.setVisible(True)
-        button_widget = CustomMaskButtonWidget(name, self)
+        button_widget = CustomMaskButtonWidget(name)
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.mask_color_value_change(name, color))
+        button_widget.removeButtonClicked.connect(self.remove_mask_button)
         button = button_widget.button
         mask_model = self.scene.mask_container.masks[name]
         mask_model.opacity_spinbox = button_widget.double_spinbox
@@ -868,8 +894,9 @@ class MyMainWindow(MainWindow):
         else: utils.display_warning("Need to load an image first!")
 
     def add_bbox_button(self, name):
-        button_widget = CustomBboxButtonWidget(name, self)
+        button_widget = CustomBboxButtonWidget(name)
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.bbox_color_value_change(name, color))
+        button_widget.removeButtonClicked.connect(self.remove_bbox_button)
         button = button_widget.button
         bbox_model = self.scene.bbox_container.bboxes[name]
         bbox_model.opacity_spinbox = button_widget.double_spinbox
@@ -884,25 +911,6 @@ class MyMainWindow(MainWindow):
         self.bbox_actors_group.widget_layout.insertWidget(0, button_widget)
         self.bbox_button_group_actors.addButton(button)
         self.scene.handle_bbox_click(name=name)
-
-    def add_mesh_button(self, name, output_text):
-        button_widget = CustomMeshButtonWidget(name, self)
-        button_widget.colorChanged.connect(lambda color, name=name: self.scene.mesh_color_value_change(name, color))
-        button_widget.mirrorXChanged.connect(lambda direction: self.mirror_mesh(name, direction))
-        button_widget.mirrorYChanged.connect(lambda direction: self.mirror_mesh(name, direction))
-        button = button_widget.button
-        mesh_model = self.scene.mesh_container.meshes[name]
-        mesh_model.opacity_spinbox = button_widget.double_spinbox
-        mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
-        mesh_model.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.mesh_container.set_mesh_opacity(name, value))
-        mesh_model.color_button = button_widget.square_button
-        mesh_model.color_button.setStyleSheet(f"background-color: {mesh_model.color}")
-        # check the button
-        button.setCheckable(True)
-        button.setChecked(False)
-        button.clicked.connect(lambda _, name=name, output_text=output_text: self.scene.handle_mesh_click(name, output_text))
-        self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
-        self.mesh_button_group_actors.addButton(button)
 
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
@@ -967,8 +975,6 @@ class MyMainWindow(MainWindow):
                 next_button.click()
             else:
                 buttons[-1].click()
-        else:
-            button.active_preview_label.close() #* Delete the preview label
 
     def remove_mask_button(self, button):
         actor = self.scene.mask_container.masks[button.text()].actor
@@ -991,6 +997,12 @@ class MyMainWindow(MainWindow):
         button.deleteLater()
 
     def remove_mesh_button(self, button):
+        # Get the index of the button before removal
+        buttons = self.mesh_button_group_actors.buttons()
+        checked_button = self.mesh_button_group_actors.checkedButton()
+        index = buttons.index(checked_button)
+
+        # Remove the associated actor
         actor = self.scene.mesh_container.meshes[button.text()].actor
         self.plotter.remove_actor(actor)
         del self.scene.mesh_container.meshes[button.text()]
@@ -999,6 +1011,13 @@ class MyMainWindow(MainWindow):
         self.remove_mesh_button_widget(button)
         self.scene.mesh_container.reference = None
         button.deleteLater()
+        buttons = self.mesh_button_group_actors.buttons()
+        if buttons:
+            if index < len(buttons):
+                next_button = buttons[index]
+                next_button.click()
+            else:
+                buttons[-1].click()
 
     def clear_plot(self):
         for button in self.image_button_group_actors.buttons(): self.remove_image_button(button)
