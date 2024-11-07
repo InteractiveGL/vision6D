@@ -444,44 +444,6 @@ class MyMainWindow(MainWindow):
         # exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
         exportMenu.addAction('Camera Info', self.export_camera_info)
 
-    def draw_menu(self, event):
-        context_menu = QtWidgets.QMenu(self)
-
-        set_distance = QtWidgets.QAction('Set Distance', self)
-        set_distance.triggered.connect(self.set_distance2camera)
-
-        set_mask_act = QtWidgets.QAction('Set Mask', self)
-        set_mask_act.triggered.connect(self.set_mask)
-
-        draw_mask_menu = QtWidgets.QMenu('Draw Mask', self)  # Create a submenu for 'Draw Mask'
-        free_hand = QtWidgets.QAction('Free Hand', self)
-        free_hand.triggered.connect(functools.partial(self.draw_mask, live_wire=False, sam=False))  # Connect to a slot
-        live_wire = QtWidgets.QAction('Live Wire', self)
-        live_wire.triggered.connect(functools.partial(self.draw_mask, live_wire=True, sam=False))  # Connect to a slot
-        sam = QtWidgets.QAction('SAM', self)
-        sam.triggered.connect(functools.partial(self.draw_mask, live_wire=False, sam=True))  # Connect to another slot
-        draw_mask_menu.addAction(free_hand)
-        draw_mask_menu.addAction(live_wire)
-        draw_mask_menu.addAction(sam)
-        
-        draw_bbox = QtWidgets.QAction('Draw BBox', self)
-        draw_bbox.triggered.connect(self.draw_bbox)
-        
-        reset_mask = QtWidgets.QAction('Reset Mask (t)', self)
-        reset_mask.triggered.connect(self.scene.mask_container.reset_mask)
-        reset_bbox = QtWidgets.QAction('Reset Bbox (f)', self)
-        reset_bbox.triggered.connect(self.scene.bbox_container.reset_bbox)
-        
-        context_menu.addAction(set_distance)
-        context_menu.addAction(set_mask_act)
-        context_menu.addMenu(draw_mask_menu)
-        context_menu.addAction(draw_bbox)
-        context_menu.addAction(reset_mask)
-        context_menu.addAction(reset_bbox)
-
-        # Popup the menu
-        context_menu.popup(QtGui.QCursor.pos())
-
     # ^Panel
     def set_panel_bar(self):
         # Create a left panel layout

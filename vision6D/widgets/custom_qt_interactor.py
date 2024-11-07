@@ -28,8 +28,6 @@ class CustomQtInteractor(QtInteractor):
         super().mouseReleaseEvent(event)
         if event.button() in (1, 2, 4):  # Left, right, and middle mouse buttons
             self.release_callback()
-            if event.button() == 2 and self.main_window.image_button_group_actors.checkedButton() is not None:
-                self.main_window.draw_menu(event)
             
     def press_callback(self, obj, *args):
         x, y = obj.GetEventPosition()
