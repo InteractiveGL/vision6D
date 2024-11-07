@@ -81,20 +81,27 @@ class Scene():
         self.reset_camera()
 
     def tap_toggle_opacity(self):
-        mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
-        image_model = self.image_container.images[self.image_container.reference]
-        if mesh_model.opacity == 1.0: 
-            mesh_model.opacity = 0.0
-            image_model.opacity = 1.0
-        elif mesh_model.opacity == 0.9:
-            mesh_model.opacity = 1.0
-            image_model.opacity = 0.0
-        else:
-            mesh_model.opacity = 0.9
-            image_model.opacity = 0.9
-        image_model.actor.GetProperty().opacity = image_model.opacity
-        image_model.opacity_spinbox.setValue(image_model.opacity)
-        mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
+        if self.mesh_container.reference is not None and self.image_container.reference is not None:
+            mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
+            image_model = self.image_container.images[self.image_container.reference]
+            if mesh_model.opacity == 1.0: 
+                mesh_model.opacity = 0.0
+                image_model.opacity = 1.0
+            elif mesh_model.opacity == 0.9:
+                mesh_model.opacity = 1.0
+                image_model.opacity = 0.0
+            else:
+                mesh_model.opacity = 0.9
+                image_model.opacity = 0.9
+            image_model.actor.GetProperty().opacity = image_model.opacity
+            image_model.opacity_spinbox.setValue(image_model.opacity)
+            mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
+        elif self.mesh_container.reference is not None:
+            mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
+            if mesh_model.opacity == 1.0: mesh_model.opacity = 0.0
+            elif mesh_model.opacity == 0.9: mesh_model.opacity = 1.0
+            else: mesh_model.opacity = 0.9
+            mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
 
     def ctrl_tap_opacity(self):
         if self.mesh_container.reference is not None:

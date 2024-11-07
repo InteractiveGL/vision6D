@@ -313,7 +313,7 @@ class MyMainWindow(MainWindow):
                     mesh_model.opacity_spinbox.valueChanged.connect(lambda value, name=mesh_model.name: self.scene.mesh_container.set_mesh_opacity(name, value))
                     button = button_widget.button
                     button.setCheckable(True)
-                    button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.scene.handle_mesh_click(name, output_text))
+                    button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.check_mesh_button(name, output_text))
                     self.mesh_button_group_actors.addButton(button_widget.button)
                     self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
             self.check_mesh_button(name=mesh_model.name, output_text=True)
@@ -601,6 +601,27 @@ class MyMainWindow(MainWindow):
         self.images_actors_group.add_button_to_header(mirror_button)
         self.panel_layout.addWidget(self.images_actors_group)
 
+    def on_link_mesh_button_toggle(self, checked, clicked):
+        # if clicked and checked and self.scene.mesh_container.reference is not None:
+        #     for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+        #         if mesh_name == self.scene.mesh_container.reference: continue
+        #         vertices, faces = mesh_model.source_obj.vertices, mesh_model.source_obj.faces # vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
+        #         transformed_vertices = utils.transform_vertices(vertices, mesh_model.actor.user_matrix - np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1e+3], [0, 0, 0, 0]]))
+        #         mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(transformed_vertices, faces, process=False))
+        #         try:
+        #             mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_model.name)
+        #             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_model.name)
+        #             mesh_model.actor = actor
+        #             self.scene.mesh_container.meshes[mesh_model.name] = mesh_model
+        #         except ValueError:
+        #             self.scene.mesh_container.set_color(mesh_model.name, mesh_model.color)
+        #         mesh_model.actor.user_matrix = self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix
+        # elif checked and not clicked:
+        if checked and self.scene.mesh_container.reference is not None:
+            for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+                if mesh_name == self.scene.mesh_container.reference: continue
+                mesh_model.actor.user_matrix = self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix
+            
     def panel_mesh_actors(self):
         mirror_button = QtWidgets.QPushButton("Flip")
         mirror_button.setFixedSize(50, 20)
@@ -608,12 +629,13 @@ class MyMainWindow(MainWindow):
         mirror_options_menu.addAction("x-axis", functools.partial(self.mirror_mesh, direction="x"))
         mirror_options_menu.addAction("y-axis", functools.partial(self.mirror_mesh, direction="y"))
         mirror_button.setMenu(mirror_options_menu)
-        link_mesh_button = QtWidgets.QPushButton("Link")
-        link_mesh_button.setFixedSize(20, 20)
-        # link_mesh_button.clicked.connect(self.on_link_mesh_button_clicked)
+        self.link_mesh_button = QtWidgets.QPushButton("Link")
+        self.link_mesh_button.setFixedSize(20, 20)
+        self.link_mesh_button.setCheckable(True)
+        self.link_mesh_button.toggled.connect(lambda checked, clicked=True: self.on_link_mesh_button_toggle(checked, clicked))
         self.mesh_actors_group = CustomGroupBox("Mesh", self)
         self.mesh_actors_group.addButtonClicked.connect(lambda mesh_path='', prompt=True: self.add_mesh_file(mesh_path, prompt))
-        self.mesh_actors_group.add_button_to_header(link_mesh_button)
+        self.mesh_actors_group.add_button_to_header(self.link_mesh_button)
         self.mesh_actors_group.add_button_to_header(mirror_button)
         self.panel_layout.addWidget(self.mesh_actors_group)
 
@@ -777,6 +799,7 @@ class MyMainWindow(MainWindow):
         if button:
             button.setChecked(True)
             self.scene.handle_mesh_click(name=name, output_text=output_text)
+            self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
 
     def check_mask_button(self, name):
         button = next((btn for btn in self.mask_button_group_actors.buttons() if btn.text() == name), None)
