@@ -156,11 +156,12 @@ class MyMainWindow(MainWindow):
                 mesh_model.initial_pose = mesh_model.actor.user_matrix
                 mesh_model.undo_poses.append(mesh_model.initial_pose)
                 mesh_model.undo_poses = mesh_model.undo_poses[-20:]
+                matrix = utils.get_actor_user_matrix(mesh_model)
                 text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-                mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
-                mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
-                mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
-                mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
+                matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3], 
+                matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3], 
+                matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
+                matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3])
                 self.output_text.append(f"-> Update the {mesh_name} GT pose to:")
                 self.output_text.append(text)
         else:
@@ -168,36 +169,38 @@ class MyMainWindow(MainWindow):
             mesh_model.initial_pose = mesh_model.actor.user_matrix
             mesh_model.undo_poses.append(mesh_model.initial_pose)
             mesh_model.undo_poses = mesh_model.undo_poses[-20:]
+            matrix = utils.get_actor_user_matrix(mesh_model)
             text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-            mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
-            mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
-            mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
-            mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
+            matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3], 
+            matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3], 
+            matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
+            matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3])
             self.output_text.append(f"-> Update the {self.scene.mesh_container.reference} GT pose to:")
             self.output_text.append(text)
 
     def reset_gt_pose(self):
         if self.link_mesh_button.isChecked():
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
-                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-                mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
-                mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
-                mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
-                mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
-                self.output_text.append("-> Reset the GT pose to:")
-                self.output_text.append(text)
                 self.mesh_register(mesh_name, mesh_model.initial_pose)
+                matrix = utils.get_actor_user_matrix(mesh_model)
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3], 
+                matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3], 
+                matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
+                matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3])
+                self.output_text.append(f"-> Reset the {mesh_name} GT pose to:")
+                self.output_text.append(text)
         else:
             mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
-            # if mesh_model.initial_pose is not None:
-            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-            mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
-            mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
-            mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
-            mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
-            self.output_text.append("-> Reset the GT pose to:")
-            self.output_text.append(text)
             self.mesh_register(self.scene.mesh_container.reference, mesh_model.initial_pose)
+            matrix = utils.get_actor_user_matrix(mesh_model)
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3], 
+            matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3], 
+            matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
+            matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3])
+            self.output_text.append(f"-> Reset the {self.scene.mesh_container.reference} GT pose to:")
+            self.output_text.append(text)
             
         self.scene.reset_camera()
 
@@ -450,22 +453,26 @@ class MyMainWindow(MainWindow):
             mesh_model.actor = actor
             mesh_model.actor.user_matrix = transformation_matrix
             self.scene.mesh_container.meshes[mesh_name] = mesh_model
-        mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
-        get_pose_dialog = GetPoseDialog(mesh_model.actor.user_matrix)
+
+        reference_mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+        get_pose_dialog = GetPoseDialog(reference_mesh_model.actor.user_matrix)
         res = get_pose_dialog.exec_()
         if res == QtWidgets.QDialog.Accepted:
             user_text = get_pose_dialog.get_text()
-            mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
+            reference_mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
             if "," not in user_text:
                 user_text = user_text.replace(" ", ",")
                 user_text =user_text.strip().replace("[,", "[")
-            input_pose = exception.set_data_format(user_text, mesh_model.actor.user_matrix)
-            if input_pose.shape == (4, 4):
-                self.hintLabel.hide()
-                matrix = input_pose
-                mesh_model.initial_pose = matrix
-                self.reset_gt_pose()
-            else: utils.display_warning("It needs to be a 4 by 4 matrix")
+            input_pose = exception.set_data_format(user_text)
+            if input_pose is not None:
+                if input_pose.shape == (4, 4): 
+                    self.hintLabel.hide()
+                    if self.link_mesh_button.isChecked():
+                        for mesh_name, mesh_model in self.scene.mesh_container.meshes.items(): mesh_model.initial_pose = input_pose
+                    else: reference_mesh_model.initial_pose = input_pose     
+                    self.reset_gt_pose()
+                else: 
+                    utils.display_warning("It needs to be a 4 by 4 matrix")
 
     def undo_actor_pose(self):
         checked_button = self.mesh_button_group_actors.checkedButton()

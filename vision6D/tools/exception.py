@@ -24,10 +24,10 @@ def try_except_set_spacing(func):
 def set_spacing(data):
     return ast.literal_eval(data)
 
-def set_data_format(data, matrix=None):
+def set_data_format(data):
     try:
         return np.array(ast.literal_eval(data))
-    except SyntaxError:
+    except:
         QtWidgets.QMessageBox.warning(
                 QtWidgets.QMainWindow(), 
                 'vision6D', 
@@ -35,5 +35,4 @@ def set_data_format(data, matrix=None):
                 QtWidgets.QMessageBox.Ok, 
                 QtWidgets.QMessageBox.Ok
             )
-        if matrix is not None: return matrix
-        else: return None
+        return None
