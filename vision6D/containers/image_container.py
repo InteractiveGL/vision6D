@@ -91,7 +91,7 @@ class ImageContainer(metaclass=Singleton):
         # Compute offsets
         image_model.cx_offset = cx - (image_model.width / 2.0)
         image_model.cy_offset = cy - (image_model.height / 2.0)
-        print(f"Image Origin: {image_model.cx_offset, image_model.cy_offset}")
+        # print(f"Image Origin: {image_model.cx_offset, image_model.cy_offset}")
         # Move the image to the camera distance fy
         pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, fy]), inplace=False)
         image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -fy])

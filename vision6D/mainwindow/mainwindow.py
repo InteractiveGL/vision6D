@@ -453,6 +453,8 @@ class MyMainWindow(MainWindow):
             mesh_model.actor = actor
             mesh_model.actor.user_matrix = transformation_matrix
             self.scene.mesh_container.meshes[mesh_name] = mesh_model
+            mesh_model.undo_poses.clear()
+            mesh_model.undo_poses.append(transformation_matrix)
 
         reference_mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         get_pose_dialog = GetPoseDialog(reference_mesh_model.actor.user_matrix)
