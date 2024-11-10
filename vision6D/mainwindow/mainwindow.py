@@ -440,22 +440,6 @@ class MyMainWindow(MainWindow):
             self.reset_gt_pose()
 
     def set_pose(self):
-        # set the mesh to be the originally loaded mesh
-        for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
-            transformation_matrix = utils.get_actor_user_matrix(mesh_model)
-            vertices, faces = mesh_model.source_obj.vertices, mesh_model.source_obj.faces
-            mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
-            try:
-                mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_name)
-            except ValueError:
-                self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
-            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-            mesh_model.actor = actor
-            mesh_model.actor.user_matrix = transformation_matrix
-            self.scene.mesh_container.meshes[mesh_name] = mesh_model
-            mesh_model.undo_poses.clear()
-            mesh_model.undo_poses.append(transformation_matrix)
-
         reference_mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         get_pose_dialog = GetPoseDialog(reference_mesh_model.actor.user_matrix)
         res = get_pose_dialog.exec_()
@@ -469,6 +453,21 @@ class MyMainWindow(MainWindow):
             if input_pose is not None:
                 if input_pose.shape == (4, 4): 
                     self.hintLabel.hide()
+                    # set the mesh to be the originally loaded mesh
+                    for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+                        transformation_matrix = utils.get_actor_user_matrix(mesh_model)
+                        vertices, faces = mesh_model.source_obj.vertices, mesh_model.source_obj.faces
+                        mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+                        try:
+                            mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_name)
+                        except ValueError:
+                            self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
+                        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+                        mesh_model.actor = actor
+                        mesh_model.actor.user_matrix = transformation_matrix
+                        self.scene.mesh_container.meshes[mesh_name] = mesh_model
+                        mesh_model.undo_poses.clear()
+                        mesh_model.undo_poses.append(transformation_matrix)
                     if self.link_mesh_button.isChecked():
                         for mesh_name, mesh_model in self.scene.mesh_container.meshes.items(): mesh_model.initial_pose = input_pose
                     else: reference_mesh_model.initial_pose = input_pose     
