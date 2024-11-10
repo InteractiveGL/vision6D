@@ -8,22 +8,22 @@ def convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1):
     # Scale translation vector
     t = np.array(cam_t_m2c) * scale
     
-    # Create a 4x4 transformation matrix
+    # Create a 4x4 matrix
     T = np.eye(4)
     T[:3, :3] = R  # Rotation part
     T[:3, 3] = t   # Translation part
     
     return T
 
-def compute_transformation_matrix(data):
+def compute_matrix(data):
     """
-    Computes the 4x4 transformation matrix from the given JSON data.
+    Computes the 4x4 matrix from the given JSON data.
     
     Parameters:
         data (dict): A dictionary containing 'cam_R_m2c', 'cam_t_m2c', and 'obj_id'.
         
     Returns:
-        tuple: A tuple containing the 4x4 transformation matrix and the object ID.
+        tuple: A tuple containing the 4x4 matrix and the object ID.
     """
     # Extract rotation and translation
     cam_R_m2c = data.get('cam_R_m2c')
@@ -96,7 +96,7 @@ def process_lmo_scene_gt():
     data = json.loads(json_data)
     
     # Compute transformation matrix and get obj_id
-    T, obj_id = compute_transformation_matrix(data)
+    T, obj_id = compute_matrix(data)
     
     # Display results
     print("4x4 Transformation Matrix:\n", T)
@@ -137,7 +137,7 @@ def process_scene_gt():
     data = json.loads(json_data)
     
     # Compute transformation matrix and get obj_id
-    T, obj_id = compute_transformation_matrix(data)
+    T, obj_id = compute_matrix(data)
     
     # Print with comma-separated values
     formatted_matrix = np.array2string(T, separator=', ')

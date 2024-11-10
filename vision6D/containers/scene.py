@@ -109,37 +109,28 @@ class Scene():
                 if mesh_model.opacity != 0: mesh_model.opacity_spinbox.setValue(0)
                 else: mesh_model.opacity_spinbox.setValue(mesh_model.previous_opacity)
         else:
-            if self.image_container.image_model.reference is not None:
+            if self.image_container.reference is not None:
                 image_model = self.image_container.images[self.image_container.reference]
                 if image_model.opacity != 0: image_model.opacity_spinbox.setValue(0)
                 else: image_model.opacity_spinbox.setValue(image_model.previous_opacity)
-            if self.mask_container.mask_model.reference is not None:
+            if self.mask_container.reference is not None:
                 mask_model = self.mask_container.masks[self.mask_container.reference]
                 if mask_model.opacity != 0: mask_model.opacity_spinbox.setValue(0)
                 else: mask_model.opacity_spinbox.setValue(mask_model.previous_opacity)
-            if self.bbox_container.bbox_model.reference is not None:
+            if self.bbox_container.reference is not None:
                 bbox_model = self.bbox_container.bboxes[self.bbox_container.reference]
                 if bbox_model.opacity != 0: bbox_model.opacity_spinbox.setValue(0)
                 else: bbox_model.opacity_spinbox.setValue(bbox_model.previous_opacity)
 
-    def handle_transformation_matrix(self, transformation_matrix):
-        self.toggle_register(transformation_matrix)
-        self.update_gt_pose()
-
-    def toggle_register(self, pose):
-        mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
-        mesh_model.actor.user_matrix = pose
-        mesh_model.undo_poses.append(pose)
-        mesh_model.undo_poses = mesh_model.undo_poses[-20:]
-
     def handle_mesh_click(self, name, output_text):
         self.mesh_container.reference = name
         mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
+        matrix = utils.get_actor_user_matrix(mesh_model)
         text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-            mesh_model.actor.user_matrix[0, 0], mesh_model.actor.user_matrix[0, 1], mesh_model.actor.user_matrix[0, 2], mesh_model.actor.user_matrix[0, 3], 
-            mesh_model.actor.user_matrix[1, 0], mesh_model.actor.user_matrix[1, 1], mesh_model.actor.user_matrix[1, 2], mesh_model.actor.user_matrix[1, 3], 
-            mesh_model.actor.user_matrix[2, 0], mesh_model.actor.user_matrix[2, 1], mesh_model.actor.user_matrix[2, 2], mesh_model.actor.user_matrix[2, 3],
-            mesh_model.actor.user_matrix[3, 0], mesh_model.actor.user_matrix[3, 1], mesh_model.actor.user_matrix[3, 2], mesh_model.actor.user_matrix[3, 3])
+            matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3], 
+            matrix[1, 0], matrix[1, 1], matrix[1, 2], matrix[1, 3], 
+            matrix[2, 0], matrix[2, 1], matrix[2, 2], matrix[2, 3],
+            matrix[3, 0], matrix[3, 1], matrix[3, 2], matrix[3, 3])
         if output_text:
             self.output_text.append(f"--> Mesh {name} pose is:")
             self.output_text.append(text)
@@ -214,38 +205,3 @@ class Scene():
             except ValueError:
                 utils.display_warning(f"Cannot set color ({color}) to mask")
                 bbox_model.color_button.setStyleSheet(f"background-color: {bbox_model.color}")
-
-    def add_pose(self, matrix:np.ndarray=None, rot:np.ndarray=None, trans:np.ndarray=None):
-        if matrix is None and (rot is not None and trans is not None): matrix = np.vstack((np.hstack((rot, trans)), [0, 0, 0, 1]))
-        self.mesh_container.meshes[self.mesh_container.reference].initial_pose = matrix
-        self.reset_gt_pose()
-
-    def reset_gt_pose(self):
-        if self.mesh_container.reference:
-            mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
-            # if mesh_model.initial_pose is not None:
-            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-            mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
-            mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
-            mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
-            mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
-            self.output_text.append("-> Reset the GT pose to:")
-            self.output_text.append(text)
-            self.toggle_register(mesh_model.initial_pose)
-            self.reset_camera()
-        else: utils.display_warning("Need to set a reference mesh first")
-
-    def update_gt_pose(self):
-        if self.mesh_container.reference:
-            mesh_model = self.mesh_container.meshes[self.mesh_container.reference]
-            # if mesh_model.initial_pose is not None:
-            mesh_model.initial_pose = mesh_model.actor.user_matrix
-            self.toggle_register(mesh_model.actor.user_matrix)
-            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
-            mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
-            mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
-            mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
-            mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
-            self.output_text.append(f"-> Update the {self.mesh_container.reference} GT pose to:")
-            self.output_text.append(text)
-        else: utils.display_warning("Need to set a reference mesh first")

@@ -13,7 +13,6 @@ import os
 import ast
 os.environ["QT_API"] = "pyqt5" # Setting the Qt bindings for QtPy
 import json
-import math
 import pickle
 import trimesh
 import pathlib
@@ -21,6 +20,7 @@ import functools
 
 import PIL.Image
 import numpy as np
+import pyvista as pv
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui
@@ -49,7 +49,7 @@ from ..tools import utils
 from ..tools import exception
 from ..containers import Scene
 
-from ..path import ICON_PATH, PKG_ROOT
+from ..path import ICON_PATH, SAVE_ROOT
 
 np.set_printoptions(suppress=True)
         
@@ -125,8 +125,8 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.scene.bbox_container.reset_bbox)
 
         # Mesh related key bindings 
-        QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.scene.reset_gt_pose)
-        QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.scene.update_gt_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.reset_gt_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.update_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("s"), self).activated.connect(self.undo_actor_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.toggle_surface_opacity(up))
         QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.toggle_surface_opacity(up))
@@ -138,6 +138,68 @@ class MyMainWindow(MainWindow):
 
         QtWidgets.QShortcut(QtGui.QKeySequence("Up"), self).activated.connect(lambda up=True: self.key_next_image_button(up))
         QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self).activated.connect(lambda up=False: self.key_next_image_button(up))
+
+    def handle_transformation_matrix(self, name, transformation_matrix):
+        self.mesh_register(name, transformation_matrix)
+        self.update_gt_pose()
+
+    def mesh_register(self, name, pose):
+        mesh_model = self.scene.mesh_container.meshes[name]
+        mesh_model.actor.user_matrix = pose
+        mesh_model.undo_poses.append(pose)
+        mesh_model.undo_poses = mesh_model.undo_poses[-20:]
+
+    def update_gt_pose(self):
+        if self.link_mesh_button.isChecked():
+            for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+                mesh_model = self.scene.mesh_container.meshes[mesh_name]
+                mesh_model.initial_pose = mesh_model.actor.user_matrix
+                mesh_model.undo_poses.append(mesh_model.initial_pose)
+                mesh_model.undo_poses = mesh_model.undo_poses[-20:]
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
+                mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
+                mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
+                mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
+                self.output_text.append(f"-> Update the {mesh_name} GT pose to:")
+                self.output_text.append(text)
+        else:
+            mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+            mesh_model.initial_pose = mesh_model.actor.user_matrix
+            mesh_model.undo_poses.append(mesh_model.initial_pose)
+            mesh_model.undo_poses = mesh_model.undo_poses[-20:]
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
+            mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
+            mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
+            mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
+            self.output_text.append(f"-> Update the {self.scene.mesh_container.reference} GT pose to:")
+            self.output_text.append(text)
+
+    def reset_gt_pose(self):
+        if self.link_mesh_button.isChecked():
+            for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+                text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+                mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
+                mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
+                mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
+                mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
+                self.output_text.append("-> Reset the GT pose to:")
+                self.output_text.append(text)
+                self.mesh_register(mesh_name, mesh_model.initial_pose)
+        else:
+            mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+            # if mesh_model.initial_pose is not None:
+            text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
+            mesh_model.initial_pose[0, 0], mesh_model.initial_pose[0, 1], mesh_model.initial_pose[0, 2], mesh_model.initial_pose[0, 3], 
+            mesh_model.initial_pose[1, 0], mesh_model.initial_pose[1, 1], mesh_model.initial_pose[1, 2], mesh_model.initial_pose[1, 3], 
+            mesh_model.initial_pose[2, 0], mesh_model.initial_pose[2, 1], mesh_model.initial_pose[2, 2], mesh_model.initial_pose[2, 3],
+            mesh_model.initial_pose[3, 0], mesh_model.initial_pose[3, 1], mesh_model.initial_pose[3, 2], mesh_model.initial_pose[3, 3])
+            self.output_text.append("-> Reset the GT pose to:")
+            self.output_text.append(text)
+            self.mesh_register(self.scene.mesh_container.reference, mesh_model.initial_pose)
+            
+        self.scene.reset_camera()
 
     def key_next_image_button(self, up=False):
         buttons = self.image_button_group_actors.buttons()
@@ -268,12 +330,12 @@ class MyMainWindow(MainWindow):
                 points = exception.set_data_format(user_text)
                 if points is not None:
                     if points.shape[1] == 2:
-                        os.makedirs(PKG_ROOT.parent / "output", exist_ok=True)
-                        os.makedirs(PKG_ROOT.parent / "output" / "mask_points", exist_ok=True)
+                        os.makedirs(SAVE_ROOT / "output", exist_ok=True)
+                        os.makedirs(SAVE_ROOT / "output" / "mask_points", exist_ok=True)
                         if self.scene.image_container.images[self.scene.image_container.reference]: 
-                            mask_path = PKG_ROOT.parent / "output" / "mask_points" / f"{pathlib.Path(self.scene.image_container.images[self.scene.image_container.reference].path).stem}.npy"
+                            mask_path = SAVE_ROOT / "output" / "mask_points" / f"{pathlib.Path(self.scene.image_container.images[self.scene.image_container.reference].path).stem}.npy"
                         else: 
-                            mask_path = PKG_ROOT.parent / "output" / "mask_points" / "mask_points.npy"
+                            mask_path = SAVE_ROOT / "output" / "mask_points" / "mask_points.npy"
                         np.save(mask_path, points)
                         self.add_mask_file(mask_path)
                     else:
@@ -327,11 +389,11 @@ class MyMainWindow(MainWindow):
                 mesh_model = self.scene.mesh_container.meshes[name]
                 spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(mesh_model.spacing))
                 if ok:
-                    mesh_model.spacing = exception.set_spacing(spacing)
-                    # Calculate the centroid
-                    centroid = np.mean(mesh_model.source_obj.vertices, axis=0)
-                    offset = mesh_model.source_obj.vertices - centroid
-                    scaled_offset = offset * mesh_model.spacing
+                    scaled_spacing = np.array(exception.set_spacing(spacing)) / np.array(mesh_model.spacing)
+                    vertices, _ = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
+                    centroid = np.mean(vertices, axis=0) # Calculate the centroid
+                    offset = vertices - centroid
+                    scaled_offset = offset * scaled_spacing
                     vertices = centroid + scaled_offset
                     mesh_model.pv_obj.points = vertices
             else: utils.display_warning("Need to select a mesh object instead")
@@ -363,38 +425,52 @@ class MyMainWindow(MainWindow):
             
     def toggle_hide_meshes_button(self):
         self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
-        self.handle_hide_meshes_opacity(self.toggle_hide_meshes_flag)
+        self.handle_hide_meshes_opacity(self.toggle_hide_meshes_flag)    
 
     def add_pose_file(self, pose_path):
         if pose_path:
             self.hintLabel.hide()
             if isinstance(pose_path, list): transformation_matrix = np.array(pose_path)
             else: transformation_matrix = np.load(pose_path)
-            self.scene.add_pose(matrix=transformation_matrix)
+            # set the initial pose of the mesh to the loaded transformation matrix
+            self.scene.mesh_container.meshes[self.scene.mesh_container.reference].initial_pose = transformation_matrix
+            self.reset_gt_pose()
 
     def set_pose(self):
-        if self.scene.mesh_container.reference:
-            mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
-            get_pose_dialog = GetPoseDialog(mesh_model.actor.user_matrix)
-            res = get_pose_dialog.exec_()
-            if res == QtWidgets.QDialog.Accepted:
-                user_text = get_pose_dialog.get_text()
-                mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
-                if "," not in user_text:
-                    user_text = user_text.replace(" ", ",")
-                    user_text =user_text.strip().replace("[,", "[")
-                gt_pose = exception.set_data_format(user_text, mesh_model.actor.user_matrix)
-                if gt_pose.shape == (4, 4):
-                    self.hintLabel.hide()
-                    transformation_matrix = gt_pose
-                    self.scene.add_pose(matrix=transformation_matrix)
-                else: utils.display_warning("It needs to be a 4 by 4 matrix")
-        else: utils.display_warning("Needs to select a mesh first")
+        # set the mesh to be the originally loaded mesh
+        for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+            transformation_matrix = utils.get_actor_user_matrix(mesh_model)
+            vertices, faces = mesh_model.source_obj.vertices, mesh_model.source_obj.faces
+            mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
+            try:
+                mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_name)
+            except ValueError:
+                self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
+            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+            mesh_model.actor = actor
+            mesh_model.actor.user_matrix = transformation_matrix
+            self.scene.mesh_container.meshes[mesh_name] = mesh_model
+        mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+        get_pose_dialog = GetPoseDialog(mesh_model.actor.user_matrix)
+        res = get_pose_dialog.exec_()
+        if res == QtWidgets.QDialog.Accepted:
+            user_text = get_pose_dialog.get_text()
+            mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
+            if "," not in user_text:
+                user_text = user_text.replace(" ", ",")
+                user_text =user_text.strip().replace("[,", "[")
+            input_pose = exception.set_data_format(user_text, mesh_model.actor.user_matrix)
+            if input_pose.shape == (4, 4):
+                self.hintLabel.hide()
+                matrix = input_pose
+                mesh_model.initial_pose = matrix
+                self.reset_gt_pose()
+            else: utils.display_warning("It needs to be a 4 by 4 matrix")
 
     def undo_actor_pose(self):
         checked_button = self.mesh_button_group_actors.checkedButton()
         if checked_button:
-            self.scene.mesh_container.get_poses_from_undo(checked_button.text())
+            self.scene.mesh_container.get_poses_from_undo()
             checked_button.click()
         else: utils.display_warning("Choose a mesh actor first")
 
@@ -439,7 +515,7 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Image', self.export_image)
         exportMenu.addAction('Mask', self.export_mask)
         exportMenu.addAction('Bbox', self.export_bbox)
-        exportMenu.addAction('Mesh/Pose', self.export_mesh_pose)
+        exportMenu.addAction('Pose', self.export_pose)
         exportMenu.addAction('Mesh Render', self.export_mesh_render)
         # exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
         exportMenu.addAction('Camera Info', self.export_camera_info)
@@ -492,7 +568,7 @@ class MyMainWindow(MainWindow):
         self.pnp_window = PnPWindow(image_source=image, 
                                     mesh_model=self.scene.mesh_container.meshes[self.scene.mesh_container.reference],
                                     camera_intrinsics=self.scene.camera_intrinsics.astype(np.float32))
-        self.pnp_window.transformation_matrix_computed.connect(self.scene.handle_transformation_matrix)
+        self.pnp_window.transformation_matrix_computed.connect(lambda name=self.scene.mesh_container.reference: self.handle_transformation_matrix(name))
     
     def on_pose_options_selection_change(self, option):
         if option == "Set Pose":
@@ -500,9 +576,9 @@ class MyMainWindow(MainWindow):
         elif option == "PnP Register":
             self.pnp_register()
         elif option == "Reset GT Pose (k)":
-            self.scene.reset_gt_pose()
+            self.reset_gt_pose()
         elif option == "Update GT Pose (l)":
-            self.scene.update_gt_pose()
+            self.update_gt_pose()
         elif option == "Undo Pose (s)":
             self.undo_actor_pose()
 
@@ -602,22 +678,22 @@ class MyMainWindow(MainWindow):
         self.panel_layout.addWidget(self.images_actors_group)
 
     def on_link_mesh_button_toggle(self, checked, clicked):
-        # if clicked and checked and self.scene.mesh_container.reference is not None:
-        #     for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
-        #         if mesh_name == self.scene.mesh_container.reference: continue
-        #         vertices, faces = mesh_model.source_obj.vertices, mesh_model.source_obj.faces # vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
-        #         transformed_vertices = utils.transform_vertices(vertices, mesh_model.actor.user_matrix - np.array([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1e+3], [0, 0, 0, 0]]))
-        #         mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(transformed_vertices, faces, process=False))
-        #         try:
-        #             mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_model.name)
-        #             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_model.name)
-        #             mesh_model.actor = actor
-        #             self.scene.mesh_container.meshes[mesh_model.name] = mesh_model
-        #         except ValueError:
-        #             self.scene.mesh_container.set_color(mesh_model.name, mesh_model.color)
-        #         mesh_model.actor.user_matrix = self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix
-        # elif checked and not clicked:
-        if checked and self.scene.mesh_container.reference is not None:
+        if clicked and checked and self.scene.mesh_container.reference is not None:
+            for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+                vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
+                transformed_vertices = utils.transform_vertices(vertices, mesh_model.actor.user_matrix)
+                mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(transformed_vertices, faces, process=False))
+                try:
+                    mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_name)
+                except ValueError:
+                    self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
+                actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
+                mesh_model.actor = actor
+                self.scene.mesh_container.meshes[mesh_name] = mesh_model
+                #* very important to clear the mesh model's undo_poses and append an identity matrix to it
+                mesh_model.undo_poses.clear()
+                mesh_model.undo_poses.append(np.eye(4))
+        elif checked and not clicked:
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
                 if mesh_name == self.scene.mesh_container.reference: continue
                 mesh_model.actor.user_matrix = self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix
@@ -911,22 +987,22 @@ class MyMainWindow(MainWindow):
             self.workspace_path = workspace_path
             self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
-            root = PKG_ROOT.parent.parent.parent
-            if 'image_path' in workspace and workspace['image_path'] is not None: self.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
-            if 'mask_path' in workspace and workspace['mask_path'] is not None: self.add_mask_file(mask_path=root / pathlib.Path(*workspace['mask_path'].split("\\")))
-            if 'bbox_path' in workspace and workspace['bbox_path'] is not None: self.add_bbox_file(bbox_path=root / pathlib.Path(*workspace['bbox_path'].split("\\")))
+            if 'image_path' in workspace and workspace['image_path'] is not None: self.add_image_file(image_path=SAVE_ROOT / pathlib.Path(*workspace['image_path'].split("\\")))
+            if 'mask_path' in workspace and workspace['mask_path'] is not None: self.add_mask_file(mask_path=SAVE_ROOT / pathlib.Path(*workspace['mask_path'].split("\\")))
+            if 'bbox_path' in workspace and workspace['bbox_path'] is not None: self.add_bbox_file(bbox_path=SAVE_ROOT / pathlib.Path(*workspace['bbox_path'].split("\\")))
             if 'mesh_path' in workspace:
                 meshes = workspace['mesh_path']
                 for item in meshes: 
                     mesh_path, pose = meshes[item]
-                    self.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
+                    self.add_mesh_file(mesh_path = SAVE_ROOT / pathlib.Path(*mesh_path.split("\\")))
                     self.add_pose_file(pose)
             self.scene.reset_camera()
 
     def export_workspace(self):
         workspace_dict = {"mesh_path": {}, "image_path": {}, "mask_path": {}, "bbox_path": {}}
-        for mesh_model in self.scene.mesh_container.meshes.values(): 
-            workspace_dict["mesh_path"][mesh_model.name] = (mesh_model.path, mesh_model.actor.user_matrix.tolist())
+        for mesh_model in self.scene.mesh_container.meshes.values():
+            matrix = utils.get_actor_user_matrix(mesh_model)
+            workspace_dict["mesh_path"][mesh_model.name] = (mesh_model.path, matrix.tolist())
         for image_model in self.scene.image_container.images.values():
             workspace_dict["image_path"][image_model.name] = image_model.path
         for mask_model in self.scene.mask_container.masks.values():
@@ -1010,6 +1086,7 @@ class MyMainWindow(MainWindow):
         for button in self.bbox_button_group_actors.buttons(): self.remove_bbox_button(button)
         for button in self.mesh_button_group_actors.buttons(): self.remove_mesh_button(button)
         self.workspace_path = ''
+        self.link_mesh_button.setChecked(False)
         self.scene.track_image_actors.clear()
         self.scene.track_mask_actors.clear()
         self.scene.track_bbox_actors.clear()
@@ -1055,80 +1132,66 @@ class MyMainWindow(MainWindow):
         if ok:
             self.scene.set_distance2camera(distance)
         
-    def export_mesh_pose(self):
-        for mesh_model in self.scene.mesh_container.meshes.values():
-            verts, faces = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
-            vertices = utils.transform_vertices(verts, mesh_model.actor.user_matrix)
-            os.makedirs(PKG_ROOT.parent / "output" / "export_mesh", exist_ok=True)
-            output_path = PKG_ROOT.parent / "output" / "export_mesh" / (mesh_model.name + '.ply')
-            mesh = trimesh.Trimesh(vertices, faces, process=False)
-            ply_file = trimesh.exchange.ply.export_ply(mesh)
-            with open(output_path, "wb") as fid: fid.write(ply_file)
-            self.output_text.append(f"Export {mesh_model.name} mesh to:\n {output_path}")
+    def export_pose(self):
+        os.makedirs(SAVE_ROOT / "export_pose", exist_ok=True)
+        for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
+            matrix = utils.get_actor_user_matrix(mesh_model)
+            output_path = SAVE_ROOT / "export_pose" / (mesh_name + '.npy')
+            np.save(output_path, matrix)
+            self.output_text.append(f"Export {mesh_name} mesh pose to:\n {output_path}")
                 
     def export_mesh_render(self, save_render=True):
-        image = None
+        os.makedirs(SAVE_ROOT / "export_mesh_render", exist_ok=True)
         if self.scene.mesh_container.reference:
-            image = self.render_mesh(camera=self.plotter.camera.copy())
+            image = self.scene.mesh_container.render_mesh(name=self.scene.mesh_container.reference, camera=self.plotter.camera.copy(), width=self.scene.canvas_width, height=self.scene.canvas_height)
             if save_render:
-                output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.png)")
-                if output_path:
-                    if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
-                    rendered_image = PIL.Image.fromarray(image)
-                    rendered_image.save(output_path)
-                    self.output_text.append(f"-> Export mesh render to:\n {output_path}")
+                output_path = SAVE_ROOT / "export_mesh_render" / (self.scene.mesh_container.reference + '.png')
+                rendered_image = PIL.Image.fromarray(image)
+                rendered_image.save(output_path)
+                self.output_text.append(f"-> Export mesh render to:\n {output_path}")
         else: utils.display_warning("Need to load a mesh first")
         return image
 
-    def export_bbox(self, name, image_center):
-        bbox_model = self.scene.bbox_container.bboxes[name]
-        if bbox_model.actor:
-            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Bbox Files (*.npy)")
-            if output_path:
-                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
-                # Store the transformed bbox actor if there is any transformation
-                points = utils.get_bbox_actor_points(bbox_model.actor, image_center)
-                np.save(output_path, points)
-                self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
+    def export_bbox(self, image_center):
+        os.makedirs(SAVE_ROOT / "export_bbox", exist_ok=True)
+        if self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]:
+            bbox_model = self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]
+            output_path = SAVE_ROOT / "export_bbox" / (self.scene.bbox_container.reference + '.npy')
+            points = utils.get_bbox_actor_points(bbox_model.actor, image_center)
+            np.save(output_path, points)
             bbox_model.path = output_path
+            self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
         else: utils.display_warning("Need to load a bounding box first!")
 
-    def export_mask(self, name):
-        mask_model = self.scene.mask_container.masks[name]
-        if mask_model.actor:
-            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
-            if output_path:
-                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
-                # Store the transformed mask actor if there is any transformation
-                mask_surface = self.scene.mask_container.update_mask(name)
-                self.scene.mask_container.load_mask(mask_surface)
-                image = self.scene.mask_container.render_mask(name=name, camera=self.plotter.camera.copy())
-                rendered_image = PIL.Image.fromarray(image)
-                rendered_image.save(output_path)
-                # self.output_text.append(f"-> Export mask render to:\n {output_path}")
+    def export_mask(self):
+        os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)
+        if self.scene.mask_container.reference:
+            mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
+            output_path = SAVE_ROOT / "export_mask" / (self.scene.mask_container.reference + '.png')
+            # Store the transformed mask actor if there is any transformation
+            mask_surface = self.scene.mask_container.update_mask(self.scene.mask_container.reference)
+            self.scene.mask_container.load_mask(mask_surface)
+            image = self.scene.mask_container.render_mask(name=self.scene.mask_container.reference, camera=self.plotter.camera.copy())
+            rendered_image = PIL.Image.fromarray(image)
+            rendered_image.save(output_path)
             mask_model.path = output_path
+            self.output_text.append(f"-> Export Mask render to:\n {output_path}")
         else: utils.display_warning("Need to load a mask first!")
 
     def export_image(self):
+        os.makedirs(SAVE_ROOT / "export_image", exist_ok=True)
         if self.scene.image_container.reference:
-            output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Image Files (*.png)")
-            if output_path:
-                if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.png')
-                image_rendered = self.scene.image_container.render_image(camera=self.plotter.camera.copy())
-                rendered_image = PIL.Image.fromarray(image_rendered)
-                rendered_image.save(output_path)
-                # self.output_text.append(f"-> Export image render to:\n {output_path}")
+            image_rendered = self.scene.image_container.render_image(camera=self.plotter.camera.copy())
+            rendered_image = PIL.Image.fromarray(image_rendered)
+            output_path = SAVE_ROOT / "export_image" / (self.scene.image_container.reference + '.png')
+            rendered_image.save(output_path)
+            self.output_text.append(f"-> Export image render to:\n {output_path}")
         else: utils.display_warning("Need to load an image first!")
 
     def export_camera_info(self):
-        output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Camera Info Files (*.pkl)")
-        if output_path:
-            if pathlib.Path(output_path).suffix == '': output_path = pathlib.Path(output_path).parent / (pathlib.Path(output_path).stem + '.pkl')
-            camera_intrinsics = self.scene.camera_intrinsics.astype('float32')
-            if self.scene.image_container.images[self.scene.image_container.reference].height:
-                focal_length = (self.scene.image_container.images[self.scene.image_container.reference].height / 2.0) / math.tan(math.radians(self.plotter.camera.view_angle / 2))
-                camera_intrinsics[0, 0] = focal_length
-                camera_intrinsics[1, 1] = focal_length
-            camera_info = {'camera_intrinsics': camera_intrinsics}
-            with open(output_path,"wb") as f: pickle.dump(camera_info, f)
-            # self.output_text.append(f"-> Export camera info to:\n {output_path}")
+        os.makedirs(SAVE_ROOT / "export_camera_info", exist_ok=True)
+        output_path = SAVE_ROOT / "export_camera_info" / "camera_info.pkl"
+        camera_intrinsics = np.array([[self.scene.fx, 0, self.scene.cx], [0, self.scene.fy, self.scene.cy], [0, 0, 1]], dtype=np.float32)
+        camera_info = {'camera_intrinsics': camera_intrinsics, 'canvas_height': self.scene.canvas_height, 'canvas_width': self.scene.canvas_width}
+        with open(output_path,"wb") as f: pickle.dump(camera_info, f)
+        self.output_text.append(f"-> Export camera info to:\n {output_path}")

@@ -75,10 +75,13 @@ class MeshContainer(metaclass=Singleton):
             )
             mesh.user_matrix = (
                 transformation_matrix if self.reference is None
-                else self.meshes[self.reference].actor.user_matrix.copy()
+                else utils.get_actor_user_matrix(self.meshes[self.reference]).copy()
             )
             actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_model.name)
             mesh_model.actor = actor
+
+            # Save the initial pose
+            mesh_model.undo_poses.append(utils.get_actor_user_matrix(mesh_model).copy())
 
             return mesh_model
         
@@ -115,22 +118,24 @@ class MeshContainer(metaclass=Singleton):
         mesh_model.actor.user_matrix = pv.array_from_vtkmatrix(mesh_model.actor.GetMatrix())
         mesh_model.actor.GetProperty().opacity = mesh_opacity
 
-    def get_poses_from_undo(self, name):
-        mesh_model = self.meshes[name]
+    def get_poses_from_undo(self):
+        mesh_model = self.meshes[self.reference]
         transformation_matrix = mesh_model.undo_poses.pop()
-        while mesh_model.undo_poses and (transformation_matrix == mesh_model.actor.user_matrix).all(): 
+        matrix = mesh_model.actor.user_matrix
+        while mesh_model.undo_poses and np.isclose(transformation_matrix, matrix).all(): 
             transformation_matrix = mesh_model.undo_poses.pop()
-        mesh_model.actor.user_matrix = transformation_matrix
+            mesh_model.actor.user_matrix = transformation_matrix
 
     def render_mesh(self, name, camera, width, height):
         render = utils.create_render(width, height); render.clear()
         mesh_model = self.meshes[name]
-        vertices, faces = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
+        vertices, faces = mesh_model.source_obj.vertices, mesh_model.source_obj.faces
         pv_mesh = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
         colors = utils.get_mesh_actor_scalars(mesh_model.actor)
         if colors is not None: mesh = render.add_mesh(pv_mesh, scalars=colors, rgb=True, style='surface', opacity=1, name=name)
         else: mesh = render.add_mesh(pv_mesh, color=mesh_model.color, style='surface', opacity=1, name=name)
-        mesh.user_matrix = mesh_model.actor.user_matrix
+        matrix = utils.get_actor_user_matrix(mesh_model)
+        mesh.user_matrix = matrix
         # set the light source to add the textures
         light = pv.Light(light_type='headlight')
         render.add_light(light)

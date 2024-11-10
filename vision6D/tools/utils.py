@@ -289,6 +289,36 @@ def rigid_transform_3D(A, B):
 
     return rt
 
+def compute_transformation_matrix(A, B):
+    # Center the points
+    centroid_A = np.mean(A, axis=0)
+    centroid_B = np.mean(B, axis=0)
+    AA = A - centroid_A
+    BB = B - centroid_B
+    
+    H = np.dot(AA.T, BB) # Compute the covariance matrix
+    
+    # The amazing SVD
+    U, S, Vt = np.linalg.svd(H)
+    R = np.dot(Vt.T, U.T)
+    
+    # Count for the special reflection case
+    if np.linalg.det(R) < 0:
+        Vt[2, :] *= -1
+        R = np.dot(Vt.T, U.T)
+    
+    t = centroid_B - np.dot(R, centroid_A)
+    transformation_matrix = np.identity(4)
+    transformation_matrix[:3, :3] = R
+    transformation_matrix[:3, 3] = t
+    
+    return transformation_matrix
+
+def get_actor_user_matrix(mesh_model):
+    vertices, _ = get_mesh_actor_vertices_faces(mesh_model.actor)
+    matrix = compute_transformation_matrix(mesh_model.source_obj.vertices, transform_vertices(vertices, mesh_model.actor.user_matrix))
+    return matrix
+
 def load_latitude_longitude():
     # get the latitude and longitude
     # latlon_map_path = pkg_resources.resource_filename('vision6D', 'data/ossiclesCoordinateMapping.json')
