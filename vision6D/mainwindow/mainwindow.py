@@ -149,13 +149,12 @@ class MyMainWindow(MainWindow):
         mesh_model.undo_poses.append(pose)
         mesh_model.undo_poses = mesh_model.undo_poses[-20:]
 
-    def update_gt_pose(self):
+    def update_gt_pose(self, input_pose=None):
         if self.link_mesh_button.isChecked():
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
-                mesh_model = self.scene.mesh_container.meshes[mesh_name]
-                mesh_model.initial_pose = mesh_model.actor.user_matrix
+                mesh_model.initial_pose = mesh_model.actor.user_matrix if input_pose is None else input_pose
+                mesh_model.undo_poses.clear() # reset the undo_poses after updating the gt pose of a mesh object
                 mesh_model.undo_poses.append(mesh_model.initial_pose)
-                mesh_model.undo_poses = mesh_model.undo_poses[-20:]
                 matrix = utils.get_actor_user_matrix(mesh_model)
                 text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
                 matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3], 
@@ -166,9 +165,9 @@ class MyMainWindow(MainWindow):
                 self.output_text.append(text)
         else:
             mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
-            mesh_model.initial_pose = mesh_model.actor.user_matrix
+            mesh_model.initial_pose = mesh_model.actor.user_matrix if input_pose is None else input_pose
+            mesh_model.undo_poses.clear() # reset the undo_poses after updating the gt pose of a mesh object
             mesh_model.undo_poses.append(mesh_model.initial_pose)
-            mesh_model.undo_poses = mesh_model.undo_poses[-20:]
             matrix = utils.get_actor_user_matrix(mesh_model)
             text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
             matrix[0, 0], matrix[0, 1], matrix[0, 2], matrix[0, 3], 
@@ -440,12 +439,12 @@ class MyMainWindow(MainWindow):
             self.reset_gt_pose()
 
     def set_pose(self):
-        reference_mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
-        get_pose_dialog = GetPoseDialog(reference_mesh_model.actor.user_matrix)
+        mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+        get_pose_dialog = GetPoseDialog(mesh_model.actor.user_matrix)
         res = get_pose_dialog.exec_()
         if res == QtWidgets.QDialog.Accepted:
             user_text = get_pose_dialog.get_text()
-            reference_mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
+            mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
             if "," not in user_text:
                 user_text = user_text.replace(" ", ",")
                 user_text =user_text.strip().replace("[,", "[")
@@ -468,9 +467,7 @@ class MyMainWindow(MainWindow):
                         self.scene.mesh_container.meshes[mesh_name] = mesh_model
                         mesh_model.undo_poses.clear()
                         mesh_model.undo_poses.append(transformation_matrix)
-                    if self.link_mesh_button.isChecked():
-                        for mesh_name, mesh_model in self.scene.mesh_container.meshes.items(): mesh_model.initial_pose = input_pose
-                    else: reference_mesh_model.initial_pose = input_pose     
+                    self.update_gt_pose(input_pose=input_pose)
                     self.reset_gt_pose()
                 else: 
                     utils.display_warning("It needs to be a 4 by 4 matrix")
