@@ -440,7 +440,7 @@ class MyMainWindow(MainWindow):
 
     def set_pose(self):
         mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
-        get_pose_dialog = GetPoseDialog(mesh_model.actor.user_matrix)
+        get_pose_dialog = GetPoseDialog(utils.get_actor_user_matrix(mesh_model))
         res = get_pose_dialog.exec_()
         if res == QtWidgets.QDialog.Accepted:
             user_text = get_pose_dialog.get_text()
@@ -450,7 +450,7 @@ class MyMainWindow(MainWindow):
                 user_text =user_text.strip().replace("[,", "[")
             input_pose = exception.set_data_format(user_text)
             if input_pose is not None:
-                if input_pose.shape == (4, 4): 
+                if input_pose.shape == (4, 4):
                     self.hintLabel.hide()
                     # set the mesh to be the originally loaded mesh
                     for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
