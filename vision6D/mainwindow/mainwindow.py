@@ -573,7 +573,7 @@ class MyMainWindow(MainWindow):
         self.pnp_window = PnPWindow(image_source=image, 
                                     mesh_model=self.scene.mesh_container.meshes[self.scene.mesh_container.reference],
                                     camera_intrinsics=self.scene.camera_intrinsics.astype(np.float32))
-        self.pnp_window.transformation_matrix_computed.connect(lambda name=self.scene.mesh_container.reference: self.handle_transformation_matrix(name))
+        self.pnp_window.transformation_matrix_computed.connect(lambda transformation_matrix: self.handle_transformation_matrix(self.scene.mesh_container.reference, transformation_matrix))
     
     def on_pose_options_selection_change(self, option):
         if option == "Set Pose":
