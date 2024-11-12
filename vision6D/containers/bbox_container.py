@@ -21,6 +21,7 @@ class BboxContainer(metaclass=Singleton):
         self.plotter = plotter
         self.reference = None
         self.bboxes: Dict[str, BboxModel] = {}
+        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "white", "black", "wheat"]
 
     def reset(self, name):
         self.bboxes[name].clear_attributes()
@@ -31,7 +32,7 @@ class BboxContainer(metaclass=Singleton):
     #     elif direction == 'y': bbox_model.mirror_y = not bbox_model.mirror_y
     #     self.add_bbox(bbox_model.path)
                 
-    def add_bbox(self, bbox_source, image_center, w, h):
+    def add_bbox(self, bbox_source, fy, cx, cy, w, h):
         # Create a new BboxModel instance
         bbox_model = BboxModel()
 
@@ -54,21 +55,20 @@ class BboxContainer(metaclass=Singleton):
         bbox_model.width = w
         bbox_model.height = h
         
-        # Consider the mirror effect
-        # if bbox_model.mirror_x: points[:, 0] = w - points[:, 0]
-        # if bbox_model.mirror_y: points[:, 1] = h - points[:, 1]
-        
         # Due to camera view change to right handed coordinate system
-        points = points - bbox_center - image_center
+        canvas_center = np.array([cx - (w / 2.0), cy - (h / 2.0), -fy])
+        points = points - bbox_center - canvas_center
         cells = np.array([[2, 0, 1], [2, 1, 2], [2, 2, 3], [2, 3, 0]]).ravel()
         bbox_model.pv_obj = pv.UnstructuredGrid(cells, np.full((4,), vtk.VTK_LINE, dtype=np.uint8), points.astype(np.float32))
         bbox_model.opacity=0.5 
         bbox_model.previous_opacity=0.5
+        bbox_model.color = self.colors[len(self.bboxes) % len(self.colors)]
         # Add bbox surface object to the plot
         bbox_mesh = self.plotter.add_mesh(bbox_model.pv_obj, color=bbox_model.color, opacity=bbox_model.opacity, line_width=2)
         actor, _ = self.plotter.add_actor(bbox_mesh, pickable=True, name=bbox_model.name)
         bbox_model.actor = actor
         self.bboxes[bbox_model.name] = bbox_model
+        self.reference = bbox_model.name
         return bbox_model
 
     def set_bbox_color(self, color, name):
@@ -82,7 +82,6 @@ class BboxContainer(metaclass=Singleton):
         bbox_model.opacity = opacity
         bbox_model.actor.GetProperty().opacity = opacity
         
-    def reset_bbox(self, name, image_center):
-        bbox_model = self.bboxes[name]
-        if bbox_model.path:
-            _ = self.add_bbox(bbox_model.path, image_center, bbox_model.width, bbox_model.height)
+    def reset_bbox(self):
+        bbox_model = self.bboxes[self.reference]
+        bbox_model.actor.user_matrix = np.eye(4)

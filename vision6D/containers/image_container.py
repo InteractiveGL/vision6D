@@ -94,7 +94,7 @@ class ImageContainer(metaclass=Singleton):
         # print(f"Image Origin: {image_model.cx_offset, image_model.cy_offset}")
         # Move the image to the camera distance fy
         pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, fy]), inplace=False)
-        image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -fy])
+        # image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -fy])
 
         # Add the mesh to the plotter
         if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)

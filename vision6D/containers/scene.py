@@ -20,11 +20,6 @@ class Scene():
         self.mesh_container = MeshContainer(plotter=self.plotter)
         self.bbox_container = BboxContainer(plotter=self.plotter)
 
-        self.track_image_actors = []
-        self.track_mask_actors = []
-        self.track_mesh_actors = []
-        self.track_bbox_actors = []
-
         # set camera related attributes for the linemod dataset
         # self.fx = 572.4114
         # self.fy = 573.57043
@@ -141,7 +136,7 @@ class Scene():
         # Add a new image as current reference
         self.image_container.reference = name
         image_model = self.image_container.images[self.image_container.reference]
-        self.image_container.add_image_actor(image_model, self.fx, self.cx, self.cy)
+        self.image_container.add_image_actor(image_model, self.fy, self.cx, self.cy)
 
         # Disconnect existing connections to prevent accumulation
         try: image_model.opacity_spinbox.valueChanged.disconnect()
@@ -165,15 +160,12 @@ class Scene():
                 img_model.opacity_spinbox.setValue(0.9)
         
     def handle_mask_click(self, name):
-        # Add your mask handling code here
         self.mask_container.reference = name
-        for mask_name, mask_model in self.mask_container.masks.items():
-            if mask_name != name: mask_model.opacity = 0.0; mask_model.opacity_spinbox.setValue(0.0)
-            else: mask_model.opacity = 0.9; mask_model.opacity_spinbox.setValue(0.9)
+        self.reset_camera()
 
     def handle_bbox_click(self, name):
-        # Add your bbox handling code here
-        pass #* For fixing some bugs in segmesh render function
+        self.bbox_container.reference = name
+        self.reset_camera()
 
     def mesh_color_value_change(self, name, color):
         if name in self.mesh_container.meshes:

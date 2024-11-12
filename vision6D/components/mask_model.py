@@ -10,14 +10,10 @@
 
 from dataclasses import dataclass
 from . import AbstractData
-import numpy as np
-from typing import Optional
 
 @dataclass
 class MaskModel(AbstractData):
     color: str="white"
-    mask_center: Optional[np.ndarray] = np.array([0, 0, 0])
-    image_center: Optional[np.ndarray] = np.array([0, 0, 0])
     color_button: str=None
 
     def clear_attributes(self):

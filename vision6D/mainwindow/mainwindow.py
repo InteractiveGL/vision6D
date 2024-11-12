@@ -294,16 +294,14 @@ class MyMainWindow(MainWindow):
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             for image_path in image_paths:
                 image_model = self.scene.image_container.add_image_attributes(image_path)
-                if image_model.name not in self.scene.track_image_actors:
-                    self.scene.track_image_actors.append(image_model.name)
-                    button_widget = CustomImageButtonWidget(image_model.name, image_path=image_model.path)
-                    button_widget.removeButtonClicked.connect(self.remove_image_button)
-                    image_model.opacity_spinbox = button_widget.double_spinbox
-                    button = button_widget.button
-                    button.setCheckable(True)
-                    button.clicked.connect(lambda _, name=image_model.name: self.scene.handle_image_click(name))
-                    self.image_button_group_actors.addButton(button_widget.button)
-                    self.images_actors_group.widget_layout.insertWidget(0, button_widget)
+                button_widget = CustomImageButtonWidget(image_model.name, image_path=image_model.path)
+                button_widget.removeButtonClicked.connect(self.remove_image_button)
+                image_model.opacity_spinbox = button_widget.double_spinbox
+                button = button_widget.button
+                button.setCheckable(True)
+                button.clicked.connect(lambda _, name=image_model.name: self.scene.handle_image_click(name))
+                self.image_button_group_actors.addButton(button_widget.button)
+                self.images_actors_group.widget_layout.insertWidget(0, button_widget)
             self.check_image_button(image_model.name)
             self.scene.reset_camera()
 
@@ -312,15 +310,13 @@ class MyMainWindow(MainWindow):
             mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
         if mask_path:
             self.hintLabel.hide()
-            image_model = self.scene.image_container.images[self.scene.image_container.reference]
             mask_model = self.scene.mask_container.add_mask(mask_source = mask_path,
-                                                image_center = image_model.center,
-                                                w = image_model.width,
-                                                h = image_model.height)
-            # Add remove current image to removeMenu
-            if mask_model.name not in self.scene.track_mask_actors:
-                self.scene.track_mask_actors.append('mask')
-                self.add_mask_button(mask_model.name)
+                                                            fy = self.scene.fy,
+                                                            cx = self.scene.cx,
+                                                            cy = self.scene.cy,
+                                                            w = self.scene.canvas_width,
+                                                            h = self.scene.canvas_width)
+            self.add_mask_button(mask_model.name)
 
     def set_mask(self):
         get_mask_dialog = GetMaskDialog()
@@ -349,10 +345,7 @@ class MyMainWindow(MainWindow):
         if bbox_path:
             self.hintLabel.hide()
             bbox_model = self.scene.bbox_container.add_bbox(bbox_path)
-            # Add remove current image to removeMenu
-            if bbox_model.name not in self.scene.track_bbox_actors:
-                self.scene.track_bbox_actors.append(bbox_model.name)
-                self.add_bbox_button(bbox_model.name)
+            self.add_bbox_button(bbox_model.name)
 
     def add_mesh_file(self, mesh_path='', prompt=False):
         if prompt: 
@@ -364,22 +357,19 @@ class MyMainWindow(MainWindow):
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             for mesh_path in mesh_paths:
                 mesh_model = self.scene.mesh_container.add_mesh(mesh_source=mesh_path, transformation_matrix=np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]]))
-                # add remove current mesh to removeMenu
-                if mesh_model.name not in self.scene.track_mesh_actors:
-                    self.scene.track_mesh_actors.append(mesh_model.name)
-                    button_widget = CustomMeshButtonWidget(mesh_model.name)
-                    button_widget.colorChanged.connect(lambda color, name=mesh_model.name: self.scene.mesh_color_value_change(name, color))
-                    button_widget.removeButtonClicked.connect(self.remove_mesh_button)
-                    mesh_model.color_button = button_widget.square_button
-                    mesh_model.color_button.setStyleSheet(f"background-color: {mesh_model.color}")
-                    mesh_model.opacity_spinbox = button_widget.double_spinbox
-                    mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
-                    mesh_model.opacity_spinbox.valueChanged.connect(lambda value, name=mesh_model.name: self.scene.mesh_container.set_mesh_opacity(name, value))
-                    button = button_widget.button
-                    button.setCheckable(True)
-                    button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.check_mesh_button(name, output_text))
-                    self.mesh_button_group_actors.addButton(button_widget.button)
-                    self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
+                button_widget = CustomMeshButtonWidget(mesh_model.name)
+                button_widget.colorChanged.connect(lambda color, name=mesh_model.name: self.scene.mesh_color_value_change(name, color))
+                button_widget.removeButtonClicked.connect(self.remove_mesh_button)
+                mesh_model.color_button = button_widget.square_button
+                mesh_model.color_button.setStyleSheet(f"background-color: {mesh_model.color}")
+                mesh_model.opacity_spinbox = button_widget.double_spinbox
+                mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
+                mesh_model.opacity_spinbox.valueChanged.connect(lambda value, name=mesh_model.name: self.scene.mesh_container.set_mesh_opacity(name, value))
+                button = button_widget.button
+                button.setCheckable(True)
+                button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.check_mesh_button(name, output_text))
+                self.mesh_button_group_actors.addButton(button_widget.button)
+                self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
             self.check_mesh_button(name=mesh_model.name, output_text=True)
             self.scene.reset_camera()
 
@@ -721,9 +711,16 @@ class MyMainWindow(MainWindow):
         self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_mask_actors(self):
+        mirror_button = QtWidgets.QPushButton("Flip")
+        mirror_button.setFixedSize(50, 20)
+        mirror_options_menu = QtWidgets.QMenu()
+        mirror_options_menu.addAction("x-axis", functools.partial(self.mirror_mask, direction="x"))
+        mirror_options_menu.addAction("y-axis", functools.partial(self.mirror_mask, direction="y"))
+        mirror_button.setMenu(mirror_options_menu)
         self.mask_actors_group = CustomGroupBox("Mask", self)
         self.mask_actors_group.content_widget.setVisible(False)
         self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
+        self.mask_actors_group.add_button_to_header(mirror_button)
         self.panel_layout.addWidget(self.mask_actors_group)
 
     def panel_bbox_actors(self):
@@ -900,8 +897,7 @@ class MyMainWindow(MainWindow):
         self.check_image_button(image_model.name)
 
     def mirror_mesh(self, direction):
-        if self.scene.mesh_container.reference is not None:
-            mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+        mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         if (mesh_model.initial_pose != np.eye(4)).all(): 
             mesh_model.initial_pose = mesh_model.actor.user_matrix
         transformation_matrix = mesh_model.actor.user_matrix
@@ -911,6 +907,16 @@ class MyMainWindow(MainWindow):
             transformation_matrix = np.array([[ 1,  0,  0, 0], [ 0,  -1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
         mesh_model.actor.user_matrix = transformation_matrix
         self.check_mesh_button(name=mesh_model.name, output_text=True)
+
+    def mirror_mask(self, direction):
+        mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
+        transformation_matrix = mask_model.actor.user_matrix
+        if direction == 'x': 
+            transformation_matrix = np.array([[-1,  0,  0, 0], [ 0,  1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
+        elif direction == 'y': 
+            transformation_matrix = np.array([[ 1,  0,  0, 0], [ 0,  -1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]]) @ transformation_matrix
+        mask_model.actor.user_matrix = transformation_matrix
+        self.check_mask_button(name=mask_model.name)
 
     def add_mask_button(self, name):
         self.mask_actors_group.content_widget.setVisible(True)
@@ -930,15 +936,17 @@ class MyMainWindow(MainWindow):
         button.clicked.connect(lambda _, name=name: self.scene.handle_mask_click(name))
         self.mask_actors_group.widget_layout.insertWidget(0, button_widget)
         self.mask_button_group_actors.addButton(button)
-        self.scene.handle_mask_click(name=name)
+        self.check_mask_button(name=name)
 
     def draw_mask(self, live_wire=False, sam=False):
         def handle_output_path_change(output_path):
             if output_path:
                 self.scene.mask_container.add_mask(mask_source=output_path,
-                                                image_center=self.scene.image_container.images[self.scene.image_container.reference].center,
-                                                w = self.scene.image_container.images[self.scene.image_container.reference].width,
-                                                h = self.scene.image_container.images[self.scene.image_container.reference].height)
+                                                    fy = self.scene.fy,
+                                                    cx = self.scene.cx,
+                                                    cy = self.scene.cy,
+                                                    w = self.scene.canvas_width,
+                                                    h = self.scene.canvas_height)
                 self.add_mask_button(self.scene.mask_container.reference)
         if self.scene.image_container.images[self.scene.image_container.reference].actor:
             image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
@@ -1029,7 +1037,6 @@ class MyMainWindow(MainWindow):
         actor = self.scene.image_container.images[button.text()].actor
         self.plotter.remove_actor(actor)
         del self.scene.image_container.images[button.text()]
-        self.scene.track_image_actors.remove(button.text())
         self.image_button_group_actors.removeButton(button)
         self.remove_image_button_widget(button)
         self.scene.image_container.reference = None
@@ -1043,24 +1050,46 @@ class MyMainWindow(MainWindow):
                 buttons[-1].click()
 
     def remove_mask_button(self, button):
+        # Get the index of the button before removal
+        buttons = self.mask_button_group_actors.buttons()
+        checked_button = self.mask_button_group_actors.checkedButton()
+        index = buttons.index(checked_button)
+
         actor = self.scene.mask_container.masks[button.text()].actor
         self.plotter.remove_actor(actor)
         del self.scene.mask_container.masks[button.text()]
-        self.scene.track_mask_actors.remove(button.text())
         self.mask_button_group_actors.removeButton(button)
         self.remove_mask_button_widget(button)
         self.scene.mask_container.reference = None
         button.deleteLater()
+        buttons = self.mask_button_group_actors.buttons()
+        if buttons:
+            if index < len(buttons):
+                next_button = buttons[index]
+                next_button.click()
+            else:
+                buttons[-1].click()
 
     def remove_bbox_button(self, button):
+        # Get the index of the button before removal
+        buttons = self.bbox_button_group_actors.buttons()
+        checked_button = self.bbox_button_group_actors.checkedButton()
+        index = buttons.index(checked_button)
+
         actor = self.scene.bbox_container.bboxes[button.text()].actor
         self.plotter.remove_actor(actor)
         del self.scene.bbox_container.bboxes[button.text()]
-        self.scene.track_bbox_actors.remove(button.text())
         self.bbox_button_group_actors.removeButton(button)
         self.remove_bbox_button_widget(button)
         self.scene.bbox_container.reference = None
         button.deleteLater()
+        buttons = self.bbox_button_group_actors.buttons()
+        if buttons:
+            if index < len(buttons):
+                next_button = buttons[index]
+                next_button.click()
+            else:
+                buttons[-1].click()
 
     def remove_mesh_button(self, button):
         # Get the index of the button before removal
@@ -1072,7 +1101,6 @@ class MyMainWindow(MainWindow):
         actor = self.scene.mesh_container.meshes[button.text()].actor
         self.plotter.remove_actor(actor)
         del self.scene.mesh_container.meshes[button.text()]
-        self.scene.track_mesh_actors.remove(button.text())
         self.mesh_button_group_actors.removeButton(button)
         self.remove_mesh_button_widget(button)
         self.scene.mesh_container.reference = None
@@ -1092,10 +1120,6 @@ class MyMainWindow(MainWindow):
         for button in self.mesh_button_group_actors.buttons(): self.remove_mesh_button(button)
         self.workspace_path = ''
         self.link_mesh_button.setChecked(False)
-        self.scene.track_image_actors.clear()
-        self.scene.track_mask_actors.clear()
-        self.scene.track_bbox_actors.clear()
-        self.scene.track_mesh_actors.clear()
         self.reset_output_text()
         self.hintLabel.show()
     
@@ -1157,12 +1181,12 @@ class MyMainWindow(MainWindow):
         else: utils.display_warning("Need to load a mesh first")
         return image
 
-    def export_bbox(self, image_center):
+    def export_bbox(self):
         os.makedirs(SAVE_ROOT / "export_bbox", exist_ok=True)
         if self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]:
             bbox_model = self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]
             output_path = SAVE_ROOT / "export_bbox" / (self.scene.bbox_container.reference + '.npy')
-            points = utils.get_bbox_actor_points(bbox_model.actor, image_center)
+            points = utils.get_bbox_actor_points(bbox_model.actor, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_width, self.scene.canvas_height)
             np.save(output_path, points)
             bbox_model.path = output_path
             self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
@@ -1173,9 +1197,8 @@ class MyMainWindow(MainWindow):
         if self.scene.mask_container.reference:
             mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
             output_path = SAVE_ROOT / "export_mask" / (self.scene.mask_container.reference + '.png')
-            # Store the transformed mask actor if there is any transformation
-            mask_surface = self.scene.mask_container.update_mask(self.scene.mask_container.reference)
-            self.scene.mask_container.load_mask(mask_surface)
+            # Update and store the transformed mask actor if there is any transformation
+            self.scene.mask_container.update_mask(self.scene.mask_container.reference)
             image = self.scene.mask_container.render_mask(name=self.scene.mask_container.reference, camera=self.plotter.camera.copy())
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)

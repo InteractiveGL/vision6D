@@ -1,12 +1,13 @@
 # General import
-import numpy as np
+import os
 import cv2
-import pathlib
 import PIL.Image
+import numpy as np
 
 # Qt5 import
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import Qt
+from ..path import SAVE_ROOT
 
 # self defined package import
 np.set_printoptions(suppress=True)
@@ -36,13 +37,17 @@ class MaskLabel(QtWidgets.QLabel):
         points = np.array(points).astype('int32')
         mask = np.zeros((self.height, self.width), dtype=np.uint8)
         image = cv2.fillPoly(mask, [points], 255)
-        self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mask Files (*.png)")
-        if self.output_path:
-            if pathlib.Path(self.output_path).suffix == '': self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.png'))
-            rendered_image = PIL.Image.fromarray(image)
-            rendered_image.save(self.output_path)
-            self.output_path_changed.emit(self.output_path)
-            self.window().close()
+        
+        user_input, ok = QtWidgets.QInputDialog.getText(self, 'Save Mask', 'Enter file name:')
+        os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)
+        if ok and user_input: self.output_path = SAVE_ROOT / "export_mask" / f'{user_input}.png'
+        elif ok: self.output_path = SAVE_ROOT / "export_mask" / f'mask.png'
+        else: return
+
+        rendered_image = PIL.Image.fromarray(image)
+        rendered_image.save(self.output_path)
+        self.output_path_changed.emit(str(self.output_path))
+        self.window().close()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:

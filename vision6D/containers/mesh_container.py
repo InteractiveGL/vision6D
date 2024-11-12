@@ -61,11 +61,11 @@ class MeshContainer(metaclass=Singleton):
 
             # Set spacing for the mesh
             mesh_model.pv_obj.points *= mesh_model.spacing
+            mesh_model.color = self.colors[len(self.meshes) % len(self.colors)]
 
             # Add the new mesh_model to the meshes dictionary
             self.meshes[mesh_model.name] = mesh_model
-            mesh_model.color = self.colors[(len(self.meshes) - 1) % len(self.colors)]
-
+            
             # Add the mesh to the plotter
             mesh = self.plotter.add_mesh(
                 mesh_model.pv_obj,

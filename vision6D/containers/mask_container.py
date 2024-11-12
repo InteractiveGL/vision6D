@@ -23,16 +23,16 @@ class MaskContainer(metaclass=Singleton):
         self.plotter = plotter
         self.reference = None
         self.masks: Dict[str, MaskModel] = {}
+        self.colors = ["cyan", "magenta", "yellow", "lime", "dodgerblue", "white", "black", "wheat"]
 
     def reset(self, name):
         self.masks[name].clear_attributes()
 
-    # def mirror_mask(self, mask_model, direction):
-    #     if direction == 'x': mask_model.mirror_x = not mask_model.mirror_x
-    #     elif direction == 'y': mask_model.mirror_y = not mask_model.mirror_y
-    #     self.add_mask(mask_model.path)
+    def reset_mask(self):
+        mask_model = self.masks[self.reference]
+        mask_model.actor.user_matrix = np.eye(4)
 
-    def add_mask(self, mask_source, image_center, w, h):
+    def add_mask(self, mask_source, fy, cx, cy, w, h):
         # Create a new MaskModel instance
         mask_model = MaskModel()
 
@@ -58,35 +58,23 @@ class MaskContainer(metaclass=Singleton):
         mask_model.height = h
         
         mask_center = np.array([mask_model.width//2, mask_model.height//2, 0])
-        
-        # Consider the mirror effect
-        # if mask_model.mirror_x: points[:, 0] = mask_model.width - points[:, 0]
-        # if mask_model.mirror_y: points[:, 1] = mask_model.height - points[:, 1]
 
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
-        points = points - mask_center - image_center
-        mask_model.mask_center = mask_center
-        mask_model.image_center = image_center
+        canvas_center = np.array([cx - (w / 2.0), cy - (h / 2.0), -fy])
+        points = points - mask_center - canvas_center
         mask_model.pv_obj = pv.PolyData(points, cells).triangulate()
         mask_model.opacity = 0.5
         mask_model.previous_opacity = 0.5
-        mask_model.color = 'white'
+        mask_model.color = self.colors[len(self.masks) % len(self.colors)]
     
         mask_mesh = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity)
-        actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name='mask')
+        actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name=mask_model.name)
         mask_model.actor = actor
 
         self.masks[mask_model.name] = mask_model
         self.reference = mask_model.name
         return mask_model
-    
-    def load_mask(self):
-        pass
-    
-    def reset_mask(self):
-        mask_model = self.masks[self.reference]
-        _ = self.add_mask(mask_source=mask_model.path, image_center=mask_model.image_center, w = mask_model.width, h = mask_model.height)
 
     def set_mask_opacity(self, name, opacity: float):
         mask_model = self.masks[name]
@@ -104,7 +92,13 @@ class MaskContainer(metaclass=Singleton):
         transformed_points = utils.get_mask_actor_points(mask_model.actor)
         cells = np.hstack([[transformed_points.shape[0]], np.arange(transformed_points.shape[0]), 0])
         mask_surface = pv.PolyData(transformed_points, cells).triangulate()
-        return mask_surface
+        mask_model = self.masks[self.reference]
+        mask_model.pv_obj = mask_surface
+        mask_model.color = mask_model.color
+        mask_mesh = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity)
+        actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name=mask_model.name)
+        mask_model.actor = actor
+        self.masks[mask_model.name] = mask_model
 
     def render_mask(self, name, camera):
         mask_model = self.masks[name]
