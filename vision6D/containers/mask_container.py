@@ -28,10 +28,6 @@ class MaskContainer(metaclass=Singleton):
     def reset(self, name):
         self.masks[name].clear_attributes()
 
-    def reset_mask(self):
-        mask_model = self.masks[self.reference]
-        mask_model.actor.user_matrix = np.eye(4)
-
     def add_mask(self, mask_source, fy, cx, cy):
         # Create a new MaskModel instance
         mask_model = MaskModel()

@@ -116,7 +116,7 @@ class MyMainWindow(MainWindow):
         QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.scene.zoom_in)
 
         # Mask related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.scene.mask_container.reset_mask)
+        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.reset_mask)
 
         # Mesh related key bindings 
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.reset_gt_pose)
@@ -143,6 +143,7 @@ class MyMainWindow(MainWindow):
         mesh_model.undo_poses.append(pose)
         mesh_model.undo_poses = mesh_model.undo_poses[-20:]
 
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])
     def update_gt_pose(self, input_pose=None):
         if self.link_mesh_button.isChecked():
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
@@ -171,6 +172,7 @@ class MyMainWindow(MainWindow):
             self.output_text.append(f"-> Update the {self.scene.mesh_container.reference} GT pose to:")
             self.output_text.append(text)
 
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])
     def reset_gt_pose(self):
         if self.link_mesh_button.isChecked():
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
@@ -220,21 +222,19 @@ class MyMainWindow(MainWindow):
             e.ignore()
 
     #^ Camera related
+    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
     def camera_calibrate(self):
-        path = self.scene.image_container.images[self.scene.image_container.reference].path
-        if path:
-            original_image = np.array(PIL.Image.open(path), dtype='uint8')
-            # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
-            original_image = original_image[..., :3]
-            if len(original_image.shape) == 2: original_image = original_image[..., None]
-            if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
-            calibrated_image = np.array(self.scene.image_container.render_image(self.scene.image_container.reference,
-                                                                                self.plotter.camera.copy()), 
-                                                                                dtype='uint8')
-            if original_image.shape != calibrated_image.shape:
-                utils.display_warning("Original image shape is not equal to calibrated image shape!")
-            else: CalibrationDialog(calibrated_image, original_image).exec_()
-        else: utils.display_warning("Need to load an image first!")
+        original_image = np.array(PIL.Image.open(self.scene.image_container.images[self.scene.image_container.reference].path), dtype='uint8')
+        # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
+        original_image = original_image[..., :3]
+        if len(original_image.shape) == 2: original_image = original_image[..., None]
+        if original_image.shape[-1] == 1: original_image = np.dstack((original_image, original_image, original_image))
+        calibrated_image = np.array(self.scene.image_container.render_image(self.scene.image_container.reference,
+                                                                            self.plotter.camera.copy()), 
+                                                                            dtype='uint8')
+        if original_image.shape != calibrated_image.shape:
+            utils.display_warning("Original image shape is not equal to calibrated image shape!")
+        else: CalibrationDialog(calibrated_image, original_image).exec_()
 
     def set_camera(self):
         dialog = CameraPropsInputDialog(
@@ -331,6 +331,11 @@ class MyMainWindow(MainWindow):
                     else:
                         utils.display_warning("It needs to be a n by 2 matrix")
 
+    @utils.require_attributes([('scene.mask_container.reference', "Need to load a mask first!")])  
+    def reset_mask(self):
+        mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
+        mask_model.actor.user_matrix = np.eye(4)
+
     def add_mesh_file(self, mesh_path='', prompt=False):
         if prompt: 
             mesh_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
@@ -358,23 +363,18 @@ class MyMainWindow(MainWindow):
             else: self.check_mesh_button(name=mesh_model.name, output_text=True)
             self.scene.reset_camera()
 
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def set_spacing(self):
-        checked_button = self.mesh_button_group_actors.checkedButton()
-        if checked_button:
-            name = checked_button.text()
-            if name in self.scene.mesh_container.meshes:
-                mesh_model = self.scene.mesh_container.meshes[name]
-                spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(mesh_model.spacing))
-                if ok:
-                    scaled_spacing = np.array(exception.set_spacing(spacing)) / np.array(mesh_model.spacing)
-                    vertices, _ = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
-                    centroid = np.mean(vertices, axis=0) # Calculate the centroid
-                    offset = vertices - centroid
-                    scaled_offset = offset * scaled_spacing
-                    vertices = centroid + scaled_offset
-                    mesh_model.pv_obj.points = vertices
-            else: utils.display_warning("Need to select a mesh object instead")
-        else: utils.display_warning("Need to select a mesh actor first")
+        mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
+        spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(mesh_model.spacing))
+        if ok:
+            scaled_spacing = np.array(exception.set_spacing(spacing)) / np.array(mesh_model.spacing)
+            vertices, _ = utils.get_mesh_actor_vertices_faces(mesh_model.actor)
+            centroid = np.mean(vertices, axis=0) # Calculate the centroid
+            offset = vertices - centroid
+            scaled_offset = offset * scaled_spacing
+            vertices = centroid + scaled_offset
+            mesh_model.pv_obj.points = vertices
 
     def toggle_surface_opacity(self, up):
         checked_button = self.mesh_button_group_actors.checkedButton()
@@ -399,10 +399,11 @@ class MyMainWindow(MainWindow):
             mesh_model = self.scene.mesh_container.meshes[name]
             if flag: self.scene.mesh_container.set_mesh_opacity(name, 0)
             else: self.scene.mesh_container.set_mesh_opacity(name, mesh_model.previous_opacity)
-            
+
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def toggle_hide_meshes_button(self):
         self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
-        self.handle_hide_meshes_opacity(self.toggle_hide_meshes_flag)    
+        self.handle_hide_meshes_opacity(self.toggle_hide_meshes_flag)
 
     def add_pose_file(self, pose_path):
         if pose_path:
@@ -413,6 +414,7 @@ class MyMainWindow(MainWindow):
             self.scene.mesh_container.meshes[self.scene.mesh_container.reference].initial_pose = transformation_matrix
             self.reset_gt_pose()
 
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])
     def set_pose(self):
         mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         get_pose_dialog = GetPoseDialog(utils.get_actor_user_matrix(mesh_model))
@@ -445,12 +447,11 @@ class MyMainWindow(MainWindow):
                 else: 
                     utils.display_warning("It needs to be a 4 by 4 matrix")
 
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def undo_actor_pose(self):
         checked_button = self.mesh_button_group_actors.checkedButton()
-        if checked_button:
-            self.scene.mesh_container.get_poses_from_undo()
-            checked_button.click()
-        else: utils.display_warning("Choose a mesh actor first")
+        self.scene.mesh_container.get_poses_from_undo()
+        checked_button.click()
 
     def dropEvent(self, e):
         for url in e.mimeData().urls():
@@ -536,9 +537,8 @@ class MyMainWindow(MainWindow):
             column = 0
         return row, column
     
+    @utils.require_attributes([('scene.image_container.reference', 'Need to load an image first!'), ('scene.mesh_container.reference', 'Need to load a mesh first!')])
     def pnp_register(self):
-        if not self.scene.image_container.reference: utils.display_warning("Need to load an image first!"); return
-        if self.scene.mesh_container.reference is None: utils.display_warning("Need to select a mesh first!"); return
         image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
         self.pnp_window = PnPWindow(image_source=image, 
                                     mesh_model=self.scene.mesh_container.meshes[self.scene.mesh_container.reference],
@@ -614,7 +614,7 @@ class MyMainWindow(MainWindow):
         draw_mask_menu.addAction("Live Wire", functools.partial(self.draw_mask, live_wire=True, sam=False))
         draw_mask_menu.addAction("SAM", functools.partial(self.draw_mask, live_wire=False, sam=True))
         self.draw_options_menu.addMenu(draw_mask_menu)
-        self.draw_options_menu.addAction("Reset Mask (t)", self.scene.mask_container.reset_mask)
+        self.draw_options_menu.addAction("Reset Mask (t)", self.reset_mask)
         self.draw_options_button.setMenu(self.draw_options_menu)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.draw_options_button, row, column)
@@ -854,9 +854,9 @@ class MyMainWindow(MainWindow):
         button = next((btn for btn in self.mask_button_group_actors.buttons() if btn.text() == name), None)
         if button: button.click()
 
+    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
     def mirror_image(self, direction):
-        if self.scene.image_container.reference is not None:
-            image_model = self.scene.image_container.images[self.scene.image_container.reference]
+        image_model = self.scene.image_container.images[self.scene.image_container.reference]
         if direction == 'x': 
             image_model.source_obj = image_model.source_obj[:, ::-1, :]
         elif direction == 'y': 
@@ -905,6 +905,7 @@ class MyMainWindow(MainWindow):
         self.mask_button_group_actors.addButton(button)
         self.check_mask_button(name=name)
 
+    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
     def draw_mask(self, live_wire=False, sam=False):
         def handle_output_path_change(output_path):
             if output_path:
@@ -913,13 +914,11 @@ class MyMainWindow(MainWindow):
                                                     cx = self.scene.cx,
                                                     cy = self.scene.cy)
                 self.add_mask_button(self.scene.mask_container.reference)
-        if self.scene.image_container.images[self.scene.image_container.reference].actor:
-            image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
-            if sam: self.mask_window = SamWindow(image)
-            elif live_wire: self.mask_window = LiveWireWindow(image)
-            else: self.mask_window = MaskWindow(image)
-            self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
-        else: utils.display_warning("Need to load an image first!")
+        image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
+        if sam: self.mask_window = SamWindow(image)
+        elif live_wire: self.mask_window = LiveWireWindow(image)
+        else: self.mask_window = MaskWindow(image)
+        self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
 
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
@@ -1057,12 +1056,14 @@ class MyMainWindow(MainWindow):
                 widget.deleteLater()
                 break
 
+    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
     def set_distance2camera(self):
         image_model = self.scene.image_container.images[self.scene.image_container.reference]
         distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(image_model.distance2camera))
         if ok:
             self.scene.set_distance2camera(distance)
         
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def export_pose(self):
         os.makedirs(SAVE_ROOT / "export_pose", exist_ok=True)
         for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
@@ -1070,54 +1071,51 @@ class MyMainWindow(MainWindow):
             output_path = SAVE_ROOT / "export_pose" / (mesh_name + '.npy')
             np.save(output_path, matrix)
             self.output_text.append(f"Export {mesh_name} mesh pose to:\n {output_path}")
-                
+
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def export_mesh_render(self, save_render=True):
         os.makedirs(SAVE_ROOT / "export_mesh_render", exist_ok=True)
-        if self.scene.mesh_container.reference:
-            image = self.scene.mesh_container.render_mesh(name=self.scene.mesh_container.reference, camera=self.plotter.camera.copy(), width=self.scene.canvas_width, height=self.scene.canvas_height)
-            if save_render:
-                output_name = "export_" + self.scene.mesh_container.reference
-                output_path = SAVE_ROOT / "export_mesh_render" / (output_name + '.png')
-                while output_path.exists(): 
-                    output_name += "_copy"
-                    output_path = SAVE_ROOT / "export_mesh_render" / (output_name + ".png")
-                rendered_image = PIL.Image.fromarray(image)
-                rendered_image.save(output_path)
-                self.output_text.append(f"-> Export mesh render to:\n {output_path}")
-        else: utils.display_warning("Need to load a mesh first")
-        return image
-
-    def export_mask(self):
-        os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)
-        if self.scene.mask_container.reference:
-            mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
-            output_name = "export_" + self.scene.mask_container.reference
-            output_path = SAVE_ROOT / "export_mask" / (output_name + ".png")
+        image = self.scene.mesh_container.render_mesh(name=self.scene.mesh_container.reference, camera=self.plotter.camera.copy(), width=self.scene.canvas_width, height=self.scene.canvas_height)
+        if save_render:
+            output_name = "export_" + self.scene.mesh_container.reference
+            output_path = SAVE_ROOT / "export_mesh_render" / (output_name + '.png')
             while output_path.exists(): 
                 output_name += "_copy"
-                output_path = SAVE_ROOT / "export_mask" / (output_name + ".png")
-            # Update and store the transformed mask actor if there is any transformation
-            self.scene.mask_container.update_mask(self.scene.mask_container.reference)
-            image = self.scene.mask_container.render_mask(camera=self.plotter.camera.copy(), cx=self.scene.cx, cy=self.scene.cy)
+                output_path = SAVE_ROOT / "export_mesh_render" / (output_name + ".png")
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
-            mask_model.path = output_path
-            self.output_text.append(f"-> Export Mask render to:\n {output_path}")
-        else: utils.display_warning("Need to load a mask first!")
+            self.output_text.append(f"-> Export mesh render to:\n {output_path}")
+            return image
+        
+    @utils.require_attributes([('scene.mask_container.reference', "Need to load a mask first!")])   
+    def export_mask(self):
+        os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)
+        mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
+        output_name = "export_" + self.scene.mask_container.reference
+        output_path = SAVE_ROOT / "export_mask" / (output_name + ".png")
+        while output_path.exists(): 
+            output_name += "_copy"
+            output_path = SAVE_ROOT / "export_mask" / (output_name + ".png")
+        # Update and store the transformed mask actor if there is any transformation
+        self.scene.mask_container.update_mask(self.scene.mask_container.reference)
+        image = self.scene.mask_container.render_mask(camera=self.plotter.camera.copy(), cx=self.scene.cx, cy=self.scene.cy)
+        rendered_image = PIL.Image.fromarray(image)
+        rendered_image.save(output_path)
+        mask_model.path = output_path
+        self.output_text.append(f"-> Export Mask render to:\n {output_path}")
 
+    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])   
     def export_image(self):
         os.makedirs(SAVE_ROOT / "export_image", exist_ok=True)
-        if self.scene.image_container.reference:
-            image_rendered = self.scene.image_container.render_image(camera=self.plotter.camera.copy())
-            rendered_image = PIL.Image.fromarray(image_rendered)
-            output_name = "export_" + self.scene.image_container.reference
-            output_path = SAVE_ROOT / "export_image" / (output_name + '.png')
-            while output_path.exists():
-                output_name += "_copy"
-                output_path = SAVE_ROOT / "export_image" / (output_name + ".png")
-            rendered_image.save(output_path)
-            self.output_text.append(f"-> Export image render to:\n {output_path}")
-        else: utils.display_warning("Need to load an image first!")
+        image_rendered = self.scene.image_container.render_image(camera=self.plotter.camera.copy())
+        rendered_image = PIL.Image.fromarray(image_rendered)
+        output_name = "export_" + self.scene.image_container.reference
+        output_path = SAVE_ROOT / "export_image" / (output_name + '.png')
+        while output_path.exists():
+            output_name += "_copy"
+            output_path = SAVE_ROOT / "export_image" / (output_name + ".png")
+        rendered_image.save(output_path)
+        self.output_text.append(f"-> Export image render to:\n {output_path}")
 
     def export_camera_info(self):
         os.makedirs(SAVE_ROOT / "export_camera_info", exist_ok=True)

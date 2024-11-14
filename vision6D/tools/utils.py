@@ -14,6 +14,7 @@ import copy
 import json
 import logging
 import pathlib
+import operator
 
 import vtk
 import numpy as np
@@ -476,3 +477,19 @@ def reset_vtk_lut(colormap):
 def display_warning(message):
     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), "vision6D", message, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     return 0
+
+def require_attributes(attributes_with_messages):
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            for attr_path, warning_message in attributes_with_messages:
+                try:
+                    attr_value = operator.attrgetter(attr_path)(self)
+                    if not attr_value:
+                        display_warning(warning_message)
+                        return
+                except AttributeError:
+                    display_warning(warning_message)
+                    return
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
