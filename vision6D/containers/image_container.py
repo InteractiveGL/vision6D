@@ -56,19 +56,11 @@ class ImageContainer(metaclass=Singleton):
     def add_image_attributes(self, image_source):
         # Create a new ImageModel instance
         image_model = ImageModel()
-
-        if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
-            image_model.path = str(image_source)
-            name = pathlib.Path(image_model.path).stem
-            while name in self.images: name = name + "_copy"
-            image_model.name = name
-            image_model.source_obj = np.array(PIL.Image.open(image_model.path), dtype='uint8')
-        else:
-            image_model.source_obj = image_source
-            # Generate a unique name if none is provided
-            name = f"image_{len(self.images)}"
-            while name in self.images: name = name + "_copy"
-            image_model.name = name
+        image_model.path = str(image_source)
+        name = pathlib.Path(image_model.path).stem
+        while name in self.images: name = name + "_copy"
+        image_model.name = name + "_image"
+        image_model.source_obj = np.array(PIL.Image.open(image_model.path), dtype='uint8')
 
         if len(image_model.source_obj.shape) == 2: image_model.source_obj = image_model.source_obj[..., None]
         dim = image_model.source_obj.shape
@@ -114,21 +106,20 @@ class ImageContainer(metaclass=Singleton):
             if hasattr(image_model, 'actor'):
                 image_model.actor.GetProperty().opacity = opacity
 
-    def render_image(self, name, camera):
-        if name in self.images:
-            image_model = self.images[name]
-            render = utils.create_render(image_model.width, image_model.height)
-            render.clear()
-            # Ensure actor exists
-            if hasattr(image_model, 'actor'):
-                render_actor = image_model.actor.copy(deep=True)
-                render_actor.GetProperty().opacity = 1
-                render.add_actor(render_actor, pickable=False)
-                render.camera = camera
-                render.disable()
-                render.show(auto_close=False)
-                image = render.last_image
-                return image
-            else:
-                print(f"No actor found for image '{name}'.")
-                return None
+    def render_image(self, camera):
+        image_model = self.images[self.reference]
+        render = utils.create_render(image_model.width, image_model.height)
+        render.clear()
+        # Ensure actor exists
+        if hasattr(image_model, 'actor'):
+            render_actor = image_model.actor.copy(deep=True)
+            render_actor.GetProperty().opacity = 1
+            render.add_actor(render_actor, pickable=False)
+            render.camera = camera
+            render.disable()
+            render.show(auto_close=False)
+            image = render.last_image
+            return image
+        else:
+            print(f"No actor found for image '{self.reference}'.")
+            return None

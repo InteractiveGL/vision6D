@@ -313,9 +313,7 @@ class MyMainWindow(MainWindow):
             mask_model = self.scene.mask_container.add_mask(mask_source = mask_path,
                                                             fy = self.scene.fy,
                                                             cx = self.scene.cx,
-                                                            cy = self.scene.cy,
-                                                            w = self.scene.canvas_width,
-                                                            h = self.scene.canvas_width)
+                                                            cy = self.scene.cy)
             self.add_mask_button(mask_model.name)
 
     def set_mask(self):
@@ -356,7 +354,7 @@ class MyMainWindow(MainWindow):
             self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_height)
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             for mesh_path in mesh_paths:
-                mesh_model = self.scene.mesh_container.add_mesh(mesh_source=mesh_path, transformation_matrix=np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]]))
+                mesh_model = self.scene.mesh_container.add_mesh_actor(mesh_source=mesh_path, transformation_matrix=np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]]))
                 button_widget = CustomMeshButtonWidget(mesh_model.name)
                 button_widget.colorChanged.connect(lambda color, name=mesh_model.name: self.scene.mesh_color_value_change(name, color))
                 button_widget.removeButtonClicked.connect(self.remove_mesh_button)
@@ -434,7 +432,6 @@ class MyMainWindow(MainWindow):
         res = get_pose_dialog.exec_()
         if res == QtWidgets.QDialog.Accepted:
             user_text = get_pose_dialog.get_text()
-            mesh_model.actor.user_matrix = get_pose_dialog.get_pose()
             if "," not in user_text:
                 user_text = user_text.replace(" ", ",")
                 user_text =user_text.strip().replace("[,", "[")
@@ -448,11 +445,10 @@ class MyMainWindow(MainWindow):
                         vertices, faces = mesh_model.source_obj.vertices, mesh_model.source_obj.faces
                         mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(vertices, faces, process=False))
                         try:
-                            mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_name)
+                            mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, pickable=True, name=mesh_name)
                         except ValueError:
                             self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
-                        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-                        mesh_model.actor = actor
+                        mesh_model.actor = mesh
                         mesh_model.actor.user_matrix = transformation_matrix
                         self.scene.mesh_container.meshes[mesh_name] = mesh_model
                         mesh_model.undo_poses.clear()
@@ -679,11 +675,10 @@ class MyMainWindow(MainWindow):
                 transformed_vertices = utils.transform_vertices(vertices, mesh_model.actor.user_matrix)
                 mesh_model.pv_obj = pv.wrap(trimesh.Trimesh(transformed_vertices, faces, process=False))
                 try:
-                    mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, name=mesh_name)
+                    mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, pickable=True, name=mesh_name)
                 except ValueError:
                     self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
-                actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_name)
-                mesh_model.actor = actor
+                mesh_model.actor = mesh
                 self.scene.mesh_container.meshes[mesh_name] = mesh_model
                 #* very important to clear the mesh model's undo_poses and append an identity matrix to it
                 mesh_model.undo_poses.clear()
@@ -944,9 +939,7 @@ class MyMainWindow(MainWindow):
                 self.scene.mask_container.add_mask(mask_source=output_path,
                                                     fy = self.scene.fy,
                                                     cx = self.scene.cx,
-                                                    cy = self.scene.cy,
-                                                    w = self.scene.canvas_width,
-                                                    h = self.scene.canvas_height)
+                                                    cy = self.scene.cy)
                 self.add_mask_button(self.scene.mask_container.reference)
         if self.scene.image_container.images[self.scene.image_container.reference].actor:
             image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
@@ -1199,7 +1192,7 @@ class MyMainWindow(MainWindow):
             output_path = SAVE_ROOT / "export_mask" / (self.scene.mask_container.reference + '.png')
             # Update and store the transformed mask actor if there is any transformation
             self.scene.mask_container.update_mask(self.scene.mask_container.reference)
-            image = self.scene.mask_container.render_mask(name=self.scene.mask_container.reference, camera=self.plotter.camera.copy())
+            image = self.scene.mask_container.render_mask(camera=self.plotter.camera.copy())
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             mask_model.path = output_path

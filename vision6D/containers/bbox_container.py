@@ -38,11 +38,11 @@ class BboxContainer(metaclass=Singleton):
 
         if isinstance(bbox_source, pathlib.Path) or isinstance(bbox_source, str):
             bbox_model.path = str(bbox_source)
-            bbox_model.name = pathlib.Path(bbox_model.path).stem
+            bbox_model.name = pathlib.Path(bbox_model.path).stem + "_bbox"
             bbox_source = np.load(bbox_source)
-        
-        # find the center of the image
-        bbox_center = np.array([w//2, h//2, 0])
+
+        bbox_model.width = w
+        bbox_model.height = h
 
         # x1, y1, x2, y2
         if bbox_source.shape == (4, ): points = np.array([[bbox_source[0], bbox_source[1], 0], 
@@ -52,20 +52,16 @@ class BboxContainer(metaclass=Singleton):
         elif bbox_source.shape == (4, 3): points = bbox_source
 
         bbox_model.source_obj = bbox_source
-        bbox_model.width = w
-        bbox_model.height = h
         
         # Due to camera view change to right handed coordinate system
-        canvas_center = np.array([cx - (w / 2.0), cy - (h / 2.0), -fy])
-        points = points - bbox_center - canvas_center
         cells = np.array([[2, 0, 1], [2, 1, 2], [2, 2, 3], [2, 3, 0]]).ravel()
         bbox_model.pv_obj = pv.UnstructuredGrid(cells, np.full((4,), vtk.VTK_LINE, dtype=np.uint8), points.astype(np.float32))
+        bbox_model.pv_obj.translate(np.array([-cx, -cy, fy]), inplace=True)
         bbox_model.opacity=0.5 
         bbox_model.previous_opacity=0.5
         bbox_model.color = self.colors[len(self.bboxes) % len(self.colors)]
         # Add bbox surface object to the plot
-        bbox_mesh = self.plotter.add_mesh(bbox_model.pv_obj, color=bbox_model.color, opacity=bbox_model.opacity, line_width=2)
-        actor, _ = self.plotter.add_actor(bbox_mesh, pickable=True, name=bbox_model.name)
+        actor = self.plotter.add_mesh(bbox_model.pv_obj, color=bbox_model.color, opacity=bbox_model.opacity, line_width=2, pickable=True, name=bbox_model.name)
         bbox_model.actor = actor
         self.bboxes[bbox_model.name] = bbox_model
         self.reference = bbox_model.name

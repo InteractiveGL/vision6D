@@ -32,44 +32,35 @@ class MaskContainer(metaclass=Singleton):
         mask_model = self.masks[self.reference]
         mask_model.actor.user_matrix = np.eye(4)
 
-    def add_mask(self, mask_source, fy, cx, cy, w, h):
+    def add_mask(self, mask_source, fy, cx, cy):
         # Create a new MaskModel instance
         mask_model = MaskModel()
 
         if isinstance(mask_source, pathlib.Path) or isinstance(mask_source, str):
             mask_model.path = str(mask_source)
 
-        if pathlib.Path(mask_model.path).suffix == '.npy':
-            points = np.load(mask_model.path).squeeze()
-        else:
-            mask_source = np.array(Image.open(mask_source), dtype='uint8')
-            h, w = mask_source.shape[0], mask_source.shape[1]
-            # if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
-            if mask_source.shape[-1] == 3: mask_source = cv2.cvtColor(mask_source, cv2.COLOR_RGB2GRAY)
-            contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            points = contours[0].squeeze()
-            mask_model.source_obj = mask_source
+        mask_source = np.array(Image.open(mask_source), dtype='uint8')
+        mask_model.height, mask_model.width = mask_source.shape[0], mask_source.shape[1]
+        # if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
+        if mask_source.shape[-1] == 3: mask_source = cv2.cvtColor(mask_source, cv2.COLOR_RGB2GRAY)
+        contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        points = contours[0].squeeze()
+        mask_model.source_obj = mask_source
 
         mask_model.name = pathlib.Path(mask_model.path).stem
         while mask_model.name in self.masks: mask_model.name += "_copy"
+        mask_model.name = mask_model.name + "_mask"
         points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
-
-        mask_model.width = w
-        mask_model.height = h
-        
-        mask_center = np.array([mask_model.width//2, mask_model.height//2, 0])
 
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
-        canvas_center = np.array([cx - (w / 2.0), cy - (h / 2.0), -fy])
-        points = points - mask_center - canvas_center
         mask_model.pv_obj = pv.PolyData(points, cells).triangulate()
+        mask_model.pv_obj.translate(np.array([-cx, -cy, fy]), inplace=True)
         mask_model.opacity = 0.5
         mask_model.previous_opacity = 0.5
         mask_model.color = self.colors[len(self.masks) % len(self.colors)]
     
-        mask_mesh = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity)
-        actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name=mask_model.name)
+        actor = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity, pickable=True, name=mask_model.name)
         mask_model.actor = actor
 
         self.masks[mask_model.name] = mask_model
@@ -95,13 +86,12 @@ class MaskContainer(metaclass=Singleton):
         mask_model = self.masks[self.reference]
         mask_model.pv_obj = mask_surface
         mask_model.color = mask_model.color
-        mask_mesh = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity)
-        actor, _ = self.plotter.add_actor(mask_mesh, pickable=True, name=mask_model.name)
+        actor = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity, pickable=True, name=mask_model.name)
         mask_model.actor = actor
         self.masks[mask_model.name] = mask_model
 
-    def render_mask(self, name, camera):
-        mask_model = self.masks[name]
+    def render_mask(self, camera):
+        mask_model = self.masks[self.reference]
         render = utils.create_render(mask_model.width, mask_model.height)
         render.clear()
         render_actor = mask_model.actor.copy(deep=True)

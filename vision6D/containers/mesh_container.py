@@ -27,7 +27,7 @@ class MeshContainer(metaclass=Singleton):
         self.meshes: Dict[str, MeshModel] = {}
         self.colors = ["wheat", "cyan", "magenta", "yellow", "lime", "dodgerblue", "white", "black"]
 
-    def add_mesh(self, mesh_source, transformation_matrix=np.eye(4)):
+    def add_mesh_actor(self, mesh_source, transformation_matrix=np.eye(4)):
         source_mesh = None
 
         if isinstance(mesh_source, pathlib.Path) or isinstance(mesh_source, str):
@@ -71,14 +71,14 @@ class MeshContainer(metaclass=Singleton):
                 mesh_model.pv_obj,
                 color=mesh_model.color,
                 opacity=mesh_model.opacity,
+                pickable=True,
                 name=mesh_model.name
             )
             mesh.user_matrix = (
                 transformation_matrix if self.reference is None
                 else utils.get_actor_user_matrix(self.meshes[self.reference]).copy()
             )
-            actor, _ = self.plotter.add_actor(mesh, pickable=True, name=mesh_model.name)
-            mesh_model.actor = actor
+            mesh_model.actor = mesh
 
             # Save the initial pose
             mesh_model.undo_poses.append(utils.get_actor_user_matrix(mesh_model).copy())
@@ -96,9 +96,9 @@ class MeshContainer(metaclass=Singleton):
                 scalars = np.load(texture_path) / 255 # make sure the color range is from 0 to 1
 
         if scalars is not None: 
-            mesh = self.plotter.add_mesh(mesh_model.pv_obj, scalars=scalars, rgb=True, opacity=mesh_model.opacity, name=name)
+            mesh = self.plotter.add_mesh(mesh_model.pv_obj, scalars=scalars, rgb=True, opacity=mesh_model.opacity, pickable=True, name=name)
         else:
-            mesh = self.plotter.add_mesh(mesh_model.pv_obj, opacity=mesh_model.opacity, name=name)
+            mesh = self.plotter.add_mesh(mesh_model.pv_obj, opacity=mesh_model.opacity, pickable=True, name=name)
             mesh.GetMapper().SetScalarVisibility(0)
             if color in self.colors: mesh.GetProperty().SetColor(matplotlib.colors.to_rgb(color))
             else:
@@ -106,8 +106,7 @@ class MeshContainer(metaclass=Singleton):
                 mesh.GetProperty().SetColor(matplotlib.colors.to_rgb(mesh_model.color))
 
         mesh.user_matrix = mesh_model.actor.user_matrix
-        actor, _ = self.plotter.add_actor(mesh, pickable=True, name=name)
-        mesh_model.actor = actor #^ very import to change the actor too!
+        mesh_model.actor = mesh #^ very import to change the actor too!
         if scalars is None and color == 'texture': color = mesh_model.color
         return color
             
