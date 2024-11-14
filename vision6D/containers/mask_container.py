@@ -43,6 +43,8 @@ class MaskContainer(metaclass=Singleton):
         mask_model.height, mask_model.width = mask_source.shape[0], mask_source.shape[1]
         # if len(mask_source.shape) == 2: mask_source = mask_source[..., None]
         if mask_source.shape[-1] == 3: mask_source = cv2.cvtColor(mask_source, cv2.COLOR_RGB2GRAY)
+        # Binarize the grayscale image
+        # _, mask_source = cv2.threshold(mask_source, thresh=1, maxval=255, type=cv2.THRESH_BINARY)
         contours, _ = cv2.findContours(mask_source, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         points = contours[0].squeeze()
         mask_model.source_obj = mask_source
@@ -60,8 +62,8 @@ class MaskContainer(metaclass=Singleton):
         mask_model.previous_opacity = 0.5
         mask_model.color = self.colors[len(self.masks) % len(self.colors)]
     
-        actor = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity, pickable=True, name=mask_model.name)
-        mask_model.actor = actor
+        mask_mesh = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity, pickable=True, name=mask_model.name)
+        mask_model.actor = mask_mesh
 
         self.masks[mask_model.name] = mask_model
         self.reference = mask_model.name
@@ -86,17 +88,17 @@ class MaskContainer(metaclass=Singleton):
         mask_model = self.masks[self.reference]
         mask_model.pv_obj = mask_surface
         mask_model.color = mask_model.color
-        actor = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity, pickable=True, name=mask_model.name)
-        mask_model.actor = actor
+        mask_mesh = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity, pickable=True, name=mask_model.name)
+        mask_model.actor = mask_mesh
         self.masks[mask_model.name] = mask_model
 
-    def render_mask(self, camera):
+    def render_mask(self, camera, cx, cy):
         mask_model = self.masks[self.reference]
         render = utils.create_render(mask_model.width, mask_model.height)
         render.clear()
-        render_actor = mask_model.actor.copy(deep=True)
-        render_actor.GetProperty().opacity = 1
-        render.add_actor(render_actor, pickable=False)
+        render_obj = mask_model.pv_obj.copy(deep=True)
+        render_obj = render_obj.translate(np.array([cx-mask_model.width/2, cy-mask_model.height/2, 0]), inplace=False)
+        render.add_mesh(render_obj, color=mask_model.color, style='surface', opacity=1, name=mask_model.name)
         render.camera = camera
         render.disable()
         render.show(auto_close=False)

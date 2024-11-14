@@ -368,7 +368,8 @@ class MyMainWindow(MainWindow):
                 button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.check_mesh_button(name, output_text))
                 self.mesh_button_group_actors.addButton(button_widget.button)
                 self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
-            self.check_mesh_button(name=mesh_model.name, output_text=True)
+            if self.link_mesh_button.isChecked() and self.scene.mesh_container.reference is not None: self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=True)
+            else: self.check_mesh_button(name=mesh_model.name, output_text=True)
             self.scene.reset_camera()
 
     def set_spacing(self):
@@ -1167,7 +1168,11 @@ class MyMainWindow(MainWindow):
         if self.scene.mesh_container.reference:
             image = self.scene.mesh_container.render_mesh(name=self.scene.mesh_container.reference, camera=self.plotter.camera.copy(), width=self.scene.canvas_width, height=self.scene.canvas_height)
             if save_render:
-                output_path = SAVE_ROOT / "export_mesh_render" / (self.scene.mesh_container.reference + '.png')
+                output_name = "export_" + self.scene.mesh_container.reference
+                output_path = SAVE_ROOT / "export_mesh_render" / (output_name + '.png')
+                while output_path.exists(): 
+                    output_name += "_copy"
+                    output_path = SAVE_ROOT / "export_mesh_render" / (output_name + ".png")
                 rendered_image = PIL.Image.fromarray(image)
                 rendered_image.save(output_path)
                 self.output_text.append(f"-> Export mesh render to:\n {output_path}")
@@ -1178,7 +1183,11 @@ class MyMainWindow(MainWindow):
         os.makedirs(SAVE_ROOT / "export_bbox", exist_ok=True)
         if self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]:
             bbox_model = self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]
-            output_path = SAVE_ROOT / "export_bbox" / (self.scene.bbox_container.reference + '.npy')
+            output_name = "export_" + self.scene.bbox_container.reference
+            output_path = SAVE_ROOT / "export_bbox" / (output_name + '.npy')
+            while output_path.exists(): 
+                output_name += "_copy"
+                output_path = SAVE_ROOT / "export_bbox" / (output_name + ".npy")
             points = utils.get_bbox_actor_points(bbox_model.actor, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_width, self.scene.canvas_height)
             np.save(output_path, points)
             bbox_model.path = output_path
@@ -1189,10 +1198,14 @@ class MyMainWindow(MainWindow):
         os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)
         if self.scene.mask_container.reference:
             mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
-            output_path = SAVE_ROOT / "export_mask" / (self.scene.mask_container.reference + '.png')
+            output_name = "export_" + self.scene.mask_container.reference
+            output_path = SAVE_ROOT / "export_mask" / (output_name + ".png")
+            while output_path.exists(): 
+                output_name += "_copy"
+                output_path = SAVE_ROOT / "export_mask" / (output_name + ".png")
             # Update and store the transformed mask actor if there is any transformation
             self.scene.mask_container.update_mask(self.scene.mask_container.reference)
-            image = self.scene.mask_container.render_mask(camera=self.plotter.camera.copy())
+            image = self.scene.mask_container.render_mask(camera=self.plotter.camera.copy(), cx=self.scene.cx, cy=self.scene.cy)
             rendered_image = PIL.Image.fromarray(image)
             rendered_image.save(output_path)
             mask_model.path = output_path
@@ -1204,7 +1217,11 @@ class MyMainWindow(MainWindow):
         if self.scene.image_container.reference:
             image_rendered = self.scene.image_container.render_image(camera=self.plotter.camera.copy())
             rendered_image = PIL.Image.fromarray(image_rendered)
-            output_path = SAVE_ROOT / "export_image" / (self.scene.image_container.reference + '.png')
+            output_name = "export_" + self.scene.image_container.reference
+            output_path = SAVE_ROOT / "export_image" / (output_name + '.png')
+            while output_path.exists():
+                output_name += "_copy"
+                output_path = SAVE_ROOT / "export_image" / (output_name + ".png")
             rendered_image.save(output_path)
             self.output_text.append(f"-> Export image render to:\n {output_path}")
         else: utils.display_warning("Need to load an image first!")
