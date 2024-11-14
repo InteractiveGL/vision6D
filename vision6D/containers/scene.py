@@ -5,7 +5,6 @@ from functools import partial
 from ..tools import utils
 from . import ImageContainer
 from . import MaskContainer
-from . import BboxContainer
 from . import MeshContainer
 
 class Scene():
@@ -18,7 +17,6 @@ class Scene():
         self.image_container = ImageContainer(plotter=self.plotter)
         self.mask_container = MaskContainer(plotter=self.plotter)
         self.mesh_container = MeshContainer(plotter=self.plotter)
-        self.bbox_container = BboxContainer(plotter=self.plotter)
 
         # set camera related attributes for the linemod dataset
         # self.fx = 572.4114
@@ -58,7 +56,6 @@ class Scene():
         distance = float(distance)
         image_model = self.image_container.images[self.image_container.reference]
         mask_model = self.mask_container.masks[self.mask_container.reference]
-        bbox_model = self.bbox_container.bboxes[self.bbox_container.reference]
         if image_model is not None:
             pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
             pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel)) # order = 'C
@@ -68,9 +65,6 @@ class Scene():
         if mask_model is not None:
             mask_model.pv_obj.translate(-np.array([0, 0, mask_model.pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
             mask_model.pv_obj.translate(np.array([0, 0, distance]), inplace=True)
-        if bbox_model is not None:
-            bbox_model.pv_obj.translate(-np.array([0, 0, bbox_model.pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-            bbox_model.pv_obj.translate(np.array([0, 0, distance]), inplace=True)
         #! do not modify the distance2camera for meshes, because it will mess up the pose
         image_model.distance2camera = distance
         self.reset_camera()
@@ -112,10 +106,6 @@ class Scene():
                 mask_model = self.mask_container.masks[self.mask_container.reference]
                 if mask_model.opacity != 0: mask_model.opacity_spinbox.setValue(0)
                 else: mask_model.opacity_spinbox.setValue(mask_model.previous_opacity)
-            if self.bbox_container.reference is not None:
-                bbox_model = self.bbox_container.bboxes[self.bbox_container.reference]
-                if bbox_model.opacity != 0: bbox_model.opacity_spinbox.setValue(0)
-                else: bbox_model.opacity_spinbox.setValue(bbox_model.previous_opacity)
 
     def handle_mesh_click(self, name, output_text):
         self.mesh_container.reference = name
@@ -163,10 +153,6 @@ class Scene():
         self.mask_container.reference = name
         self.reset_camera()
 
-    def handle_bbox_click(self, name):
-        self.bbox_container.reference = name
-        self.reset_camera()
-
     def mesh_color_value_change(self, name, color):
         if name in self.mesh_container.meshes:
             try:
@@ -187,13 +173,3 @@ class Scene():
             except ValueError: 
                 utils.display_warning(f"Cannot set color ({color}) to mask")
                 mask_model.color_button.setStyleSheet(f"background-color: {mask_model.color}")
-
-    def bbox_color_value_change(self, name, color):
-        if name in self.bbox_container.bboxes:
-            bbox_model = self.bbox_container.bboxes[name]
-            try:
-                self.bbox_container.set_bbox_color(name, color)
-                bbox_model.color = color
-            except ValueError:
-                utils.display_warning(f"Cannot set color ({color}) to mask")
-                bbox_model.color_button.setStyleSheet(f"background-color: {bbox_model.color}")

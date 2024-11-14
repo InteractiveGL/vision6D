@@ -33,7 +33,6 @@ from ..widgets import SearchBar
 from ..widgets import PnPWindow
 from ..widgets import CustomImageButtonWidget
 from ..widgets import CustomMeshButtonWidget
-from ..widgets import CustomBboxButtonWidget
 from ..widgets import CustomMaskButtonWidget
 from ..widgets import GetPoseDialog
 from ..widgets import GetMaskDialog
@@ -42,7 +41,6 @@ from ..widgets import CameraPropsInputDialog
 from ..widgets import MaskWindow
 from ..widgets import LiveWireWindow
 from ..widgets import SamWindow
-from ..widgets import BboxWindow
 from ..widgets import CustomGroupBox
 
 from ..tools import utils
@@ -69,9 +67,8 @@ class MyMainWindow(MainWindow):
         self.workspace_path = ''
         
         self.image_button_group_actors = QtWidgets.QButtonGroup(self)
-        self.mask_button_group_actors = QtWidgets.QButtonGroup(self)
         self.mesh_button_group_actors = QtWidgets.QButtonGroup(self)
-        self.bbox_button_group_actors = QtWidgets.QButtonGroup(self)
+        self.mask_button_group_actors = QtWidgets.QButtonGroup(self)
         # Create the plotter
         self.create_plotter()
 
@@ -120,9 +117,6 @@ class MyMainWindow(MainWindow):
 
         # Mask related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.scene.mask_container.reset_mask)
-
-        # Bbox related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.scene.bbox_container.reset_bbox)
 
         # Mesh related key bindings 
         QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.reset_gt_pose)
@@ -337,14 +331,6 @@ class MyMainWindow(MainWindow):
                     else:
                         utils.display_warning("It needs to be a n by 2 matrix")
 
-    def add_bbox_file(self, bbox_path='', prompt=False):
-        if prompt:
-            bbox_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy)") 
-        if bbox_path:
-            self.hintLabel.hide()
-            bbox_model = self.scene.bbox_container.add_bbox(bbox_path)
-            self.add_bbox_button(bbox_model.name)
-
     def add_mesh_file(self, mesh_path='', prompt=False):
         if prompt: 
             mesh_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
@@ -498,7 +484,6 @@ class MyMainWindow(MainWindow):
         fileMenu.addAction('Add Workspace', functools.partial(self.add_workspace, prompt=True))
         fileMenu.addAction('Add Image', functools.partial(self.add_image_file, prompt=True))
         fileMenu.addAction('Add Mask', self.set_mask)
-        fileMenu.addAction('Add Bbox', functools.partial(self.add_bbox_file, prompt=True))
         fileMenu.addAction('Add Mesh', functools.partial(self.add_mesh_file, prompt=True))
 
         # allow to export files
@@ -506,7 +491,6 @@ class MyMainWindow(MainWindow):
         exportMenu.addAction('Workspace', self.export_workspace)
         exportMenu.addAction('Image', self.export_image)
         exportMenu.addAction('Mask', self.export_mask)
-        exportMenu.addAction('Bbox', self.export_bbox)
         exportMenu.addAction('Pose', self.export_pose)
         exportMenu.addAction('Mesh Render', self.export_mesh_render)
         # exportMenu.addAction('SegMesh Render', self.export_segmesh_render)
@@ -529,7 +513,6 @@ class MyMainWindow(MainWindow):
         self.panel_images_actors()
         self.panel_mesh_actors()
         self.panel_mask_actors()
-        self.panel_bbox_actors()
         self.panel_output()
 
     def toggle_panel(self):
@@ -631,9 +614,7 @@ class MyMainWindow(MainWindow):
         draw_mask_menu.addAction("Live Wire", functools.partial(self.draw_mask, live_wire=True, sam=False))
         draw_mask_menu.addAction("SAM", functools.partial(self.draw_mask, live_wire=False, sam=True))
         self.draw_options_menu.addMenu(draw_mask_menu)
-        self.draw_options_menu.addAction("Draw Bbox", self.draw_bbox)
         self.draw_options_menu.addAction("Reset Mask (t)", self.scene.mask_container.reset_mask)
-        self.draw_options_menu.addAction("Reset Bbox (f)", self.scene.bbox_container.reset_bbox)
         self.draw_options_button.setMenu(self.draw_options_menu)
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.draw_options_button, row, column)
@@ -718,12 +699,6 @@ class MyMainWindow(MainWindow):
         self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
         self.mask_actors_group.add_button_to_header(mirror_button)
         self.panel_layout.addWidget(self.mask_actors_group)
-
-    def panel_bbox_actors(self):
-        self.bbox_actors_group = CustomGroupBox("Bbox", self)
-        self.bbox_actors_group.content_widget.setVisible(False)
-        self.bbox_actors_group.addButtonClicked.connect(lambda bbox_path='', prompt=True: self.add_bbox_file(bbox_path, prompt))
-        self.panel_layout.addWidget(self.bbox_actors_group)
 
     #^ Panel Output
     def panel_output(self):
@@ -879,10 +854,6 @@ class MyMainWindow(MainWindow):
         button = next((btn for btn in self.mask_button_group_actors.buttons() if btn.text() == name), None)
         if button: button.click()
 
-    def check_bbox_button(self, name):
-        button = next((btn for btn in self.bbox_button_group_actors.buttons() if btn.text() == name), None)
-        if button: button.click()
-
     def mirror_image(self, direction):
         if self.scene.image_container.reference is not None:
             image_model = self.scene.image_container.images[self.scene.image_container.reference]
@@ -950,36 +921,6 @@ class MyMainWindow(MainWindow):
             self.mask_window.mask_label.output_path_changed.connect(handle_output_path_change)
         else: utils.display_warning("Need to load an image first!")
 
-    def draw_bbox(self):
-        def handle_output_path_change(output_path):
-            if output_path:
-                self.scene.bbox_container.bboxes[self.scene.bbox_container.reference].path = output_path
-                self.scene.bbox_container.add_bbox(self.scene.bbox_container.bboxes[self.scene.bbox_container.reference].path)
-        if self.scene.image_container.images[self.scene.image_container.reference].actor:
-            image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
-            self.bbox_window = BboxWindow(image)
-            self.bbox_window.bbox_label.output_path_changed.connect(handle_output_path_change)
-        else: utils.display_warning("Need to load an image first!")
-
-    def add_bbox_button(self, name):
-        button_widget = CustomBboxButtonWidget(name)
-        button_widget.colorChanged.connect(lambda color, name=name: self.scene.bbox_color_value_change(name, color))
-        button_widget.removeButtonClicked.connect(self.remove_bbox_button)
-        button = button_widget.button
-        bbox_model = self.scene.bbox_container.bboxes[name]
-        bbox_model.opacity_spinbox = button_widget.double_spinbox
-        bbox_model.opacity_spinbox.setValue(bbox_model.opacity)
-        bbox_model.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.bbox_container.set_bbox_opacity(value))
-        bbox_model.color_button = button_widget.square_button
-        bbox_model.color_button.setStyleSheet(f"background-color: {bbox_model.color}")
-        # check the button
-        button.setCheckable(True)
-        button.setChecked(False)
-        button.clicked.connect(lambda _, name=name: self.scene.handle_bbox_click(name))
-        self.bbox_actors_group.widget_layout.insertWidget(0, button_widget)
-        self.bbox_button_group_actors.addButton(button)
-        self.scene.handle_bbox_click(name=name)
-
     def copy_output_text(self):
         self.clipboard.setText(self.output_text.toPlainText())
         
@@ -996,7 +937,6 @@ class MyMainWindow(MainWindow):
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
             if 'image_path' in workspace and workspace['image_path'] is not None: self.add_image_file(image_path=SAVE_ROOT / pathlib.Path(*workspace['image_path'].split("\\")))
             if 'mask_path' in workspace and workspace['mask_path'] is not None: self.add_mask_file(mask_path=SAVE_ROOT / pathlib.Path(*workspace['mask_path'].split("\\")))
-            if 'bbox_path' in workspace and workspace['bbox_path'] is not None: self.add_bbox_file(bbox_path=SAVE_ROOT / pathlib.Path(*workspace['bbox_path'].split("\\")))
             if 'mesh_path' in workspace:
                 meshes = workspace['mesh_path']
                 for item in meshes: 
@@ -1006,7 +946,7 @@ class MyMainWindow(MainWindow):
             self.scene.reset_camera()
 
     def export_workspace(self):
-        workspace_dict = {"mesh_path": {}, "image_path": {}, "mask_path": {}, "bbox_path": {}}
+        workspace_dict = {"mesh_path": {}, "image_path": {}, "mask_path": {}}
         for mesh_model in self.scene.mesh_container.meshes.values():
             matrix = utils.get_actor_user_matrix(mesh_model)
             workspace_dict["mesh_path"][mesh_model.name] = (mesh_model.path, matrix.tolist())
@@ -1014,8 +954,6 @@ class MyMainWindow(MainWindow):
             workspace_dict["image_path"][image_model.name] = image_model.path
         for mask_model in self.scene.mask_container.masks.values():
             workspace_dict["mask_path"][mask_model.name] = mask_model.path
-        for bbox_model in self.scene.bbox_container.bboxes.values():
-            workspace_dict["bbox_path"][bbox_model.name] = bbox_model.path
         # write the dict to json file
         output_path, _ = QtWidgets.QFileDialog.getSaveFileName(QtWidgets.QMainWindow(), "Save File", "", "Mesh Files (*.json)")
         if output_path != "":
@@ -1064,27 +1002,6 @@ class MyMainWindow(MainWindow):
             else:
                 buttons[-1].click()
 
-    def remove_bbox_button(self, button):
-        # Get the index of the button before removal
-        buttons = self.bbox_button_group_actors.buttons()
-        checked_button = self.bbox_button_group_actors.checkedButton()
-        index = buttons.index(checked_button)
-
-        actor = self.scene.bbox_container.bboxes[button.text()].actor
-        self.plotter.remove_actor(actor)
-        del self.scene.bbox_container.bboxes[button.text()]
-        self.bbox_button_group_actors.removeButton(button)
-        self.remove_bbox_button_widget(button)
-        self.scene.bbox_container.reference = None
-        button.deleteLater()
-        buttons = self.bbox_button_group_actors.buttons()
-        if buttons:
-            if index < len(buttons):
-                next_button = buttons[index]
-                next_button.click()
-            else:
-                buttons[-1].click()
-
     def remove_mesh_button(self, button):
         # Get the index of the button before removal
         buttons = self.mesh_button_group_actors.buttons()
@@ -1110,7 +1027,6 @@ class MyMainWindow(MainWindow):
     def clear_plot(self):
         for button in self.image_button_group_actors.buttons(): self.remove_image_button(button)
         for button in self.mask_button_group_actors.buttons(): self.remove_mask_button(button)
-        for button in self.bbox_button_group_actors.buttons(): self.remove_bbox_button(button)
         for button in self.mesh_button_group_actors.buttons(): self.remove_mesh_button(button)
         self.workspace_path = ''
         self.link_mesh_button.setChecked(False)
@@ -1130,14 +1046,6 @@ class MyMainWindow(MainWindow):
             widget = self.mask_actors_group.widget_layout.itemAt(i).widget()
             if widget is not None and hasattr(widget, 'button') and widget.button == button:
                 self.mask_actors_group.widget_layout.removeWidget(widget)
-                widget.deleteLater()
-                break
-    
-    def remove_bbox_button_widget(self, button):
-        for i in range(self.bbox_actors_group.widget_layout.count()): 
-            widget = self.bbox_actors_group.widget_layout.itemAt(i).widget()
-            if widget is not None and hasattr(widget, 'button') and widget.button == button:
-                self.bbox_actors_group.widget_layout.removeWidget(widget)
                 widget.deleteLater()
                 break
 
@@ -1178,21 +1086,6 @@ class MyMainWindow(MainWindow):
                 self.output_text.append(f"-> Export mesh render to:\n {output_path}")
         else: utils.display_warning("Need to load a mesh first")
         return image
-
-    def export_bbox(self):
-        os.makedirs(SAVE_ROOT / "export_bbox", exist_ok=True)
-        if self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]:
-            bbox_model = self.scene.bbox_container.bboxes[self.scene.bbox_container.reference]
-            output_name = "export_" + self.scene.bbox_container.reference
-            output_path = SAVE_ROOT / "export_bbox" / (output_name + '.npy')
-            while output_path.exists(): 
-                output_name += "_copy"
-                output_path = SAVE_ROOT / "export_bbox" / (output_name + ".npy")
-            points = utils.get_bbox_actor_points(bbox_model.actor, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_width, self.scene.canvas_height)
-            np.save(output_path, points)
-            bbox_model.path = output_path
-            self.output_text.append(f"-> Export Bbox points to:\n {output_path}")
-        else: utils.display_warning("Need to load a bounding box first!")
 
     def export_mask(self):
         os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)

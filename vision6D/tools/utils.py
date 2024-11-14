@@ -417,22 +417,6 @@ def get_mask_actor_points(actor):
     assert np.isclose(transformed_points, points).all(), "points and transformed_points should be very very close!"
     return transformed_points
 
-def get_bbox_actor_points(actor, fy, cx, cy, w, h):
-    input = actor.GetMapper().GetInput()
-    point_data = input.GetPoints().GetData()
-    points_array = vtknp.vtk_to_numpy(point_data)
-    vtk_matrix = actor.GetMatrix()
-    matrix = np.array([[vtk_matrix.GetElement(i, j) for j in range(4)] for i in range(4)])
-    # Calculate points not with homogeneous form
-    points = (matrix[:3, :3] @ points_array.T).T + matrix[:3, 3:].T
-    # Calculate points with homogeneous coordinates
-    homogeneous_points = np.hstack((points_array, np.ones((points_array.shape[0], 1))))
-    transformed_points = ((matrix @ homogeneous_points.T).T)[:, :3]
-    assert np.isclose(transformed_points, points).all(), "points and transformed_points should be very very close!"
-    canvas_center = np.array([cx - (w / 2.0), cy - (h / 2.0), -fy])
-    points = canvas_center - points
-    return points
-
 def get_mesh_actor_vertices_faces(actor):
     input = actor.GetMapper().GetInput()
     points = input.GetPoints().GetData()

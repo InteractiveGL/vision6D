@@ -42,6 +42,4 @@ class CustomQtInteractor(QtInteractor):
                 self.main_window.check_mesh_button(name, output_text=True)
             elif name in self.main_window.scene.mask_container.masks:
                 self.main_window.check_mask_button(name)
-            elif name in self.main_window.scene.bbox_container.bboxes:
-                self.main_window.check_bbox_button(name)
         self.cell_picker = None
