@@ -46,7 +46,7 @@ class MaskContainer(metaclass=Singleton):
         mask_model.source_obj = mask_source
 
         mask_model.name = pathlib.Path(mask_model.path).stem
-        while mask_model.name in self.masks: mask_model.name += "_copy"
+        while mask_model.name + "_mask" in self.masks: mask_model.name += "_copy"
         mask_model.name = mask_model.name + "_mask"
         points = np.hstack((points, np.zeros(points.shape[0]).reshape((-1, 1))))
 

@@ -540,10 +540,10 @@ class MyMainWindow(MainWindow):
     @utils.require_attributes([('scene.image_container.reference', 'Need to load an image first!'), ('scene.mesh_container.reference', 'Need to load a mesh first!')])
     def pnp_register(self):
         image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
-        self.pnp_window = PnPWindow(image_source=image, 
+        pnp_window = PnPWindow(image_source=image, 
                                     mesh_model=self.scene.mesh_container.meshes[self.scene.mesh_container.reference],
                                     camera_intrinsics=self.scene.camera_intrinsics.astype(np.float32))
-        self.pnp_window.transformation_matrix_computed.connect(lambda transformation_matrix: self.handle_transformation_matrix(self.scene.mesh_container.reference, transformation_matrix))
+        pnp_window.transformation_matrix_computed.connect(lambda transformation_matrix: self.handle_transformation_matrix(self.scene.mesh_container.reference, transformation_matrix))
     
     def on_pose_options_selection_change(self, option):
         if option == "Set Pose":
@@ -570,9 +570,9 @@ class MyMainWindow(MainWindow):
             self.camera_calibrate()
 
     def panel_console(self):
-        self.console_group = QtWidgets.QGroupBox("Console")       # self.display = QtWidgets.QGroupBox("Console")
-        self.display_layout = QtWidgets.QVBoxLayout()
-        self.display_layout.setContentsMargins(10, 20, 10, 5)
+        console_group = QtWidgets.QGroupBox("Console")       # self.display = QtWidgets.QGroupBox("Console")
+        display_layout = QtWidgets.QVBoxLayout()
+        display_layout.setContentsMargins(10, 20, 10, 5)
 
         #* Create the top widgets (layout)
         top_layout = QtWidgets.QHBoxLayout()
@@ -584,70 +584,69 @@ class MyMainWindow(MainWindow):
         row, column = 0, 0
 
         # Create a QPushButton that will act as a drop-down button and QMenu to act as the drop-down menu
-        self.camera_options_button = QtWidgets.QPushButton("Set Camera")
-        self.camera_options_menu = QtWidgets.QMenu()
-        self.camera_options_menu.addAction("Set Camera", lambda: self.on_camera_options_selection_change("Set Camera"))
-        self.camera_options_menu.addAction("Reset Camera (c)", lambda: self.on_camera_options_selection_change("Reset Camera (c)"))
-        self.camera_options_menu.addAction("Zoom In (x)", lambda: self.on_camera_options_selection_change("Zoom In (x)"))
-        self.camera_options_menu.addAction("Zoom Out (z)", lambda: self.on_camera_options_selection_change("Zoom Out (z)"))
-        self.camera_options_menu.addAction("Calibrate", lambda: self.on_camera_options_selection_change("Calibrate"))
-        self.camera_options_button.setMenu(self.camera_options_menu)
-        top_grid_layout.addWidget(self.camera_options_button, row, column)
+        camera_options_button = QtWidgets.QPushButton("Set Camera")
+        camera_options_menu = QtWidgets.QMenu()
+        camera_options_menu.addAction("Set Camera", lambda: self.on_camera_options_selection_change("Set Camera"))
+        camera_options_menu.addAction("Reset Camera (c)", lambda: self.on_camera_options_selection_change("Reset Camera (c)"))
+        camera_options_menu.addAction("Zoom In (x)", lambda: self.on_camera_options_selection_change("Zoom In (x)"))
+        camera_options_menu.addAction("Zoom Out (z)", lambda: self.on_camera_options_selection_change("Zoom Out (z)"))
+        camera_options_menu.addAction("Calibrate", lambda: self.on_camera_options_selection_change("Calibrate"))
+        camera_options_button.setMenu(camera_options_menu)
+        top_grid_layout.addWidget(camera_options_button, row, column)
 
-        self.pose_options_button = QtWidgets.QPushButton("Set Pose")
-        self.pose_options_menu = QtWidgets.QMenu()
-        self.pose_options_menu.addAction("Set Pose", lambda: self.on_pose_options_selection_change("Set Pose"))
-        self.pose_options_menu.addAction("PnP Register", lambda: self.on_pose_options_selection_change("PnP Register"))
-        self.pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.on_pose_options_selection_change("Reset GT Pose (k)"))
-        self.pose_options_menu.addAction("Update GT Pose (l)", lambda: self.on_pose_options_selection_change("Update GT Pose (l)"))
-        self.pose_options_menu.addAction("Undo Pose (s)", lambda: self.on_pose_options_selection_change("Undo Pose (s)"))
-        self.pose_options_button.setMenu(self.pose_options_menu)
+        pose_options_button = QtWidgets.QPushButton("Set Pose")
+        pose_options_menu = QtWidgets.QMenu()
+        pose_options_menu.addAction("Set Pose", lambda: self.on_pose_options_selection_change("Set Pose"))
+        pose_options_menu.addAction("PnP Register", lambda: self.on_pose_options_selection_change("PnP Register"))
+        pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.on_pose_options_selection_change("Reset GT Pose (k)"))
+        pose_options_menu.addAction("Update GT Pose (l)", lambda: self.on_pose_options_selection_change("Update GT Pose (l)"))
+        pose_options_menu.addAction("Undo Pose (s)", lambda: self.on_pose_options_selection_change("Undo Pose (s)"))
+        pose_options_button.setMenu(pose_options_menu)
         row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.pose_options_button, row, column)
+        top_grid_layout.addWidget(pose_options_button, row, column)
 
         # Draw buttons
-        self.draw_options_button = QtWidgets.QPushButton("Draw")
-        self.draw_options_menu = QtWidgets.QMenu()
-        self.draw_options_menu.addAction("Set Mask", self.set_mask)
-        draw_mask_menu = QtWidgets.QMenu("Draw Mask", self.draw_options_menu)
+        draw_options_button = QtWidgets.QPushButton("Draw")
+        draw_options_menu = QtWidgets.QMenu()
+        draw_options_menu.addAction("Set Mask", self.set_mask)
+        draw_mask_menu = QtWidgets.QMenu("Draw Mask", draw_options_menu)
         draw_mask_menu.addAction("Free Hand", functools.partial(self.draw_mask, live_wire=False, sam=False))
         draw_mask_menu.addAction("Live Wire", functools.partial(self.draw_mask, live_wire=True, sam=False))
         draw_mask_menu.addAction("SAM", functools.partial(self.draw_mask, live_wire=False, sam=True))
-        self.draw_options_menu.addMenu(draw_mask_menu)
-        self.draw_options_menu.addAction("Reset Mask (t)", self.reset_mask)
-        self.draw_options_button.setMenu(self.draw_options_menu)
+        draw_options_menu.addMenu(draw_mask_menu)
+        draw_options_menu.addAction("Reset Mask (t)", self.reset_mask)
+        draw_options_button.setMenu(draw_options_menu)
         row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.draw_options_button, row, column)
+        top_grid_layout.addWidget(draw_options_button, row, column)
 
         # Other buttons
-        self.other_options_button = QtWidgets.QPushButton("Other")
-        self.other_options_menu = QtWidgets.QMenu()
-        self.other_options_menu.addAction("Set Mesh Spacing", self.set_spacing)
-        self.other_options_menu.addAction("Set Image Distance", self.set_distance2camera)
-        self.other_options_menu.addAction("Toggle Meshes", self.toggle_hide_meshes_button)
-        self.other_options_menu.addAction('Clear All', self.clear_plot)
-        self.other_options_button.setMenu(self.other_options_menu)
+        clear_all_button = QtWidgets.QPushButton("Clear All")
+        clear_all_button.clicked.connect(self.clear_plot)
         row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(self.other_options_button, row, column)
+        top_grid_layout.addWidget(clear_all_button, row, column)
         
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
         top_layout.addWidget(top_grid_widget)
-        self.display_layout.addLayout(top_layout)
-        self.console_group.setLayout(self.display_layout)
-        self.panel_layout.addWidget(self.console_group)
+        display_layout.addLayout(top_layout)
+        console_group.setLayout(display_layout)
+        self.panel_layout.addWidget(console_group)
 
     # In your main class or wherever you're using panel_images_actors
     def panel_images_actors(self):
-        mirror_button = QtWidgets.QPushButton("Flip")
-        mirror_button.setFixedSize(50, 20)
-        mirror_options_menu = QtWidgets.QMenu()
-        mirror_options_menu.addAction("x-axis", functools.partial(self.mirror_image, direction="x"))
-        mirror_options_menu.addAction("y-axis", functools.partial(self.mirror_image, direction="y"))
-        mirror_button.setMenu(mirror_options_menu)
+        func_options_button = QtWidgets.QPushButton("Func")
+        func_options_button.setFixedSize(50, 20)
+        func_options_menu = QtWidgets.QMenu()
+        func_options_menu.addAction("Set Distance", self.set_distance2camera)
+        mirror_menu = QtWidgets.QMenu("Mirror", func_options_menu)
+        mirror_menu.addAction("x-axis", functools.partial(self.mirror_image, direction="x"))
+        mirror_menu.addAction("y-axis", functools.partial(self.mirror_image, direction="y"))
+        func_options_menu.addMenu(mirror_menu)
+        func_options_button.setMenu(func_options_menu)
+
         self.images_actors_group = CustomGroupBox("Image", self)
         self.images_actors_group.addButtonClicked.connect(lambda image_path='', prompt=True: self.add_image_file(image_path, prompt))
-        self.images_actors_group.add_button_to_header(mirror_button)
+        self.images_actors_group.add_button_to_header(func_options_button)
         self.panel_layout.addWidget(self.images_actors_group)
 
     def on_link_mesh_button_toggle(self, checked, clicked):
@@ -671,12 +670,17 @@ class MyMainWindow(MainWindow):
                 mesh_model.actor.user_matrix = self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix
             
     def panel_mesh_actors(self):
-        mirror_button = QtWidgets.QPushButton("Flip")
-        mirror_button.setFixedSize(50, 20)
-        mirror_options_menu = QtWidgets.QMenu()
-        mirror_options_menu.addAction("x-axis", functools.partial(self.mirror_mesh, direction="x"))
-        mirror_options_menu.addAction("y-axis", functools.partial(self.mirror_mesh, direction="y"))
-        mirror_button.setMenu(mirror_options_menu)
+        func_options_button = QtWidgets.QPushButton("Func")
+        func_options_button.setFixedSize(50, 20)
+        func_options_menu = QtWidgets.QMenu()
+        func_options_menu.addAction("Set Spacing", self.set_spacing)
+        func_options_menu.addAction("Toggle Meshes", self.toggle_hide_meshes_button)
+        mirror_menu = QtWidgets.QMenu("Mirror", func_options_menu)
+        mirror_menu.addAction("x-axis", functools.partial(self.mirror_mesh, direction="x"))
+        mirror_menu.addAction("y-axis", functools.partial(self.mirror_mesh, direction="y"))
+        func_options_menu.addMenu(mirror_menu)
+        func_options_button.setMenu(func_options_menu)
+
         self.link_mesh_button = QtWidgets.QPushButton("Link")
         self.link_mesh_button.setFixedSize(20, 20)
         self.link_mesh_button.setCheckable(True)
@@ -684,20 +688,23 @@ class MyMainWindow(MainWindow):
         self.mesh_actors_group = CustomGroupBox("Mesh", self)
         self.mesh_actors_group.addButtonClicked.connect(lambda mesh_path='', prompt=True: self.add_mesh_file(mesh_path, prompt))
         self.mesh_actors_group.add_button_to_header(self.link_mesh_button)
-        self.mesh_actors_group.add_button_to_header(mirror_button)
+        self.mesh_actors_group.add_button_to_header(func_options_button)
         self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_mask_actors(self):
-        mirror_button = QtWidgets.QPushButton("Flip")
-        mirror_button.setFixedSize(50, 20)
-        mirror_options_menu = QtWidgets.QMenu()
-        mirror_options_menu.addAction("x-axis", functools.partial(self.mirror_mask, direction="x"))
-        mirror_options_menu.addAction("y-axis", functools.partial(self.mirror_mask, direction="y"))
-        mirror_button.setMenu(mirror_options_menu)
+        func_options_button = QtWidgets.QPushButton("Func")
+        func_options_button.setFixedSize(50, 20)
+        func_options_menu = QtWidgets.QMenu()
+        mirror_menu = QtWidgets.QMenu("Mirror", func_options_menu)
+        mirror_menu.addAction("x-axis", functools.partial(self.mirror_mask, direction="x"))
+        mirror_menu.addAction("y-axis", functools.partial(self.mirror_mask, direction="y"))
+        func_options_menu.addMenu(mirror_menu)
+        func_options_button.setMenu(func_options_menu)
+
         self.mask_actors_group = CustomGroupBox("Mask", self)
         self.mask_actors_group.content_widget.setVisible(False)
         self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
-        self.mask_actors_group.add_button_to_header(mirror_button)
+        self.mask_actors_group.add_button_to_header(func_options_button)
         self.panel_layout.addWidget(self.mask_actors_group)
 
     #^ Panel Output
@@ -863,6 +870,7 @@ class MyMainWindow(MainWindow):
             image_model.source_obj = image_model.source_obj[::-1, :, :]
         self.check_image_button(image_model.name)
 
+    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def mirror_mesh(self, direction):
         mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         if (mesh_model.initial_pose != np.eye(4)).all(): 
@@ -875,6 +883,7 @@ class MyMainWindow(MainWindow):
         mesh_model.actor.user_matrix = transformation_matrix
         self.check_mesh_button(name=mesh_model.name, output_text=True)
 
+    @utils.require_attributes([('scene.mask_container.reference', "Need to load a mask first!")])   
     def mirror_mask(self, direction):
         mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
         transformation_matrix = mask_model.actor.user_matrix

@@ -58,7 +58,7 @@ class ImageContainer(metaclass=Singleton):
         image_model = ImageModel()
         image_model.path = str(image_source)
         name = pathlib.Path(image_model.path).stem
-        while name in self.images: name = name + "_copy"
+        while name + "_image" in self.images: name = name + "_copy"
         image_model.name = name + "_image"
         image_model.source_obj = np.array(PIL.Image.open(image_model.path), dtype='uint8')
 
