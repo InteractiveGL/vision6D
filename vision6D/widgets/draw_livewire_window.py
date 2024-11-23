@@ -1,7 +1,9 @@
 # General import
+import os
 import cv2
-import pathlib
+import PIL
 import numpy as np
+from ..path import SAVE_ROOT
 from scipy.sparse import csr_matrix
 from scipy.sparse.csgraph import dijkstra
 
@@ -150,13 +152,16 @@ class LiveWireLabel(QtWidgets.QLabel):
         mask = np.zeros((self.height, self.width), dtype=np.uint8)
         cv2.fillPoly(mask, [points], 255)
 
-        self.output_path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save File", "", "Mask Files (*.png)")
-        if self.output_path:
-            if pathlib.Path(self.output_path).suffix == '':
-                self.output_path = str(pathlib.Path(self.output_path).parent / (pathlib.Path(self.output_path).stem + '.png'))
-            cv2.imwrite(self.output_path, mask)
-            self.output_path_changed.emit(self.output_path)
-            self.window().close()
+        user_input, ok = QtWidgets.QInputDialog.getText(self, 'Save Mask', 'Enter file name:')
+        os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)
+        if ok and user_input: self.output_path = SAVE_ROOT / "export_mask" / f'{user_input}.png'
+        elif ok: self.output_path = SAVE_ROOT / "export_mask" / f'mask.png'
+        else: return
+
+        rendered_image = PIL.Image.fromarray(mask)
+        rendered_image.save(self.output_path)
+        self.output_path_changed.emit(str(self.output_path))
+        self.window().close()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
