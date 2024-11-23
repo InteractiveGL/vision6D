@@ -605,20 +605,6 @@ class MyMainWindow(MainWindow):
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(pose_options_button, row, column)
 
-        # Draw buttons
-        draw_options_button = QtWidgets.QPushButton("Draw")
-        draw_options_menu = QtWidgets.QMenu()
-        draw_options_menu.addAction("Set Mask", self.set_mask)
-        draw_mask_menu = QtWidgets.QMenu("Draw Mask", draw_options_menu)
-        draw_mask_menu.addAction("Free Hand", functools.partial(self.draw_mask, live_wire=False, sam=False))
-        draw_mask_menu.addAction("Live Wire", functools.partial(self.draw_mask, live_wire=True, sam=False))
-        draw_mask_menu.addAction("SAM", functools.partial(self.draw_mask, live_wire=False, sam=True))
-        draw_options_menu.addMenu(draw_mask_menu)
-        draw_options_menu.addAction("Reset Mask (t)", self.reset_mask)
-        draw_options_button.setMenu(draw_options_menu)
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(draw_options_button, row, column)
-
         # Other buttons
         clear_all_button = QtWidgets.QPushButton("Clear All")
         clear_all_button.clicked.connect(self.clear_plot)
@@ -703,10 +689,23 @@ class MyMainWindow(MainWindow):
         func_options_menu.addMenu(mirror_menu)
         func_options_menu.addAction("Clear", self.clear_mask)
         func_options_button.setMenu(func_options_menu)
+        
+        draw_mask_button = QtWidgets.QPushButton("Draw")
+        draw_mask_button.setFixedSize(20, 20)
+        draw_options_menu = QtWidgets.QMenu()
+        draw_options_menu.addAction("Set Mask", self.set_mask)
+        draw_mask_menu = QtWidgets.QMenu("Draw Mask", draw_options_menu)
+        draw_mask_menu.addAction("Free Hand", functools.partial(self.draw_mask, live_wire=False, sam=False))
+        draw_mask_menu.addAction("Live Wire", functools.partial(self.draw_mask, live_wire=True, sam=False))
+        draw_mask_menu.addAction("SAM", functools.partial(self.draw_mask, live_wire=False, sam=True))
+        draw_options_menu.addMenu(draw_mask_menu)
+        draw_options_menu.addAction("Reset Mask (t)", self.reset_mask)
+        draw_mask_button.setMenu(draw_options_menu)
 
         self.mask_actors_group = CustomGroupBox("Mask", self)
         self.mask_actors_group.content_widget.setVisible(False)
         self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
+        self.mask_actors_group.add_button_to_header(draw_mask_button)
         self.mask_actors_group.add_button_to_header(func_options_button)
         self.panel_layout.addWidget(self.mask_actors_group)
 
