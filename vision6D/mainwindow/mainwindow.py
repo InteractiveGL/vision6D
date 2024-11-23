@@ -37,6 +37,7 @@ from ..widgets import CustomMaskButtonWidget
 from ..widgets import GetPoseDialog
 from ..widgets import GetMaskDialog
 from ..widgets import CalibrationDialog
+from ..widgets import DistanceInputDialog
 from ..widgets import CameraPropsInputDialog
 from ..widgets import MaskWindow
 from ..widgets import LiveWireWindow
@@ -913,10 +914,14 @@ class MyMainWindow(MainWindow):
         # check the button
         button.setCheckable(True)
         button.setChecked(False)
-        button.clicked.connect(lambda _, name=name: self.scene.handle_mask_click(name))
+        button.clicked.connect(lambda _, name=name: self.handle_mask_click(name))
         self.mask_actors_group.widget_layout.insertWidget(0, button_widget)
         self.mask_button_group_actors.addButton(button)
         self.check_mask_button(name=name)
+
+    def handle_mask_click(self, name):
+        self.scene.mask_container.reference = name
+        self.reset_camera()
 
     @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
     def draw_mask(self, live_wire=False, sam=False):
@@ -1078,30 +1083,32 @@ class MyMainWindow(MainWindow):
                 widget.deleteLater()
                 break
     
-    #TODO: debug this function
     @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
     def set_distance2camera(self):
         image_model = self.scene.image_container.images[self.scene.image_container.reference]
-        distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(image_model.distance2camera))
-        if ok:
-            distance = float(distance)
+        dialog = DistanceInputDialog(title='Input', label='Set Objects distance to camera:', value=str(image_model.distance2camera), default_value=str(self.scene.fy))
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            distance = float(dialog.get_value())
             if self.scene.image_container.reference is not None:
                 image_model = self.scene.image_container.images[self.scene.image_container.reference]
+                image_model.distance2camera = distance
                 pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
                 pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel)) # order = 'C
                 pv_obj = pv_obj.translate(-1 * np.array(pv_obj.center), inplace=False) # center the image at (0, 0)
                 pv_obj = pv_obj.translate(-np.array([0, 0, pv_obj.center[-1]]), inplace=False) # very important, re-center it to [0, 0, 0]
-                pv_obj = pv_obj.translate(np.array([0, 0, distance]), inplace=False)
+                pv_obj = pv_obj.translate(np.array([0, 0, image_model.distance2camera]), inplace=False)
                 if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)
                 else: image_actor = self.plotter.add_mesh(pv_obj, rgb=True, opacity=image_model.opacity, pickable=False, name=image_model.name)
                 image_model.actor = image_actor
                 self.scene.image_container.images[image_model.name] = image_model
-            if self.scene.mask_container.reference is not None:
-                mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
-                mask_model.pv_obj = mask_model.pv_obj.translate(-np.array([0, 0, mask_model.pv_obj.center[-1]]), inplace=False) # very important, re-center it to [0, 0, 0]
-                mask_model.pv_obj = mask_model.pv_obj.translate(np.array([0, 0, distance]), inplace=False)
-            #! do not modify the distance2camera for meshes, because it will mess up the pose
-            image_model.distance2camera = distance
+            if len(self.scene.mask_container.masks) > 0:
+                for mask_name, mask_model in self.scene.mask_container.masks.items():
+                    mask_model = self.scene.mask_container.masks[mask_name]
+                    mask_model.pv_obj = mask_model.pv_obj.translate(-np.array([0, 0, mask_model.pv_obj.center[-1]]), inplace=False) # very important, re-center it to [0, 0, 0]
+                    mask_model.pv_obj = mask_model.pv_obj.translate(np.array([0, 0, distance]), inplace=False)
+                    mask_mesh = self.plotter.add_mesh(mask_model.pv_obj, color=mask_model.color, style='surface', opacity=mask_model.opacity, pickable=True, name=mask_name)
+                    mask_model.actor = mask_mesh
+                    self.scene.mask_container.masks[mask_name] = mask_model
             self.reset_camera()
         
     @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   

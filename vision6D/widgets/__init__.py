@@ -1,4 +1,5 @@
 from .calibration_dialog import CalibrationDialog
+from .distance_input_dialog import DistanceInputDialog
 from .camera_props_input_dialog import CameraPropsInputDialog
 from .custom_qt_interactor import CustomQtInteractor
 from .get_pose_dialog import GetPoseDialog
@@ -16,6 +17,7 @@ from .custom_group_box import CustomGroupBox
 
 __all__ = [
     'CalibrationDialog',
+    'DistanceInputDialog',
     'CameraPropsInputDialog',
     'CustomQtInteractor',
     'GetPoseDialog',

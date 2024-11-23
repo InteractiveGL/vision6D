@@ -128,9 +128,6 @@ class Scene():
             else:
                 img_model.opacity = 0.9
                 img_model.opacity_spinbox.setValue(0.9)
-        
-    def handle_mask_click(self, name):
-        self.mask_container.reference = name
 
     def mesh_color_value_change(self, name, color):
         if name in self.mesh_container.meshes:

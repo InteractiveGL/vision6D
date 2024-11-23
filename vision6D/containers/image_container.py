@@ -82,7 +82,8 @@ class ImageContainer(metaclass=Singleton):
         image_model.cy_offset = cy - (image_model.height / 2.0)
 
         # Move the image to the camera distance fy
-        pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, fy]), inplace=False)
+        image_model.distance2camera = fy
+        pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, image_model.distance2camera]), inplace=False)
 
         # Add the mesh to the plotter
         if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)
