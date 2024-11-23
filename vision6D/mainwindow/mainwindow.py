@@ -111,7 +111,7 @@ class MyMainWindow(MainWindow):
 
     def key_bindings(self):
         # Camera related key bindings
-        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.scene.reset_camera)
+        QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.reset_camera)
         QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.scene.zoom_out)
         QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.scene.zoom_in)
 
@@ -132,6 +132,10 @@ class MyMainWindow(MainWindow):
 
         QtWidgets.QShortcut(QtGui.QKeySequence("Up"), self).activated.connect(lambda up=True: self.key_next_image_button(up))
         QtWidgets.QShortcut(QtGui.QKeySequence("Down"), self).activated.connect(lambda up=False: self.key_next_image_button(up))
+
+    def reset_camera(self):
+        self.plotter.camera = self.scene.camera.copy()
+        self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
 
     def handle_transformation_matrix(self, name, transformation_matrix):
         self.mesh_register(name, transformation_matrix)
@@ -197,7 +201,7 @@ class MyMainWindow(MainWindow):
             self.output_text.append(f"-> Reset the {self.scene.mesh_container.reference} GT pose to:")
             self.output_text.append(text)
             
-        self.scene.reset_camera()
+        self.reset_camera()
 
     def key_next_image_button(self, up=False):
         buttons = self.image_button_group_actors.buttons()
@@ -267,7 +271,7 @@ class MyMainWindow(MainWindow):
                     self.scene.set_camera_extrinsics(self.scene.cam_viewup)
                     if self.scene.image_container.reference is not None: 
                         self.scene.handle_image_click(self.scene.image_container.reference)
-                    self.scene.reset_camera()
+                    self.reset_camera()
                 except:
                     self.scene.fx = pre_fx
                     self.scene.fy = pre_fy
@@ -297,7 +301,7 @@ class MyMainWindow(MainWindow):
                 self.image_button_group_actors.addButton(button_widget.button)
                 self.images_actors_group.widget_layout.insertWidget(0, button_widget)
             self.check_image_button(image_model.name)
-            self.scene.reset_camera()
+            self.reset_camera()
 
     def add_mask_file(self, mask_path='', prompt=False):
         if prompt:
@@ -361,7 +365,7 @@ class MyMainWindow(MainWindow):
                 self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
             if self.link_mesh_button.isChecked() and self.scene.mesh_container.reference is not None: self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=True)
             else: self.check_mesh_button(name=mesh_model.name, output_text=True)
-            self.scene.reset_camera()
+            self.reset_camera()
 
     @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def set_spacing(self):
@@ -561,7 +565,7 @@ class MyMainWindow(MainWindow):
         if option == "Set Camera":
             self.set_camera()
         elif option == "Reset Camera (c)":
-            self.scene.reset_camera()
+            self.reset_camera()
         elif option == "Zoom In (x)":
             self.scene.zoom_in()
         elif option == "Zoom Out (z)":
@@ -703,7 +707,6 @@ class MyMainWindow(MainWindow):
         draw_mask_button.setMenu(draw_options_menu)
 
         self.mask_actors_group = CustomGroupBox("Mask", self)
-        self.mask_actors_group.content_widget.setVisible(False)
         self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
         self.mask_actors_group.add_button_to_header(draw_mask_button)
         self.mask_actors_group.add_button_to_header(func_options_button)
@@ -897,7 +900,6 @@ class MyMainWindow(MainWindow):
         self.check_mask_button(name=mask_model.name)
 
     def add_mask_button(self, name):
-        self.mask_actors_group.content_widget.setVisible(True)
         button_widget = CustomMaskButtonWidget(name)
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.mask_color_value_change(name, color))
         button_widget.removeButtonClicked.connect(self.remove_mask_button)
@@ -953,7 +955,7 @@ class MyMainWindow(MainWindow):
                     mesh_path, pose = meshes[item]
                     self.add_mesh_file(mesh_path = SAVE_ROOT / pathlib.Path(*mesh_path.split("\\")))
                     self.add_pose_file(pose)
-            self.scene.reset_camera()
+            self.reset_camera()
 
     def export_workspace(self):
         workspace_dict = {"mesh_path": {}, "image_path": {}, "mask_path": {}}
@@ -1075,13 +1077,32 @@ class MyMainWindow(MainWindow):
                 self.mesh_actors_group.widget_layout.removeWidget(widget)
                 widget.deleteLater()
                 break
-
+    
+    #TODO: debug this function
     @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
     def set_distance2camera(self):
         image_model = self.scene.image_container.images[self.scene.image_container.reference]
         distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(image_model.distance2camera))
         if ok:
-            self.scene.set_distance2camera(distance)
+            distance = float(distance)
+            if self.scene.image_container.reference is not None:
+                image_model = self.scene.image_container.images[self.scene.image_container.reference]
+                pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
+                pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel)) # order = 'C
+                pv_obj = pv_obj.translate(-1 * np.array(pv_obj.center), inplace=False) # center the image at (0, 0)
+                pv_obj = pv_obj.translate(-np.array([0, 0, pv_obj.center[-1]]), inplace=False) # very important, re-center it to [0, 0, 0]
+                pv_obj = pv_obj.translate(np.array([0, 0, distance]), inplace=False)
+                if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)
+                else: image_actor = self.plotter.add_mesh(pv_obj, rgb=True, opacity=image_model.opacity, pickable=False, name=image_model.name)
+                image_model.actor = image_actor
+                self.scene.image_container.images[image_model.name] = image_model
+            if self.scene.mask_container.reference is not None:
+                mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
+                mask_model.pv_obj = mask_model.pv_obj.translate(-np.array([0, 0, mask_model.pv_obj.center[-1]]), inplace=False) # very important, re-center it to [0, 0, 0]
+                mask_model.pv_obj = mask_model.pv_obj.translate(np.array([0, 0, distance]), inplace=False)
+            #! do not modify the distance2camera for meshes, because it will mess up the pose
+            image_model.distance2camera = distance
+            self.reset_camera()
         
     @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
     def export_pose(self):

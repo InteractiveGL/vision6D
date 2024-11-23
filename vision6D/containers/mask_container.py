@@ -53,7 +53,7 @@ class MaskContainer(metaclass=Singleton):
         # Create the mesh surface object
         cells = np.hstack([[points.shape[0]], np.arange(points.shape[0]), 0])
         mask_model.pv_obj = pv.PolyData(points, cells).triangulate()
-        mask_model.pv_obj.translate(np.array([-cx, -cy, fy]), inplace=True)
+        mask_model.pv_obj = mask_model.pv_obj.translate(np.array([-cx, -cy, fy]), inplace=False)
         mask_model.opacity = 0.5
         mask_model.previous_opacity = 0.5
         mask_model.color = self.colors[len(self.masks) % len(self.colors)]

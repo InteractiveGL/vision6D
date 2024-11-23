@@ -72,21 +72,17 @@ class ImageContainer(metaclass=Singleton):
         return image_model
 
     def add_image_actor(self, image_model, fy, cx, cy):
-        # # Remove existing actor if it exists
-        # if hasattr(image_model, 'actor') and image_model.actor in self.plotter.renderer.actors.values():
-        #     self.plotter.remove_actor(image_model.actor)
-
         # Create the image pyvista object
         pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
         pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel))
         pv_obj = pv_obj.translate(-np.array(pv_obj.center), inplace=False) # Center the image at (0, 0)
+        
         # Compute offsets
         image_model.cx_offset = cx - (image_model.width / 2.0)
         image_model.cy_offset = cy - (image_model.height / 2.0)
-        # print(f"Image Origin: {image_model.cx_offset, image_model.cy_offset}")
+
         # Move the image to the camera distance fy
         pv_obj = pv_obj.translate(np.array([-image_model.cx_offset, -image_model.cy_offset, fy]), inplace=False)
-        # image_model.center = np.array([image_model.cx_offset, image_model.cy_offset, -fy])
 
         # Add the mesh to the plotter
         if image_model.channel == 1: image_actor = self.plotter.add_mesh(pv_obj, cmap='gray', opacity=image_model.opacity, name=image_model.name)

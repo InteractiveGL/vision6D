@@ -16,7 +16,7 @@ class CustomQtInteractor(QtInteractor):
         super().__init__(parent)
         self.main_window = main_window
         self.set_background("4c4c4c")
-        self.cell_picker = None
+        self.selected_actor = None  # Initialize the attribute here
 
     def mousePressEvent(self, event):
         # Call superclass method for left and middle buttons
@@ -28,18 +28,18 @@ class CustomQtInteractor(QtInteractor):
         super().mouseReleaseEvent(event)
         if event.button() in (1, 2, 4):  # Left, right, and middle mouse buttons
             self.release_callback()
-            
+
     def press_callback(self, obj, *args):
         x, y = obj.GetEventPosition()
-        cell_picker = vtk.vtkCellPicker()
-        if cell_picker.Pick(x, y, 0, self.renderer): self.cell_picker = cell_picker
+        prop_picker = vtk.vtkPropPicker()
+        if prop_picker.Pick(x, y, 0, self.renderer):
+            self.selected_actor = prop_picker.GetActor()  # Use a different attribute name
 
     def release_callback(self):
-        if self.cell_picker: 
-            picked_actor = self.cell_picker.GetActor()
-            name = picked_actor.name
+        if self.selected_actor:
+            name = self.selected_actor.name
             if name in self.main_window.scene.mesh_container.meshes:
                 self.main_window.check_mesh_button(name, output_text=True)
             elif name in self.main_window.scene.mask_container.masks:
                 self.main_window.check_mask_button(name)
-        self.cell_picker = None
+        self.selected_actor = None  # Reset the attribute

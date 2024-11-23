@@ -32,9 +32,6 @@ class Scene():
         self.canvas_width = 1920
         self.cam_viewup = (0, -1, 0)
 
-    def reset_camera(self):
-        self.plotter.camera = self.camera.copy()
-
     def zoom_in(self):
         self.plotter.camera.zoom(2)
 
@@ -51,23 +48,6 @@ class Scene():
         self.camera.SetPosition((0, 0, -1e-8)) # Set the camera position at the origin of the world coordinate system
         self.camera.SetFocalPoint((0, 0, 0)) # Get the camera window center
         self.camera.SetViewUp(cam_viewup)
-    
-    def set_distance2camera(self, distance):
-        distance = float(distance)
-        image_model = self.image_container.images[self.image_container.reference]
-        mask_model = self.mask_container.masks[self.mask_container.reference]
-        if image_model is not None:
-            pv_obj = pv.ImageData(dimensions=(image_model.width, image_model.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
-            pv_obj.point_data["values"] = image_model.source_obj.reshape((image_model.width * image_model.height, image_model.channel)) # order = 'C
-            pv_obj.translate(-1 * np.array(pv_obj.center), inplace=True) # center the image at (0, 0)
-            pv_obj.translate(-np.array([0, 0, pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-            pv_obj.translate(np.array([0, 0, distance]), inplace=True)
-        if mask_model is not None:
-            mask_model.pv_obj.translate(-np.array([0, 0, mask_model.pv_obj.center[-1]]), inplace=True) # very important, re-center it to [0, 0, 0]
-            mask_model.pv_obj.translate(np.array([0, 0, distance]), inplace=True)
-        #! do not modify the distance2camera for meshes, because it will mess up the pose
-        image_model.distance2camera = distance
-        self.reset_camera()
 
     def tap_toggle_opacity(self):
         if self.mesh_container.reference is not None and self.image_container.reference is not None:
@@ -151,7 +131,6 @@ class Scene():
         
     def handle_mask_click(self, name):
         self.mask_container.reference = name
-        self.reset_camera()
 
     def mesh_color_value_change(self, name, color):
         if name in self.mesh_container.meshes:
