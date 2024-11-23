@@ -642,6 +642,7 @@ class MyMainWindow(MainWindow):
         mirror_menu.addAction("x-axis", functools.partial(self.mirror_image, direction="x"))
         mirror_menu.addAction("y-axis", functools.partial(self.mirror_image, direction="y"))
         func_options_menu.addMenu(mirror_menu)
+        func_options_menu.addAction("Clear", self.clear_image)
         func_options_button.setMenu(func_options_menu)
 
         self.images_actors_group = CustomGroupBox("Image", self)
@@ -679,6 +680,7 @@ class MyMainWindow(MainWindow):
         mirror_menu.addAction("x-axis", functools.partial(self.mirror_mesh, direction="x"))
         mirror_menu.addAction("y-axis", functools.partial(self.mirror_mesh, direction="y"))
         func_options_menu.addMenu(mirror_menu)
+        func_options_menu.addAction("Clear", self.clear_mesh)
         func_options_button.setMenu(func_options_menu)
 
         self.link_mesh_button = QtWidgets.QPushButton("Link")
@@ -699,6 +701,7 @@ class MyMainWindow(MainWindow):
         mirror_menu.addAction("x-axis", functools.partial(self.mirror_mask, direction="x"))
         mirror_menu.addAction("y-axis", functools.partial(self.mirror_mask, direction="y"))
         func_options_menu.addMenu(mirror_menu)
+        func_options_menu.addAction("Clear", self.clear_mask)
         func_options_button.setMenu(func_options_menu)
 
         self.mask_actors_group = CustomGroupBox("Mask", self)
@@ -1032,12 +1035,21 @@ class MyMainWindow(MainWindow):
             else:
                 buttons[-1].click()
 
-    def clear_plot(self):
+    def clear_image(self):
         for button in self.image_button_group_actors.buttons(): self.remove_image_button(button)
-        for button in self.mask_button_group_actors.buttons(): self.remove_mask_button(button)
+
+    def clear_mesh(self):
         for button in self.mesh_button_group_actors.buttons(): self.remove_mesh_button(button)
-        self.workspace_path = ''
         self.link_mesh_button.setChecked(False)
+
+    def clear_mask(self):
+        for button in self.mask_button_group_actors.buttons(): self.remove_mask_button(button)
+
+    def clear_plot(self):
+        self.clear_image()
+        self.clear_mesh()
+        self.clear_mask()
+        self.workspace_path = ''
         self.reset_output_text()
         self.hintLabel.show()
     
