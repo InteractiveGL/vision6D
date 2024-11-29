@@ -7,8 +7,9 @@
 @time: 2023-07-03 20:30
 @desc: custom overwrite default qt interactor to include the mouse press and release related events.
 '''
-
+import os
 import vtk
+from ..tools import utils
 from pyvistaqt import QtInteractor
 
 class CustomQtInteractor(QtInteractor):
@@ -43,3 +44,34 @@ class CustomQtInteractor(QtInteractor):
             elif name in self.main_window.scene.mask_container.masks:
                 self.main_window.check_mask_button(name)
         self.selected_actor = None  # Reset the attribute
+        #* very important to sync the poses if the link_mesh_button is checked
+        self.main_window.on_link_mesh_button_toggle(checked=self.main_window.link_mesh_button.isChecked(), clicked=False)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls(): event.accept()
+        else: event.ignore()
+
+    def dropEvent(self, event):
+        mesh_paths = []
+        image_paths = []
+        mask_paths = []
+        unsupported_files = []
+
+        mask_indicators = ['_mask', '_seg', '_label']
+        for url in event.mimeData().urls():
+            file_path = url.toLocalFile()
+            # Load mesh files
+            if file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
+                mesh_paths.append(file_path)
+            # Load image/mask files
+            elif file_path.endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.webp', '.ico')):
+                filename = os.path.basename(file_path).lower()
+                if any(indicator in filename for indicator in mask_indicators): mask_paths.append(file_path)
+                else: image_paths.append(file_path)
+            else:
+                unsupported_files.append(file_path)
+
+        self.main_window.add_mesh_file(mesh_paths=mesh_paths)
+        self.main_window.add_image_file(image_paths=image_paths)
+        self.main_window.add_mask_file(mask_paths=mask_paths)
+        if len(unsupported_files) > 0: utils.display_warning(f"File {unsupported_files} format is not supported!")

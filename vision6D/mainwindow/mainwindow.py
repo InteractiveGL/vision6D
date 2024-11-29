@@ -283,7 +283,7 @@ class MyMainWindow(MainWindow):
                     self.scene.cam_viewup = pre_cam_viewup
                     utils.display_warning("Error occured, check the format of the input values")
 
-    def add_image_file(self, image_path='', prompt=False):
+    def add_image_file(self, image_paths='', prompt=False):
         if prompt:
             image_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
         if image_paths:
@@ -304,16 +304,17 @@ class MyMainWindow(MainWindow):
             self.check_image_button(image_model.name)
             self.reset_camera()
 
-    def add_mask_file(self, mask_path='', prompt=False):
+    def add_mask_file(self, mask_paths='', prompt=False):
         if prompt:
-            mask_path, _ = QtWidgets.QFileDialog().getOpenFileName(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
-        if mask_path:
+            mask_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
+        if mask_paths:
             self.hintLabel.hide()
-            mask_model = self.scene.mask_container.add_mask(mask_source = mask_path,
-                                                            fy = self.scene.fy,
-                                                            cx = self.scene.cx,
-                                                            cy = self.scene.cy)
-            self.add_mask_button(mask_model.name)
+            for mask_path in mask_paths:
+                mask_model = self.scene.mask_container.add_mask(mask_source = mask_path,
+                                                                fy = self.scene.fy,
+                                                                cx = self.scene.cx,
+                                                                cy = self.scene.cy)
+                self.add_mask_button(mask_model.name)
 
     def set_mask(self):
         get_mask_dialog = GetMaskDialog()
@@ -341,7 +342,7 @@ class MyMainWindow(MainWindow):
         mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
         mask_model.actor.user_matrix = np.eye(4)
 
-    def add_mesh_file(self, mesh_path='', prompt=False):
+    def add_mesh_file(self, mesh_paths='', prompt=False):
         if prompt: 
             mesh_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_paths:
@@ -457,23 +458,6 @@ class MyMainWindow(MainWindow):
         checked_button = self.mesh_button_group_actors.checkedButton()
         self.scene.mesh_container.get_poses_from_undo()
         checked_button.click()
-
-    def dropEvent(self, e):
-        for url in e.mimeData().urls():
-            file_path = url.toLocalFile()
-            # Load workspace json file
-            if file_path.endswith(('.json')): self.add_workspace(workspace_path=file_path)
-            # Load mesh file
-            elif file_path.endswith(('.mesh', '.ply', '.stl', '.obj', '.off', '.dae', '.fbx', '.3ds', '.x3d')):
-                self.add_mesh_file(mesh_path=file_path)
-            # Load image or mask file
-            elif file_path.endswith(('.png', '.jpg', 'jpeg', '.tiff', '.bmp', '.webp', '.ico')):  # add image/mask
-                file_data = np.array(PIL.Image.open(file_path).convert('L'), dtype='uint8')
-                unique, _ = np.unique(file_data, return_counts=True)
-                if len(unique) == 2: self.add_mask_file(mask_path=file_path)
-                else: self.add_image_file(image_path=file_path) 
-            elif file_path.endswith('.npy'): self.add_pose_file(pose_path=file_path)
-            else: utils.display_warning("File format is not supported!")
 
     def resizeEvent(self, e):
         x = (self.plotter.size().width() - self.hintLabel.width()) // 2
@@ -677,6 +661,7 @@ class MyMainWindow(MainWindow):
         self.link_mesh_button = QtWidgets.QPushButton("Link")
         self.link_mesh_button.setFixedSize(20, 20)
         self.link_mesh_button.setCheckable(True)
+        self.link_mesh_button.setChecked(True)
         self.link_mesh_button.toggled.connect(lambda checked, clicked=True: self.on_link_mesh_button_toggle(checked, clicked))
         self.mesh_actors_group = CustomGroupBox("Mesh", self)
         self.mesh_actors_group.addButtonClicked.connect(lambda mesh_path='', prompt=True: self.add_mesh_file(mesh_path, prompt))
