@@ -67,14 +67,14 @@ class MeshContainer:
                     reference_matrix = self.mesh_store.meshes[name].actor.user_matrix
                     self.add_mesh(mesh_data, reference_matrix)
                 else:
-                    self.add_mesh(mesh_data, np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]])) # set the initial pose, r_x, r_y, t_z includes the scaling too
+                    self.add_mesh(mesh_data, np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]])) # set the initial pose, r_x, r_y, t_z includes the scaling too
             else: utils.display_warning("The mesh format is not supported!")
 
     def mirror_mesh(self, name, direction):
         mesh_data = self.mesh_store.meshes[name]
         if direction == 'x': mesh_data.mirror_x = not mesh_data.mirror_x
         elif direction == 'y': mesh_data.mirror_y = not mesh_data.mirror_y
-        if mesh_data.initial_pose != np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]]): mesh_data.initial_pose = mesh_data.actor.user_matrix
+        if mesh_data.initial_pose != np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]]): mesh_data.initial_pose = mesh_data.actor.user_matrix
         transformation_matrix = mesh_data.actor.user_matrix
         if mesh_data.mirror_x: 
             transformation_matrix[0,0] = -1

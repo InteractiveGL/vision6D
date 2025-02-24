@@ -83,7 +83,7 @@ class CustomButtonWidget(QtWidgets.QWidget):
 
         # Create the square button
         self.square_button = SquareButton()
-        # self.square_button.clicked.connect(self.show_color_popup)
+        self.square_button.clicked.connect(self.show_color_popup)
         button_layout.addWidget(self.square_button, 0, 0, 0, 0, Qt.AlignRight | Qt.AlignVCenter)
 
         # Add the button container to the main layout
@@ -175,7 +175,7 @@ class MyMainWindow(MainWindow):
                 
         # Set bars
         self.set_panel_bar()
-        # self.set_menu_bars()
+        self.set_menu_bars()
 
         # Set up the main layout with the left panel and the render window using QSplitter
         self.main_layout = QtWidgets.QHBoxLayout(self.main_widget)
@@ -265,31 +265,31 @@ class MyMainWindow(MainWindow):
         # Camera related key bindings
         QtWidgets.QShortcut(QtGui.QKeySequence("c"), self).activated.connect(self.image_store.reset_camera)
         QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.toggle_opacity)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.image_store.zoom_out)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.image_store.zoom_in)
+        QtWidgets.QShortcut(QtGui.QKeySequence("z"), self).activated.connect(self.image_store.zoom_out)
+        QtWidgets.QShortcut(QtGui.QKeySequence("x"), self).activated.connect(self.image_store.zoom_in)
         
 
-        # # Mask related key bindings
-        # QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.mask_container.reset_mask)
+        # Mask related key bindings
+        QtWidgets.QShortcut(QtGui.QKeySequence("t"), self).activated.connect(self.mask_container.reset_mask)
 
-        # # Bbox related key bindings
-        # QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.bbox_container.reset_bbox)
+        # Bbox related key bindings
+        QtWidgets.QShortcut(QtGui.QKeySequence("f"), self).activated.connect(self.bbox_container.reset_bbox)
 
-        # # Mesh related key bindings 
-        # QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.mesh_container.reset_gt_pose)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.mesh_container.update_gt_pose)
+        # Mesh related key bindings 
+        QtWidgets.QShortcut(QtGui.QKeySequence("k"), self).activated.connect(self.mesh_container.reset_gt_pose)
+        QtWidgets.QShortcut(QtGui.QKeySequence("l"), self).activated.connect(self.mesh_container.update_gt_pose)
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+z"), self).activated.connect(self.mesh_container.undo_actor_pose)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.mesh_container.toggle_surface_opacity(up))
-        # QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.mesh_container.toggle_surface_opacity(up))
+        QtWidgets.QShortcut(QtGui.QKeySequence("y"), self).activated.connect(lambda up=True: self.mesh_container.toggle_surface_opacity(up))
+        QtWidgets.QShortcut(QtGui.QKeySequence("u"), self).activated.connect(lambda up=False: self.mesh_container.toggle_surface_opacity(up))
 
         # Video related key bindings 
-        # QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.video_container.next_info)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.video_container.prev_info)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.video_container.play_video)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Right"), self).activated.connect(self.video_container.next_info)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Left"), self).activated.connect(self.video_container.prev_info)
+        QtWidgets.QShortcut(QtGui.QKeySequence("Space"), self).activated.connect(self.video_container.play_video)
 
-        # # Folder related key bindings 
-        # QtWidgets.QShortcut(QtGui.QKeySequence("a"), self).activated.connect(self.folder_container.prev_info)
-        # QtWidgets.QShortcut(QtGui.QKeySequence("d"), self).activated.connect(self.folder_container.next_info)
+        # Folder related key bindings 
+        QtWidgets.QShortcut(QtGui.QKeySequence("a"), self).activated.connect(self.folder_container.prev_info)
+        QtWidgets.QShortcut(QtGui.QKeySequence("d"), self).activated.connect(self.folder_container.next_info)
 
         # todo: create the swith button for mesh and ct "ctrl + tap"
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+Tab"), self).activated.connect(self.ctrl_tap_opacity)
@@ -335,51 +335,51 @@ class MyMainWindow(MainWindow):
         self.hintLabel.move(x, y)
         super().resizeEvent(e)
 
-    # # ^Menu
-    # def set_menu_bars(self):
-    #     mainMenu = self.menuBar()
+    # ^Menu
+    def set_menu_bars(self):
+        mainMenu = self.menuBar()
         
-        # # allow to add files
-        # fileMenu = mainMenu.addMenu('File')
-        # fileMenu.addAction('Add Workspace', functools.partial(self.add_workspace, prompt=True))
-        # fileMenu.addAction('Add Folder', functools.partial(self.add_folder, prompt=True))
-        # fileMenu.addAction('Add Video', functools.partial(self.video_container.add_video_file, prompt=True))
-        # fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
-        # fileMenu.addAction('Add Mask', self.mask_container.set_mask)
-        # fileMenu.addAction('Add Bbox', functools.partial(self.bbox_container.add_bbox_file, prompt=True))
-        # fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
-        # fileMenu.addAction('Clear', self.clear_plot)
+        # allow to add files
+        fileMenu = mainMenu.addMenu('File')
+        fileMenu.addAction('Add Workspace', functools.partial(self.add_workspace, prompt=True))
+        fileMenu.addAction('Add Folder', functools.partial(self.add_folder, prompt=True))
+        fileMenu.addAction('Add Video', functools.partial(self.video_container.add_video_file, prompt=True))
+        fileMenu.addAction('Add Image', functools.partial(self.image_container.add_image_file, prompt=True))
+        fileMenu.addAction('Add Mask', self.mask_container.set_mask)
+        fileMenu.addAction('Add Bbox', functools.partial(self.bbox_container.add_bbox_file, prompt=True))
+        fileMenu.addAction('Add Mesh', functools.partial(self.mesh_container.add_mesh_file, prompt=True))
+        fileMenu.addAction('Clear', self.clear_plot)
 
-        # # allow to export files
-        # exportMenu = mainMenu.addMenu('Export')
-        # exportMenu.addAction('Workspace', self.export_workspace)
-        # exportMenu.addAction('Image', self.image_container.export_image)
-        # exportMenu.addAction('Mask', self.mask_container.export_mask)
-        # exportMenu.addAction('Bbox', self.bbox_container.export_bbox)
-        # exportMenu.addAction('Mesh/Pose', self.mesh_container.export_mesh_pose)
-        # exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
-        # exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
-        # exportMenu.addAction('Camera Info', self.image_container.export_camera_info)
+        # allow to export files
+        exportMenu = mainMenu.addMenu('Export')
+        exportMenu.addAction('Workspace', self.export_workspace)
+        exportMenu.addAction('Image', self.image_container.export_image)
+        exportMenu.addAction('Mask', self.mask_container.export_mask)
+        exportMenu.addAction('Bbox', self.bbox_container.export_bbox)
+        exportMenu.addAction('Mesh/Pose', self.mesh_container.export_mesh_pose)
+        exportMenu.addAction('Mesh Render', self.mesh_container.export_mesh_render)
+        exportMenu.addAction('SegMesh Render', self.mesh_container.export_segmesh_render)
+        exportMenu.addAction('Camera Info', self.image_container.export_camera_info)
         
-        # # Add video related actions
-        # VideoMenu = mainMenu.addMenu('Video')
-        # VideoMenu.addAction('Play', self.video_container.play_video)
-        # VideoMenu.addAction('Sample', self.video_container.sample_video)
-        # VideoMenu.addAction('Save', self.video_container.save_info)
-        # VideoMenu.addAction('Prev', self.video_container.prev_info)
-        # VideoMenu.addAction('Next', self.video_container.next_info)
+        # Add video related actions
+        VideoMenu = mainMenu.addMenu('Video')
+        VideoMenu.addAction('Play', self.video_container.play_video)
+        VideoMenu.addAction('Sample', self.video_container.sample_video)
+        VideoMenu.addAction('Save', self.video_container.save_info)
+        VideoMenu.addAction('Prev', self.video_container.prev_info)
+        VideoMenu.addAction('Next', self.video_container.next_info)
 
-        # # Add folder related actions
-        # FolderMenu = mainMenu.addMenu('Folder')
-        # FolderMenu.addAction('Save', self.folder_container.save_info)
-        # FolderMenu.addAction('Prev', self.folder_container.prev_info)
-        # FolderMenu.addAction('Next', self.folder_container.next_info)
+        # Add folder related actions
+        FolderMenu = mainMenu.addMenu('Folder')
+        FolderMenu.addAction('Save', self.folder_container.save_info)
+        FolderMenu.addAction('Prev', self.folder_container.prev_info)
+        FolderMenu.addAction('Next', self.folder_container.next_info)
 
-        # # Add pnp algorithm related actions
-        # PnPMenu = mainMenu.addMenu('PnP')
-        # PnPMenu.addAction('EPnP with mesh', self.pnp_container.epnp_mesh)
-        # PnPMenu.addAction('EPnP with nocs mask', functools.partial(self.pnp_container.epnp_mask, True))
-        # PnPMenu.addAction('EPnP with latlon mask', functools.partial(self.pnp_container.epnp_mask, False))
+        # Add pnp algorithm related actions
+        PnPMenu = mainMenu.addMenu('PnP')
+        PnPMenu.addAction('EPnP with mesh', self.pnp_container.epnp_mesh)
+        PnPMenu.addAction('EPnP with nocs mask', functools.partial(self.pnp_container.epnp_mask, True))
+        PnPMenu.addAction('EPnP with latlon mask', functools.partial(self.pnp_container.epnp_mask, False))
 
     # create draw menu when right click on the image
     def draw_menu(self, event):
@@ -525,60 +525,60 @@ class MyMainWindow(MainWindow):
         top_grid_layout.addWidget(self.pause_button, row, column)
 
         # Create a QPushButton that will act as a drop-down button and QMenu to act as the drop-down menu
-        # self.camera_options_button = QtWidgets.QPushButton("Camera")
-        # self.camera_options_menu = QtWidgets.QMenu()
-        # self.camera_options_menu.addAction("Set Camera", lambda: self.on_camera_options_selection_change("Set Camera"))
-        # self.camera_options_menu.addAction("Reset Camera (c)", lambda: self.on_camera_options_selection_change("Reset Camera (c)"))
-        # self.camera_options_menu.addAction("Zoom In (x)", lambda: self.on_camera_options_selection_change("Zoom In (x)"))
-        # self.camera_options_menu.addAction("Zoom Out (z)", lambda: self.on_camera_options_selection_change("Zoom Out (z)"))
-        # self.camera_options_menu.addAction("Calibrate", lambda: self.on_camera_options_selection_change("Calibrate"))
-        # self.camera_options_button.setMenu(self.camera_options_menu)
-        # top_grid_layout.addWidget(self.camera_options_button, row, column)
+        self.camera_options_button = QtWidgets.QPushButton("Camera")
+        self.camera_options_menu = QtWidgets.QMenu()
+        self.camera_options_menu.addAction("Set Camera", lambda: self.on_camera_options_selection_change("Set Camera"))
+        self.camera_options_menu.addAction("Reset Camera (c)", lambda: self.on_camera_options_selection_change("Reset Camera (c)"))
+        self.camera_options_menu.addAction("Zoom In (x)", lambda: self.on_camera_options_selection_change("Zoom In (x)"))
+        self.camera_options_menu.addAction("Zoom Out (z)", lambda: self.on_camera_options_selection_change("Zoom Out (z)"))
+        self.camera_options_menu.addAction("Calibrate", lambda: self.on_camera_options_selection_change("Calibrate"))
+        self.camera_options_button.setMenu(self.camera_options_menu)
+        top_grid_layout.addWidget(self.camera_options_button, row, column)
 
-        # self.pose_options_button = QtWidgets.QPushButton("Pose")
-        # self.pose_options_menu = QtWidgets.QMenu()
-        # self.pose_options_menu.addAction("Set Pose", lambda: self.on_pose_options_selection_change("Set Pose"))
-        # self.pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.on_pose_options_selection_change("Reset GT Pose (k)"))
-        # self.pose_options_menu.addAction("Update GT Pose (l)", lambda: self.on_pose_options_selection_change("Update GT Pose (l)"))
-        # self.pose_options_menu.addAction("Undo Pose (s)", lambda: self.on_pose_options_selection_change("Undo Pose (s)"))
-        # self.pose_options_button.setMenu(self.pose_options_menu)
-        # row, column = self.set_panel_row_column(row, column)
-        # top_grid_layout.addWidget(self.pose_options_button, row, column)
+        self.pose_options_button = QtWidgets.QPushButton("Pose")
+        self.pose_options_menu = QtWidgets.QMenu()
+        self.pose_options_menu.addAction("Set Pose", lambda: self.on_pose_options_selection_change("Set Pose"))
+        self.pose_options_menu.addAction("Reset GT Pose (k)", lambda: self.on_pose_options_selection_change("Reset GT Pose (k)"))
+        self.pose_options_menu.addAction("Update GT Pose (l)", lambda: self.on_pose_options_selection_change("Update GT Pose (l)"))
+        self.pose_options_menu.addAction("Undo Pose (s)", lambda: self.on_pose_options_selection_change("Undo Pose (s)"))
+        self.pose_options_button.setMenu(self.pose_options_menu)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.pose_options_button, row, column)
 
-        # # Create the spacing button
-        # self.spacing_button = QtWidgets.QPushButton("Spacing")
-        # self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
-        # row, column = self.set_panel_row_column(row, column)
-        # top_grid_layout.addWidget(self.spacing_button, row, column)
+        # Create the spacing button
+        self.spacing_button = QtWidgets.QPushButton("Spacing")
+        self.spacing_button.clicked.connect(self.mesh_container.set_spacing)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.spacing_button, row, column)
 
-        # # Create the hide button
-        # hide_button = QtWidgets.QPushButton("Toggle Meshes")
-        # hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
-        # row, column = self.set_panel_row_column(row, column)
-        # top_grid_layout.addWidget(hide_button, row, column)
+        # Create the hide button
+        hide_button = QtWidgets.QPushButton("Toggle Meshes")
+        hide_button.clicked.connect(self.mesh_container.toggle_hide_meshes_button)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(hide_button, row, column)
 
-        # # Mirror buttons
-        # # mirror_x mean mirror left/right
-        # # mirror_y mean mirror up/down
-        # self.mirror_x_button = QtWidgets.QPushButton("Flip Left/Right")
-        # self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
-        # row, column = self.set_panel_row_column(row, column)
-        # top_grid_layout.addWidget(self.mirror_x_button, row, column)
-        # self.mirror_y_button = QtWidgets.QPushButton("Flip Up/Down")
-        # self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
-        # row, column = self.set_panel_row_column(row, column)
-        # top_grid_layout.addWidget(self.mirror_y_button, row, column)
+        # Mirror buttons
+        # mirror_x mean mirror left/right
+        # mirror_y mean mirror up/down
+        self.mirror_x_button = QtWidgets.QPushButton("Flip Left/Right")
+        self.mirror_x_button.clicked.connect(lambda _, direction="x": self.mirror_actors(direction))
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.mirror_x_button, row, column)
+        self.mirror_y_button = QtWidgets.QPushButton("Flip Up/Down")
+        self.mirror_y_button.clicked.connect(lambda _, direction="y": self.mirror_actors(direction))
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.mirror_y_button, row, column)
 
-        # # Create the remove button
-        # remove_button = QtWidgets.QPushButton("Remove Actor")
-        # remove_button.clicked.connect(self.remove_actors_button)
-        # row, column = self.set_panel_row_column(row, column)
-        # top_grid_layout.addWidget(remove_button, row, column)
+        # Create the remove button
+        remove_button = QtWidgets.QPushButton("Remove Actor")
+        remove_button.clicked.connect(self.remove_actors_button)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(remove_button, row, column)
 
-        # # Create the video related button
-        # self.play_video_button.clicked.connect(self.video_container.play_video)
-        # row, column = self.set_panel_row_column(row, column)
-        # top_grid_layout.addWidget(self.play_video_button, row, column)
+        # Create the video related button
+        self.play_video_button.clicked.connect(self.video_container.play_video)
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.play_video_button, row, column)
 
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
@@ -923,7 +923,7 @@ class MyMainWindow(MainWindow):
         if 'image_path' in workspace and workspace['image_path'] is not None: self.image_container.add_image_file(image_path=root / pathlib.Path(*workspace['image_path'].split("\\")))
         if 'mesh_path' in workspace:
             mesh_path = workspace['mesh_path']
-            pose = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1], [0, 0, 0, 1]])
+            pose = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]])
             self.mesh_container.add_mesh_file(mesh_path=root / pathlib.Path(*mesh_path.split("\\")))
             self.mesh_container.add_pose(pose)
         self.image_store.reset_camera()
