@@ -47,7 +47,6 @@ class ImageStore(metaclass=Singleton):
         self.cx = 325.2611
         self.cy = 242.04899
         self.cam_viewup = (0, -1, 0)
-        self.object_distance = 100
 
     #^ Camera related
     def reset_camera(self):
@@ -93,7 +92,7 @@ class ImageStore(metaclass=Singleton):
     def add_image(self, image_source):
         # set the object distance to the camera in world coordinate
         self.set_camera_props()
-        self.object_distance = 1e-4 * self.fy
+        self.object_distance = self.fy
         if isinstance(image_source, pathlib.Path) or isinstance(image_source, str):
             self.image_path = str(image_source)
             image_source = np.array(PIL.Image.open(image_source), dtype='uint8')
@@ -125,18 +124,12 @@ class ImageStore(metaclass=Singleton):
         self.render = utils.create_render(self.width, self.height)
         
         # create the image pyvista object
-        self.image_pv = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[1e-4, 1e-4, 1], origin=(0.0, 0.0, 0.0))
+        self.image_pv = pv.ImageData(dimensions=(self.width, self.height, 1), spacing=[1, 1, 1], origin=(0.0, 0.0, 0.0))
         self.image_pv.point_data["values"] = image_source.reshape((self.width * self.height, channel)) # order = 'C
         self.image_pv = self.image_pv.translate(-1 * np.array(self.image_pv.center), inplace=False) # center the image at (0, 0)
-        """
-        Do not need fx and fy (the focal lengths) for this calculation 
-        because we are simply computing the offset of the principal point (cx, cy) in pixel space relative to 
-        the center of the image and converting that to world space using the image spacing (1e-4).
-        Note that if image spacing is [1e-4, 1e-4], it means that each pixel in the x and y directions corresponds to a world unit of 1e-4 in those directions.
-        """
-        cx_offset = (self.cx - (PLOT_SIZE[0] / 2.0)) * 1e-4
-        cy_offset = (self.cy - (PLOT_SIZE[1] / 2.0)) * 1e-4
-        # print(f"Image Origin: {cx_offset, cy_offset}")
+        
+        cx_offset = (self.cx - (PLOT_SIZE[0] / 2.0))
+        cy_offset = (self.cy - (PLOT_SIZE[1] / 2.0))
         self.image_pv.translate(np.array([-cx_offset, -cy_offset, self.object_distance]), inplace=True) # move the image to the camera distance
         
         return self.image_pv, image_source, channel
