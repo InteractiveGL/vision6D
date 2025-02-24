@@ -26,7 +26,6 @@ class MeshData:
     source_mesh: trimesh.Trimesh
     pv_mesh: pv.PolyData
     actor: pv.Actor
-    widget: pv.Actor
     opacity_spinbox: Optional[str]
     color_button: Optional[str]
     color: str
@@ -84,7 +83,6 @@ class MeshStore(metaclass=Singleton):
                                 pv_mesh=pv_mesh,
                                 color_button=None,
                                 actor=None,
-                                widget=None,
                                 color=self.colors[self.color_counter],
                                 opacity_spinbox=None,
                                 spacing=[1, 1, 1])
@@ -105,9 +103,6 @@ class MeshStore(metaclass=Singleton):
     def remove_mesh(self, name):
         del self.meshes[name]
         self.reference = None
-
-    def remove_widget(self, name):
-        self.meshes[name].widget.remove()
     
     def get_poses_from_undo(self, mesh_data):
         transformation_matrix = mesh_data.undo_poses.pop()

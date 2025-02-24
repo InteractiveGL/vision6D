@@ -54,7 +54,7 @@ class ImageStore(metaclass=Singleton):
         self.fy = 573.57043
         self.cx = 325.2611
         self.cy = 242.04899
-        self.cam_viewup = (0, -1, 0)
+        self.cam_viewup = (0, 0, 0)
 
         # handal dataset camera parameters
         # self.fx = 1589.958
@@ -118,6 +118,8 @@ class ImageStore(metaclass=Singleton):
         """
         if self.cam_viewup == (0, 0, 0): image_source = np.fliplr(np.flipud(image_source))
         elif self.cam_viewup == (0, -1, 0): image_source = image_source
+
+        image_source = np.fliplr(np.flipud(image_source))
         
         #^ save the image_source for mirroring image in the video
         self.image_source = copy.deepcopy(image_source)

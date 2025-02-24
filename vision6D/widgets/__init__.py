@@ -11,7 +11,6 @@ from .video_player import VideoPlayer
 from .video_sampler import VideoSampler
 from .search_bar import SearchBar
 from .pnp_window import PnPWindow
-from .affine_widget_3d import AffineWidget3D
 
 
 __all__ = [
@@ -26,6 +25,5 @@ __all__ = [
     'VideoPlayer',
     'VideoSampler',
     'SearchBar',
-    'PnPWindow',
-    'AffineWidget3D'
+    'PnPWindow'
 ]

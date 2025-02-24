@@ -719,8 +719,6 @@ class MyMainWindow(MainWindow):
             if output_text: self.output_text.append(f"--> Mesh {name} pose is:"); self.output_text.append(text)
             self.mesh_store.meshes[self.mesh_store.reference].undo_poses.append(mesh_data.actor.user_matrix)
             self.mesh_store.meshes[self.mesh_store.reference].undo_poses = self.mesh_store.meshes[self.mesh_store.reference].undo_poses[-20:]
-            self.mesh_store.meshes[self.mesh_store.reference].widget.sync_widget_to_actor()
-            self.mesh_store.meshes[self.mesh_store.reference].widget._cached_matrix = mesh_data.actor.user_matrix
         else:
             self.mesh_store.reference = None #* For fixing some bugs in segmesh render function
 
@@ -885,15 +883,12 @@ class MyMainWindow(MainWindow):
             self.bbox_store.reset()
         elif name in self.mesh_store.meshes: 
             actor = self.mesh_store.meshes[name].actor
-            self.mesh_store.remove_widget(name)
             self.mesh_store.remove_mesh(name)
 
         self.plotter.remove_actor(actor)
         self.track_actors_names.remove(name)
         # remove the button from the button group
         self.button_group_actors_names.removeButton(button)
-        # remove the button from the custom button widget
-        self.remove_custom_button_widget(button)
         # offically delete the button
         button.deleteLater()
 
@@ -927,13 +922,11 @@ class MyMainWindow(MainWindow):
                 self.bbox_store.mirror_y = False
             elif name in self.mesh_store.meshes: 
                 actor = self.mesh_store.meshes[name].actor
-                self.mesh_store.remove_widget(name)
                 self.mesh_store.remove_mesh(name)
 
             self.plotter.remove_actor(actor)
             # remove the button from the button group
             self.button_group_actors_names.removeButton(button)
-            self.remove_custom_button_widget(button)
             # offically delete the button
             button.deleteLater()
 
@@ -944,21 +937,6 @@ class MyMainWindow(MainWindow):
         self.track_actors_names.clear()
         self.reset_output_text()
         self.hintLabel.show()
-
-    def remove_custom_button_widget(self, button):
-        for i in range(self.custom_widget_layout.count()): 
-            widget = self.custom_widget_layout.itemAt(i).widget()
-            if widget is not None and hasattr(widget, 'button') and widget.button == button:
-                self.custom_widget_layout.removeWidget(widget)
-                widget.deleteLater()
-                if i <= self.custom_widget_layout.count() and self.custom_widget_layout.count() > 1:
-                    if i == self.custom_widget_layout.count()-1:
-                        next_widget = self.custom_widget_layout.itemAt(i-1).widget()
-                    else:
-                        next_widget = self.custom_widget_layout.itemAt(i).widget()
-                    if next_widget is not None and hasattr(next_widget, 'button'):
-                        next_widget.button.setChecked(True)
-                break
 
     def set_object_distance(self):
         distance, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Objects distance to camera", text=str(self.image_store.object_distance))
