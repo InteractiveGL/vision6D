@@ -43,6 +43,7 @@ from ..widgets import MaskWindow
 from ..widgets import LiveWireWindow
 from ..widgets import SamWindow
 from ..widgets import CustomGroupBox
+from ..widgets import CameraControlWidget
 
 from ..tools import utils
 from ..tools import exception
@@ -100,7 +101,7 @@ class MyMainWindow(MainWindow):
         self.splitter.addWidget(self.panel_widget)
         self.splitter.addWidget(self.plotter)
         self.splitter.setStretchFactor(0, 1) # for self.panel_widget
-        self.splitter.setStretchFactor(1, 3) # for self.plotter
+        self.splitter.setStretchFactor(1, 5) # for self.plotter
 
         self.main_layout.addWidget(self.splitter)
 
@@ -500,6 +501,7 @@ class MyMainWindow(MainWindow):
         self.setMenuBar(self.panel_bar)
 
         self.panel_console()
+        self.camera_control_console()
         self.panel_images_actors()
         self.panel_mesh_actors()
         self.panel_mask_actors()
@@ -521,7 +523,7 @@ class MyMainWindow(MainWindow):
 
     def set_panel_row_column(self, row, column):
         column += 1
-        if column % 4 == 0: 
+        if column % 3 == 0: 
             row += 1
             column = 0
         return row, column
@@ -607,6 +609,46 @@ class MyMainWindow(MainWindow):
         console_group.setLayout(display_layout)
         self.panel_layout.addWidget(console_group)
 
+    def camera_control_console(self):
+        console_group = QtWidgets.QGroupBox("Precise Camera Control")
+
+        display_layout = QtWidgets.QVBoxLayout()
+        display_layout.setContentsMargins(0, 15, 0, 5)
+        top_layout = QtWidgets.QHBoxLayout()
+        top_grid_layout = QtWidgets.QGridLayout()
+
+        row, column = 0, 0
+
+        camera_rx_control = CameraControlWidget("Rx", "(deg)")
+        top_grid_layout.addWidget(camera_rx_control, 0, 0)
+
+        camera_ry_control = CameraControlWidget("Ry", "(deg)")
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(camera_ry_control, row, column)
+
+        camera_rz_control = CameraControlWidget("Rz", "(deg)")
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(camera_rz_control, row, column)
+
+        camera_tx_control = CameraControlWidget("Tx", "(mm)")
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(camera_tx_control, row, column)
+
+        camera_ty_control = CameraControlWidget("Ty", "(mm)")
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(camera_ty_control, row, column)
+
+        camera_tz_control = CameraControlWidget("Tz", "(mm)")
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(camera_tz_control, row, column)
+
+        top_grid_widget = QtWidgets.QWidget()
+        top_grid_widget.setLayout(top_grid_layout)
+        top_layout.addWidget(top_grid_widget)
+        display_layout.addLayout(top_layout)
+        console_group.setLayout(display_layout)
+        self.panel_layout.addWidget(console_group)
+
     # In your main class or wherever you're using panel_images_actors
     def panel_images_actors(self):
         func_options_button = QtWidgets.QPushButton("Func")
@@ -670,16 +712,6 @@ class MyMainWindow(MainWindow):
         self.panel_layout.addWidget(self.mesh_actors_group)
 
     def panel_mask_actors(self):
-        func_options_button = QtWidgets.QPushButton("Func")
-        func_options_button.setFixedSize(50, 20)
-        func_options_menu = QtWidgets.QMenu()
-        mirror_menu = QtWidgets.QMenu("Mirror", func_options_menu)
-        mirror_menu.addAction("x-axis", functools.partial(self.mirror_mask, direction="x"))
-        mirror_menu.addAction("y-axis", functools.partial(self.mirror_mask, direction="y"))
-        func_options_menu.addMenu(mirror_menu)
-        func_options_menu.addAction("Clear", self.clear_mask)
-        func_options_button.setMenu(func_options_menu)
-        
         draw_mask_button = QtWidgets.QPushButton("Draw")
         draw_mask_button.setFixedSize(20, 20)
         draw_options_menu = QtWidgets.QMenu()
@@ -692,7 +724,18 @@ class MyMainWindow(MainWindow):
         draw_options_menu.addAction("Reset Mask (t)", self.reset_mask)
         draw_mask_button.setMenu(draw_options_menu)
 
+        func_options_button = QtWidgets.QPushButton("Func")
+        func_options_button.setFixedSize(50, 20)
+        func_options_menu = QtWidgets.QMenu()
+        mirror_menu = QtWidgets.QMenu("Mirror", func_options_menu)
+        mirror_menu.addAction("x-axis", functools.partial(self.mirror_mask, direction="x"))
+        mirror_menu.addAction("y-axis", functools.partial(self.mirror_mask, direction="y"))
+        func_options_menu.addMenu(mirror_menu)
+        func_options_menu.addAction("Clear", self.clear_mask)
+        func_options_button.setMenu(func_options_menu)
+
         self.mask_actors_group = CustomGroupBox("Mask", self)
+        self.mask_actors_group.checkbox.setChecked(False)
         self.mask_actors_group.addButtonClicked.connect(lambda mask_path='', prompt=True: self.add_mask_file(mask_path, prompt))
         self.mask_actors_group.add_button_to_header(draw_mask_button)
         self.mask_actors_group.add_button_to_header(func_options_button)

@@ -14,6 +14,7 @@ from .custom_image_button_widget import CustomImageButtonWidget
 from .custom_mesh_button_widget import CustomMeshButtonWidget
 from .custom_mask_button_widget import CustomMaskButtonWidget
 from .custom_group_box import CustomGroupBox
+from .camera_control_widget import CameraControlWidget
 
 __all__ = [
     'CalibrationDialog',
@@ -31,5 +32,6 @@ __all__ = [
     'CustomImageButtonWidget',
     'CustomMeshButtonWidget',
     'CustomMaskButtonWidget',
-    'CustomGroupBox'
+    'CustomGroupBox',
+    'CameraControlWidget'
 ]
