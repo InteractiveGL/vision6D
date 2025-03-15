@@ -23,7 +23,9 @@ class CameraPropsInputDialog(QtWidgets.QDialog):
                     line2=(None, None), 
                     line3=(None, None), 
                     line4=(None, None), 
-                    line5=(None, None)):
+                    line5=(None, None),
+                    line6=(None, None),
+                    line7=(None, None)):
         super().__init__(parent)
 
         self.args1 = QtWidgets.QLineEdit(self, text=str(line1[1]))
@@ -31,6 +33,8 @@ class CameraPropsInputDialog(QtWidgets.QDialog):
         self.args3 = QtWidgets.QLineEdit(self, text=str(line3[1]))
         self.args4 = QtWidgets.QLineEdit(self, text=str(line4[1]))
         self.args5 = QtWidgets.QLineEdit(self, text=str(line5[1]))
+        self.args6 = QtWidgets.QLineEdit(self, text=str(line6[1]))
+        self.args7 = QtWidgets.QLineEdit(self, text=str(line7[1]))
 
         buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel, self)
 
@@ -40,6 +44,8 @@ class CameraPropsInputDialog(QtWidgets.QDialog):
         layout.addRow(f"{line3[0]}", self.args3)
         layout.addRow(f"{line4[0]}", self.args4)
         layout.addRow(f"{line5[0]}", self.args5)
+        layout.addRow(f"{line6[0]}", self.args6)
+        layout.addRow(f"{line7[0]}", self.args7)
         layout.addWidget(buttonBox)
 
         buttonBox.accepted.connect(self.accept)
@@ -50,4 +56,6 @@ class CameraPropsInputDialog(QtWidgets.QDialog):
                 self.args2.text(), 
                 self.args3.text(),
                 self.args4.text(),
-                self.args5.text())
+                self.args5.text(),
+                self.args6.text(),
+                self.args7.text())

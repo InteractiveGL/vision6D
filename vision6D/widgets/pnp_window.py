@@ -68,12 +68,12 @@ class PnPLabel(QtWidgets.QLabel):
 
 class PnPWindow(QtWidgets.QWidget):
     transformation_matrix_computed = QtCore.pyqtSignal(np.ndarray)
-    def __init__(self, image_source, mesh_data, camera_intrinsics):
+    def __init__(self, image_source, mesh_model, camera_intrinsics):
         super().__init__()
 
         self.setWindowTitle("2D-to-3D Registration Using the PnP Algorithm") 
 
-        self.mesh_data = mesh_data
+        self.mesh_model = mesh_model
         self.camera_intrinsics = camera_intrinsics
         self.picked_3d_points = []
         self.point_labels = []
@@ -151,14 +151,14 @@ class PnPWindow(QtWidgets.QWidget):
 
     def plot_3d_model(self):
         scalars = None
-        if self.mesh_data.color == "nocs": scalars = utils.color_mesh_nocs(self.mesh_data.pv_mesh.points)
-        elif self.mesh_data.color == "texture": scalars = np.load(self.mesh_data.texture_path) / 255
+        if self.mesh_model.color == "nocs": scalars = utils.color_mesh_nocs(self.mesh_model.pv_obj.points)
+        elif self.mesh_model.color == "texture": scalars = np.load(self.mesh_model.texture_path) / 255
         if scalars is not None: 
-            self.mesh_actor = self.pv_widget.add_mesh(self.mesh_data.pv_mesh, scalars=scalars, rgb=True, opacity=1, show_scalar_bar=False)
+            self.mesh_actor = self.pv_widget.add_mesh(self.mesh_model.pv_obj, scalars=scalars, rgb=True, opacity=1, show_scalar_bar=False)
         else: 
-            self.mesh_actor = self.pv_widget.add_mesh(self.mesh_data.pv_mesh, opacity=1, show_scalar_bar=False)
+            self.mesh_actor = self.pv_widget.add_mesh(self.mesh_model.pv_obj, opacity=1, show_scalar_bar=False)
             self.mesh_actor.GetMapper().SetScalarVisibility(0)
-            self.mesh_actor.GetProperty().SetColor(matplotlib.colors.to_rgb(self.mesh_data.color))
+            self.mesh_actor.GetProperty().SetColor(matplotlib.colors.to_rgb(self.mesh_model.color))
         
         self.pv_widget.enable_surface_point_picking(callback=self.point_picking_callback, show_message=False, show_point=False, left_clicking=True, color='red')
         self.pv_widget.iren.add_observer("RightButtonPressEvent", self.right_click_callback)

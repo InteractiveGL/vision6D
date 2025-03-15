@@ -25,25 +25,58 @@ class GetPoseDialog(QtWidgets.QDialog):
         self.setWindowTitle("Vision6D")
         self.introLabel = QtWidgets.QLabel("Input the Ground Truth Pose:")
         self.btnloadfromfile = QtWidgets.QPushButton("Load from file", self)
+        self.mirror_x_button = QtWidgets.QPushButton("|", self)
+        self.mirror_y_button = QtWidgets.QPushButton("—", self)
+
+        # Horizontal Layout
         hbox = QtWidgets.QHBoxLayout()
-        hbox.addWidget(self.introLabel)
-        hbox.addWidget(self.btnloadfromfile)
         hbox.setContentsMargins(0, 0, 0, 0)
+
+        # Add Widgets to Horizontal Layout
+        hbox.addWidget(self.introLabel)
+        hbox.addStretch()  # Add stretch to push buttons to the right
+        hbox.addWidget(self.btnloadfromfile)
+        hbox.addWidget(self.mirror_x_button)
+        hbox.addWidget(self.mirror_y_button)
+
+        # Create a Widget to Hold the Horizontal Layout
         self.hboxWidget = QtWidgets.QWidget()
         self.hboxWidget.setLayout(hbox)
+
+        # Connect Buttons to Their Slot Methods
         self.btnloadfromfile.clicked.connect(self.load_from_file)
+        self.mirror_x_button.clicked.connect(self.on_mirror_x_clicked)
+        self.mirror_y_button.clicked.connect(self.on_mirror_y_clicked)
+
+        # Text Edit Field
         self.textEdit = QtWidgets.QTextEdit(self)
+        self.update_text_edit()
+        self.btnSubmit = QtWidgets.QPushButton("Submit", self)
+        self.btnSubmit.clicked.connect(self.submit_text)
+        layout.addWidget(self.hboxWidget)
+        layout.addWidget(self.textEdit)
+        layout.addWidget(self.btnSubmit)
+
+    def on_mirror_x_clicked(self):
+        self.pose = self.mirror_pose(self.pose, 'x')
+        self.update_text_edit()
+
+    def on_mirror_y_clicked(self):
+        self.pose = self.mirror_pose(self.pose, 'y')
+        self.update_text_edit()
+
+    def mirror_pose(self, transformation_matrix, direction):
+        if direction == 'x': mirror_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        elif direction == 'y': mirror_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        return mirror_matrix @ transformation_matrix
+
+    def update_text_edit(self):
         text = "[[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}],\n[{:.4f}, {:.4f}, {:.4f}, {:.4f}]]\n".format(
                 self.pose[0, 0], self.pose[0, 1], self.pose[0, 2], self.pose[0, 3], 
                 self.pose[1, 0], self.pose[1, 1], self.pose[1, 2], self.pose[1, 3], 
                 self.pose[2, 0], self.pose[2, 1], self.pose[2, 2], self.pose[2, 3],
                 self.pose[3, 0], self.pose[3, 1], self.pose[3, 2], self.pose[3, 3])
         self.textEdit.setPlainText(text)
-        self.btnSubmit = QtWidgets.QPushButton("Submit", self)
-        self.btnSubmit.clicked.connect(self.submit_text)
-        layout.addWidget(self.hboxWidget)
-        layout.addWidget(self.textEdit)
-        layout.addWidget(self.btnSubmit)
         
     def submit_text(self):
         self.accept()
@@ -61,3 +94,6 @@ class GetPoseDialog(QtWidgets.QDialog):
 
     def get_text(self):
         return self.textEdit.toPlainText()
+    
+    def get_pose(self):
+        return self.pose

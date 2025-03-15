@@ -14,6 +14,7 @@ import copy
 import json
 import logging
 import pathlib
+import operator
 
 import vtk
 import numpy as np
@@ -28,9 +29,8 @@ import vtk.util.numpy_support as vtknp # type: ignore
 
 from PyQt5 import QtWidgets
 
-from ..path import LATLON_PATH
-
 logger = logging.getLogger("vision6D")
+PKG_ROOT = pathlib.Path(os.path.abspath(__file__)).parent # vision6D
 
 def fread(fid, _len, _type):
     if _len == 0:
@@ -290,10 +290,40 @@ def rigid_transform_3D(A, B):
 
     return rt
 
+def compute_transformation_matrix(A, B):
+    # Center the points
+    centroid_A = np.mean(A, axis=0)
+    centroid_B = np.mean(B, axis=0)
+    AA = A - centroid_A
+    BB = B - centroid_B
+    
+    H = np.dot(AA.T, BB) # Compute the covariance matrix
+    
+    # The amazing SVD
+    U, S, Vt = np.linalg.svd(H)
+    R = np.dot(Vt.T, U.T)
+    
+    # Count for the special reflection case
+    if np.linalg.det(R) < 0:
+        Vt[2, :] *= -1
+        R = np.dot(Vt.T, U.T)
+    
+    t = centroid_B - np.dot(R, centroid_A)
+    transformation_matrix = np.identity(4)
+    transformation_matrix[:3, :3] = R
+    transformation_matrix[:3, 3] = t
+    
+    return transformation_matrix
+
+def get_actor_user_matrix(mesh_model):
+    vertices, _ = get_mesh_actor_vertices_faces(mesh_model.actor)
+    matrix = compute_transformation_matrix(mesh_model.source_obj.vertices, transform_vertices(vertices, mesh_model.actor.user_matrix))
+    return matrix
+
 def load_latitude_longitude():
     # get the latitude and longitude
     # latlon_map_path = pkg_resources.resource_filename('vision6D', 'data/ossiclesCoordinateMapping.json')
-    with open(LATLON_PATH, "r") as f: data = json.load(f)
+    with open(PKG_ROOT / "data" / "ossiclesCoordinateMapping2.json", "r") as f: data = json.load(f)
     
     latitude = np.array(data['latitude']).reshape((len(data['latitude'])), 1)
     longitude = np.array(data['longitude']).reshape((len(data['longitude'])), 1)
@@ -388,21 +418,6 @@ def get_mask_actor_points(actor):
     assert np.isclose(transformed_points, points).all(), "points and transformed_points should be very very close!"
     return transformed_points
 
-def get_bbox_actor_points(actor, image_center):
-    input = actor.GetMapper().GetInput()
-    point_data = input.GetPoints().GetData()
-    points_array = vtknp.vtk_to_numpy(point_data)
-    vtk_matrix = actor.GetMatrix()
-    matrix = np.array([[vtk_matrix.GetElement(i, j) for j in range(4)] for i in range(4)])
-    # Calculate points not with homogeneous form
-    points = (matrix[:3, :3] @ points_array.T).T + matrix[:3, 3:].T
-    # Calculate points with homogeneous coordinates
-    homogeneous_points = np.hstack((points_array, np.ones((points_array.shape[0], 1))))
-    transformed_points = ((matrix @ homogeneous_points.T).T)[:, :3]
-    assert np.isclose(transformed_points, points).all(), "points and transformed_points should be very very close!"
-    points = image_center - points
-    return points
-
 def get_mesh_actor_vertices_faces(actor):
     input = actor.GetMapper().GetInput()
     points = input.GetPoints().GetData()
@@ -462,3 +477,19 @@ def reset_vtk_lut(colormap):
 def display_warning(message):
     QtWidgets.QMessageBox.warning(QtWidgets.QMainWindow(), "vision6D", message, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok)
     return 0
+
+def require_attributes(attributes_with_messages):
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            for attr_path, warning_message in attributes_with_messages:
+                try:
+                    attr_value = operator.attrgetter(attr_path)(self)
+                    if not attr_value:
+                        display_warning(warning_message)
+                        return
+                except AttributeError:
+                    display_warning(warning_message)
+                    return
+            return func(self, *args, **kwargs)
+        return wrapper
+    return decorator
