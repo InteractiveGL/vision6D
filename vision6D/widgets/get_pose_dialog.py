@@ -66,8 +66,8 @@ class GetPoseDialog(QtWidgets.QDialog):
         self.update_text_edit()
 
     def mirror_pose(self, transformation_matrix, direction):
-        if direction == 'x': mirror_matrix = np.array([[-1,  0,  0, 0], [ 0,  1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]])
-        elif direction == 'y': mirror_matrix = np.array([[ 1,  0,  0, 0], [ 0, -1,  0, 0], [ 0,  0,  1, 0], [ 0,  0,  0, 1]])
+        if direction == 'x': mirror_matrix = np.array([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        elif direction == 'y': mirror_matrix = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
         return mirror_matrix @ transformation_matrix
 
     def update_text_edit(self):

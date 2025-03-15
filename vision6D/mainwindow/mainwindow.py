@@ -1031,7 +1031,6 @@ class MyMainWindow(MainWindow):
 
     def clear_mesh(self):
         for button in self.mesh_button_group_actors.buttons(): self.remove_mesh_button(button)
-        self.link_mesh_button.setChecked(False)
 
     def clear_mask(self):
         for button in self.mask_button_group_actors.buttons(): self.remove_mask_button(button)
