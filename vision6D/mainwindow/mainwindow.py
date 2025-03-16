@@ -149,7 +149,7 @@ class MyMainWindow(MainWindow):
         mesh_model.undo_poses.append(pose)
         mesh_model.undo_poses = mesh_model.undo_poses[-20:]
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])
     def update_gt_pose(self, input_pose=None):
         if self.link_mesh_button.isChecked():
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
@@ -178,7 +178,7 @@ class MyMainWindow(MainWindow):
             self.output_text.append(f"-> Update the {self.scene.mesh_container.reference} GT pose to:")
             self.output_text.append(text)
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])
     def reset_gt_pose(self):
         if self.link_mesh_button.isChecked():
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
@@ -228,7 +228,7 @@ class MyMainWindow(MainWindow):
             e.ignore()
 
     #^ Camera related
-    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
+    @utils.require_attributes([('scene.image_container.reference', "Please load an image first!")])  
     def camera_calibrate(self):
         original_image = np.array(PIL.Image.open(self.scene.image_container.images[self.scene.image_container.reference].path), dtype='uint8')
         # make the the original image shape is [h, w, 3] to match with the rendered calibrated_image
@@ -338,7 +338,7 @@ class MyMainWindow(MainWindow):
                     else:
                         utils.display_warning("It needs to be a n by 2 matrix")
 
-    @utils.require_attributes([('scene.mask_container.reference', "Need to load a mask first!")])  
+    @utils.require_attributes([('scene.mask_container.reference', "Please load a mask first!")])  
     def reset_mask(self):
         mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
         mask_model.actor.user_matrix = np.eye(4)
@@ -366,11 +366,17 @@ class MyMainWindow(MainWindow):
                 button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.check_mesh_button(name, output_text))
                 self.mesh_button_group_actors.addButton(button_widget.button)
                 self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
+            self.camera_rx_control.spin_box.setEnabled(True)
+            self.camera_ry_control.spin_box.setEnabled(True)
+            self.camera_rz_control.spin_box.setEnabled(True)
+            self.camera_tx_control.spin_box.setEnabled(True)
+            self.camera_ty_control.spin_box.setEnabled(True)
+            self.camera_tz_control.spin_box.setEnabled(True)
             if self.link_mesh_button.isChecked() and self.scene.mesh_container.reference is not None: self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=True)
             else: self.check_mesh_button(name=mesh_model.name, output_text=True)
             self.reset_camera()
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])   
     def set_spacing(self):
         mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         spacing, ok = QtWidgets.QInputDialog().getText(QtWidgets.QMainWindow(), 'Input', "Set Spacing", text=str(mesh_model.spacing))
@@ -407,7 +413,7 @@ class MyMainWindow(MainWindow):
             if flag: self.scene.mesh_container.set_mesh_opacity(name, 0)
             else: self.scene.mesh_container.set_mesh_opacity(name, mesh_model.previous_opacity)
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])   
     def toggle_hide_meshes_button(self):
         self.toggle_hide_meshes_flag = not self.toggle_hide_meshes_flag
         self.handle_hide_meshes_opacity(self.toggle_hide_meshes_flag)
@@ -421,7 +427,7 @@ class MyMainWindow(MainWindow):
             self.scene.mesh_container.meshes[self.scene.mesh_container.reference].initial_pose = transformation_matrix
             self.reset_gt_pose()
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])
     def set_pose(self):
         mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         get_pose_dialog = GetPoseDialog(utils.get_actor_user_matrix(mesh_model))
@@ -454,7 +460,7 @@ class MyMainWindow(MainWindow):
                 else: 
                     utils.display_warning("It needs to be a 4 by 4 matrix")
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])   
     def undo_actor_pose(self):
         checked_button = self.mesh_button_group_actors.checkedButton()
         self.scene.mesh_container.get_poses_from_undo()
@@ -528,7 +534,7 @@ class MyMainWindow(MainWindow):
             column = 0
         return row, column
     
-    @utils.require_attributes([('scene.image_container.reference', 'Need to load an image first!'), ('scene.mesh_container.reference', 'Need to load a mesh first!')])
+    @utils.require_attributes([('scene.image_container.reference', 'Please load an image first!'), ('scene.mesh_container.reference', 'Please load a mesh first!')])
     def pnp_register(self):
         image = utils.get_image_actor_scalars(self.scene.image_container.images[self.scene.image_container.reference].actor)
         pnp_window = PnPWindow(image_source=image, 
@@ -609,14 +615,15 @@ class MyMainWindow(MainWindow):
         console_group.setLayout(display_layout)
         self.panel_layout.addWidget(console_group)
 
-    def set_mesh_pose(self, name, output_text=True):
-        euler_angles = np.array([self.camera_rx_control.spin_box.value(), self.camera_ry_control.spin_box.value(), self.camera_rz_control.spin_box.value()])
-        translation_vector = np.array([self.camera_tx_control.spin_box.value(), self.camera_ty_control.spin_box.value(), self.camera_tz_control.spin_box.value()])
-        matrix = utils.compose_transform(euler_angles, translation_vector)
-        self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix = matrix
-        matrix = self.scene.handle_mesh_click(name=name, output_text=output_text)
-        self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
-        self.reset_camera()
+    def set_mesh_pose(self):
+        if self.scene.mesh_container.reference is not None:
+            euler_angles = np.array([self.camera_rx_control.spin_box.value(), self.camera_ry_control.spin_box.value(), self.camera_rz_control.spin_box.value()])
+            translation_vector = np.array([self.camera_tx_control.spin_box.value(), self.camera_ty_control.spin_box.value(), self.camera_tz_control.spin_box.value()])
+            matrix = utils.compose_transform(euler_angles, translation_vector)
+            self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix = matrix
+            matrix = self.scene.handle_mesh_click(name=self.scene.mesh_container.reference, output_text=True)
+            self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
+            self.reset_camera()
 
     def camera_control_console(self):
         console_group = QtWidgets.QGroupBox("Camera Control")
@@ -628,43 +635,55 @@ class MyMainWindow(MainWindow):
 
         row, column = 0, 0
 
-        self.camera_rx_control = CameraControlWidget("Rx", "(deg)", 1000000000)
+        self.camera_rx_control = CameraControlWidget("Rx", "(deg)", 1e+8)
         self.camera_rx_control.spin_box.setValue(0)
-        self.camera_rx_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+        self.camera_rx_control.spin_box.setSingleStep(1)
+        self.camera_rx_control.spin_box.valueChanged.connect(self.set_mesh_pose)
+        self.camera_rx_control.spin_box.setEnabled(False)
 
         top_grid_layout.addWidget(self.camera_rx_control, 0, 0)
 
-        self.camera_ry_control = CameraControlWidget("Ry", "(deg)", 1000000000)
+        self.camera_ry_control = CameraControlWidget("Ry", "(deg)", 1e+8)
         self.camera_ry_control.spin_box.setValue(0)
-        self.camera_ry_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+        self.camera_ry_control.spin_box.setSingleStep(1)
+        self.camera_ry_control.spin_box.valueChanged.connect(self.set_mesh_pose)
+        self.camera_ry_control.spin_box.setEnabled(False)
 
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.camera_ry_control, row, column)
 
-        self.camera_rz_control = CameraControlWidget("Rz", "(deg)", 1000000000)
+        self.camera_rz_control = CameraControlWidget("Rz", "(deg)", 1e+8)
         self.camera_rz_control.spin_box.setValue(0)
-        self.camera_rz_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+        self.camera_rz_control.spin_box.setSingleStep(1)
+        self.camera_rz_control.spin_box.valueChanged.connect(self.set_mesh_pose)
+        self.camera_rz_control.spin_box.setEnabled(False)
 
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.camera_rz_control, row, column)
 
-        self.camera_tx_control = CameraControlWidget("Tx", "(mm)", 1000000000)
+        self.camera_tx_control = CameraControlWidget("Tx", "(mm)", 1e+8)
         self.camera_tx_control.spin_box.setValue(0)
-        self.camera_tx_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+        self.camera_tx_control.spin_box.setSingleStep(0.1)
+        self.camera_tx_control.spin_box.valueChanged.connect(self.set_mesh_pose)
+        self.camera_tx_control.spin_box.setEnabled(False)
 
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.camera_tx_control, row, column)
 
-        self.camera_ty_control = CameraControlWidget("Ty", "(mm)", 1000000000)
+        self.camera_ty_control = CameraControlWidget("Ty", "(mm)", 1e+8)
         self.camera_ty_control.spin_box.setValue(0)
-        self.camera_ty_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+        self.camera_ty_control.spin_box.setSingleStep(0.1)
+        self.camera_ty_control.spin_box.valueChanged.connect(self.set_mesh_pose)
+        self.camera_ty_control.spin_box.setEnabled(False)
 
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.camera_ty_control, row, column)
 
-        self.camera_tz_control = CameraControlWidget("Tz", "(mm)", 1000000000)
+        self.camera_tz_control = CameraControlWidget("Tz", "(mm)", 1e+8)
         self.camera_tz_control.spin_box.setValue(1000)
-        self.camera_tz_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+        self.camera_tz_control.spin_box.setSingleStep(10)
+        self.camera_tz_control.spin_box.valueChanged.connect(self.set_mesh_pose)
+        self.camera_tz_control.spin_box.setEnabled(False)
 
         row, column = self.set_panel_row_column(row, column)
         top_grid_layout.addWidget(self.camera_tz_control, row, column)
@@ -913,7 +932,7 @@ class MyMainWindow(MainWindow):
 
     def block_value_change_signal(self, spinbox, value):
         spinbox.blockSignals(True)
-        spinbox.setValue(int(value))
+        spinbox.setValue(value)
         spinbox.blockSignals(False)
                     
     def check_mesh_button(self, name, output_text):
@@ -934,7 +953,7 @@ class MyMainWindow(MainWindow):
         button = next((btn for btn in self.mask_button_group_actors.buttons() if btn.text() == name), None)
         if button: button.click()
 
-    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
+    @utils.require_attributes([('scene.image_container.reference', "Please load an image first!")])  
     def mirror_image(self, direction):
         image_model = self.scene.image_container.images[self.scene.image_container.reference]
         if direction == 'x': 
@@ -943,7 +962,7 @@ class MyMainWindow(MainWindow):
             image_model.source_obj = image_model.source_obj[::-1, :, :]
         self.check_image_button(image_model.name)
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])   
     def mirror_mesh(self, direction):
         mesh_model = self.scene.mesh_container.meshes[self.scene.mesh_container.reference]
         if (mesh_model.initial_pose != np.eye(4)).all(): 
@@ -956,7 +975,7 @@ class MyMainWindow(MainWindow):
         mesh_model.actor.user_matrix = transformation_matrix
         self.check_mesh_button(name=mesh_model.name, output_text=True)
 
-    @utils.require_attributes([('scene.mask_container.reference', "Need to load a mask first!")])   
+    @utils.require_attributes([('scene.mask_container.reference', "Please load a mask first!")])   
     def mirror_mask(self, direction):
         mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
         transformation_matrix = mask_model.actor.user_matrix
@@ -990,7 +1009,7 @@ class MyMainWindow(MainWindow):
         self.scene.mask_container.reference = name
         self.reset_camera()
 
-    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
+    @utils.require_attributes([('scene.image_container.reference', "Please load an image first!")])  
     def draw_mask(self, live_wire=False, sam=False):
         def handle_output_path_change(output_path):
             if output_path:
@@ -1107,6 +1126,13 @@ class MyMainWindow(MainWindow):
                 next_button.click()
             else:
                 buttons[-1].click()
+        else:
+            self.camera_rx_control.spin_box.setEnabled(False)
+            self.camera_ry_control.spin_box.setEnabled(False)
+            self.camera_rz_control.spin_box.setEnabled(False)
+            self.camera_tx_control.spin_box.setEnabled(False)
+            self.camera_ty_control.spin_box.setEnabled(False)
+            self.camera_tz_control.spin_box.setEnabled(False)
 
     def clear_image(self):
         for button in self.image_button_group_actors.buttons(): self.remove_image_button(button)
@@ -1149,7 +1175,7 @@ class MyMainWindow(MainWindow):
                 widget.deleteLater()
                 break
     
-    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])  
+    @utils.require_attributes([('scene.image_container.reference', "Please load an image first!")])  
     def set_distance2camera(self):
         image_model = self.scene.image_container.images[self.scene.image_container.reference]
         dialog = DistanceInputDialog(title='Input', label='Set Objects distance to camera:', value=str(image_model.distance2camera), default_value=str(self.scene.fy))
@@ -1177,7 +1203,7 @@ class MyMainWindow(MainWindow):
                     self.scene.mask_container.masks[mask_name] = mask_model
             self.reset_camera()
         
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])   
     def export_pose(self):
         os.makedirs(SAVE_ROOT / "export_pose", exist_ok=True)
         for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
@@ -1186,7 +1212,7 @@ class MyMainWindow(MainWindow):
             np.save(output_path, matrix)
             self.output_text.append(f"Export {mesh_name} mesh pose to:\n {output_path}")
 
-    @utils.require_attributes([('scene.mesh_container.reference', "Need to load a mesh first!")])   
+    @utils.require_attributes([('scene.mesh_container.reference', "Please load a mesh first!")])   
     def export_mesh_render(self, save_render=True):
         os.makedirs(SAVE_ROOT / "export_mesh_render", exist_ok=True)
         image = self.scene.mesh_container.render_mesh(name=self.scene.mesh_container.reference, camera=self.plotter.camera.copy(), width=self.scene.canvas_width, height=self.scene.canvas_height)
@@ -1201,7 +1227,7 @@ class MyMainWindow(MainWindow):
             self.output_text.append(f"-> Export mesh render to:\n {output_path}")
             return image
         
-    @utils.require_attributes([('scene.mask_container.reference', "Need to load a mask first!")])   
+    @utils.require_attributes([('scene.mask_container.reference', "Please load a mask first!")])   
     def export_mask(self):
         os.makedirs(SAVE_ROOT / "export_mask", exist_ok=True)
         mask_model = self.scene.mask_container.masks[self.scene.mask_container.reference]
@@ -1218,7 +1244,7 @@ class MyMainWindow(MainWindow):
         mask_model.path = output_path
         self.output_text.append(f"-> Export Mask render to:\n {output_path}")
 
-    @utils.require_attributes([('scene.image_container.reference', "Need to load an image first!")])   
+    @utils.require_attributes([('scene.image_container.reference', "Please load an image first!")])   
     def export_image(self):
         os.makedirs(SAVE_ROOT / "export_image", exist_ok=True)
         image_rendered = self.scene.image_container.render_image(camera=self.plotter.camera.copy())

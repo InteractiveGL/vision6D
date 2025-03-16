@@ -12,7 +12,7 @@ class CameraControlWidget(QtWidgets.QWidget):
         layout.addWidget(self.axis_label)
         
         # Spin box
-        self.spin_box = QtWidgets.QSpinBox()
+        self.spin_box = QtWidgets.QDoubleSpinBox()
         self.spin_box.setRange(-axis_range, axis_range)
         layout.addWidget(self.spin_box)
 
