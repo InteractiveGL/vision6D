@@ -563,7 +563,7 @@ class MyMainWindow(MainWindow):
     def panel_console(self):
         console_group = QtWidgets.QGroupBox("Console")       # self.display = QtWidgets.QGroupBox("Console")
         display_layout = QtWidgets.QVBoxLayout()
-        display_layout.setContentsMargins(10, 20, 10, 5)
+        display_layout.setContentsMargins(10, 15, 10, 5)
 
         #* Create the top widgets (layout)
         top_layout = QtWidgets.QHBoxLayout()
@@ -609,8 +609,17 @@ class MyMainWindow(MainWindow):
         console_group.setLayout(display_layout)
         self.panel_layout.addWidget(console_group)
 
+    def set_mesh_pose(self, name, output_text=True):
+        euler_angles = np.array([self.camera_rx_control.spin_box.value(), self.camera_ry_control.spin_box.value(), self.camera_rz_control.spin_box.value()])
+        translation_vector = np.array([self.camera_tx_control.spin_box.value(), self.camera_ty_control.spin_box.value(), self.camera_tz_control.spin_box.value()])
+        matrix = utils.compose_transform(euler_angles, translation_vector)
+        self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix = matrix
+        matrix = self.scene.handle_mesh_click(name=name, output_text=output_text)
+        self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
+        self.reset_camera()
+
     def camera_control_console(self):
-        console_group = QtWidgets.QGroupBox("Precise Camera Control")
+        console_group = QtWidgets.QGroupBox("Camera Control")
 
         display_layout = QtWidgets.QVBoxLayout()
         display_layout.setContentsMargins(0, 15, 0, 5)
@@ -619,28 +628,46 @@ class MyMainWindow(MainWindow):
 
         row, column = 0, 0
 
-        camera_rx_control = CameraControlWidget("Rx", "(deg)")
-        top_grid_layout.addWidget(camera_rx_control, 0, 0)
+        self.camera_rx_control = CameraControlWidget("Rx", "(deg)", 1000000000)
+        self.camera_rx_control.spin_box.setValue(0)
+        self.camera_rx_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
 
-        camera_ry_control = CameraControlWidget("Ry", "(deg)")
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(camera_ry_control, row, column)
+        top_grid_layout.addWidget(self.camera_rx_control, 0, 0)
 
-        camera_rz_control = CameraControlWidget("Rz", "(deg)")
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(camera_rz_control, row, column)
+        self.camera_ry_control = CameraControlWidget("Ry", "(deg)", 1000000000)
+        self.camera_ry_control.spin_box.setValue(0)
+        self.camera_ry_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
 
-        camera_tx_control = CameraControlWidget("Tx", "(mm)")
         row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(camera_tx_control, row, column)
+        top_grid_layout.addWidget(self.camera_ry_control, row, column)
 
-        camera_ty_control = CameraControlWidget("Ty", "(mm)")
-        row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(camera_ty_control, row, column)
+        self.camera_rz_control = CameraControlWidget("Rz", "(deg)", 1000000000)
+        self.camera_rz_control.spin_box.setValue(0)
+        self.camera_rz_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
 
-        camera_tz_control = CameraControlWidget("Tz", "(mm)")
         row, column = self.set_panel_row_column(row, column)
-        top_grid_layout.addWidget(camera_tz_control, row, column)
+        top_grid_layout.addWidget(self.camera_rz_control, row, column)
+
+        self.camera_tx_control = CameraControlWidget("Tx", "(mm)", 1000000000)
+        self.camera_tx_control.spin_box.setValue(0)
+        self.camera_tx_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.camera_tx_control, row, column)
+
+        self.camera_ty_control = CameraControlWidget("Ty", "(mm)", 1000000000)
+        self.camera_ty_control.spin_box.setValue(0)
+        self.camera_ty_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.camera_ty_control, row, column)
+
+        self.camera_tz_control = CameraControlWidget("Tz", "(mm)", 1000000000)
+        self.camera_tz_control.spin_box.setValue(1000)
+        self.camera_tz_control.spin_box.valueChanged.connect(lambda _: self.set_mesh_pose(self.scene.mesh_container.reference))
+
+        row, column = self.set_panel_row_column(row, column)
+        top_grid_layout.addWidget(self.camera_tz_control, row, column)
 
         top_grid_widget = QtWidgets.QWidget()
         top_grid_widget.setLayout(top_grid_layout)
@@ -883,12 +910,24 @@ class MyMainWindow(MainWindow):
     def check_image_button(self, name):
         button = next((btn for btn in self.image_button_group_actors.buttons() if btn.text() == name), None)
         if button: button.click()
+
+    def block_value_change_signal(self, spinbox, value):
+        spinbox.blockSignals(True)
+        spinbox.setValue(int(value))
+        spinbox.blockSignals(False)
                     
     def check_mesh_button(self, name, output_text):
         button = next((btn for btn in self.mesh_button_group_actors.buttons() if btn.text() == name), None)
         if button:
             button.setChecked(True)
-            self.scene.handle_mesh_click(name=name, output_text=output_text)
+            matrix = self.scene.handle_mesh_click(name=name, output_text=output_text)
+            euler_angles, translation = utils.decompose_transform(matrix)
+            self.block_value_change_signal(self.camera_rx_control.spin_box, euler_angles[0])
+            self.block_value_change_signal(self.camera_ry_control.spin_box, euler_angles[1])
+            self.block_value_change_signal(self.camera_rz_control.spin_box, euler_angles[2])
+            self.block_value_change_signal(self.camera_tx_control.spin_box, translation[0])
+            self.block_value_change_signal(self.camera_ty_control.spin_box, translation[1])
+            self.block_value_change_signal(self.camera_tz_control.spin_box, translation[2])
             self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
 
     def check_mask_button(self, name):
