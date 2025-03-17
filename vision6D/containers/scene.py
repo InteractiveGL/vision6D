@@ -101,7 +101,6 @@ class Scene():
             self.output_text.append(text)
         mesh_model.undo_poses.append(mesh_model.actor.user_matrix)
         mesh_model.undo_poses = mesh_model.undo_poses[-20:]
-        return matrix
 
     def handle_image_click(self, name):
         # Add a new image as current reference

@@ -461,14 +461,14 @@ def angler_distance(R_a, R_b):
     angle_diff_deg = np.degrees(angle_diff_rad)
     return angle_diff_deg
 
-def decompose_transform(transformation_matrix, euler_sequence='zyx'):
+def decompose_transform(transformation_matrix, euler_sequence='xyz'):
     R_mat = transformation_matrix[:3, :3]
     rotation = R.from_matrix(R_mat)
     euler_angles = rotation.as_euler(euler_sequence, degrees=True)
     translation = transformation_matrix[:3, 3]
     return euler_angles, translation
 
-def compose_transform(euler_angles, translation, euler_sequence='zyx'):
+def compose_transform(euler_angles, translation, euler_sequence='xyz'):
     rotation = R.from_euler(euler_sequence, euler_angles, degrees=True)
     R_mat = rotation.as_matrix()
     transformation_matrix = np.eye(4, dtype=float)
