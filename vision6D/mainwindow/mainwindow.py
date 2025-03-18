@@ -726,7 +726,6 @@ class MyMainWindow(MainWindow):
                 mesh_model.actor = mesh
                 mesh_model.actor.user_matrix = new_rt
                 self.scene.mesh_container.meshes[mesh_name] = mesh_model
-                #* very important to clear the mesh model's undo_poses and append an identity matrix to it
                 mesh_model.undo_poses.clear()
                 mesh_model.undo_poses.append(new_rt)
             self.set_camera_control_values(new_rt)
