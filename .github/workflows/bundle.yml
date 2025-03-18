@@ -47,12 +47,12 @@ jobs:
       - name: Build Executable (Windows/Linux)
         if: matrix.os != 'macos-latest'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} -m scripts/__main__.py
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} scripts/__main__.py
 
       - name: Build Executable (macOS Universal)
         if: matrix.os == 'macos-latest'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macos-${{ matrix.arch }} -m scripts/__main__.py
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macos-${{ matrix.arch }} scripts/__main__.py
           # Force binary architecture using lipo
           lipo dist/vision6d-macos-${{ matrix.arch }} -thin ${{ matrix.arch }} -output dist/vision6d-macos-${{ matrix.arch }}
 
