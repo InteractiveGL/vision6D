@@ -15,6 +15,7 @@ import json
 import logging
 import pathlib
 import operator
+from scipy.spatial.transform import Rotation as R
 
 import vtk
 import numpy as np
@@ -459,6 +460,21 @@ def angler_distance(R_a, R_b):
     angle_diff_rad = np.arccos(np.clip((np.trace(R_diff) - 1) / 2, -1, 1))
     angle_diff_deg = np.degrees(angle_diff_rad)
     return angle_diff_deg
+
+def decompose_transform(transformation_matrix, euler_sequence='xyz'):
+    R_mat = transformation_matrix[:3, :3]
+    rotation = R.from_matrix(R_mat)
+    euler_angles = rotation.as_euler(euler_sequence, degrees=True)
+    translation = transformation_matrix[:3, 3]
+    return euler_angles, translation
+
+def compose_transform(euler_angles, translation, euler_sequence='xyz'):
+    rotation = R.from_euler(euler_sequence, euler_angles, degrees=True)
+    R_mat = rotation.as_matrix()
+    transformation_matrix = np.eye(4, dtype=float)
+    transformation_matrix[:3, :3] = R_mat
+    transformation_matrix[:3, 3] = translation
+    return transformation_matrix
 
 def reset_vtk_lut(colormap):
     if isinstance(colormap, str):

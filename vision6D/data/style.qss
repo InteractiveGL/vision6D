@@ -505,8 +505,24 @@ QAbstractSpinBox {
     padding-top: 2px;
     padding-bottom: 2px;
     border: 1px solid darkgray;
-
     border-radius: 2px;
     min-width: 50px;
 }
 
+/* Up-button styling */
+QAbstractSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right; /* can also be 'center right' etc. */
+    background: #a8a8a8;               /* or any color */
+    margin-top: 1px;       /* extra space above the up button */
+    margin-bottom: 1px;    /* extra space below the up button */
+}
+
+/* Down-button styling */
+QAbstractSpinBox::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    background: #727272;
+    margin-top: 1px;       /* extra space above the up button */
+    margin-bottom: 1px;    /* extra space below the up button */
+}
