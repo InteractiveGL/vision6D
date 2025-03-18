@@ -1,3 +1,5 @@
+import os
+import pathlib
 import logging.config
 
 LOGGING_CONFIG = {
@@ -28,6 +30,9 @@ LOGGING_CONFIG = {
 
 # Setup the logging configuration
 logging.config.dictConfig(LOGGING_CONFIG)
+
+CWD = pathlib.Path(os.path.abspath(__file__)).parent
+STYLES_FILE = CWD / 'data' /'style.qss'
 
 from .mainwindow import MyMainWindow
 from . import tools
