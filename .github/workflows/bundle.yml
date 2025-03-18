@@ -1,0 +1,74 @@
+name: Build Executables and Create GitHub Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  build-executables:
+    name: Build Executables with PyInstaller
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Install PyInstaller
+        run: |
+          pip install pyinstaller
+
+      - name: Build Executable with PyInstaller
+        run: |
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d scripts/__main__.py
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vision6d-${{ runner.os }}
+          path: dist/vision6d${{ runner.os == 'Windows' && '.exe' || '' }}
+
+  create-release:
+    name: Create GitHub Release and Upload Assets
+    needs: build-executables
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: |
+            ./artifacts/vision6d-Windows/vision6d.exe
+            ./artifacts/vision6d-Linux/vision6d
+            ./artifacts/vision6d-macOS/vision6d
