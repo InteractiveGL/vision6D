@@ -614,9 +614,13 @@ class MyMainWindow(MainWindow):
     def set_mesh_pose(self):
         euler_angles = np.array([self.camera_rx_control.spin_box.value(), self.camera_ry_control.spin_box.value(), self.camera_rz_control.spin_box.value()])
         translation_vector = np.array([self.camera_tx_control.spin_box.value(), self.camera_ty_control.spin_box.value(), self.camera_tz_control.spin_box.value()])
-        matrix = utils.compose_transform(euler_angles, translation_vector)
-        self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix = matrix
-        matrix = self.scene.handle_mesh_click(name=self.scene.mesh_container.reference, output_text=True)
+        camera_control_matrix = utils.compose_transform(euler_angles, translation_vector)
+        actor_actual_matrix = utils.get_actor_user_matrix(self.scene.mesh_container.meshes[self.scene.mesh_container.reference])
+        offset_matrix = camera_control_matrix @ np.linalg.inv(actor_actual_matrix) # Compute the offset (change) matrix between the current camera control value and the true pose
+        user_matrix = self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix
+        new_matrix = offset_matrix @ user_matrix
+        self.scene.mesh_container.meshes[self.scene.mesh_container.reference].actor.user_matrix = new_matrix
+        self.scene.handle_mesh_click(name=self.scene.mesh_container.reference, output_text=True)
         self.reset_camera()
 
     def set_camera_spinbox(self, indicator):
@@ -728,7 +732,6 @@ class MyMainWindow(MainWindow):
                 self.scene.mesh_container.meshes[mesh_name] = mesh_model
                 mesh_model.undo_poses.clear()
                 mesh_model.undo_poses.append(new_rt)
-            self.set_camera_control_values(new_rt)
         elif checked and not clicked:
             for mesh_name, mesh_model in self.scene.mesh_container.meshes.items():
                 if mesh_name == self.scene.mesh_container.reference: continue
@@ -950,7 +953,7 @@ class MyMainWindow(MainWindow):
         if button:
             button.setChecked(True)
             self.scene.handle_mesh_click(name=name, output_text=output_text)
-            self.set_camera_control_values(self.scene.mesh_container.meshes[name].actor.user_matrix)
+            self.set_camera_control_values(utils.get_actor_user_matrix(self.scene.mesh_container.meshes[name]))
             self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
 
     def check_mask_button(self, name):
