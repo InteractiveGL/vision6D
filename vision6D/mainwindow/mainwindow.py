@@ -951,7 +951,7 @@ class MyMainWindow(MainWindow):
         if button:
             button.setChecked(True)
             self.scene.handle_mesh_click(name=name, output_text=output_text)
-            self.set_camera_control_values(utils.get_actor_user_matrix(self.scene.mesh_container.meshes[name]))
+            self.set_camera_control_values(self.scene.mesh_container.meshes[name].actor.user_matrix)
             self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=False)
 
     def check_mask_button(self, name):
