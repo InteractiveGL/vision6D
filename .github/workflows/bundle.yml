@@ -54,7 +54,7 @@ jobs:
         run: |
           pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macos-${{ matrix.arch }} scripts/__main__.py
           # Force binary architecture using lipo
-          lipo dist/vision6d-macos-${{ matrix.arch }} -thin ${{ matrix.arch }} -output dist/vision6d-macos-${{ matrix.arch }}
+          # lipo dist/vision6d-macos-${{ matrix.arch }} -thin ${{ matrix.arch }} -output dist/vision6d-macos-${{ matrix.arch }}
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
