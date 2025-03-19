@@ -1,15 +1,15 @@
 from PyQt5 import QtWidgets
 
 class CameraControlWidget(QtWidgets.QWidget):
-    def __init__(self, axis_label, axis_unit, axis_range, parent=None):
+    def __init__(self, label, unit, axis_range, parent=None):
         super().__init__(parent)
         
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
         # Axis label
-        self.axis_label = QtWidgets.QLabel(axis_label)
-        layout.addWidget(self.axis_label)
+        self.label = QtWidgets.QLabel(label)
+        layout.addWidget(self.label)
         
         # Spin box
         self.spin_box = QtWidgets.QDoubleSpinBox()
@@ -20,7 +20,7 @@ class CameraControlWidget(QtWidgets.QWidget):
         layout.addWidget(self.spin_box)
 
         # Axis unit label
-        self.axis_unit = QtWidgets.QLabel(axis_unit)
-        layout.addWidget(self.axis_unit)
+        self.unit = QtWidgets.QLabel(unit)
+        layout.addWidget(self.unit)
 
 
