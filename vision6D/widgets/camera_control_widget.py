@@ -14,7 +14,9 @@ class CameraControlWidget(QtWidgets.QWidget):
         # Spin box
         self.spin_box = QtWidgets.QDoubleSpinBox()
         self.spin_box.setRange(-axis_range, axis_range)
-        self.spin_box.setFixedSize(75, 25)
+        self.spin_box.setMinimumHeight(25)
+        self.spin_box.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+
         layout.addWidget(self.spin_box)
 
         # Axis unit label
