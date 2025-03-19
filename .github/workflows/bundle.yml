@@ -53,10 +53,11 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macos-${{ matrix.arch }} scripts/__main__.py \
-            --hidden-import="vtkmodules.util.data_model" \
-            --hidden-import="vtkmodules.util.numpy_support" \
-            --hidden-import="vtkmodules.util.vtkConstants" \
-            --hidden-import="vtkmodules.all"
+              --hidden-import="vtkmodules.all" \
+              --hidden-import="vtkmodules.util.data_model" \
+              --hidden-import="vtkmodules.util.execution_model" \
+              --hidden-import="vtkmodules.util.numpy_support" \
+              --hidden-import="vtkmodules.util.vtkConstants"
           # Force binary architecture using lipo
           # lipo dist/vision6d-macos-${{ matrix.arch }} -thin ${{ matrix.arch }} -output dist/vision6d-macos-${{ matrix.arch }}
 
