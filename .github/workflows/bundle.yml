@@ -57,7 +57,8 @@ jobs:
               --hidden-import="vtkmodules.util.data_model" \
               --hidden-import="vtkmodules.util.execution_model" \
               --hidden-import="vtkmodules.util.numpy_support" \
-              --hidden-import="vtkmodules.util.vtkConstants"
+              --hidden-import="vtkmodules.util.vtkConstants" \
+              --target-arch=${{ matrix.arch }}
           # Force binary architecture using lipo
           # lipo dist/vision6d-macos-${{ matrix.arch }} -thin ${{ matrix.arch }} -output dist/vision6d-macos-${{ matrix.arch }}
 
