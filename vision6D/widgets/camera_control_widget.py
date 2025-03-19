@@ -7,19 +7,15 @@ class CameraControlWidget(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Axis label
         self.label = QtWidgets.QLabel(label)
         layout.addWidget(self.label)
         
-        # Spin box
         self.spin_box = QtWidgets.QDoubleSpinBox()
         self.spin_box.setRange(-axis_range, axis_range)
         self.spin_box.setMinimumHeight(25)
         self.spin_box.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-
         layout.addWidget(self.spin_box)
 
-        # Axis unit label
         self.unit = QtWidgets.QLabel(unit)
         layout.addWidget(self.unit)
 
