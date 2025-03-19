@@ -8,7 +8,7 @@
 @desc: create store for image related base functions
 '''
 import numpy as np
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from . import AbstractData
 from typing import Optional
 
@@ -18,7 +18,7 @@ class ImageModel(AbstractData):
     cx_offset: Optional[float] = 0.0
     cy_offset: Optional[float] = 0.0
     distance2camera: Optional[float] = 0.0
-    center: Optional[np.ndarray] = np.array([0, 0, 0])
+    center: np.ndarray = field(default_factory=lambda: np.array([0.0, 0.0, 0.0]))
 
     def clear_attributes(self):
         super().clear_attributes()
