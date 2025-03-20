@@ -49,16 +49,19 @@ jobs:
         run: |
           pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} scripts/__main__.py
 
+      - name: Install Python Universal2 (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          curl -LO https://www.python.org/ftp/python/3.9.13/python-3.9.13-macos11.pkg
+          sudo installer -pkg python-3.9.13-macos11.pkg -target /
+          echo "/Library/Frameworks/Python.framework/Versions/3.9/bin" >> $GITHUB_PATH
+
       - name: Build Executable (macOS ARM64)
         if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
         run: |
           arch -arm64 python3 -m pip install .
           arch -arm64 python3 -m pip install pyinstaller
-          arch -arm64 pyinstaller \
-            --add-data="vision6D/data:vision6D/data" \
-            --onefile \
-            --name vision6d-macos-arm64 \
-            scripts/__main__.py \
+          arch -arm64 pyinstaller --onefile --name vision6d-macOS-arm64 scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
@@ -70,17 +73,12 @@ jobs:
         run: |
           arch -x86_64 python3 -m pip install .
           arch -x86_64 python3 -m pip install pyinstaller
-          arch -x86_64 pyinstaller \
-            --add-data="vision6D/data:vision6D/data" \
-            --onefile \
-            --name vision6d-macos-x86_64 \
-            scripts/__main__.py \
+          arch -x86_64 pyinstaller --onefile --name vision6d-macOS-x86_64 scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
             --hidden-import="vtkmodules.util.numpy_support" \
             --hidden-import="vtkmodules.util.vtkConstants"
-
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
