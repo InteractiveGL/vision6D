@@ -21,14 +21,14 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install --frozen-lockfile
+        run: cd docs && npm install --frozen-lockfile
       - name: Build website
-        run: npm build
+        run: cd docs && npm build
 
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: build
+          path: docs/build
 
   deploy:
     name: Deploy to GitHub Pages
