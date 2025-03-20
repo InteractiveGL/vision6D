@@ -49,18 +49,38 @@ jobs:
         run: |
           pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} scripts/__main__.py
 
-      - name: Build Executable (macOS Universal)
-        if: matrix.os == 'macos-latest'
+      - name: Build Executable (macOS ARM64)
+        if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macos-${{ matrix.arch }} scripts/__main__.py \
-              --hidden-import="vtkmodules.all" \
-              --hidden-import="vtkmodules.util.data_model" \
-              --hidden-import="vtkmodules.util.execution_model" \
-              --hidden-import="vtkmodules.util.numpy_support" \
-              --hidden-import="vtkmodules.util.vtkConstants" \
-              --target-arch=${{ matrix.arch }}
-          # Force binary architecture using lipo
-          # lipo dist/vision6d-macos-${{ matrix.arch }} -thin ${{ matrix.arch }} -output dist/vision6d-macos-${{ matrix.arch }}
+          arch -arm64 python3 -m pip install .
+          arch -arm64 python3 -m pip install pyinstaller
+          arch -arm64 pyinstaller \
+            --add-data="vision6D/data:vision6D/data" \
+            --onefile \
+            --name vision6d-macos-arm64 \
+            scripts/__main__.py \
+            --hidden-import="vtkmodules.all" \
+            --hidden-import="vtkmodules.util.data_model" \
+            --hidden-import="vtkmodules.util.execution_model" \
+            --hidden-import="vtkmodules.util.numpy_support" \
+            --hidden-import="vtkmodules.util.vtkConstants"
+
+      - name: Build Executable (macOS Intel x86_64)
+        if: matrix.os == 'macos-latest' && matrix.arch == 'x86_64'
+        run: |
+          arch -x86_64 python3 -m pip install .
+          arch -x86_64 python3 -m pip install pyinstaller
+          arch -x86_64 pyinstaller \
+            --add-data="vision6D/data:vision6D/data" \
+            --onefile \
+            --name vision6d-macos-x86_64 \
+            scripts/__main__.py \
+            --hidden-import="vtkmodules.all" \
+            --hidden-import="vtkmodules.util.data_model" \
+            --hidden-import="vtkmodules.util.execution_model" \
+            --hidden-import="vtkmodules.util.numpy_support" \
+            --hidden-import="vtkmodules.util.vtkConstants"
+
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
