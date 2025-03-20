@@ -126,11 +126,11 @@ Note that when fisrt load the application, it may take some time. Once it load s
 
 ## Download
 
-You can [download](https://github.com/InteractiveGL/vision6D/releases/) the latest installable version of Vision6D for Windows, macOS and Linux.
+You can [download](https://github.com/InteractiveGL/vision6D/releases/) the latest installable version of Vision6D for Windows, macOS (support both Apple Silicon (ARM-based) and Intel (x86-based)), and Linux Ubuntu.
 
-## Emailware
+## GitHub Issue
 
-Vision6D is an [emailware](https://en.wiktionary.org/wiki/emailware). Meaning, if you liked using this app or it has helped you in any way, I'd like you send me an email at <yike.zhang@vanderbilt.edu> about anything you'd want to say about this software. I'd really appreciate it! Alternatively, you can also submit an issue regarding using this software, I'll answer it as soon as I see it!
+You are welcome to submit an [issue](https://github.com/InteractiveGL/vision6D/issues) regarding using this software.
 
 ## Credits
 
