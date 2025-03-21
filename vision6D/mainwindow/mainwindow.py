@@ -59,7 +59,7 @@ class MyMainWindow(MainWindow):
         
         # Set up the main window layout
         self.setWindowTitle("Vision6D")
-        self.setWindowIcon(QtGui.QIcon(str(ICON_PATH / 'logo.png')))
+        self.setWindowIcon(QtGui.QIcon(str(ICON_PATH / 'logo.ico')))
         # the vision6D window is maximized by default
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
