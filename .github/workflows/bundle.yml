@@ -1,3 +1,5 @@
+# git tag x.x.x && git push origin --tags
+
 name: Build Executables and Create GitHub Release
 
 on:
@@ -45,7 +47,7 @@ jobs:
 
       - name: Build Executable (Windows)
         run: |
-          pyinstaller --add-data="vision6D/data;vision6D/data" --onefile --name vision6d -icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py
+          pyinstaller --add-data="vision6D/data;vision6D/data" --onefile --name vision6d --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py
 
       - name: Install Inno Setup
         run: |
@@ -87,7 +89,7 @@ jobs:
       - name: Build Executable (Linux)
         if: runner.os == 'Linux'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d -icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py
 
       - name: Create Linux .deb package
         if: runner.os == 'Linux'
@@ -149,7 +151,7 @@ jobs:
         run: |
           arch -arm64 python3 -m pip install .
           arch -arm64 python3 -m pip install pyinstaller
-          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 -icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py \
+          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
@@ -161,7 +163,7 @@ jobs:
         run: |
           arch -x86_64 python3 -m pip install .
           arch -x86_64 python3 -m pip install pyinstaller
-          arch -x86_64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-x86_64 -icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py \
+          arch -x86_64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-x86_64 --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
