@@ -1,4 +1,5 @@
-# git tag -d 0.5.4 && git tag 0.5.4 && git push origin --tags
+# git add -A && git commit -m "Add GitHub Actions for pre-release version x.x.x" && git push
+# git tag -d x.x.x && git tag x.x.x && git push origin --tags
 
 name: Build Executables and Create GitHub Release
 
@@ -31,7 +32,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Python (Windows)
+      - name: Setup Python (Windows/Linux)
+        if: matrix.os != 'macos-latest'
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
@@ -45,99 +47,10 @@ jobs:
         run: |
           pip install pyinstaller
 
-      - name: Build Executable (Windows)
+      - name: Build Executable (Windows/Linux)
+        if: matrix.os != 'macos-latest'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py
-
-      - name: Install Inno Setup
-        run: |
-          choco install innosetup --no-progress
-
-      - name: Create Installer with Inno Setup
-        shell: powershell
-        run: |
-          $issContent = @"
-          [Setup]
-          AppName=Vision6D
-          AppVersion=${{ github.ref_name }}
-          DefaultDirName={pf}\Vision6D
-          DefaultGroupName=Vision6D
-          OutputBaseFilename=vision6d-installer-${{ github.ref_name }}
-          Compression=lzma
-          SolidCompression=yes
-          
-          [Files]
-          Source: "dist\vision6d.exe"; DestDir: "{app}"; Flags: ignoreversion
-          
-          [Icons]
-          Name: "{group}\Vision6D"; Filename: "{app}\vision6d.exe"
-          Name: "{userdesktop}\Vision6D"; Filename: "{app}\vision6d.exe"; Tasks: desktopicon
-          
-          [Tasks]
-          Name: desktopicon; Description: "Create a desktop icon"; GroupDescription: "Additional icons:"
-          "@
-          Set-Content -Path vision6d-installer.iss -Value $issContent -Encoding UTF8
-
-          ISCC.exe vision6d-installer.iss
-
-      - name: Upload Installer Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vision6d-windows-installer
-          path: Output/vision6d-installer-${{ github.ref_name }}.exe
-
-      - name: Build Executable (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py
-
-      - name: Create Linux .deb package
-        if: runner.os == 'Linux'
-        run: |
-          # Create the required folder structure
-          mkdir -p deb_package/DEBIAN
-          mkdir -p deb_package/usr/local/bin
-          mkdir -p deb_package/usr/share/applications
-          mkdir -p deb_package/usr/share/icons/hicolor/256x256/apps
-
-          # Copy executable
-          cp dist/vision6d deb_package/usr/local/bin/vision6d
-          chmod +x deb_package/usr/local/bin/vision6d
-
-          # Create DEBIAN control file
-          cat << EOF > deb_package/DEBIAN/control
-          Package: vision6d
-          Version: ${GITHUB_REF_NAME#v}
-          Section: base
-          Priority: optional
-          Architecture: amd64
-          Maintainer: ykzzyk <nz9024295@gmail.com>
-          Description: Vision6D Application
-          EOF
-
-          # Optional: Create a desktop entry (.desktop file)
-          cat << EOF > deb_package/usr/share/applications/vision6d.desktop
-          [Desktop Entry]
-          Type=Application
-          Name=Vision6D
-          Exec=/usr/local/bin/vision6d
-          Icon=vision6d
-          Categories=Utility;
-          EOF
-
-          cp vision6D/data/icons/logo.png deb_package/usr/share/icons/hicolor/256x256/apps/vision6d.png
-
-          # Build the .deb package
-          dpkg-deb --build deb_package vision6d-${GITHUB_REF_NAME#v}-linux-amd64.deb
-
-      - name: Upload Linux DEB package
-        if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: vision6d-linux-deb
-          path: vision6d-${{ github.ref_name }}-linux-amd64.deb
-
-
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} scripts/__main__.py
 
       - name: Install Python Universal2 (macOS)
         if: matrix.os == 'macos-latest'
@@ -151,7 +64,7 @@ jobs:
         run: |
           arch -arm64 python3 -m pip install .
           arch -arm64 python3 -m pip install pyinstaller
-          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py \
+          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
@@ -163,7 +76,7 @@ jobs:
         run: |
           arch -x86_64 python3 -m pip install .
           arch -x86_64 python3 -m pip install pyinstaller
-          arch -x86_64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-x86_64 --icon=vision6D/data/icons/vision6d_logo.ico scripts/__main__.py \
+          arch -x86_64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-x86_64 scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
