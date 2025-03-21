@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: cd docs && npm install --frozen-lockfile
       - name: Build website
-        run: cd docs && npm build
+        run: cd docs && npm run build
 
       - name: Upload Build Artifact
         uses: actions/upload-pages-artifact@v3
