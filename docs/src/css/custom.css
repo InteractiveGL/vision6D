@@ -1,30 +1,81 @@
-/**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
- */
-
-/* You can override the default Infima variables here. */
+/* 🌞 Light Theme Overrides */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --ifm-color-primary:            #ff8c42;  /* primary orange */
+  --ifm-color-primary-dark:       #e67a37;
+  --ifm-color-primary-darker:     #cc6b30;
+  --ifm-color-primary-darkest:    #b35d29;
+  --ifm-color-primary-light:      #ffa45c;
+  --ifm-color-primary-lighter:    #ffb374;
+  --ifm-color-primary-lightest:   #ffc998;
+
+  --ifm-code-font-size:           95%;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 140, 66, 0.08);
+
+  /* Optional UI Tweaks */
+  --ifm-background-color:         #ffffff;
+  --ifm-font-color-base:          #212121;
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* 🌙 Dark Theme Overrides */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  --ifm-color-primary:            #ffb26b;  /* lighter orange for better contrast */
+  --ifm-color-primary-dark:       #ffa45c;
+  --ifm-color-primary-darker:     #ff9442;
+  --ifm-color-primary-darkest:    #ff8c42;
+  --ifm-color-primary-light:      #ffc28a;
+  --ifm-color-primary-lighter:    #ffd3ac;
+  --ifm-color-primary-lightest:   #ffe1c4;
+
+  --docusaurus-highlighted-code-line-bg: rgba(255, 178, 107, 0.12);
+
+  /* Optional UI Tweaks */
+  --ifm-background-color:         #121212;
+  --ifm-font-color-base:          #eeeeee;
+}
+
+.navbar {
+  margin: 0;
+  padding: 0 17rem; /* Optional: add some horizontal breathing room */
+  border-radius: 0;
+  background: var(--ifm-navbar-background-color); /* preserve theme compatibility */
+  box-shadow: none; /* optional, or add subtle shadow */
+}
+
+[data-theme='dark'] .navbar {
+  background-color: #1b1b1d;
+  color: #eeeeee;
+}
+
+/* When scrolled */
+.navbar.navbar--scrolled {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); /* or use border-bottom */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1); /* subtle bottom line */
+}
+
+/* Optional: dark mode version */
+[data-theme='dark'] .navbar.navbar--scrolled {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.footer {
+  background-color: #f5f5f5;
+  color: #333;
+  padding: 2rem 1rem;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.footer--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+
+/* Dark mode override */
+[data-theme='dark'] .footer {
+  background-color: #121212;
+  color: #eeeeee;
 }

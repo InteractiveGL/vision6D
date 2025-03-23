@@ -1,23 +1,271 @@
-/**
- * CSS files with the .module.css suffix will be treated as CSS modules
- * and scoped locally.
- */
+.hero {
+  background: linear-gradient(to right, white, white);
+  color: black;
+  padding: 3rem 1rem 0rem;
+  text-align: center;
+}
 
-.heroBanner {
-  padding: 4rem 0;
+[data-theme='dark'] .hero {
+  background: #1b1b1d;
+  color: #f0d2be;
+}
+
+.heroContent h1 {
+  font-size: 5rem;
+  margin-bottom: -1rem;
+}
+
+.heroContent p {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: -1rem;
+}
+
+.heroButtons {
+  margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.buttonPrimary {
+  background: #ff8f00;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.buttonPrimary:hover {
+  background: #ffe0b2;
+  color: black;
+}
+
+[data-theme='dark'] .buttonPrimary {
+  background: #ff8f00;
+  color: black;
+}
+
+[data-theme='dark'] .buttonPrimary:hover {
+  background: #ffd180;
+}
+
+.buttonSecondary {
+  background: #eaeaea;
+  color: black;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.buttonSecondary:hover {
+  background: #e0e0e0;
+  color: black;
+}
+
+[data-theme='dark'] .buttonSecondary {
+  background: transparent;
+  border: 2px solid #ff8f00;
+  color: #ff8f00;
+}
+
+[data-theme='dark'] .buttonSecondary:hover {
+  background: #ff8f00;
+  color: black;
+}
+
+.videoSection {
+  padding: 1rem 1rem;
+  background: white;
+  text-align: center;
+}
+
+[data-theme='dark'] .videoSection {
+  background: #1b1b1d;
+}
+
+.videoSection {
+  padding: 4rem 1rem;
   text-align: center;
   position: relative;
   overflow: hidden;
 }
 
-@media screen and (max-width: 996px) {
-  .heroBanner {
-    padding: 2rem;
-  }
+.videoBackground {
+  max-width: 1250px;
+  margin: 0 auto;
+  padding: 4rem;
+  border-radius: 40px;
+  background-image: linear-gradient(135deg, #fef6b0, #f7b267, #f79d65, #f7b267, #fef6b0);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
 }
 
-.buttons {
+.videoWrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+[data-theme='dark'] .videoWrapper {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.features {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  padding: 4rem 1rem;
+  background-color: #fff;
+  text-align: center;
+}
+
+.feature {
+  flex: 1;
+  max-width: 300px;
+}
+
+.featureIcon {
+  font-size: 3.5rem;
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+}
+
+.feature h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.feature p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #555;
+}
+
+/* Dark mode support */
+[data-theme='dark'] .features {
+  background-color: #1b1b1d;
+}
+
+[data-theme='dark'] .feature p {
+  color: #ccc;
+}
+
+.splitFeature {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0rem;
+  padding: 0rem 0rem;
+  max-width: 1250px;
+  margin: 3rem auto;
+}
+
+.textContent {
+  flex: 2.5;
+  min-width: 300px;
+  max-width: 800px;
+}
+
+.textContent h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+}
+
+.textContent p {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.6;
+  margin-bottom: 0.25rem;
+}
+
+.textContent .link {
+  display: inline-block;
+  margin-top: 0rem;
+  font-weight: 600;
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
+.textContent .link:hover {
+  text-decoration: underline;
+}
+
+.imageContent {
+  flex: 5; /* 60% */
+  margin-left: 5rem;
+  min-width: 400px; /* optional, helps force a wider image */
+  background: linear-gradient(135deg, #fff8e1, #fff3e0, #ffe0b2, #f7b267);
+  padding: 3rem 4rem;
+  border-radius: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+[data-theme='dark'] .imageContent {
+  background: linear-gradient(135deg, #3e2c27, #a85d3a, #f57c00, #ffcc80);
+}
+
+.imageContent img {
+  width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] .textContent p {
+  color: #ccc;
+}
+
+.gridSection {
+  padding: 4rem 1rem;
+  background: #f5f5f5;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #212121;
+  width: 250px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  border-left: 6px solid #ff6f00;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-left: 6px solid #ff8f00;
+}
+
+[data-theme='dark'] .gridSection {
+  background: #121212; /* dark gray background */
+}
+
+[data-theme='dark'] .card {
+  background: #1e1e1e;
+  color: #eeeeee;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  border-left: 6px solid #ffb74d; /* softer orange for dark */
+}
+
+[data-theme='dark'] .card:hover {
+  background: #2a2a2a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-left: 6px solid #ffa726;
 }
