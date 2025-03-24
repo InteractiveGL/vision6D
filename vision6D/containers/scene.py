@@ -19,17 +19,12 @@ class Scene():
         self.mesh_container = MeshContainer(plotter=self.plotter)
 
         # set camera related attributes for the linemod dataset
-        # self.fx = 572.4114
-        # self.fy = 573.57043
-        # self.cx = 325.2611
-        # self.cy = 242.04899
-
-        self.fx = 18466.768907841793
-        self.fy = 19172.02089833029
-        self.cx = 954.4324739015676
-        self.cy = 538.2131876789998
-        self.canvas_height = 1080
-        self.canvas_width = 1920
+        self.fx = 572.4114
+        self.fy = 573.57043
+        self.cx = 325.2611
+        self.cy = 242.04899
+        self.canvas_height = 480
+        self.canvas_width = 640
         self.cam_viewup = (0, -1, 0)
 
     def zoom_in(self):

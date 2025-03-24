@@ -665,13 +665,13 @@ class MyMainWindow(MainWindow):
 
         row, column = self.set_panel_row_column(row, column)
         self.camera_tx_control = CameraControlWidget("Tx", "(mm)", 1e+4)
-        self.camera_tx_control.spin_box.setSingleStep(0.1)
+        self.camera_tx_control.spin_box.setSingleStep(1)
         self.camera_tx_control.spin_box.valueChanged.connect(self.set_mesh_pose)
         top_grid_layout.addWidget(self.camera_tx_control, row, column)
 
         row, column = self.set_panel_row_column(row, column)
         self.camera_ty_control = CameraControlWidget("Ty", "(mm)", 1e+4)
-        self.camera_ty_control.spin_box.setSingleStep(0.1)
+        self.camera_ty_control.spin_box.setSingleStep(1)
         self.camera_ty_control.spin_box.valueChanged.connect(self.set_mesh_pose)
         top_grid_layout.addWidget(self.camera_ty_control, row, column)
 
@@ -753,7 +753,7 @@ class MyMainWindow(MainWindow):
         self.link_mesh_button = QtWidgets.QPushButton("Link")
         self.link_mesh_button.setFixedSize(20, 20)
         self.link_mesh_button.setCheckable(True)
-        self.link_mesh_button.setChecked(True)
+        self.link_mesh_button.setChecked(False)
         self.link_mesh_button.toggled.connect(lambda checked, clicked=True: self.on_link_mesh_button_toggle(checked, clicked))
         self.mesh_actors_group = CustomGroupBox("Mesh", self)
         self.mesh_actors_group.addButtonClicked.connect(lambda mesh_path='', prompt=True: self.add_mesh_file(mesh_path, prompt))
@@ -1141,6 +1141,7 @@ class MyMainWindow(MainWindow):
 
     def clear_mesh(self):
         for button in self.mesh_button_group_actors.buttons(): self.remove_mesh_button(button)
+        self.link_mesh_button.setChecked(False)
 
     def clear_mask(self):
         for button in self.mask_button_group_actors.buttons(): self.remove_mask_button(button)
