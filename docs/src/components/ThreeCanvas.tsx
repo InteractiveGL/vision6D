@@ -24,14 +24,14 @@ export default function ThreeScene() {
     scene.add(light);
     scene.add(new THREE.AmbientLight(0x444444));
 
-    // Central mesh (large sphere)
+    // Orange
     const parentMesh = new THREE.Mesh(
       new THREE.SphereGeometry(100, 32, 16),
       new THREE.MeshBasicMaterial({ color: 0xffaa55, wireframe: true })
     );
     scene.add(parentMesh);
 
-    // Child mesh (green)
+    // Green
     const childMesh = new THREE.Mesh(
       new THREE.SphereGeometry(100, 32, 16),
       new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
@@ -39,7 +39,7 @@ export default function ThreeScene() {
     childMesh.position.y = 50;
     parentMesh.add(childMesh);
 
-    // Floating camera indicator (blue)
+    // Blue
     const floatingDot = new THREE.Mesh(
       new THREE.SphereGeometry(100, 32, 16),
       new THREE.MeshBasicMaterial({ color: 0x0088ff, wireframe: true })
@@ -52,18 +52,19 @@ export default function ThreeScene() {
       const time = Date.now() * 0.001;
 
       // 🌀 Dramatic oscillation for parent mesh
-      parentMesh.position.x = 700 * Math.cos(time * 1.2);
-      parentMesh.position.y = 500 * Math.sin(time * 1.5);
-      parentMesh.position.z = 600 * Math.cos(time * 1.1);
+      parentMesh.position.x = 400 * Math.cos(time * 1.2);
+      parentMesh.position.y = 300 * Math.sin(time * 1.5);
+      parentMesh.position.z = 200 * Math.sin(time * 1.1);
 
       // 🛰️ Orbiting motion for child
-      childMesh.position.x = 200 * Math.cos(time * 3);
-      childMesh.position.y = 150 * Math.sin(time * 2);
-      childMesh.position.z = 200 * Math.sin(time * 3);
+      childMesh.position.x = 100 * Math.cos(time * 1);
+      childMesh.position.y = 200 * Math.sin(time * 1);
+      childMesh.position.z = 300 * Math.sin(time * 1);
 
       // ✨ Vertical bounce for floating dot
-      floatingDot.position.y = 150 * Math.abs(Math.sin(time * 2));
-      floatingDot.position.x = 100 * Math.cos(time * 1.5);
+      floatingDot.position.y = 350 * Math.abs(Math.sin(time * 2));
+      floatingDot.position.x = 500 * Math.cos(time * 1.5);
+      floatingDot.position.z = 100 * Math.sin(time * 3);
       floatingDot.rotation.y += 0.05;
 
       // Optional: Add a rotation to the parent mesh
@@ -71,7 +72,7 @@ export default function ThreeScene() {
       parentMesh.rotation.y += 0.015;
 
       // Camera tracking
-      camera.lookAt(parentMesh.position);
+      camera.lookAt(0, 0, 0);
 
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
