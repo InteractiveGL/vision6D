@@ -1,0 +1,60 @@
+.docsHome {
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 20rem;
+  }
+  
+  .subheading {
+    font-size: 1.2rem;
+    color: var(--ifm-color-content-secondary);
+    margin-bottom: 2rem;
+  }
+  
+  .sectionTitle {
+    font-size: 1.5rem;
+    margin: 3rem 0 1rem;
+    font-weight: bold;
+  }
+  
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+  
+  .card {
+    background: var(--ifm-background-surface-color);
+    border: 1px solid var(--ifm-color-emphasis-200);
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  }
+  
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+  
+  .cardIcon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .cardTitle {
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .cardDesc {
+    font-size: 0.95rem;
+    color: var(--ifm-color-content-secondary);
+  }
+  
