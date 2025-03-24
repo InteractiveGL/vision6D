@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FiEdit3, FiGrid, FiSmile } from "react-icons/fi";
+import ThreeScene from "../components/ThreeCanvas";
 import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
 import styles from "./index.module.css";
@@ -64,12 +65,15 @@ export default function Home(): JSX.Element {
       <main>
         {/* Hero Section */}
         <section className={styles.hero}>
+          <div className={styles.heroBackground}>
+            <ThreeScene />
+          </div>
           <div className={styles.heroContent}>
             <h1>Vision6D</h1>
             <p>Redefine the Pose Annotation.</p>
             <div className={styles.heroButtons}>
-              <Link className={styles.buttonPrimary} to={osDownloadLink}>
-                Download for {osName}
+              <Link className={styles.buttonPrimary} to="/docs">
+                Download
               </Link>
               <Link
                 className={styles.buttonSecondary}
