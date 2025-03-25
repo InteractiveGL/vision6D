@@ -53,7 +53,7 @@ export default function DocsHome() {
           <Card
             title="FAQ"
             description="Find answers to common questions."
-            to="/docs/faq"
+            to="docs/faq"
             icon="❓"
           />
         </div>

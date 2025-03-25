@@ -34,9 +34,9 @@ export default function ThreeScene() {
     // Green
     const childMesh = new THREE.Mesh(
       new THREE.SphereGeometry(100, 32, 16),
-      new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
+      new THREE.MeshBasicMaterial({ color: 0xffa5e8, wireframe: true })
     );
-    childMesh.position.y = 50;
+    childMesh.position.z = 50;
     parentMesh.add(childMesh);
 
     // Blue
@@ -47,33 +47,77 @@ export default function ThreeScene() {
     floatingDot.position.z = 50;
     scene.add(floatingDot);
 
+    // Add three more colored spheres
+    const mesh4 = new THREE.Mesh(
+      new THREE.SphereGeometry(100, 32, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffd700, wireframe: true })
+    );
+    mesh4.position.set(-300, 0, 0);
+    scene.add(mesh4);
+
+    const mesh5 = new THREE.Mesh(
+      new THREE.SphereGeometry(100, 32, 16),
+      new THREE.MeshBasicMaterial({ color: 0x8bc34a, wireframe: true })
+    );
+    mesh5.position.set(0, -200, 0);
+    scene.add(mesh5);
+
+    const mesh6 = new THREE.Mesh(
+      new THREE.SphereGeometry(100, 32, 16),
+      new THREE.MeshBasicMaterial({ color: 0xde9eea, wireframe: true })
+    );
+    mesh6.position.set(300, 0, 0);
+    scene.add(mesh6);
+
     // Animate
     const animate = () => {
-      const time = Date.now() * 0.001;
+      const t = Date.now() * 0.0008;
 
-      // 🌀 Dramatic oscillation for parent mesh
-      parentMesh.position.x = 400 * Math.cos(time * 1.2);
-      parentMesh.position.y = 300 * Math.sin(time * 1.5);
-      parentMesh.position.z = 200 * Math.sin(time * 1.1);
+      // Parent — large 3D orbit
+      parentMesh.position.set(
+        800 * Math.cos(t * 0.8),
+        600 * Math.sin(t * 1.1),
+        400 * Math.sin(t * 0.9)
+      );
 
-      // 🛰️ Orbiting motion for child
-      childMesh.position.x = 100 * Math.cos(time * 1);
-      childMesh.position.y = 200 * Math.sin(time * 1);
-      childMesh.position.z = 300 * Math.sin(time * 1);
+      // Child — independent, off‑centre orbit
+      childMesh.position.set(
+        600 * Math.cos(t * 1.4) + 200,
+        500 * Math.sin(t * 1.7) - 150,
+        300 * Math.cos(t * 1.2)
+      );
 
-      // ✨ Vertical bounce for floating dot
-      floatingDot.position.y = 350 * Math.abs(Math.sin(time * 2));
-      floatingDot.position.x = 500 * Math.cos(time * 1.5);
-      floatingDot.position.z = 100 * Math.sin(time * 3);
-      floatingDot.rotation.y += 0.05;
+      // Floating dot — big bounce + drift
+      floatingDot.position.set(
+        700 * Math.cos(t * 1.3) - 250,
+        700 * Math.sin(t * 1.5),
+        200 * Math.sin(t * 2.0)
+      );
+      floatingDot.rotation.y += 0.03;
 
-      // Optional: Add a rotation to the parent mesh
+      // New three — wide, randomized orbits
+      mesh4.position.set(
+        900 * Math.cos(t * 1.1) - 300,
+        800 * Math.sin(t * 1.3) + 200,
+        250 * Math.sin(t * 1.7)
+      );
+
+      mesh5.position.set(
+        750 * Math.cos(t * 1.2) + 300,
+        600 * Math.sin(t * 1.4) - 200,
+        350 * Math.cos(t * 1.6)
+      );
+
+      mesh6.position.set(
+        850 * Math.cos(t * 1.0) - 100,
+        700 * Math.sin(t * 1.8) + 100,
+        450 * Math.sin(t * 1.1)
+      );
+
       parentMesh.rotation.x += 0.01;
       parentMesh.rotation.y += 0.015;
 
-      // Camera tracking
       camera.lookAt(0, 0, 0);
-
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
     };

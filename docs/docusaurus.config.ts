@@ -74,9 +74,9 @@ const config: Config = {
         src: 'img/vision6D_logo.svg',
       },
       items: [
-        { to: '/docs/getting-started', label: 'Docs', position: 'left' },
+        { to: '/docs', label: 'Docs', position: 'left' },
         { to: '/blog', label: 'Blog', position: 'left' },
-        { to: '/faq', label: 'FAQ', position: 'left' },
+        { to: 'docs/faq', label: 'FAQ', position: 'left' },
         {
           href: 'https://youtube.com',
           label: 'YouTube',

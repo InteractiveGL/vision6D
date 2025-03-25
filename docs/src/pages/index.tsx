@@ -7,9 +7,6 @@ import styles from "./index.module.css";
 import { JSX } from "react";
 
 export default function Home(): JSX.Element {
-  const [osDownloadLink, setOsDownloadLink] = useState("/docs/download");
-  const [osName, setOsName] = useState("your OS");
-
   useEffect(() => {
     const footer = document.querySelector(".footer");
 
@@ -44,22 +41,6 @@ export default function Home(): JSX.Element {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => {
-    const platform = navigator.platform.toLowerCase();
-    if (platform.includes("win")) {
-      setOsDownloadLink("/downloads/vision6d-windows.exe");
-      setOsName("Windows");
-    } else if (platform.includes("mac") || platform.includes("darwin")) {
-      setOsDownloadLink(
-        "https://github.com/InteractiveGL/vision6D/releases/tag/0.5.3/"
-      );
-      setOsName("macOS");
-    } else if (platform.includes("linux")) {
-      setOsDownloadLink("/downloads/vision6d-linux.AppImage");
-      setOsName("Linux");
-    }
-  }, []);
-
   return (
     <Layout title="Vision6D" description="Interactive 6D Pose Annotation Tool">
       <main>
@@ -72,8 +53,11 @@ export default function Home(): JSX.Element {
             <h1>Vision6D</h1>
             <p>Redefine the Pose Annotation.</p>
             <div className={styles.heroButtons}>
-              <Link className={styles.buttonPrimary} to="/docs">
-                Download
+              <Link
+                className={styles.buttonPrimary}
+                to="https://github.com/InteractiveGL/vision6D/releases/tag/0.5.3/"
+              >
+                Download Now
               </Link>
               <Link
                 className={styles.buttonSecondary}
@@ -278,7 +262,7 @@ export default function Home(): JSX.Element {
               <h3>YouTube Toturials</h3>
               <p>API reference, custom extensions, and build instructions.</p>
             </Link>
-            <Link to="/faq" className={styles.card}>
+            <Link to="docs/faq" className={styles.card}>
               <h3>FAQ</h3>
               <p>Answers to frequently asked questions.</p>
             </Link>
