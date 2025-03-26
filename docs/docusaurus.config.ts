@@ -1,7 +1,7 @@
 import {themes as prismThemes} from 'prism-react-renderer';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
-
+// import tailwindPlugin from "./plugins/tailwind-config.cjs";
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
@@ -30,6 +30,38 @@ const config: Config = {
     defaultLocale: 'en',
     locales: ['en'],
   },
+
+  // Plugins
+  // plugins: [
+  //   async function myPlugin(context, options) {
+  //     return {
+  //       name: "docusaurus-tailwindcss",
+  //       configurePostCss(postcssOptions) {
+  //         // Appends TailwindCSS and AutoPrefixer.
+  //         postcssOptions.plugins.push(require("tailwindcss"));
+  //         postcssOptions.plugins.push(require("autoprefixer"));
+  //         return postcssOptions;
+  //       },
+  //     };
+  //   },
+  // ],
+  // plugins: [tailwindPlugin],
+  plugins: [
+    async function tailwindPlugin(context, options) {
+      return {
+        name: 'tailwind-plugin',
+        configurePostCss(postcssOptions) {
+          postcssOptions.plugins = [
+            require('@tailwindcss/postcss'),
+            // require('postcss-import'),
+            // require('tailwindcss'),
+            require('autoprefixer'),
+          ];
+          return postcssOptions;
+        },
+      };
+    }
+  ],
   
   presets: [
     [

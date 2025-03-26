@@ -1,3 +1,8 @@
+/* @tailwind base;
+@tailwind components;
+@tailwind utilities; */
+@import 'tailwindcss';
+
 /* 🌞 Light Theme Overrides */
 :root {
   --ifm-color-primary:            #ff8c42;  /* primary orange */
