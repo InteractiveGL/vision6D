@@ -51,7 +51,7 @@ export default function Home(): JSX.Element {
           </div>
           <div className={styles.heroContent}>
             <h1>Vision6D</h1>
-            <p>Redefine the Pose Annotation.</p>
+            <p>Redefining Pose Annotations</p>
             <div className={styles.heroButtons}>
               <Link
                 className={styles.buttonPrimary}
@@ -258,8 +258,8 @@ export default function Home(): JSX.Element {
               <h3>User Guide</h3>
               <p>Detailed walkthrough of Vision6D interface and tools.</p>
             </Link>
-            <Link to="/docs/youtube_toturials" className={styles.card}>
-              <h3>YouTube Toturials</h3>
+            <Link to="/docs/youtube_tutorials" className={styles.card}>
+              <h3>YouTube Tutorials</h3>
               <p>API reference, custom extensions, and build instructions.</p>
             </Link>
             <Link to="/faq" className={styles.card}>

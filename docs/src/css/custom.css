@@ -19,6 +19,8 @@
   /* Optional UI Tweaks */
   --ifm-background-color:         #ffffff;
   --ifm-font-color-base:          #212121;
+
+  --doc-sidebar-width: 200px !important;
 }
 
 /* 🌙 Dark Theme Overrides */
@@ -44,6 +46,13 @@
   border-radius: 0;
   background: var(--ifm-navbar-background-color); /* preserve theme compatibility */
   box-shadow: none; /* optional, or add subtle shadow */
+}
+
+.navbar__item.navbar__link {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center; /* optional—centers content horizontally */
 }
 
 [data-theme='dark'] .navbar {
@@ -90,13 +99,49 @@
   padding-right: 17rem;
 }
 
-.theme-doc-sidebar-container {
-  max-width: 220px;
-}
-
 /* Remove the right border and add left border instead */
 .theme-doc-sidebar-container {
   border-right: none !important;
   border-left: 1px solid var(--ifm-toc-border-color) !important;
 }
 
+.theme-doc-sidebar-menu .menu__link {
+  font-size: 0.875rem !important;
+  color: #333333 !important;
+}
+
+[data-theme="dark"] .theme-doc-sidebar-menu .menu__link {
+  color: #eeeeee !important;
+}
+
+.theme-doc-sidebar-item-link-level-1 > .menu__link {
+  font-weight: 600 !important;
+}
+
+.menu__link--sublist {
+  font-weight: 600 !important;
+}
+
+/* Shrink the sidebar category collapse arrow */
+.clean-btn.menu__caret::before {
+  width: 1.3rem;
+  height: 1.3rem;
+  background-size: 1.3rem 1.3rem !important;
+}
+
+/* Center the entire breadcrumb list */
+.breadcrumbs {
+  display: flex;
+  justify-content: left;
+}
+
+/* Make each breadcrumb item inline so they line up in a row */
+.breadcrumbs__item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.breadcrumbs__link svg {
+  width: 1.3rem;  /* icon size */
+  height: 1.3rem;
+}

@@ -1,7 +1,7 @@
 ---
-id: overview
+id: OVERVIEW
 title: Vision6D documentation
-sidebar_label: Overview
+sidebar_label: OVERVIEW
 sidebar_position: 1
 ---
 
@@ -14,7 +14,7 @@ Get familiar with Vision6D and learn how to use it.
 
 ## Getting Started
 
-<div className={styles.grid}>
+<div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-6 mt-4">
   <Card
     title="Download Vision6D"
     description="Install on Windows/macOS/Linux"
@@ -22,15 +22,38 @@ Get familiar with Vision6D and learn how to use it.
     icon="🛠️"
   />
   <Card
-    title="User Guide"
+    title="Set Up"
     description="Explore core workflows"
-    to="/docs/user-guide"
+    to="/docs/setup"
     icon="📖"
   />
   <Card
     title="FAQ"
     description="Common questions answered"
     to="/faq"
+    icon="❓"
+  />
+</div>
+
+## Core Features
+
+<div className="grid grid-cols-[repeat(auto-fit,_minmax(260px,_1fr))] gap-6 mt-4">
+  <Card
+    title="2D-3D Annotation"
+    description="Label poses with interactive tools."
+    to="/docs/user-guide"
+    icon="✏️"
+  />
+  <Card
+    title="Developer API"
+    description="Extend Vision6D with custom logic."
+    to="/docs/developer-guide"
+    icon="🧩"
+  />
+  <Card
+    title="FAQ"
+    description="Find answers to common questions."
+    to="docs/faq"
     icon="❓"
   />
 </div>
