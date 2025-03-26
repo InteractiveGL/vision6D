@@ -76,7 +76,7 @@ const config: Config = {
       items: [
         { to: '/docs', label: 'Docs', position: 'left' },
         { to: '/blog', label: 'Blog', position: 'left' },
-        { to: 'docs/faq', label: 'FAQ', position: 'left' },
+        { to: '/faq', label: 'FAQ', position: 'left' },
         {
           href: 'https://youtube.com',
           label: 'YouTube',

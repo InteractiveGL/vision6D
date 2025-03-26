@@ -262,7 +262,7 @@ export default function Home(): JSX.Element {
               <h3>YouTube Toturials</h3>
               <p>API reference, custom extensions, and build instructions.</p>
             </Link>
-            <Link to="docs/faq" className={styles.card}>
+            <Link to="/faq" className={styles.card}>
               <h3>FAQ</h3>
               <p>Answers to frequently asked questions.</p>
             </Link>
