@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { FiEdit3, FiGrid, FiSmile } from "react-icons/fi";
 import ThreeScene from "../components/ThreeCanvas";
 import Layout from "@theme/Layout";
+import useBaseUrl from "@docusaurus/useBaseUrl";
 import Link from "@docusaurus/Link";
 import styles from "./index.module.css";
 import { JSX } from "react";
@@ -74,7 +75,10 @@ export default function Home(): JSX.Element {
           <div className={styles.videoBackground}>
             <div className={styles.videoWrapper}>
               <video width="100%" autoPlay muted loop playsInline>
-                <source src="/videos/vision6d_demo.mp4" type="video/mp4" />
+                <source
+                  src={useBaseUrl("/videos/vision6d_demo.mp4")}
+                  type="video/mp4"
+                />
                 Your browser does not support the video tag.
               </video>
             </div>
@@ -133,7 +137,10 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className={styles.imageContent}>
-            <img src="/img/sample.png" alt="Copilot multi-file edits preview" />
+            <img
+              src={useBaseUrl("/img/sample.png")}
+              alt="Copilot multi-file edits preview"
+            />
           </div>
         </section>
 
@@ -155,7 +162,10 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className={styles.imageContent}>
-            <img src="/img/sample.png" alt="Copilot multi-file edits preview" />
+            <img
+              src={useBaseUrl("/img/sample.png")}
+              alt="Copilot multi-file edits preview"
+            />
           </div>
         </section>
 
@@ -177,7 +187,10 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className={styles.imageContent}>
-            <img src="/img/sample.png" alt="Copilot multi-file edits preview" />
+            <img
+              src={useBaseUrl("/img/sample.png")}
+              alt="Copilot multi-file edits preview"
+            />
           </div>
         </section>
 
@@ -199,7 +212,10 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className={styles.imageContent}>
-            <img src="/img/sample.png" alt="Copilot multi-file edits preview" />
+            <img
+              src={useBaseUrl("/img/sample.png")}
+              alt="Copilot multi-file edits preview"
+            />
           </div>
         </section>
 
@@ -221,7 +237,10 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className={styles.imageContent}>
-            <img src="/img/sample.png" alt="Copilot multi-file edits preview" />
+            <img
+              src={useBaseUrl("/img/sample.png")}
+              alt="Copilot multi-file edits preview"
+            />
           </div>
         </section>
 
@@ -243,7 +262,10 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className={styles.imageContent}>
-            <img src="/img/sample.png" alt="Copilot multi-file edits preview" />
+            <img
+              src={useBaseUrl("/img/sample.png")}
+              alt="Copilot multi-file edits preview"
+            />
           </div>
         </section>
 
