@@ -76,7 +76,7 @@ export default function Home(): JSX.Element {
             <div className={styles.videoWrapper}>
               <video width="100%" autoPlay muted loop playsInline>
                 <source
-                  src={useBaseUrl("/videos/vision6d_demo.mp4")}
+                  src={useBaseUrl("/videos/vision6D_demo.mp4")}
                   type="video/mp4"
                 />
                 Your browser does not support the video tag.
