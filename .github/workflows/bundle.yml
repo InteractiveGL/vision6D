@@ -52,12 +52,22 @@ jobs:
             --hidden-import="vtkmodules.util.vtkConstants"
 
       # macOS .dmg installer
-      - name: Create DMG (macOS)
+      - name: Create macOS Drag-and-Drop DMG
         if: matrix.os == 'macos-latest'
         run: |
-          mkdir dmg
-          cp dist/vision6d-macos-arm64 dmg/
-          hdiutil create -volname "vision6d-macos" -srcfolder dmg -ov -format UDZO vision6d-macos.dmg
+          # Setup directories
+          mkdir -p dmg_build
+          mkdir -p dmg_build_tmp/"vision6d"
+
+          # Copy executable
+          cp dist/vision6d-macos-arm64 dmg_build_tmp/"vision6d/Vision6D"
+
+          # Make symbolic link to /Applications for drag-and-drop install
+          ln -s /Applications dmg_build_tmp/"vision6d/Applications"
+
+          # Create the dmg
+          hdiutil create -volname "Vision6D" -srcfolder dmg_build_tmp/"vision6d" \
+              -ov -format UDZO vision6d-macos-arm64.dmg
 
       # Linux .deb package
       - name: Create DEB (Linux)
@@ -65,7 +75,7 @@ jobs:
         run: |
           sudo apt-get install -y dpkg fakeroot
           mkdir -p vision6d_1.0.0-1_amd64/usr/local/bin
-          cp dist/vision6d-ubuntu-22.04-x86_64 vision6d_1.0.0-1_amd64/usr/local/bin/
+          cp dist/vision6d-Linux-x86_64 vision6d_1.0.0-1_amd64/usr/local/bin/
           mkdir vision6d_1.0.0-1_amd64/DEBIAN
           echo -e "Package: vision6d\nVersion: 1.0.0\nArchitecture: amd64\nMaintainer: Your Name <your-email@example.com>\nDescription: Vision6D application." > vision6d_1.0.0-1_amd64/DEBIAN/control
           fakeroot dpkg-deb --build vision6d_1.0.0-1_amd64 vision6d-linux.deb
@@ -76,7 +86,7 @@ jobs:
         run: |
           choco install nsis -y
           mkdir installer
-          move dist\vision6d-windows-latest-x86_64.exe installer\vision6d.exe
+          move dist\vision6d-Windows-x86_64.exe installer\vision6d.exe
           echo '!define APP_NAME "vision6D"' > installer\installer.nsi
           echo '!define APP_EXE "vision6d.exe"' >> installer\installer.nsi
           echo 'OutFile "..\\vision6d-windows-installer.exe"' >> installer\installer.nsi
