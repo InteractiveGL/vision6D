@@ -17,17 +17,14 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            target: ''
-            arch: 'x86_64'
+            target: ""
+            arch: "x86_64"
           - os: ubuntu-22.04
-            target: ''
-            arch: 'x86_64'
+            target: ""
+            arch: "x86_64"
           - os: macos-latest
-            target: 'x86_64'
-            arch: 'x86_64'
-          - os: macos-latest
-            target: 'arm64'
-            arch: 'arm64'
+            target: "arm64"
+            arch: "arm64"
 
     steps:
       - uses: actions/checkout@v4
@@ -71,18 +68,6 @@ jobs:
             --hidden-import="vtkmodules.util.numpy_support" \
             --hidden-import="vtkmodules.util.vtkConstants"
 
-      - name: Build Executable (macOS Intel x86_64)
-        if: matrix.os == 'macos-latest' && matrix.arch == 'x86_64'
-        run: |
-          arch -x86_64 python3 -m pip install .
-          arch -x86_64 python3 -m pip install pyinstaller
-          arch -x86_64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-x86_64 scripts/__main__.py \
-            --hidden-import="vtkmodules.all" \
-            --hidden-import="vtkmodules.util.data_model" \
-            --hidden-import="vtkmodules.util.execution_model" \
-            --hidden-import="vtkmodules.util.numpy_support" \
-            --hidden-import="vtkmodules.util.vtkConstants"
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -107,9 +92,8 @@ jobs:
         run: |
           mv ./artifacts/vision6d-Windows-x86_64/vision6d-Windows-x86_64.exe ./vision6d-windows.exe
           mv ./artifacts/vision6d-Linux-x86_64/vision6d-Linux-x86_64 ./vision6d-linux
-          mv ./artifacts/vision6d-macOS-x86_64/vision6d-macos-x86_64 ./vision6d-macos-intel
           mv ./artifacts/vision6d-macOS-arm64/vision6d-macos-arm64 ./vision6d-macos-silicon
-          chmod +x vision6d-linux vision6d-macos-intel vision6d-macos-silicon
+          chmod +x vision6d-linux vision6d-macos-silicon
 
       - name: Release and Upload Executables
         uses: softprops/action-gh-release@v2
@@ -118,5 +102,4 @@ jobs:
           files: |
             vision6d-windows.exe
             vision6d-linux
-            vision6d-macos-intel
             vision6d-macos-silicon
