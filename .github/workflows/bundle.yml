@@ -37,7 +37,7 @@ jobs:
       - name: Build Executable (Windows/Linux)
         if: matrix.os != 'macos-latest'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} --icon="vision6D/data/logo.ico" scripts/__main__.py
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} --icon="vision6D/vision6D/data/logo.ico" scripts/__main__.py
 
       - name: Build Executable (macOS ARM64)
         if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
