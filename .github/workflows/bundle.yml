@@ -37,14 +37,14 @@ jobs:
       - name: Build Executable (Windows/Linux)
         if: matrix.os != 'macos-latest'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} scripts/__main__.py
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} --icon="vision6D/data/logo.ico" scripts/__main__.py
 
       - name: Build Executable (macOS ARM64)
         if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
         run: |
           arch -arm64 python3 -m pip install .
           arch -arm64 python3 -m pip install pyinstaller
-          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 scripts/__main__.py \
+          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 --icon="vision6D/data/logo.icns" scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
@@ -107,8 +107,8 @@ jobs:
           Section "Install"
             SetOutPath "$INSTDIR"
             File "${APP_EXE}"
-            CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
-            CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
+            CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
+            CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_EXE}" 0
             WriteUninstaller "$INSTDIR\uninstall.exe"
           SectionEnd
 
