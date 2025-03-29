@@ -87,7 +87,7 @@ jobs:
           choco install nsis -y
           mkdir installer
           move dist\vision6d-Windows-x86_64.exe installer\vision6d.exe
-          
+
           @'
           !define APP_NAME "Vision6D"
           !define APP_VERSION "1.0.0"
@@ -118,8 +118,7 @@ jobs:
             Delete "$DESKTOP\${APP_NAME}.lnk"
             Delete "$SMPROGRAMS\${APP_NAME}.lnk"
             RMDir "$INSTDIR"
-          SectionEnd
-      '@ | Out-File -Encoding ASCII installer\installer.nsi
+          SectionEnd '@ | Out-File -Encoding ASCII installer\installer.nsi
 
           makensis installer\installer.nsi
 
