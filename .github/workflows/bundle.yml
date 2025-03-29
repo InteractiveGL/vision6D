@@ -83,6 +83,7 @@ jobs:
       # Windows .exe installer with NSIS
       - name: Create EXE installer (Windows)
         if: matrix.os == 'windows-latest'
+        shell: pwsh
         run: |
           choco install nsis -y
           mkdir installer
@@ -108,7 +109,6 @@ jobs:
             File "${APP_EXE}"
             CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
             CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}"
-
             WriteUninstaller "$INSTDIR\uninstall.exe"
           SectionEnd
 
@@ -118,7 +118,8 @@ jobs:
             Delete "$DESKTOP\${APP_NAME}.lnk"
             Delete "$SMPROGRAMS\${APP_NAME}.lnk"
             RMDir "$INSTDIR"
-          SectionEnd '@ | Out-File -Encoding ASCII installer\installer.nsi
+          SectionEnd 
+          '@ | Out-File -Encoding ASCII installer\installer.nsi
 
           makensis installer\installer.nsi
 
