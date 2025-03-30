@@ -127,7 +127,7 @@ jobs:
 
           '@ | Out-File -Encoding ASCII installer\installer.nsi
 
-          copy vision6D\data\logo.ico installer\
+          copy vision6D\data\icons\logo.ico installer\
           makensis installer\installer.nsi
 
       - name: Upload Artifacts
