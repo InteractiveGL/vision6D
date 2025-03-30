@@ -74,10 +74,42 @@ jobs:
         if: matrix.os == 'ubuntu-22.04'
         run: |
           sudo apt-get install -y dpkg fakeroot
+
+          # Define package structure
           mkdir -p vision6d_1.0.0-1_amd64/usr/local/bin
-          cp dist/vision6d-Linux-x86_64 vision6d_1.0.0-1_amd64/usr/local/bin/
+          mkdir -p vision6d_1.0.0-1_amd64/usr/share/applications
+          mkdir -p vision6d_1.0.0-1_amd64/usr/share/icons/hicolor/256x256/apps
+
+          # Copy the executable
+          cp dist/vision6d-Linux-x86_64 vision6d_1.0.0-1_amd64/usr/local/bin/vision6d
+          chmod +x vision6d_1.0.0-1_amd64/usr/local/bin/vision6d
+
+          # Copy your icon (ensure it's PNG format)
+          cp vision6D/data/icons/logo.png vision6d_1.0.0-1_amd64/usr/share/icons/hicolor/256x256/apps/vision6d.png
+
+          # Create .desktop file
+          cat << EOF > vision6d_1.0.0-1_amd64/usr/share/applications/vision6d.desktop
+          [Desktop Entry]
+          Name=Vision 6D
+          Comment=Vision 6D
+          Exec=/usr/local/bin/vision6d
+          Icon=vision6d
+          Terminal=false
+          Type=Application
+          Categories=Utility;Graphics;
+          EOF
+
+          # Control file (package metadata)
           mkdir vision6d_1.0.0-1_amd64/DEBIAN
-          echo -e "Package: vision6d\nVersion: 1.0.0\nArchitecture: amd64\nMaintainer: Your Name <your-email@example.com>\nDescription: Vision6D application." > vision6d_1.0.0-1_amd64/DEBIAN/control
+          cat << EOF > vision6d_1.0.0-1_amd64/DEBIAN/control
+          Package: vision6d
+          Version: 1.0.0
+          Architecture: amd64
+          Maintainer: ykzzyk <n359222435@gmail.com>
+          Description: Vision6D application.
+          EOF
+
+          # Build the .deb package
           fakeroot dpkg-deb --build vision6d_1.0.0-1_amd64 vision6d-linux.deb
 
       # Windows .exe installer with NSIS
