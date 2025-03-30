@@ -37,14 +37,14 @@ jobs:
       - name: Build Executable (Windows/Linux)
         if: matrix.os != 'macos-latest'
         run: |
-          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} --icon="vision6D/data/icons/logo.ico" scripts/__main__.py
+          pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-${{ runner.os }}-${{ matrix.arch }} --icon="vision6D/data/icons/logo.ico" --noconsole scripts/__main__.py
 
       - name: Build Executable (macOS ARM64)
         if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
         run: |
           arch -arm64 python3 -m pip install .
           arch -arm64 python3 -m pip install pyinstaller
-          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 --icon="vision6D/data/icons/logo.icns" scripts/__main__.py \
+          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 --icon="vision6D/data/icons/logo.icns" --noconsole scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
@@ -94,6 +94,7 @@ jobs:
           !define APP_VERSION "1.0.0"
           !define APP_EXE "vision6d.exe"
           !define APP_ICON "logo.ico"
+          !define UNINSTALL_REG_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
 
           OutFile "..\vision6d-windows-installer.exe"
           InstallDir "$PROGRAMFILES\${APP_NAME}"
@@ -110,13 +111,21 @@ jobs:
             File "${APP_EXE}"
             File "${APP_ICON}"
 
-            ; Desktop shortcut with explicit icon
+            ; Shortcuts
             CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_ICON}" 0
-            
-            ; Start Menu shortcut with explicit icon
             CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_ICON}" 0
-            
+
+            ; Uninstaller
             WriteUninstaller "$INSTDIR\uninstall.exe"
+
+            ; Registry entries for Programs and Features
+            WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "DisplayName" "${APP_NAME}"
+            WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "DisplayVersion" "${APP_VERSION}"
+            WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "Publisher" "Vision6D"
+            WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "DisplayIcon" "$INSTDIR\${APP_ICON}"
+            WriteRegStr HKLM "${UNINSTALL_REG_KEY}" "UninstallString" "$INSTDIR\uninstall.exe"
+            WriteRegDWORD HKLM "${UNINSTALL_REG_KEY}" "NoModify" 1
+            WriteRegDWORD HKLM "${UNINSTALL_REG_KEY}" "NoRepair" 1
           SectionEnd
 
           Section "Uninstall"
@@ -126,6 +135,9 @@ jobs:
             Delete "$DESKTOP\${APP_NAME}.lnk"
             Delete "$SMPROGRAMS\${APP_NAME}.lnk"
             RMDir "$INSTDIR"
+
+            ; Remove registry entries
+            DeleteRegKey HKLM "${UNINSTALL_REG_KEY}"
           SectionEnd
 
           '@ | Out-File -Encoding ASCII installer\installer.nsi
