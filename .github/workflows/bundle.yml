@@ -110,7 +110,10 @@ jobs:
             File "${APP_EXE}"
             File "${APP_ICON}"
 
+            ; Desktop shortcut with explicit icon
             CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_ICON}" 0
+            
+            ; Start Menu shortcut with explicit icon
             CreateShortcut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\${APP_EXE}" "" "$INSTDIR\${APP_ICON}" 0
             
             WriteUninstaller "$INSTDIR\uninstall.exe"
