@@ -60,10 +60,7 @@ export default function Home(): JSX.Element {
               >
                 Download Now
               </Link>
-              <Link
-                className={styles.buttonSecondary}
-                to="/docs/getting-started"
-              >
+              <Link className={styles.buttonSecondary} to="/docs">
                 Get Started
               </Link>
             </div>
@@ -272,15 +269,15 @@ export default function Home(): JSX.Element {
         {/* Grid Section */}
         <section className={styles.gridSection}>
           <div className={styles.grid}>
-            <Link to="/docs/getting-started" className={styles.card}>
+            <Link to="/docs" className={styles.card}>
               <h3>Getting Started</h3>
               <p>Quick setup instructions and requirements.</p>
             </Link>
-            <Link to="/docs/getting-started" className={styles.card}>
+            <Link to="/docs/setup" className={styles.card}>
               <h3>User Guide</h3>
               <p>Detailed walkthrough of Vision6D interface and tools.</p>
             </Link>
-            <Link to="/docs/getting-started" className={styles.card}>
+            <Link to="/docs/setup" className={styles.card}>
               <h3>YouTube Tutorials</h3>
               <p>API reference, custom extensions, and build instructions.</p>
             </Link>
