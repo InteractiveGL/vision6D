@@ -44,27 +44,21 @@ def main():
     splash.show()
     app.processEvents()
 
-    initialization_tasks = [
-    ("Loading stylesheets", lambda: app.setStyleSheet((CWD.parent / "data" / "style.qss").read_text())),
-    ("Initializing Main Window", lambda: MyMainWindow()),
-    ("Setting up GUI", lambda: window.showMaximized())]
+    window = MyMainWindow()
+
+    initialization_tasks = [("Initializing Application", lambda: MyMainWindow())]
 
     progress_per_task = 100 // len(initialization_tasks)
     current_progress = 0
 
     # Perform actual initialization tasks and update progress
-    for task_description, task_function in initialization_tasks:
+    for task_description, _ in initialization_tasks:
         progress_bar.setFormat(f"{task_description}... (%p%)")
         app.processEvents()
-        
-        task_function()
         
         current_progress += progress_per_task
         progress_bar.setValue(current_progress)
         app.processEvents()
-
-    window = initialization_tasks[1][1]()
-    window.showMaximized()
 
     splash.finish(window)
 
