@@ -44,30 +44,69 @@ jobs:
         run: |
           arch -arm64 python3 -m pip install .
           arch -arm64 python3 -m pip install pyinstaller
-          arch -arm64 pyinstaller --add-data="vision6D/data:vision6D/data" --onefile --name vision6d-macOS-arm64 --icon="vision6D/data/icons/logo.icns" --noconsole scripts/__main__.py \
+          arch -arm64 pyinstaller \
+            --add-data="vision6D/data:vision6D/data" \
+            --onefile \
+            --name vision6d-macOS-arm64 \
+            --icon="vision6D/data/icons/logo.icns" \
+            --noconsole \
+            scripts/__main__.py \
             --hidden-import="vtkmodules.all" \
             --hidden-import="vtkmodules.util.data_model" \
             --hidden-import="vtkmodules.util.execution_model" \
             --hidden-import="vtkmodules.util.numpy_support" \
             --hidden-import="vtkmodules.util.vtkConstants"
 
-      # macOS .dmg installer
-      - name: Create macOS Drag-and-Drop DMG
-        if: matrix.os == 'macos-latest'
+      - name: Create macOS Drag-and-Drop DMG (with icon)
+        if: matrix.os == 'macos-latest' && matrix.arch == 'arm64'
         run: |
           # Setup directories
-          mkdir -p dmg_build
-          mkdir -p dmg_build_tmp/"vision6d"
+          mkdir -p dmg_build_tmp/Vision6D.app/Contents/MacOS
+          mkdir -p dmg_build_tmp/Vision6D.app/Contents/Resources
 
-          # Copy executable
-          cp dist/vision6d-macos-arm64 dmg_build_tmp/"vision6d/Vision6D"
+          # Copy executable into proper macOS .app structure
+          cp dist/vision6d-macOS-arm64 dmg_build_tmp/Vision6D.app/Contents/MacOS/Vision6D
+          chmod +x dmg_build_tmp/Vision6D.app/Contents/MacOS/Vision6D
 
-          # Make symbolic link to /Applications for drag-and-drop install
-          ln -s /Applications dmg_build_tmp/"vision6d/Applications"
+          # Copy your .icns file
+          cp vision6D/data/icons/logo.icns dmg_build_tmp/Vision6D.app/Contents/Resources/logo.icns
 
-          # Create the dmg
-          hdiutil create -volname "Vision6D" -srcfolder dmg_build_tmp/"vision6d" \
-              -ov -format UDZO vision6d-macos-arm64.dmg
+          # Create Info.plist with icon definition
+          cat <<EOF > dmg_build_tmp/Vision6D.app/Contents/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" 
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleName</key>
+              <string>Vision6D</string>
+              <key>CFBundleExecutable</key>
+              <string>Vision6D</string>
+              <key>CFBundleIconFile</key>
+              <string>logo.icns</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.yourcompany.vision6d</string>
+              <key>CFBundleVersion</key>
+              <string>${{ github.ref_name }}</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${{ github.ref_name }}</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.15</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+
+          # Link to Applications folder for easy drag-and-drop
+          mkdir -p dmg_stage
+          cp -R dmg_build_tmp/Vision6D.app dmg_stage/Vision6D.app
+          ln -s /Applications dmg_stage/Applications
+
+          # Create .dmg installer
+          hdiutil create -volname "Vision6D" \
+            -srcfolder dmg_stage \
+            -ov -format UDZO vision6d-macos-arm64.dmg
 
       # Linux .deb package
       - name: Create DEB (Linux)
