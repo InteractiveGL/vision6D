@@ -13,7 +13,6 @@ import platform
 import os
 import pathlib
 from qtpy import QtWidgets, QtCore, QtGui
-from time import sleep
 
 from .. import MyMainWindow
 
@@ -38,29 +37,35 @@ def main():
     # Add progress bar
     progress_bar = QtWidgets.QProgressBar(splash)
     progress_bar.setMaximum(100)
-    progress_bar.setGeometry(
-        10,
-        splash_pix.height() - 30,
-        splash_pix.width() - 20,
-        20
-    )
+    progress_bar.setGeometry(10, splash_pix.height() - 30, splash_pix.width() - 20, 20)
     progress_bar.setAlignment(QtCore.Qt.AlignCenter)
     progress_bar.setTextVisible(True)
 
     splash.show()
     app.processEvents()
 
-    # Simulate loading (Replace this with actual initialization tasks)
-    for i in range(0, 101, 5):
-        progress_bar.setValue(i)
-        sleep(0.05)  # Adjust or remove based on actual tasks
+    initialization_tasks = [
+    ("Loading stylesheets", lambda: app.setStyleSheet((CWD.parent / "data" / "style.qss").read_text())),
+    ("Initializing Main Window", lambda: MyMainWindow()),
+    ("Setting up GUI", lambda: window.showMaximized())]
+
+    progress_per_task = 100 // len(initialization_tasks)
+    current_progress = 0
+
+    # Perform actual initialization tasks and update progress
+    for task_description, task_function in initialization_tasks:
+        progress_bar.setFormat(f"{task_description}... (%p%)")
+        app.processEvents()
+        
+        task_function()
+        
+        current_progress += progress_per_task
+        progress_bar.setValue(current_progress)
         app.processEvents()
 
-    # Load main window after splash
-    window = MyMainWindow()
+    window = initialization_tasks[1][1]()
     window.showMaximized()
 
-    # Close splash after main window is ready
     splash.finish(window)
 
     sys.exit(app.exec_())
