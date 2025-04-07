@@ -11,19 +11,19 @@ export default function FAQ(): JSX.Element {
         <h1>Frequently Asked Questions</h1>
         <h2>What is Vision6D?</h2>
         <p>
-          Vision6D is an interactive annotation tool for 2D-to-3D 6D pose
-          estimation...
+          Vision6D is an interactive annotation GUI for 2D-to-3D 6D pose
+          annotation.
         </p>
 
         <h2>How do I download it?</h2>
         <p>
-          Use the <a href="/downloads">Download</a> link to get the installer
+          Use the <a href="docs/download">Download</a> link to get the installer
           for your OS.
         </p>
 
         <h2>Can I customize it?</h2>
         <p>
-          Yes, it's open-source. See the{" "}
+          Yes, it's open-source online. See the{" "}
           <a href="https://github.com/InteractiveGL/vision6D">GitHub repo</a>.
         </p>
       </main>
