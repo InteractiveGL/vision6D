@@ -1,23 +1,8 @@
-yangshun:
-  name: Yangshun Tay
-  title: Front End Engineer @ Facebook
-  url: https://github.com/yangshun
-  image_url: https://github.com/yangshun.png
-  page: true
-  socials:
-    x: yangshunz
-    github: yangshun
-
 slorber:
-  name: Sébastien Lorber
-  title: Docusaurus maintainer
-  url: https://sebastienlorber.com
-  image_url: https://github.com/slorber.png
-  page:
-    # customize the url of the author page at /blog/authors/<permalink>
-    permalink: '/all-sebastien-lorber-articles'
+  name: Yike (Nicole) Zhang
+  title: Vision6D maintainer
+  url: https://scholar.google.com/citations?user=_E0SGAkAAAAJ&hl=en
+  image_url: https://avatars.githubusercontent.com/u/55161270?s=400&u=88c834e2d90a3f3dd81a13048f65854c6afe5a8d&v=4
   socials:
-    x: sebastienlorber
-    linkedin: sebastienlorber
-    github: slorber
-    newsletter: https://thisweekinreact.com
+    linkedin: yikezhang
+    github: ykzzyk

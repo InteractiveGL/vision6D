@@ -274,12 +274,12 @@ export default function Home(): JSX.Element {
               <p>Quick setup instructions and requirements.</p>
             </Link>
             <Link to="/docs/Download" className={styles.card}>
-              <h3>User Guide</h3>
-              <p>Detailed walkthrough of Vision6D interface and tools.</p>
+              <h3>Download</h3>
+              <p>Detailed download instructions of Vision6D.</p>
             </Link>
             <Link to="/docs/Download" className={styles.card}>
               <h3>YouTube Tutorials</h3>
-              <p>API reference, custom extensions, and build instructions.</p>
+              <p>Questions, walkthrough, and build instructions.</p>
             </Link>
             <Link to="/faq" className={styles.card}>
               <h3>FAQ</h3>
