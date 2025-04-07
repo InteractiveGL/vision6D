@@ -56,7 +56,7 @@ export default function Home(): JSX.Element {
             <div className={styles.heroButtons}>
               <Link
                 className={styles.buttonPrimary}
-                to="https://github.com/InteractiveGL/vision6D/releases/tag/0.5.3/"
+                to="https://github.com/InteractiveGL/vision6D/releases/tag/0.5.4/"
               >
                 Download Now
               </Link>
