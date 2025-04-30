@@ -55,7 +55,7 @@
 - Real-time rendering results
   - renders the annotated results.
 - Cross platform
-  - Windows and Linux (Ubuntu-tested) ready (highly recommend to use with a mouse).
+  - Windows, Linux (Ubuntu-tested), and Mac (Apple Silicon) ready (highly recommend to use with a mouse).
 
 ## How To Use
 
@@ -149,4 +149,6 @@ This software uses the following open source packages:
 
 GNU General Public License v3.0
 
----
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=InteractiveGL/vision6D&type=Date)](https://www.star-history.com/#InteractiveGL/vision6D&Date)
