@@ -48,13 +48,9 @@ Source code for paper **Vision6D: 3D-to-2D Interactive Visualization and Annotat
 
 The contributions of this work can be summarized as the following:
 
-1. Vision6D provides an interactive framework that effectively aligns 3D models onto 2D images, enabling precise 6D pose annotation. This bridges the gap between 2D image projection and the spatial complexity of 3D scenes.
+1. Vision6D provides an interactive framework that effectively aligns 3D models onto 2D images, enabling precise 6D pose annotation. This bridges the gap between 2D image projection and the spatial complexity of 3D scenes. The tool allows users to efficiently annotate and refine 6D poses via an interactive user interface, simplifying the dataset generation process.
 
-2. The tool allows users to efficiently annotate and refine 6D poses via an interactive user interface, simplifying the dataset generation process. To the best of our knowledge, Vision6D is the first tool designed specifically for this purpose.
-
-3. We validate the effectiveness of Vision6D through a comprehensive user study, demonstrating that it offers an intuitive and accurate solution for 6D pose annotation.
-
-4. The user study used public 6D pose estimation datasets named Linemod [1] and HANDAL [2], where user-annotated poses were compared against ground-truth poses. The results illustrate the tool’s accuracy, efficiency, and usability, highlighting its potential as a standardized solution for 6D pose annotation.
+2. We validate the effectiveness of Vision6D through a comprehensive user study, demonstrating that it offers an intuitive and accurate solution for 6D pose annotation. The user study used public 6D pose estimation datasets named Linemod [1] and HANDAL [2], where user-annotated poses were compared against ground-truth poses. The results illustrate the tool’s accuracy, efficiency, and usability, highlighting its potential as a standardized solution for 6D pose annotation.
 
 [1] S. Hinterstoisser, V. Lepetit, S. Ilic, S. Holzer, G. Bradski, K. Konolige, and N. Navab, “Model based training, detection and pose estimation of texture-less 3d objects in heavily cluttered scenes,” in Computer Vision – ACCV 2012, K. M. Lee, Y. Matsushita, J. M. Rehg, and Z. Hu, Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 2013, pp. 548–562.
 
