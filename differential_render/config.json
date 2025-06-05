@@ -1,0 +1,16 @@
+{   "test_name": "",
+    "fix_zoom": false,
+    "fold_num": 0,
+    "dataset_size": 10000,
+    "image_size": [108, 192],
+    "lr": 0.001,
+    "lr_d": 0.001,
+    "batch_size": 256,
+    "epochs": 2001,
+    "loss": {
+        "SmoothL1Loss": 1,
+        "SSIMLoss": 1,
+        "BCELoss": 1,
+        "CrossCorrLoss": 1
+    }
+}
