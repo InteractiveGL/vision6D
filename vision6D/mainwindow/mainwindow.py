@@ -76,17 +76,6 @@ class MyMainWindow(MainWindow):
 
         self.output_text = QtWidgets.QTextEdit()
 
-        # Add a QLabel as an overlay hint label
-        self.hintLabel = QtWidgets.QLabel(self.plotter)
-        self.hintLabel.setText("Drag and drop a file here (The feature only works on Windows)")
-        self.hintLabel.setStyleSheet("""
-                                    color: white; 
-                                    background-color: rgba(0, 0, 0, 127); 
-                                    padding: 10px;
-                                    border: 2px dashed gray;
-                                    """)
-        self.hintLabel.setAlignment(Qt.AlignCenter)
-
         self.scene = Scene(self.plotter, self.output_text)
                 
         self.toggle_hide_meshes_flag = False
@@ -223,7 +212,6 @@ class MyMainWindow(MainWindow):
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
             e.accept()
-            self.hintLabel.hide()  # Hide hint when dragging
         else:
             e.ignore()
 
@@ -288,7 +276,6 @@ class MyMainWindow(MainWindow):
         if prompt:
             image_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)")
         if image_paths:
-            self.hintLabel.hide()
             # Set up the camera
             self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_height)
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
@@ -309,7 +296,6 @@ class MyMainWindow(MainWindow):
         if prompt:
             mask_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.npy *.png *.jpg *.jpeg *.tiff *.bmp *.webp *.ico)") 
         if mask_paths:
-            self.hintLabel.hide()
             for mask_path in mask_paths:
                 mask_model = self.scene.mask_container.add_mask(mask_source = mask_path,
                                                                 fy = self.scene.fy,
@@ -347,7 +333,6 @@ class MyMainWindow(MainWindow):
         if prompt: 
             mesh_paths, _ = QtWidgets.QFileDialog().getOpenFileNames(None, "Open file", "", "Files (*.mesh *.ply *.stl *.obj *.off *.dae *.fbx *.3ds *.x3d)") 
         if mesh_paths:
-            self.hintLabel.hide()
             # Set up the camera
             self.scene.set_camera_intrinsics(self.scene.fx, self.scene.fy, self.scene.cx, self.scene.cy, self.scene.canvas_height)
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
@@ -415,7 +400,6 @@ class MyMainWindow(MainWindow):
 
     def add_pose_file(self, pose_path):
         if pose_path:
-            self.hintLabel.hide()
             if isinstance(pose_path, list): transformation_matrix = np.array(pose_path)
             else: transformation_matrix = np.load(pose_path)
             # set the initial pose of the mesh to the loaded transformation matrix
@@ -435,7 +419,6 @@ class MyMainWindow(MainWindow):
             input_pose = exception.set_data_format(user_text)
             if input_pose is not None:
                 if input_pose.shape == (4, 4):
-                    self.hintLabel.hide()
                     mesh_name = self.scene.mesh_container.reference # set the mesh to be the originally loaded mesh
                     mesh_model = self.scene.mesh_container.meshes[mesh_name]
                     transformation_matrix = utils.get_actor_user_matrix(mesh_model)
@@ -461,12 +444,6 @@ class MyMainWindow(MainWindow):
         checked_button = self.mesh_button_group_actors.checkedButton()
         self.scene.mesh_container.get_poses_from_undo()
         checked_button.click()
-
-    def resizeEvent(self, e):
-        x = (self.plotter.size().width() - self.hintLabel.width()) // 2
-        y = (self.plotter.size().height() - self.hintLabel.height()) // 2
-        self.hintLabel.move(x, y)
-        super().resizeEvent(e)
 
     # ^Menu
     def set_menu_bars(self):
@@ -514,14 +491,8 @@ class MyMainWindow(MainWindow):
             # self.panel_widget width changes when the panel is visiable or hiden
             self.panel_widget_width = self.panel_widget.width()
             self.panel_widget.hide()
-            x = (self.plotter.size().width() + self.panel_widget_width - self.hintLabel.width()) // 2
-            y = (self.plotter.size().height() - self.hintLabel.height()) // 2
-            self.hintLabel.move(x, y)
         else:
             self.panel_widget.show()
-            x = (self.plotter.size().width() - self.panel_widget_width - self.hintLabel.width()) // 2
-            y = (self.plotter.size().height() - self.hintLabel.height()) // 2
-            self.hintLabel.move(x, y)
 
     def set_panel_row_column(self, row, column):
         column += 1
@@ -1046,7 +1017,6 @@ class MyMainWindow(MainWindow):
         if workspace_path:
             self.clear_plot() # clear out everything before loading a workspace
             self.workspace_path = workspace_path
-            self.hintLabel.hide()
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
             if 'image_path' in workspace and workspace['image_path'] is not None: self.add_image_file(image_path=SAVE_ROOT / pathlib.Path(*workspace['image_path'].split("\\")))
             if 'mask_path' in workspace and workspace['mask_path'] is not None: self.add_mask_file(mask_path=SAVE_ROOT / pathlib.Path(*workspace['mask_path'].split("\\")))
@@ -1155,7 +1125,6 @@ class MyMainWindow(MainWindow):
         self.clear_mask()
         self.workspace_path = ''
         self.reset_output_text()
-        self.hintLabel.show()
     
     def remove_image_button_widget(self, button):
         for i in range(self.images_actors_group.widget_layout.count()): 
