@@ -563,7 +563,8 @@ class MyMainWindow(MainWindow):
             self.camera_calibrate()
 
     def panel_console(self):
-        console_group = QtWidgets.QGroupBox("Console")       # self.display = QtWidgets.QGroupBox("Console")
+        console_group = QtWidgets.QGroupBox("Console")
+        console_group.setObjectName("consoleGroupBox")
         display_layout = QtWidgets.QVBoxLayout()
         display_layout.setContentsMargins(10, 15, 10, 5)
 
@@ -639,6 +640,7 @@ class MyMainWindow(MainWindow):
 
     def camera_control_console(self):
         console_group = QtWidgets.QGroupBox("Camera Control")
+        console_group.setObjectName("consoleGroupBox")
 
         display_layout = QtWidgets.QVBoxLayout()
         display_layout.setContentsMargins(0, 15, 0, 5)
@@ -795,6 +797,7 @@ class MyMainWindow(MainWindow):
     def panel_output(self):
         # Add a spacer to the top of the main layout
         self.output = QtWidgets.QGroupBox("Output")
+        self.output.setObjectName("consoleGroupBox")
         output_layout = QtWidgets.QVBoxLayout()
         output_layout.setContentsMargins(10, 20, 10, 5)
 

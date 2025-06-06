@@ -170,6 +170,17 @@ QGroupBox
     margin-top: 10px;
 }
 
+QGroupBox#consoleGroupBox::title {
+    /* Style the title text bar */
+    subcontrol-origin: margin;
+    subcontrol-position: top left; /* title at top */
+    padding: 2px 5px;
+    color: #b1b1b1;
+    background-color: #323232;
+    border-radius: 3px;
+    font-size: 10pt;             /* use pt so it scales on high-DPI */
+}
+
 QGroupBox:focus
 {
     border: 1px solid darkgray;
