@@ -106,7 +106,7 @@ QPushButton
     border-style: solid;
     border-radius: 6;
     padding: 3px;
-    font-size: 9pt;
+    font-size: 12px;
     padding-left: 5px;
     padding-right: 5px;
     min-width: 40px;
