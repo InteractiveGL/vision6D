@@ -5,13 +5,13 @@
 
 /* 🌞 Light Theme Overrides */
 :root {
-  --ifm-color-primary:            #ff8c42;  /* primary orange */
+  --ifm-color-primary:            #f37021;  /* primary orange */
   --ifm-color-primary-dark:       #e67a37;
   --ifm-color-primary-darker:     #cc6b30;
   --ifm-color-primary-darkest:    #b35d29;
-  --ifm-color-primary-light:      #ffa45c;
-  --ifm-color-primary-lighter:    #ffb374;
-  --ifm-color-primary-lightest:   #ffc998;
+  --ifm-color-primary-light:      #f38321;
+  --ifm-color-primary-lighter:    #f3a321;
+  --ifm-color-primary-lightest:   #ffe1c4;
 
   --ifm-code-font-size:           95%;
   --docusaurus-highlighted-code-line-bg: rgba(255, 140, 66, 0.08);

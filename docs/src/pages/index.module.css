@@ -47,14 +47,23 @@
 }
 
 .buttonPrimary {
-  background: #ff8f00;
+  background: #f38321;
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   text-decoration: none;
   font-weight: 600;
+  font-size: 16px;       /* explicitly set font-size */
+  line-height: 1.25;     /* explicitly set line-height */
+  height: 50px;          /* explicit fixed height */
+  display: inline-flex;  /* allows vertical centering */
+  align-items: center;   /* vertical centering */
+  justify-content: center; /* horizontal centering */
+  box-sizing: border-box; 
+  border: none;
   transition: background 0.2s ease;
 }
+
 
 .buttonPrimary:hover {
   background: #ffe0b2;
@@ -77,6 +86,14 @@
   border-radius: 6px;
   text-decoration: none;
   font-weight: 600;
+  font-size: 16px;       /* explicitly set font-size */
+  line-height: 1.25;     /* explicitly set line-height */
+  height: 50px;          /* explicit fixed height */
+  display: inline-flex;  /* allows vertical centering */
+  align-items: center;   /* vertical centering */
+  justify-content: center; /* horizontal centering */
+  box-sizing: border-box; 
+  border: none;
   transition: background 0.2s ease;
 }
 

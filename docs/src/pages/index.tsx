@@ -51,7 +51,7 @@ export default function Home(): JSX.Element {
             <ThreeScene />
           </div>
           <div className={styles.heroContent}>
-            <h1>Vision6D</h1>
+            <h1><a href="https://github.com/InteractiveGL/vision6D">Vision6D</a></h1>
             <p>Redefining Pose Annotations</p>
             <div className={styles.heroButtons}>
               <Link
@@ -120,17 +120,17 @@ export default function Home(): JSX.Element {
           <div className={styles.textContent}>
             <h2>Real-time Pose Visualization</h2>
             <p>
-              Describe what you want to build in natural language, and Copilot
-              Edits takes care of the rest. Copilot Edits makes changes across
-              files in your codebase with a UI designed for rapid iteration.
-              It's the fastest way to add new functionality to your apps.
+              Vision6D provides a seamless experience for annotating 6D poses
+              with real-time feedback. The intuitive interface allows users to
+              interact with 2D and 3D views, making it easy to adjust and refine
+              annotations.
             </p>
-            <a
+            {/* <a
               className={styles.link}
               href="https://github.com/features/copilot"
             >
               Build with Copilot Edits
-            </a>
+            </a> */}
           </div>
 
           <div className={styles.imageContent}>
@@ -145,17 +145,11 @@ export default function Home(): JSX.Element {
           <div className={styles.textContent}>
             <h2>Depth Estimation</h2>
             <p>
-              Describe what you want to build in natural language, and Copilot
-              Edits takes care of the rest. Copilot Edits makes changes across
-              files in your codebase with a UI designed for rapid iteration.
-              It's the fastest way to add new functionality to your apps.
+              Besides of 6D pose annotations, Vision6D also supports depth
+              estimation. This feature allows users to determine depth information
+              alongside 6D pose data, supporting a broader usability of the interactive
+              annotations.
             </p>
-            <a
-              className={styles.link}
-              href="https://github.com/features/copilot"
-            >
-              Build with Copilot Edits
-            </a>
           </div>
 
           <div className={styles.imageContent}>
@@ -170,17 +164,9 @@ export default function Home(): JSX.Element {
           <div className={styles.textContent}>
             <h2>Single-Object Annotation</h2>
             <p>
-              Describe what you want to build in natural language, and Copilot
-              Edits takes care of the rest. Copilot Edits makes changes across
-              files in your codebase with a UI designed for rapid iteration.
-              It's the fastest way to add new functionality to your apps.
+              Vision6D offers an effective process for annotating single objects in 6D space. 
+              Users can easily select and interact with the targeting objects, ensuring accurate annotations with minimal effort.
             </p>
-            <a
-              className={styles.link}
-              href="https://github.com/features/copilot"
-            >
-              Build with Copilot Edits
-            </a>
           </div>
 
           <div className={styles.imageContent}>
@@ -195,18 +181,10 @@ export default function Home(): JSX.Element {
           <div className={styles.textContent}>
             <h2>Multi-Object Annotation</h2>
             <p>
-              Describe what you want to build in natural language, and Copilot
-              Edits takes care of the rest. Copilot Edits makes changes across
-              files in your codebase with a UI designed for rapid iteration.
-              It's the fastest way to add new functionality to your apps.
+              Vision6D is also a robust tool for annotating multiple objects within a scene. 
+              Users can easily link the multiple objects together and manipulate them, providing comprehensive and accurate annotations among multiple objects shown in the scene.
             </p>
-            <a
-              className={styles.link}
-              href="https://github.com/features/copilot"
-            >
-              Build with Copilot Edits
-            </a>
-          </div>
+            </div>
 
           <div className={styles.imageContent}>
             <img
@@ -220,18 +198,11 @@ export default function Home(): JSX.Element {
           <div className={styles.textContent}>
             <h2>PnP Registration</h2>
             <p>
-              Describe what you want to build in natural language, and Copilot
-              Edits takes care of the rest. Copilot Edits makes changes across
-              files in your codebase with a UI designed for rapid iteration.
-              It's the fastest way to add new functionality to your apps.
+              Vision6D supports PnP (Perspective-n-Point) registration, 
+              allowing users to easily register 2D images with 3D models by simple clicking. 
+              This feature will need a minimal of six pair of corresponding 2D and 3D points.
             </p>
-            <a
-              className={styles.link}
-              href="https://github.com/features/copilot"
-            >
-              Build with Copilot Edits
-            </a>
-          </div>
+            </div>
 
           <div className={styles.imageContent}>
             <img
@@ -245,17 +216,9 @@ export default function Home(): JSX.Element {
           <div className={styles.textContent}>
             <h2>Mask Overlay</h2>
             <p>
-              Describe what you want to build in natural language, and Copilot
-              Edits takes care of the rest. Copilot Edits makes changes across
-              files in your codebase with a UI designed for rapid iteration.
-              It's the fastest way to add new functionality to your apps.
+              Vision6D provides a mask overlay feature that allows users to visualize the segmentation masks of 3D objects in the 2D scene.
+              This feature can be helpful in the annotation process by providing a clear visual representation of object boundaries, and it can be potentially beneficial for downstream tasks such as object detection and segmentation.
             </p>
-            <a
-              className={styles.link}
-              href="https://github.com/features/copilot"
-            >
-              Build with Copilot Edits
-            </a>
           </div>
 
           <div className={styles.imageContent}>
@@ -277,9 +240,9 @@ export default function Home(): JSX.Element {
               <h3>Download</h3>
               <p>Detailed download instructions of Vision6D.</p>
             </Link>
-            <Link to="/docs/Download" className={styles.card}>
-              <h3>YouTube Tutorials</h3>
-              <p>Questions, walkthrough, and build instructions.</p>
+            <Link to="/blog" className={styles.card}>
+              <h3>Latest Blog</h3>
+              <p>Updated regularly with the latest news and tutorials.</p>
             </Link>
             <Link to="/faq" className={styles.card}>
               <h3>FAQ</h3>
