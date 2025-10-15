@@ -1,5 +1,6 @@
 import json
 import numpy as np
+np.set_printoptions(suppress=True)
 
 def convert_to_4x4(cam_R_m2c, cam_t_m2c, scale=1):
     # Convert rotation list to a 3x3 matrix

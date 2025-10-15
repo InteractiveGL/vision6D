@@ -338,19 +338,7 @@ class MyMainWindow(MainWindow):
             self.scene.set_camera_extrinsics(self.scene.cam_viewup)
             for mesh_path in mesh_paths:
                 mesh_model = self.scene.mesh_container.add_mesh_actor(mesh_source=mesh_path, transformation_matrix=np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 1e+3], [0, 0, 0, 1]]))
-                button_widget = CustomMeshButtonWidget(mesh_model.name)
-                button_widget.colorChanged.connect(lambda color, name=mesh_model.name: self.scene.mesh_color_value_change(name, color))
-                button_widget.removeButtonClicked.connect(self.remove_mesh_button)
-                mesh_model.color_button = button_widget.square_button
-                mesh_model.color_button.setStyleSheet(f"background-color: {mesh_model.color}")
-                mesh_model.opacity_spinbox = button_widget.double_spinbox
-                mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
-                mesh_model.opacity_spinbox.valueChanged.connect(lambda value, name=mesh_model.name: self.scene.mesh_container.set_mesh_opacity(name, value))
-                button = button_widget.button
-                button.setCheckable(True)
-                button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.check_mesh_button(name, output_text))
-                self.mesh_button_group_actors.addButton(button_widget.button)
-                self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
+                self.add_mesh_button(mesh_model.name)
             if self.scene.mesh_container.reference is None: self.set_camera_spinbox(indicator=True)
             if self.link_mesh_button.isChecked() and self.scene.mesh_container.reference is not None: self.on_link_mesh_button_toggle(checked=self.link_mesh_button.isChecked(), clicked=True)
             else: self.check_mesh_button(name=mesh_model.name, output_text=True)
@@ -921,6 +909,25 @@ class MyMainWindow(MainWindow):
         self.block_value_change_signal(self.camera_tx_control.spin_box, translation[0])
         self.block_value_change_signal(self.camera_ty_control.spin_box, translation[1])
         self.block_value_change_signal(self.camera_tz_control.spin_box, translation[2])
+        
+    def add_mesh_button(self, name):
+        button_widget = CustomMeshButtonWidget(name)
+        button_widget.colorChanged.connect(lambda color, name=name: self.scene.mesh_color_value_change(name, color))
+        button_widget.removeButtonClicked.connect(self.remove_mesh_button)
+        button = button_widget.button
+        
+        mesh_model = self.scene.mesh_container.meshes[name]
+        mesh_model.color_button = button_widget.square_button
+        mesh_model.color_button.setStyleSheet(f"background-color: {mesh_model.color}")
+        mesh_model.opacity_spinbox = button_widget.double_spinbox
+        mesh_model.opacity_spinbox.setValue(mesh_model.opacity)
+        mesh_model.opacity_spinbox.valueChanged.connect(lambda value, name=mesh_model.name: self.scene.mesh_container.set_mesh_opacity(name, value))
+        
+        button.setCheckable(True)
+        button.setChecked(True) # Set the newly added button as checked (#todo: or not?)
+        button.clicked.connect(lambda _, name=mesh_model.name, output_text=True: self.check_mesh_button(name, output_text))
+        self.mesh_button_group_actors.addButton(button_widget.button)
+        self.mesh_actors_group.widget_layout.insertWidget(0, button_widget)
                     
     def check_mesh_button(self, name, output_text):
         button = next((btn for btn in self.mesh_button_group_actors.buttons() if btn.text() == name), None)
@@ -972,13 +979,14 @@ class MyMainWindow(MainWindow):
         button_widget.colorChanged.connect(lambda color, name=name: self.scene.mask_color_value_change(name, color))
         button_widget.removeButtonClicked.connect(self.remove_mask_button)
         button = button_widget.button
+        
         mask_model = self.scene.mask_container.masks[name]
         mask_model.opacity_spinbox = button_widget.double_spinbox
         mask_model.opacity_spinbox.setValue(mask_model.opacity)
         mask_model.opacity_spinbox.valueChanged.connect(lambda value, name=name: self.scene.mask_container.set_mask_opacity(name, value))
         mask_model.color_button = button_widget.square_button
         mask_model.color_button.setStyleSheet(f"background-color: {mask_model.color}")
-        # check the button
+        
         button.setCheckable(True)
         button.setChecked(False)
         button.clicked.connect(lambda _, name=name: self.handle_mask_click(name))
@@ -1018,14 +1026,14 @@ class MyMainWindow(MainWindow):
             self.clear_plot() # clear out everything before loading a workspace
             self.workspace_path = workspace_path
             with open(str(self.workspace_path), 'r') as f: workspace = json.load(f)
-            if 'image_path' in workspace and workspace['image_path'] is not None: self.add_image_file(image_path=SAVE_ROOT / pathlib.Path(*workspace['image_path'].split("\\")))
-            if 'mask_path' in workspace and workspace['mask_path'] is not None: self.add_mask_file(mask_path=SAVE_ROOT / pathlib.Path(*workspace['mask_path'].split("\\")))
+            if 'image_path' in workspace and workspace['image_path'] is not None: self.add_image_file(image_paths=[pathlib.Path(*workspace['image_path'].values())])
+            # if 'mask_path' in workspace and workspace['mask_path'] is not None: self.add_mask_file(mask_paths=[pathlib.Path(*workspace['mask_path'].split("\\"))])
             if 'mesh_path' in workspace:
                 meshes = workspace['mesh_path']
                 for item in meshes: 
                     mesh_path, pose = meshes[item]
-                    self.add_mesh_file(mesh_path = SAVE_ROOT / pathlib.Path(*mesh_path.split("\\")))
-                    self.add_pose_file(pose)
+                    mesh_model = self.scene.mesh_container.add_mesh_actor(mesh_source = pathlib.Path(*mesh_path.split("\\")), transformation_matrix = np.array(pose))
+                    self.add_mesh_button(mesh_model.name)
             self.reset_camera()
 
     def export_workspace(self):
