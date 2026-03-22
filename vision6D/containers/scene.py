@@ -127,7 +127,7 @@ class Scene():
     def mesh_color_value_change(self, name, color):
         if name in self.mesh_container.meshes:
             try:
-                color = self.mesh_container.set_color(name, color)
+                color, _ = self.mesh_container.set_color(name, color)
                 mesh_model = self.mesh_container.meshes[name]
                 mesh_model.color = color
                 if color != "nocs" and color != "texture": 

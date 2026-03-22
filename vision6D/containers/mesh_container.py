@@ -108,7 +108,7 @@ class MeshContainer(metaclass=Singleton):
         mesh.user_matrix = mesh_model.actor.user_matrix
         mesh_model.actor = mesh #^ very import to change the actor too!
         if scalars is None and color == 'texture': color = mesh_model.color
-        return color
+        return color, mesh
             
     def set_mesh_opacity(self, name: str, mesh_opacity: float):
         mesh_model = self.meshes[name]

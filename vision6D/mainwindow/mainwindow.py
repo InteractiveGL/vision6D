@@ -415,7 +415,7 @@ class MyMainWindow(MainWindow):
                     try:
                         mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, pickable=True, name=mesh_name)
                     except ValueError:
-                        self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
+                        _, mesh = self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
                     mesh_model.actor = mesh
                     mesh_model.actor.user_matrix = transformation_matrix
                     self.scene.mesh_container.meshes[mesh_name] = mesh_model
@@ -687,7 +687,7 @@ class MyMainWindow(MainWindow):
                 try:
                     mesh = self.plotter.add_mesh(mesh_model.pv_obj, color=mesh_model.color, opacity=mesh_model.opacity, pickable=True, name=mesh_name)
                 except ValueError:
-                    self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
+                    _, mesh = self.scene.mesh_container.set_color(mesh_name, mesh_model.color)
                 mesh_model.actor = mesh
                 mesh_model.actor.user_matrix = new_rt
                 self.scene.mesh_container.meshes[mesh_name] = mesh_model
